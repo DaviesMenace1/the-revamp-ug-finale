@@ -5,6 +5,12 @@
  * Usage: pnpm tsx scripts/brevo-setup.ts
  */
 
+import { config } from 'dotenv';
+import path from 'path';
+
+// Load environment variables from .env.local
+config({ path: path.resolve(process.cwd(), '.env.local') });
+
 import BrevoClient from '../lib/brevo/client';
 import { BREVO_FOLDERS, BREVO_LISTS, BREVO_EMAIL_TEMPLATE_FOLDERS } from '../lib/brevo/config';
 

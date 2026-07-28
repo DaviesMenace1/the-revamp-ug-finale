@@ -63,7 +63,7 @@ class BrevoClient {
   async getLists(): Promise<{
     lists: Array<{ id: number; name: string; folderId?: string }>;
   }> {
-    return this.request('/contacts/lists?limit=100', { method: 'GET' });
+    return this.request('/contacts/lists?limit=50', { method: 'GET' });
   }
 
   /**

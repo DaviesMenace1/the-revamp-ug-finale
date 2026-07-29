@@ -97,7 +97,6 @@ export async function syncOrderToBrevo(orderId: string) {
       company: user.company ?? undefined,
       attributes: {
         orderStatus: order.status ?? undefined,
-        orderTotal: order.totalAmount?.toString(),
         orderDate: order.createdAt?.toISOString(),
         lastInteraction: new Date().toISOString(),
       },

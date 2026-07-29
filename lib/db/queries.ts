@@ -1,6 +1,9 @@
 import { db } from './client';
 import { users, products, projects, orders, consultations, articles } from './schema';
-import { eq, desc, and, ilike } from 'drizzle-orm';
+import { eq, desc, ilike } from 'drizzle-orm';
+import type { InferSelectModel } from 'drizzle-orm';
+
+type OrderStatus = InferSelectModel<typeof orders>['status'];
 
 // ============================================================================
 // PRODUCTS
@@ -52,7 +55,7 @@ export async function getProjectById(id: string) {
   });
 }
 
-export async function getProjectsByType(type: string) {
+export async function getProjectsByType(type: InferSelectModel<typeof projects>['type']) {
   return await db.query.projects.findMany({
     where: eq(projects.type, type),
     orderBy: desc(projects.createdAt),
@@ -76,7 +79,7 @@ export async function getUserOrders(userId: string) {
   });
 }
 
-export async function getOrdersByStatus(status: string) {
+export async function getOrdersByStatus(status: OrderStatus) {
   return await db.query.orders.findMany({
     where: eq(orders.status, status),
     orderBy: desc(orders.createdAt),

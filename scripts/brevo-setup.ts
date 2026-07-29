@@ -5,11 +5,29 @@
  * Usage: pnpm tsx scripts/brevo-setup.ts
  */
 
-import { config } from 'dotenv';
-import path from 'path';
+// Load environment variables before any imports that use them
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 
-// Load environment variables from .env.local
-config({ path: path.resolve(process.cwd(), '.env.local') });
+function loadEnv() {
+  const envFiles = ['.env.development.local', '.env.local', '.env'];
+  for (const file of envFiles) {
+    try {
+      const content = readFileSync(resolve(process.cwd(), file), 'utf8');
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const idx = trimmed.indexOf('=');
+        if (idx === -1) continue;
+        const key = trimmed.slice(0, idx).trim();
+        const val = trimmed.slice(idx + 1).trim().replace(/^['"]|['"]$/g, '');
+        if (!process.env[key]) process.env[key] = val;
+      }
+      break;
+    } catch {}
+  }
+}
+loadEnv();
 
 import BrevoClient from '../lib/brevo/client';
 import { BREVO_FOLDERS, BREVO_LISTS, BREVO_EMAIL_TEMPLATE_FOLDERS } from '../lib/brevo/config';
@@ -80,7 +98,7 @@ async function setupContactLists(): Promise<void> {
         listIdMap[key] = existingList.id;
       } else {
         try {
-          const created = await client.createList(list.name, folderId);
+          const created = await client.createList(list.name, folderId?.toString());
           console.log(`✓ Created list: ${list.name} (ID: ${created.id})`);
           listIdMap[key] = created.id;
         } catch (error) {

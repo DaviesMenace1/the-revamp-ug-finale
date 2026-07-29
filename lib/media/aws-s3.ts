@@ -52,9 +52,10 @@ interface S3UploadResponse {
  * Encrypt sensitive data
  */
 function encryptData(data: Buffer, key: string): Buffer {
-  const cipher = crypto.createCipher('aes-256-cbc', key);
-  let encrypted = cipher.update(data);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  const iv = crypto.randomBytes(16);
+  const keyBuffer = crypto.createHash('sha256').update(key).digest();
+  const cipher = crypto.createCipheriv('aes-256-cbc', keyBuffer, iv);
+  const encrypted = Buffer.concat([iv, cipher.update(data), cipher.final()]);
   return encrypted;
 }
 

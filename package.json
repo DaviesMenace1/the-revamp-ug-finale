@@ -18,6 +18,8 @@
     "@aws-sdk/s3-request-presigner": "^3.1097.0",
     "@base-ui/react": "^1.5.0",
     "@clerk/nextjs": "^7.6.2",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "@vercel/analytics": "1.6.1",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.10.0",

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getProjects, getProjectsByType } from '@/lib/db/queries';
+import { getProjects, getProjectsByCategory } from '@/lib/db/queries';
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const type = searchParams.get('type');
+    const category = searchParams.get('category');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
 
     let projects;
 
-    if (type) {
-      projects = await getProjectsByType(type);
+    if (category) {
+      projects = await getProjectsByCategory(category);
     } else {
       projects = await getProjects(limit, offset);
     }

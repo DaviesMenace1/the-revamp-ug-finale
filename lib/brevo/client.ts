@@ -4,7 +4,7 @@
  */
 
 interface BrevoRequestInit extends RequestInit {
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 }
 
 class BrevoClient {

@@ -3,7 +3,8 @@ import { users, products, projects, orders, consultations, articles } from './sc
 import { eq, desc, ilike } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 
-type OrderStatus = InferSelectModel<typeof orders>['status'];
+type OrderStatus = NonNullable<InferSelectModel<typeof orders>['status']>;
+type ProjectStatus = NonNullable<InferSelectModel<typeof projects>['status']>;
 
 // ============================================================================
 // PRODUCTS
@@ -55,9 +56,16 @@ export async function getProjectById(id: string) {
   });
 }
 
-export async function getProjectsByType(type: InferSelectModel<typeof projects>['type']) {
+export async function getProjectsByStatus(status: ProjectStatus) {
   return await db.query.projects.findMany({
-    where: eq(projects.type, type),
+    where: eq(projects.status, status),
+    orderBy: desc(projects.createdAt),
+  });
+}
+
+export async function getProjectsByCategory(category: string) {
+  return await db.query.projects.findMany({
+    where: eq(projects.category, category),
     orderBy: desc(projects.createdAt),
   });
 }

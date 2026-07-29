@@ -51,11 +51,14 @@ export const paymentStatusEnum = pgEnum('payment_status', [
   'refunded',
 ]);
 
-// Users Table
+// Users Table — synced from Clerk via webhook
+// clerkId is the Clerk user_id (e.g. "user_2abc123")
+// All FK references use this table's id (uuid), not the clerkId
 export const users = pgTable(
   'users',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    clerkId: varchar('clerk_id', { length: 255 }).notNull().unique(), // Clerk user_id
     email: varchar('email', { length: 255 }).notNull().unique(),
     firstName: varchar('first_name', { length: 100 }),
     lastName: varchar('last_name', { length: 100 }),
@@ -68,11 +71,13 @@ export const users = pgTable(
     bio: text('bio'),
     marketingConsent: boolean('marketing_consent').default(true),
     preferredLanguage: varchar('preferred_language', { length: 5 }).default('en'),
+    brevoContactId: varchar('brevo_contact_id', { length: 100 }), // Brevo contact reference
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   (table) => ({
     emailIdx: uniqueIndex('email_idx').on(table.email),
+    clerkIdx: uniqueIndex('clerk_id_idx').on(table.clerkId),
     roleIdx: index('role_idx').on(table.role),
   })
 );

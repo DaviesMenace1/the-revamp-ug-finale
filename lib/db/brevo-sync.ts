@@ -16,12 +16,11 @@ export async function syncNewUserToBrevo(userId: string) {
 
     await syncContactToBrevo({
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      phone: user.phone,
-      company: user.company,
+      firstName: user.firstName ?? undefined,
+      lastName: user.lastName ?? undefined,
+      phone: user.phone ?? undefined,
+      company: user.company ?? undefined,
       attributes: {
-        clientType: user.clientType,
         leadSource: 'website_signup',
         dateJoined: new Date().toISOString(),
       },
@@ -51,15 +50,14 @@ export async function syncConsultationToBrevo(consultationId: string) {
 
     await syncContactToBrevo({
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      phone: user.phone,
-      company: user.company,
+      firstName: user.firstName ?? undefined,
+      lastName: user.lastName ?? undefined,
+      phone: user.phone ?? undefined,
+      company: user.company ?? undefined,
       attributes: {
-        serviceInterest: consultation.serviceType,
-        projectType: consultation.projectType,
-        budget: consultation.budget?.toString(),
-        consultationDate: consultation.scheduledAt?.toISOString(),
+        serviceInterest: consultation.serviceType ?? undefined,
+        budget: consultation.budget ?? undefined,
+        consultationDate: consultation.preferredDate?.toISOString(),
         leadSource: 'consultation_request',
       },
       listIds: [6, 11], // Consultation Requests + Consultation Scheduled
@@ -86,24 +84,19 @@ export async function syncOrderToBrevo(orderId: string) {
 
     if (!user) return;
 
-    // Determine which list based on order status
     const listIds: number[] = [];
-    if (order.status === 'pending') {
-      listIds.push(13); // Quote Notifications
-    } else if (order.status === 'confirmed') {
-      listIds.push(32); // Payment Notifications
-    } else if (order.status === 'shipped') {
-      listIds.push(34); // Shipping Notifications
-    }
+    if (order.status === 'pending') listIds.push(13);
+    else if (order.status === 'confirmed') listIds.push(32);
+    else if (order.status === 'shipped') listIds.push(34);
 
     await syncContactToBrevo({
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      phone: user.phone,
-      company: user.company,
+      firstName: user.firstName ?? undefined,
+      lastName: user.lastName ?? undefined,
+      phone: user.phone ?? undefined,
+      company: user.company ?? undefined,
       attributes: {
-        orderStatus: order.status,
+        orderStatus: order.status ?? undefined,
         orderTotal: order.totalAmount?.toString(),
         orderDate: order.createdAt?.toISOString(),
         lastInteraction: new Date().toISOString(),
@@ -128,10 +121,10 @@ export async function markAsActiveClientInBrevo(userId: string) {
 
     await syncContactToBrevo({
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      phone: user.phone,
-      company: user.company,
+      firstName: user.firstName ?? undefined,
+      lastName: user.lastName ?? undefined,
+      phone: user.phone ?? undefined,
+      company: user.company ?? undefined,
       attributes: {
         clientType: 'active',
         lastPurchase: new Date().toISOString(),

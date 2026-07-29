@@ -75,13 +75,7 @@ export async function POST(req: Request) {
         .returning()
 
       // Sync to Brevo
-      await syncNewUserToBrevo({
-        id: newUser.id,
-        email: newUser.email,
-        firstName: newUser.firstName ?? undefined,
-        lastName: newUser.lastName ?? undefined,
-        phone: newUser.phone ?? undefined,
-      })
+      await syncNewUserToBrevo(newUser.id)
     } catch (err) {
       console.error('[v0] Clerk webhook user.created error:', err)
       return new Response('Error creating user', { status: 500 })

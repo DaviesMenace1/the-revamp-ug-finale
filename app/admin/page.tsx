@@ -1,3 +1,5 @@
+'use client'
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 
@@ -17,7 +19,7 @@ const ordersData = [
   { week: 'Week 4', orders: 42 },
 ]
 
-export default async function AdminDashboard() {
+export default function AdminDashboard() {
   return (
     <div className="space-y-8 p-8">
       <div>

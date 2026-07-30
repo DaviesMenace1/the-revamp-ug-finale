@@ -19,8 +19,59 @@ interface Blog {
   createdAt: string
 }
 
+const SEED_BLOGS: Blog[] = [
+  {
+    id: '1',
+    title: 'The Art of Modern Interior Design in East Africa',
+    slug: 'art-modern-interior-design-east-africa',
+    excerpt: 'Exploring how contemporary design principles blend with East African heritage to create timeless interiors.',
+    content: 'Modern interior design in East Africa represents a unique convergence of global contemporary trends and rich cultural heritage. By incorporating traditional patterns, natural materials, and craftsmanship alongside minimalist aesthetics, designers create spaces that honor the past while embracing the future. This approach has become increasingly popular among progressive homeowners seeking authentic yet sophisticated living environments.',
+    category: 'Design Inspiration',
+    author: 'Faridah Nakayiwa',
+    status: 'published',
+    publishedAt: new Date().toLocaleDateString(),
+    createdAt: new Date().toLocaleDateString(),
+  },
+  {
+    id: '2',
+    title: 'Sustainable Luxury: Ethical Sourcing in High-End Furniture',
+    slug: 'sustainable-luxury-ethical-sourcing',
+    excerpt: 'How luxury brands are redefining sustainability through responsible sourcing and eco-conscious production.',
+    content: 'The luxury furniture market is undergoing a profound transformation. Today\'s discerning clients demand not just beautiful pieces, but also assurance that their investments align with their values. Sustainable luxury means sourcing materials responsibly, supporting ethical labor practices, and creating timeless pieces designed to last generations. This shift is not just beneficial for the environment—it elevates the entire design experience.',
+    category: 'Sustainability',
+    author: 'Davis Musinguzi',
+    status: 'published',
+    publishedAt: new Date().toLocaleDateString(),
+    createdAt: new Date().toLocaleDateString(),
+  },
+  {
+    id: '3',
+    title: 'Creating Spaces That Reflect Your Story',
+    slug: 'creating-spaces-reflect-your-story',
+    excerpt: 'A guide to designing personalized interiors that tell the unique narrative of your life and values.',
+    content: 'Your home should be more than a place to live—it should be a reflection of who you are. The most compelling interiors are those that weave together personal history, cultural identity, and aspirations into a cohesive design narrative. Whether through carefully curated artwork, family heirlooms displayed alongside contemporary pieces, or spaces dedicated to your passions, intentional design creates homes that feel authentically lived-in and deeply meaningful.',
+    category: 'Design Philosophy',
+    author: 'Faridah Nakayiwa',
+    status: 'published',
+    publishedAt: new Date().toLocaleDateString(),
+    createdAt: new Date().toLocaleDateString(),
+  },
+  {
+    id: '4',
+    title: 'The Future of Interior Architecture: Emerging Trends in 2026',
+    slug: 'future-interior-architecture-trends-2026',
+    excerpt: 'Exploring the cutting-edge design movements and technologies reshaping how we envision modern living spaces.',
+    content: 'As we look toward 2026, several powerful trends are emerging in interior architecture. Biophilic design continues to gain momentum, with natural elements and living systems becoming integral to healthy spaces. Meanwhile, technological integration—from smart lighting to adaptive furniture—creates homes that respond to our needs. The shift toward adaptable, multi-functional spaces reflects changing work and lifestyle patterns. These trends converge in a design philosophy that prioritizes wellness, flexibility, and environmental consciousness.',
+    category: 'Trends',
+    author: 'Davis Musinguzi',
+    status: 'draft',
+    publishedAt: '',
+    createdAt: new Date().toLocaleDateString(),
+  },
+]
+
 export default function AdminBlogs() {
-  const [blogs, setBlogs] = useState<Blog[]>([])
+  const [blogs, setBlogs] = useState<Blog[]>(SEED_BLOGS)
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)

@@ -17,8 +17,61 @@ interface Project {
   createdAt: string
 }
 
+const SEED_PROJECTS: Project[] = [
+  {
+    id: '1',
+    name: 'Nakasero Residence',
+    client: 'Sarah Kiwanuka',
+    description: 'Modern family home renovation with contemporary interior design. Focus on open-plan living and sustainable materials.',
+    status: 'in-progress',
+    progress: 65,
+    dueDate: '2026-09-15',
+    createdAt: new Date().toLocaleDateString(),
+  },
+  {
+    id: '2',
+    name: 'Kololo Villa Renovation',
+    client: 'James Mutua',
+    description: 'Luxury villa renovation featuring custom furniture and bespoke design elements. Multi-phase project with high-end finishes.',
+    status: 'in-progress',
+    progress: 45,
+    dueDate: '2026-10-30',
+    createdAt: new Date().toLocaleDateString(),
+  },
+  {
+    id: '3',
+    name: 'Serena Penthouse Suite',
+    client: 'Hotel Management',
+    description: 'Five-star hotel penthouse suite complete interior design. Premium materials and luxury finishes throughout.',
+    status: 'completed',
+    progress: 100,
+    dueDate: '2026-08-20',
+    createdAt: new Date().toLocaleDateString(),
+  },
+  {
+    id: '4',
+    name: 'Muyenga Heritage Home',
+    client: 'Family Trust',
+    description: 'Heritage home preservation with modern amenities. Blending traditional architecture with contemporary comfort.',
+    status: 'on-hold',
+    progress: 30,
+    dueDate: '2026-11-10',
+    createdAt: new Date().toLocaleDateString(),
+  },
+  {
+    id: '5',
+    name: 'Pearl Marina Corporate HQ',
+    client: 'Corporate Client',
+    description: 'Corporate headquarters interior design. Conference rooms, executive offices, and collaborative workspaces.',
+    status: 'in-progress',
+    progress: 75,
+    dueDate: '2026-09-30',
+    createdAt: new Date().toLocaleDateString(),
+  },
+]
+
 export default function AdminProjects() {
-  const [projects, setProjects] = useState<Project[]>([])
+  const [projects, setProjects] = useState<Project[]>(SEED_PROJECTS)
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)

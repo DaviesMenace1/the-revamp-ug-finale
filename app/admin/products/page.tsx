@@ -16,8 +16,56 @@ interface Product {
   createdAt: string
 }
 
+const SEED_PRODUCTS: Product[] = [
+  {
+    id: '1',
+    name: 'Savannah Modular Sofa',
+    price: '3200',
+    collection: 'Living Room',
+    description: 'Contemporary modular sofa with premium upholstery. Features adjustable configuration for flexible living spaces.',
+    status: 'published',
+    createdAt: new Date().toLocaleDateString(),
+  },
+  {
+    id: '2',
+    name: 'Aria Lounge Chair',
+    price: '1800',
+    collection: 'Seating',
+    description: 'Elegant lounge chair with ergonomic design. Perfect for reading nooks and accent spaces.',
+    status: 'published',
+    createdAt: new Date().toLocaleDateString(),
+  },
+  {
+    id: '3',
+    name: 'Horizon Coffee Table',
+    price: '890',
+    collection: 'Tables',
+    description: 'Minimalist coffee table with natural wood finish. Features clean lines and sustainable materials.',
+    status: 'published',
+    createdAt: new Date().toLocaleDateString(),
+  },
+  {
+    id: '4',
+    name: 'Eclipse Floor Lamp',
+    price: '450',
+    collection: 'Lighting',
+    description: 'Statement floor lamp with adjustable head. Creates ambient lighting for any room.',
+    status: 'draft',
+    createdAt: new Date().toLocaleDateString(),
+  },
+  {
+    id: '5',
+    name: 'Luxe Area Rug',
+    price: '2100',
+    collection: 'Textiles',
+    description: 'Handwoven area rug with traditional African patterns. Adds warmth and character to living spaces.',
+    status: 'published',
+    createdAt: new Date().toLocaleDateString(),
+  },
+]
+
 export default function AdminProducts() {
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<Product[]>(SEED_PRODUCTS)
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)

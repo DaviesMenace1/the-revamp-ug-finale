@@ -37,25 +37,25 @@ export default function ClientDashboard() {
           <Card className="p-6 border-border/20 hover:border-primary/20 transition-colors">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Active Projects</p>
-              <p className="font-serif text-4xl font-light text-primary">3</p>
+              <p className="font-serif text-4xl font-light text-primary">0</p>
             </div>
           </Card>
           <Card className="p-6 border-border/20 hover:border-primary/20 transition-colors">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Pending Consultations</p>
-              <p className="font-serif text-4xl font-light text-primary">1</p>
+              <p className="font-serif text-4xl font-light text-primary">0</p>
             </div>
           </Card>
           <Card className="p-6 border-border/20 hover:border-primary/20 transition-colors">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Recent Orders</p>
-              <p className="font-serif text-4xl font-light text-primary">5</p>
+              <p className="font-serif text-4xl font-light text-primary">0</p>
             </div>
           </Card>
           <Card className="p-6 border-border/20 hover:border-primary/20 transition-colors">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Unread Messages</p>
-              <p className="font-serif text-4xl font-light text-primary">2</p>
+              <p className="font-serif text-4xl font-light text-primary">0</p>
             </div>
           </Card>
         </div>
@@ -69,27 +69,10 @@ export default function ClientDashboard() {
               <h2 className="font-serif text-2xl font-light text-foreground">Your Projects</h2>
             </div>
             <div className="space-y-3">
-              {[
-                { name: 'Nakasero Residence', status: 'Design Phase', progress: 60 },
-                { name: 'Kololo Villa', status: 'Procurement', progress: 45 },
-                { name: 'Penthouse Suite', status: 'Installation', progress: 85 },
-              ].map(project => (
-                <Card key={project.name} className="p-4 border-border/20">
-                  <div className="space-y-2">
-                    <p className="font-medium text-foreground">{project.name}</p>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">{project.status}</span>
-                      <span className="text-primary font-medium">{project.progress}%</span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div
-                        className="bg-primary h-2 rounded-full"
-                        style={{ width: `${project.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                </Card>
-              ))}
+              <Card className="p-8 border-border/20 border-dashed flex flex-col items-center justify-center text-center">
+                <p className="text-muted-foreground mb-3">No active projects yet</p>
+                <p className="text-sm text-muted-foreground/70">Projects will appear here once your consultation is scheduled.</p>
+              </Card>
             </div>
             <Link
               href="/client/projects"

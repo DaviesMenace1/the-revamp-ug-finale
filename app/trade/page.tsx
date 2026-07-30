@@ -36,25 +36,25 @@ export default function TradeDashboard() {
           <Card className="p-6 border-border/20">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Orders</p>
-              <p className="font-serif text-4xl font-light text-primary">24</p>
+              <p className="font-serif text-4xl font-light text-primary">0</p>
             </div>
           </Card>
           <Card className="p-6 border-border/20">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">YTD Savings</p>
-              <p className="font-serif text-4xl font-light text-primary">$18.5K</p>
+              <p className="font-serif text-4xl font-light text-primary">$0</p>
             </div>
           </Card>
           <Card className="p-6 border-border/20">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Pending Orders</p>
-              <p className="font-serif text-4xl font-light text-primary">3</p>
+              <p className="font-serif text-4xl font-light text-primary">0</p>
             </div>
           </Card>
           <Card className="p-6 border-border/20">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Available Credits</p>
-              <p className="font-serif text-4xl font-light text-primary">$5.2K</p>
+              <p className="font-serif text-4xl font-light text-primary">$0</p>
             </div>
           </Card>
         </div>
@@ -90,26 +90,10 @@ export default function TradeDashboard() {
         {/* Featured Collections */}
         <div className="space-y-4">
           <h2 className="font-serif text-2xl font-light text-foreground">Featured Collections</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { name: 'Contemporary Living', items: 45, discount: '20%' },
-              { name: 'Heritage Furniture', items: 32, discount: '18%' },
-              { name: 'Outdoor Collections', items: 28, discount: '15%' },
-            ].map(collection => (
-              <Card key={collection.name} className="p-6 border-border/20">
-                <div className="space-y-3">
-                  <h3 className="font-medium text-foreground">{collection.name}</h3>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{collection.items} items</span>
-                    <span className="text-primary font-medium">Save {collection.discount}</span>
-                  </div>
-                  <Link href={`/trade/collections/${collection.name.toLowerCase().replace(/ /g, '-')}`} className="text-sm text-primary hover:text-primary/80">
-                    View →
-                  </Link>
-                </div>
-              </Card>
-            ))}
-          </div>
+          <Card className="p-8 border-border/20 border-dashed flex flex-col items-center justify-center text-center">
+            <p className="text-muted-foreground mb-3">No collections yet</p>
+            <p className="text-sm text-muted-foreground/70">Collections will be added through the admin panel.</p>
+          </Card>
         </div>
       </div>
     </PortalLayout>

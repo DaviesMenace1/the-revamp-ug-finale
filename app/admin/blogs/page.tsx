@@ -78,6 +78,7 @@ export default function AdminBlogs() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     title: '',
+    slug: '',
     category: 'design-tips',
     author: '',
     content: '',

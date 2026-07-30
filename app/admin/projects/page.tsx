@@ -80,7 +80,7 @@ export default function AdminProjects() {
     name: '',
     client: '',
     description: '',
-    status: 'draft' as const,
+    status: 'draft' as 'draft' | 'in-progress' | 'completed' | 'on-hold',
     progress: '0',
     dueDate: '',
   })

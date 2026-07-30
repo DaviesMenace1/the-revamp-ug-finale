@@ -13,7 +13,6 @@ export default function BookConsultationPage() {
     email: '',
     phone: '',
     projectType: '',
-    preferredDate: '',
     message: '',
   })
 
@@ -32,7 +31,6 @@ export default function BookConsultationPage() {
       email: '',
       phone: '',
       projectType: '',
-      preferredDate: '',
       message: '',
     })
   }
@@ -57,22 +55,6 @@ export default function BookConsultationPage() {
         <section className="py-20 md:py-28">
           <div className="mx-auto max-w-3xl px-6 md:px-8">
             <div className="space-y-12">
-              {/* Info */}
-              <div className="grid md:grid-cols-3 gap-8 pb-12 border-b border-border/20">
-                <div>
-                  <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-2">Duration</p>
-                  <p className="text-muted-foreground font-light">60 minutes</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-2">Location</p>
-                  <p className="text-muted-foreground font-light">In-person or Virtual</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-2">Investment</p>
-                  <p className="text-muted-foreground font-light">Complimentary</p>
-                </div>
-              </div>
-
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-8">
                 <div>
@@ -145,21 +127,6 @@ export default function BookConsultationPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="preferredDate" className="block text-sm font-medium text-foreground mb-3">
-                    Preferred Consultation Date <span className="text-primary">*</span>
-                  </label>
-                  <Input
-                    id="preferredDate"
-                    name="preferredDate"
-                    type="date"
-                    value={formState.preferredDate}
-                    onChange={handleChange}
-                    className="rounded-none border-muted"
-                    required
-                  />
-                </div>
-
-                <div>
                   <label htmlFor="message" className="block text-sm font-medium text-foreground mb-3">
                     Tell us about your project
                   </label>
@@ -201,14 +168,6 @@ export default function BookConsultationPage() {
                 {
                   q: 'What should I prepare for the consultation?',
                   a: 'Bring photos of your space, inspiration images, and a general budget range if available.',
-                },
-                {
-                  q: 'Is the consultation really free?',
-                  a: 'Yes, our initial consultation is complimentary. We offer it to understand your vision and needs.',
-                },
-                {
-                  q: 'How far in advance should I book?',
-                  a: 'We typically have availability within 2-3 weeks. Book at your earliest convenience.',
                 },
                 {
                   q: 'Can I do a virtual consultation?',

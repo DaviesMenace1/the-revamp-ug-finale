@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 const projects = [
   {
     id: 1,
+    slug: 'nakasero-residence',
     title: 'The Nakasero Residence',
     category: 'Residential Interior',
     location: 'Kampala, Uganda',
@@ -14,6 +15,7 @@ const projects = [
   },
   {
     id: 2,
+    slug: 'kololo-villa-renovation',
     title: 'Kololo Villa Renovation',
     category: 'Architecture',
     location: 'Kololo, Uganda',
@@ -23,6 +25,7 @@ const projects = [
   },
   {
     id: 3,
+    slug: 'serena-penthouse-suite',
     title: 'Serena Penthouse Suite',
     category: 'Hospitality',
     location: 'Kampala, Uganda',
@@ -32,6 +35,7 @@ const projects = [
   },
   {
     id: 4,
+    slug: 'muyenga-heritage-home',
     title: 'Muyenga Heritage Home',
     category: 'Residential Interior',
     location: 'Muyenga, Uganda',
@@ -41,6 +45,7 @@ const projects = [
   },
   {
     id: 5,
+    slug: 'pearl-marina-corporate-hq',
     title: 'Pearl Marina Corporate HQ',
     category: 'Commercial Design',
     location: 'Entebbe, Uganda',
@@ -69,7 +74,7 @@ export function PortfolioSection() {
             </h2>
           </div>
           <Link
-            href="/studio"
+            href="/portfolio"
             className="inline-flex items-center gap-2 font-sans text-xs tracking-widest uppercase text-gold hover-line group"
           >
             View All Projects
@@ -106,7 +111,7 @@ function ProjectCard({
 }) {
   return (
     <Link
-      href={`/studio/${project.id}`}
+      href={`/portfolio/${project.slug}`}
       className={`group relative bg-background overflow-hidden block ${className}`}
     >
       {/* Image */}

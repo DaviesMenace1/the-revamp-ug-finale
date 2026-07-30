@@ -7,6 +7,126 @@ import { notFound } from 'next/navigation'
 import { useState } from 'react'
 
 const projectDetails: Record<string, any> = {
+  'nakasero-residence': {
+    title: 'The Nakasero Residence',
+    category: 'Residential Interior',
+    location: 'Kampala, Uganda',
+    year: '2024',
+    description:
+      'A full interior design of a hillside family residence in Nakasero, balancing warm materiality with contemporary restraint and framing panoramic city views.',
+    challenge: 'Unifying a large multi-level home into one calm, cohesive design language.',
+    solution:
+      'We developed a layered neutral palette, custom joinery, and curated lighting that flows seamlessly across every level of the home.',
+    highlights: [
+      'Bespoke joinery throughout',
+      'Curated statement lighting',
+      'Warm, tactile material palette',
+      'View-framing living spaces',
+    ],
+    timeline: [
+      { phase: 'Consultation & Concept', duration: '3 weeks' },
+      { phase: 'Design Development', duration: '8 weeks' },
+      { phase: 'Sourcing & Procurement', duration: '10 weeks' },
+      { phase: 'Installation & Styling', duration: '3 weeks' },
+    ],
+    services: ['Interior Design', 'Furniture Sourcing', 'Installation'],
+  },
+  'kololo-villa-renovation': {
+    title: 'Kololo Villa Renovation',
+    category: 'Architecture',
+    location: 'Kololo, Uganda',
+    year: '2024',
+    description:
+      'An architectural renovation of a classic Kololo villa, reworking the plan for modern living while preserving the home\u2019s original character.',
+    challenge: 'Opening up a compartmentalized plan without losing the villa\u2019s heritage charm.',
+    solution:
+      'We reconfigured the ground floor around a central courtyard, introduced large glazed openings, and restored key period details.',
+    highlights: [
+      'Reworked open-plan ground floor',
+      'Central courtyard connection',
+      'Restored heritage detailing',
+      'Expansive glazed openings',
+    ],
+    timeline: [
+      { phase: 'Survey & Planning', duration: '3 weeks' },
+      { phase: 'Design Development', duration: '8 weeks' },
+      { phase: 'Construction', duration: '16 weeks' },
+      { phase: 'Final Installations', duration: '3 weeks' },
+    ],
+    services: ['Architecture', 'Interior Design', 'Project Management'],
+  },
+  'serena-penthouse-suite': {
+    title: 'Serena Penthouse Suite',
+    category: 'Hospitality',
+    location: 'Kampala, Uganda',
+    year: '2023',
+    description:
+      'A signature penthouse suite for a leading hospitality group, designed as a refined, residential-feeling retreat above the city.',
+    challenge: 'Delivering a luxury hospitality standard that still feels personal and warm.',
+    solution:
+      'We layered soft textures, bespoke furniture, and dimmable ambient lighting to create an intimate yet elevated guest experience.',
+    highlights: [
+      'Residential-style suite layout',
+      'Bespoke furniture pieces',
+      'Layered ambient lighting',
+      'Premium textile palette',
+    ],
+    timeline: [
+      { phase: 'Brand & Concept', duration: '3 weeks' },
+      { phase: 'Design Development', duration: '6 weeks' },
+      { phase: 'Sourcing & Procurement', duration: '8 weeks' },
+      { phase: 'Installation & Launch', duration: '2 weeks' },
+    ],
+    services: ['Interior Design', 'Sourcing', 'Installation'],
+  },
+  'muyenga-heritage-home': {
+    title: 'Muyenga Heritage Home',
+    category: 'Residential Interior',
+    location: 'Muyenga, Uganda',
+    year: '2023',
+    description:
+      'A sensitive interior refresh of a beloved family home in Muyenga, honoring its history while introducing contemporary comfort.',
+    challenge: 'Modernizing the interiors without erasing decades of family character.',
+    solution:
+      'We preserved key heirloom pieces, reupholstered and restored where possible, and wove them into a refreshed contemporary scheme.',
+    highlights: [
+      'Restored heirloom furniture',
+      'Contemporary comfort upgrades',
+      'Enhanced natural light',
+      'Cohesive refreshed palette',
+    ],
+    timeline: [
+      { phase: 'Consultation & Concept', duration: '2 weeks' },
+      { phase: 'Design Development', duration: '6 weeks' },
+      { phase: 'Sourcing & Procurement', duration: '6 weeks' },
+      { phase: 'Installation & Styling', duration: '2 weeks' },
+    ],
+    services: ['Interior Design', 'Restoration', 'Installation'],
+  },
+  'pearl-marina-corporate-hq': {
+    title: 'Pearl Marina Corporate HQ',
+    category: 'Commercial Design',
+    location: 'Entebbe, Uganda',
+    year: '2023',
+    description:
+      'A full commercial fit-out for a corporate headquarters at Pearl Marina, designed to promote collaboration and reflect the brand.',
+    challenge: 'Creating an engaging, brand-aligned workplace across a large open floorplate.',
+    solution:
+      'We zoned the floor into collaborative and focus areas, introduced natural materials, and integrated brand accents throughout.',
+    highlights: [
+      'Collaborative open workspace',
+      'Dedicated focus zones',
+      'Brand-integrated design',
+      'Natural material palette',
+    ],
+    timeline: [
+      { phase: 'Strategic Planning', duration: '3 weeks' },
+      { phase: 'Design & Approvals', duration: '6 weeks' },
+      { phase: 'Construction & Installation', duration: '12 weeks' },
+      { phase: 'Final Styling', duration: '2 weeks' },
+    ],
+    services: ['Architecture', 'Interior Design', 'Project Management'],
+  },
   'skyline-apartment': {
     title: 'Skyline Apartment',
     category: 'Residential',

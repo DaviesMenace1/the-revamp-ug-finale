@@ -12,8 +12,8 @@ import { ThemeSwitcher } from '@/components/theme-switcher'
 const navLinks = [
   { label: 'Collections', href: '/collections' },
   { label: 'Services', href: '/services' },
-  { label: 'Architecture', href: '/architecture' },
-  { label: 'Studio', href: '/studio' },
+  { label: 'Portfolio', href: '/portfolio' },
+  { label: 'About', href: '/about' },
   { label: 'Journal', href: '/journal' },
 ]
 

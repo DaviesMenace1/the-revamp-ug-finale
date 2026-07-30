@@ -1,59 +1,14 @@
-'use client'
-
+import Link from 'next/link'
+import type { Metadata } from 'next'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
-import Link from 'next/link'
+import { CollectionsBrowser } from '@/components/collections/collections-browser'
 
-const collections = [
-  {
-    name: 'Living Room',
-    description: 'Sophisticated seating, side tables, and lighting to create the perfect gathering space',
-    count: '240+ products',
-    href: '#',
-  },
-  {
-    name: 'Dining',
-    description: 'Statement tables, chairs, and serving pieces for memorable meals',
-    count: '180+ products',
-    href: '#',
-  },
-  {
-    name: 'Bedroom',
-    description: 'Bedframes, nightstands, and textiles for restful, luxurious sleep',
-    count: '160+ products',
-    href: '#',
-  },
-  {
-    name: 'Kitchen',
-    description: 'Functional and beautiful pieces for the heart of your home',
-    count: '120+ products',
-    href: '#',
-  },
-  {
-    name: 'Bathroom',
-    description: 'Vanities, mirrors, and accessories for spa-like retreats',
-    count: '95+ products',
-    href: '#',
-  },
-  {
-    name: 'Lighting',
-    description: 'Pendants, floor lamps, and statement fixtures to set the mood',
-    count: '210+ products',
-    href: '#',
-  },
-  {
-    name: 'Office',
-    description: 'Desks, storage, and seating for productive, inspiring workspaces',
-    count: '140+ products',
-    href: '#',
-  },
-  {
-    name: 'Outdoor',
-    description: 'Weather-resistant furniture and décor for terraces and gardens',
-    count: '130+ products',
-    href: '#',
-  },
-]
+export const metadata: Metadata = {
+  title: 'Collections',
+  description:
+    'Browse our curated collection of furniture, lighting, and décor — filter by quick picks, by space, and by item type.',
+}
 
 export default function CollectionsPage() {
   return (
@@ -61,59 +16,22 @@ export default function CollectionsPage() {
       <SiteHeader />
       <main className="min-h-screen bg-background">
         {/* Hero */}
-        <section className="border-b border-border/20 bg-gradient-to-br from-background via-background to-muted/20 py-24 md:py-32">
-          <div className="mx-auto max-w-5xl px-6 md:px-8 space-y-6">
+        <section className="border-b border-border/20 bg-gradient-to-br from-background via-background to-muted/20 pt-28 md:pt-36 pb-12 md:pb-16">
+          <div className="mx-auto max-w-7xl px-6 md:px-8 space-y-6">
             <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground">
               Collections
             </h1>
             <p className="max-w-2xl text-lg text-muted-foreground font-light">
-              Curated collections of furniture, décor, and accessories organized by room and purpose
+              Curated furniture, lighting, and décor — filter by quick picks, by the space you&apos;re
+              designing, or by the exact piece you need.
             </p>
           </div>
         </section>
 
-        {/* Collections Grid */}
-        <section className="py-20 md:py-28">
+        {/* Browser with 3-level filters */}
+        <section className="py-16 md:py-20">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-              {collections.map((collection, idx) => (
-                <Link key={collection.name} href={collection.href}>
-                  <div className="group h-full cursor-pointer">
-                    <div className="relative space-y-6 rounded-lg overflow-hidden">
-                      {/* Image */}
-                      <div className="h-64 bg-gradient-to-br from-muted to-muted/50 rounded-lg overflow-hidden group-hover:opacity-80 transition-opacity flex items-center justify-center">
-                        <span className="text-muted-foreground/40 font-light text-sm">Collection Image</span>
-                      </div>
-
-                      {/* Content */}
-                      <div className="space-y-3 p-4">
-                        <h2 className="font-serif text-2xl font-light text-foreground group-hover:text-primary transition-colors">
-                          {collection.name}
-                        </h2>
-                        <p className="text-sm text-muted-foreground font-light leading-relaxed line-clamp-2">
-                          {collection.description}
-                        </p>
-                        <div className="flex items-center justify-between pt-3 border-t border-border/20">
-                          <span className="text-xs font-medium text-primary/70 uppercase tracking-wider">
-                            {collection.count}
-                          </span>
-                          <span className="inline-flex items-center gap-1 text-primary/70 group-hover:text-primary transition-colors">
-                            <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={1.5}
-                                d="M13 7l5 5m0 0l-5 5m5-5H6"
-                              />
-                            </svg>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <CollectionsBrowser />
           </div>
         </section>
 

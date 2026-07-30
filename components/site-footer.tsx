@@ -15,10 +15,10 @@ const footerLinks = {
     { label: 'Lighting', href: '/collections/lighting' },
   ],
   Studio: [
-    { label: 'About Us', href: '/studio' },
-    { label: 'Our Work', href: '/studio#portfolio' },
+    { label: 'About Us', href: '/about' },
+    { label: 'Our Work', href: '/portfolio' },
     { label: 'Journal', href: '/journal' },
-    { label: 'Careers', href: '/studio/careers' },
+    { label: 'Contact', href: '/contact' },
   ],
   Client: [
     { label: 'Book Consultation', href: '/contact' },

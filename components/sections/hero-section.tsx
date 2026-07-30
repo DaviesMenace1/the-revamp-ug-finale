@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-end overflow-hidden bg-obsidian">
+    <section className="relative min-h-screen flex items-end overflow-hidden bg-obsidian pt-20 md:pt-24">
       {/* Background image with overlay */}
       <div className="absolute inset-0">
         <div
@@ -24,7 +24,7 @@ export function HeroSection() {
       </div>
 
       {/* Decorative gold line top-left */}
-      <div className="absolute top-32 left-6 lg:left-12 flex items-center gap-3 z-10">
+      <div className="absolute top-28 md:top-36 left-6 lg:left-12 flex items-center gap-3 z-10">
         <div className="w-10 h-px bg-gold opacity-60" />
         <span className="font-sans text-xs tracking-[0.25em] uppercase text-white/50">Est. Uganda</span>
       </div>
@@ -71,7 +71,7 @@ export function HeroSection() {
                 <ArrowRight size={14} className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <Link href="/studio">
+            <Link href="/portfolio">
               <Button
                 variant="ghost"
                 size="lg"

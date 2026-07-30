@@ -16,7 +16,18 @@
       "has": [
         {
           "type": "host",
-          "value": "administrator(\\..*)?\\.(therevampug\\.com|localhost(:\\d+)?)"
+          "value": "^admin(\\.therevampug\\.com|localhost(:\\d+)?)$"
+        }
+      ]
+    }
+  ],
+  "headers": [
+    {
+      "source": "/admin/:path*",
+      "headers": [
+        {
+          "key": "X-Admin-Panel",
+          "value": "true"
         }
       ]
     }

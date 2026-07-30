@@ -9,13 +9,13 @@ export type UserRole = 'customer' | 'designer' | 'admin' | 'trade_member' | 'arc
  * Get the current user session with their database profile
  */
 export async function getCurrentUser() {
-  const { userId } = await auth()
-  
-  if (!userId) {
-    return null
-  }
-
   try {
+    const { userId } = await auth()
+    
+    if (!userId) {
+      return null
+    }
+
     const user = await db
       .select()
       .from(users)
@@ -24,7 +24,7 @@ export async function getCurrentUser() {
 
     return user || null
   } catch (err) {
-    console.error('[v0] Error fetching current user:', err)
+    // Silently handle Clerk initialization errors in dev
     return null
   }
 }

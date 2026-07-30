@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Plus, Edit, Trash2, Search, X } from 'lucide-react'
+import { blogs as seedBlogs, BlogArticle } from '@/lib/data/blogs'
 
 interface Blog {
   id: string
@@ -71,19 +72,35 @@ const SEED_BLOGS: Blog[] = [
 ]
 
 export default function AdminBlogs() {
-  const [blogs, setBlogs] = useState<Blog[]>(SEED_BLOGS)
+  const [blogs, setBlogs] = useState<Blog[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     title: '',
-    slug: '',
-    excerpt: '',
-    content: '',
-    category: '',
+    category: 'design-tips',
     author: '',
-    status: 'draft' as const,
+    content: '',
+    excerpt: '',
+    status: 'published',
   })
+
+  useEffect(() => {
+    // Seed blogs from data file on initial load
+    const initialBlogs: Blog[] = seedBlogs.map((b: BlogArticle) => ({
+      id: b.id,
+      title: b.title,
+      slug: b.slug,
+      excerpt: b.excerpt,
+      content: b.content,
+      category: b.category,
+      author: b.author,
+      status: b.status,
+      publishedAt: b.publishedAt,
+      createdAt: b.createdAt,
+    }))
+    setBlogs(initialBlogs)
+  }, [])
 
   const generateSlug = (title: string) => {
     return title

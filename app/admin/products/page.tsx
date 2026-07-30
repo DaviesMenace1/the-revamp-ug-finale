@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Plus, Edit, Trash2, Search, X } from 'lucide-react'
+import { products as seedProducts, Product as SeedProduct } from '@/lib/data/products'
 
 interface Product {
   id: string
@@ -65,7 +66,7 @@ const SEED_PRODUCTS: Product[] = [
 ]
 
 export default function AdminProducts() {
-  const [products, setProducts] = useState<Product[]>(SEED_PRODUCTS)
+  const [products, setProducts] = useState<Product[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -76,6 +77,20 @@ export default function AdminProducts() {
     description: '',
     status: 'published',
   })
+
+  useEffect(() => {
+    // Seed products from data file on initial load
+    const initialProducts: Product[] = seedProducts.map((p: SeedProduct) => ({
+      id: p.id,
+      name: p.name,
+      price: p.price.toString(),
+      collection: p.space,
+      description: p.description,
+      status: 'published' as const,
+      createdAt: p.createdAt,
+    }))
+    setProducts(initialProducts)
+  }, [])
 
   const handleAddProduct = () => {
     if (!formData.name || !formData.price) {

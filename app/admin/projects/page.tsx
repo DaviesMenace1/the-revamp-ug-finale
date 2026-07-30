@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Plus, Edit, Trash2, Search, X } from 'lucide-react'
+import { projects as seedProjects, Project as SeedProject } from '@/lib/data/projects'
 
 interface Project {
   id: string
@@ -71,7 +72,7 @@ const SEED_PROJECTS: Project[] = [
 ]
 
 export default function AdminProjects() {
-  const [projects, setProjects] = useState<Project[]>(SEED_PROJECTS)
+  const [projects, setProjects] = useState<Project[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -83,6 +84,21 @@ export default function AdminProjects() {
     progress: '0',
     dueDate: '',
   })
+
+  useEffect(() => {
+    // Seed projects from data file on initial load
+    const initialProjects: Project[] = seedProjects.map((p: SeedProject) => ({
+      id: p.id,
+      name: p.name,
+      client: p.client,
+      description: p.description,
+      status: p.status,
+      progress: p.progress,
+      dueDate: p.dueDate,
+      createdAt: p.createdAt,
+    }))
+    setProjects(initialProjects)
+  }, [])
 
   const handleAddProject = () => {
     if (!formData.name || !formData.client || !formData.dueDate) {

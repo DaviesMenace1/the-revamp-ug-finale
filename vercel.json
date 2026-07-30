@@ -1,0 +1,24 @@
+{
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "destination": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "administrator(\\..*)?\\.(therevampug\\.com|localhost(:\\d+)?)"
+        }
+      ]
+    }
+  ]
+}

@@ -28,13 +28,8 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.next()
   }
 
-  try {
-    if (isProtectedRoute(req)) {
-      await auth.protect()
-    }
-  } catch (error) {
-    // Silently allow requests when Clerk isn't initialized
-    return NextResponse.next()
+  if (isProtectedRoute(req)) {
+    await auth.protect()
   }
 })
 

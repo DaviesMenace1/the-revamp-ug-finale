@@ -7,24 +7,16 @@ import Link from 'next/link'
 
 const teamMembers = [
   {
-    name: 'David Kiprotich',
-    title: 'Founder & Lead Architect',
-    bio: 'Visionary designer with 15+ years transforming East African spaces.',
+    name: 'Faridah Nakayiwa A.',
+    title: 'Founder & Creative Director',
+    bio: 'The visionary behind The Revamp UG, blending refined East African craft with world-class design sensibility.',
+    image: '',
   },
   {
-    name: 'Sarah Nakambi',
-    title: 'Director of Interior Design',
-    bio: 'Luxury interior specialist bringing international aesthetics to Uganda.',
-  },
-  {
-    name: 'James Kamau',
-    title: 'Project Manager',
-    bio: 'Ensures flawless execution from concept to installation on every project.',
-  },
-  {
-    name: 'Emma Rodriguez',
-    title: 'Global Sourcing Lead',
-    bio: 'Connects clients with the world\'s finest furniture and décor collections.',
+    name: 'Davis Musinguzi',
+    title: 'Co-Founder & Head of Operations',
+    bio: 'Drives flawless delivery across every project, from global sourcing to white-glove installation.',
+    image: '/team/davis-musinguzi.jpg',
   },
 ]
 
@@ -123,7 +115,26 @@ export default function AboutPage() {
             <div className="grid md:grid-cols-2 gap-12">
               {teamMembers.map(member => (
                 <div key={member.name} className="space-y-4 p-6 rounded-lg border border-border/20 hover:border-primary/20 transition-colors">
-                  <div className="h-48 bg-gradient-to-br from-muted to-muted/50 rounded-lg mb-4" />
+                  <div className="relative h-80 overflow-hidden rounded-lg mb-4 bg-gradient-to-br from-muted to-muted/50">
+                    {member.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={member.image || "/placeholder.svg"}
+                        alt={`Portrait of ${member.name}`}
+                        className="absolute inset-0 h-full w-full object-cover object-top"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="font-serif text-5xl font-light text-primary/40">
+                          {member.name
+                            .split(' ')
+                            .map(n => n[0])
+                            .slice(0, 2)
+                            .join('')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                   <h3 className="font-serif text-2xl font-light text-foreground">{member.name}</h3>
                   <p className="text-primary/80 font-medium text-sm uppercase tracking-wider">{member.title}</p>
                   <p className="text-muted-foreground font-light leading-relaxed">{member.bio}</p>

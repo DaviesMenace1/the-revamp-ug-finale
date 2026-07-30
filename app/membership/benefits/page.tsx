@@ -69,11 +69,19 @@ export default function MembershipBenefits() {
 
   return (
     <PortalLayout
-      title="Membership Benefits"
-      subtitle="Choose the tier that fits your design practice."
-      portalType="membership"
+      portalName="Membership"
+      portalSlug="membership"
+      navItems={[
+        { label: 'Overview', href: '/membership' },
+        { label: 'Benefits', href: '/membership/benefits' },
+        { label: 'Community', href: '/membership/community' },
+      ]}
     >
       <div className="space-y-16">
+        <div>
+          <h1 className="font-serif text-4xl font-light text-foreground mb-2">Membership Benefits</h1>
+          <p className="text-lg text-muted-foreground">Choose the tier that fits your design practice.</p>
+        </div>
         {/* Core Perks */}
         <div>
           <h2 className="font-serif text-2xl font-light text-foreground mb-8">What You Get</h2>

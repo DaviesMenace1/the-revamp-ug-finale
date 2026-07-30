@@ -4,7 +4,7 @@
  */
 
 interface BrevoRequestInit extends RequestInit {
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 }
 
 class BrevoClient {
@@ -172,7 +172,7 @@ class BrevoClient {
   async getFolders(): Promise<{
     folders: Array<{ id: number; name: string; totalBlacklisted: number; totalSubscribers: number }>;
   }> {
-    return this.request('/contacts/folders', { method: 'GET' });
+    return this.request('/contacts/folders?limit=50', { method: 'GET' });
   }
 
   /**

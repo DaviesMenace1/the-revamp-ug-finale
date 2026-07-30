@@ -1,35 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getProjects, getProjectsByType } from '@/lib/db/queries';
+import { getProjects, getProjectsByCategory } from '@/lib/db/queries';
+import { checkRateLimit, withCache, CACHE_KEYS, TTL } from '@/lib/redis';
 
 export async function GET(request: NextRequest) {
+  const limited = await checkRateLimit(request, 'api');
+  if (limited) return limited;
+
   try {
     const searchParams = request.nextUrl.searchParams;
-    const type = searchParams.get('type');
+    const category = searchParams.get('category');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
-
     const offset = (page - 1) * limit;
 
-    let projects;
+    const cacheKey = CACHE_KEYS.projectsList(page, limit);
 
-    if (type) {
-      projects = await getProjectsByType(type);
-    } else {
-      projects = await getProjects(limit, offset);
-    }
+    const projects = await withCache(
+      cacheKey,
+      async () => {
+        if (category) return getProjectsByCategory(category);
+        return getProjects(limit, offset);
+      },
+      TTL.LONG,
+    );
 
-    return NextResponse.json({
-      success: true,
-      data: projects,
-      page,
-      limit,
-      count: projects.length,
-    });
+    return NextResponse.json(
+      { success: true, data: projects, page, limit, count: projects.length },
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } },
+    );
   } catch (error) {
     console.error('[Projects API] Error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch projects' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Failed to fetch projects' }, { status: 500 });
   }
 }

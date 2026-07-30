@@ -5,7 +5,8 @@ export default {
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL!,
+    // DIRECT_URL = direct connection (no pooler) — required for migrations
+    url: process.env.DIRECT_URL!,
   },
   verbose: true,
   strict: true,

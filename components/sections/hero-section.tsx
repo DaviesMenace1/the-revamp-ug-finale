@@ -42,7 +42,7 @@ export function HeroSection() {
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-px bg-gold" />
             <span className="font-sans text-xs tracking-[0.3em] uppercase text-gold">
-              Interior Design &amp; Architecture
+              
             </span>
           </div>
 
@@ -56,7 +56,7 @@ export function HeroSection() {
 
           {/* Sub-copy */}
           <p className="font-sans text-white/60 text-base md:text-lg leading-relaxed max-w-xl mb-10">
-            Bespoke interior design, architecture, and global sourcing — crafted for
+            Bespoke interior design, architecture, and global sourcing , crafted for
             clients who demand the extraordinary. From concept to white-glove installation.
           </p>
 

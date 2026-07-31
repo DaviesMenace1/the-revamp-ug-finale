@@ -13,7 +13,7 @@ export function HeroSection() {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1800&q=90&auto=format&fit=crop')`,
+            backgroundImage: `url('https://res.cloudinary.com/r8epy5mg/image/upload/L3D733S57ENDOVMJQ5QUWIF6ILUFX73BZXQ8_cpiqvz.jpg')`,
           }}
           role="img"
           aria-label="Luxury interior design space"

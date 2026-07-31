@@ -47,11 +47,22 @@ export default function TradePricing() {
 
   return (
     <PortalLayout
-      title="Trade Pricing & Tiers"
-      subtitle="Unlock exclusive wholesale pricing based on your order volume."
-      portalType="trade"
+      portalName="Wholesale Partner"
+      portalSlug="trade"
+      navItems={[
+        { label: 'Dashboard', href: '/trade' },
+        { label: 'Collections', href: '/trade/collections' },
+        { label: 'Orders', href: '/trade/orders' },
+        { label: 'Pricing', href: '/trade/pricing' },
+        { label: 'Resources', href: '/trade/resources' },
+      ]}
     >
       <div className="space-y-12">
+        <div>
+          <h1 className="font-serif text-4xl font-light text-foreground mb-2">Trade Pricing</h1>
+          <p className="text-lg text-muted-foreground">View volume-based pricing and special wholesale rates.</p>
+        </div>
+
         {/* Pricing Tiers */}
         <div className="grid md:grid-cols-3 gap-6">
           {priceStructure.map(tier => (

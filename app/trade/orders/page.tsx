@@ -52,11 +52,21 @@ export default function TradeOrders() {
 
   return (
     <PortalLayout
-      title="Trade Orders"
-      subtitle="Manage your wholesale orders and track shipments."
-      portalType="trade"
+      portalName="Wholesale Partner"
+      portalSlug="trade"
+      navItems={[
+        { label: 'Dashboard', href: '/trade' },
+        { label: 'Collections', href: '/trade/collections' },
+        { label: 'Orders', href: '/trade/orders' },
+        { label: 'Pricing', href: '/trade/pricing' },
+        { label: 'Resources', href: '/trade/resources' },
+      ]}
     >
       <div className="space-y-8">
+        <div>
+          <h1 className="font-serif text-4xl font-light text-foreground mb-2">Trade Orders</h1>
+          <p className="text-lg text-muted-foreground">Manage your wholesale orders and track shipments.</p>
+        </div>
         {/* Filters */}
         <div className="flex flex-wrap gap-3">
           <Button

@@ -1,7 +1,8 @@
+import { clerkMiddleware } from '@clerk/nextjs/server'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
-export default function middleware(req: NextRequest) {
+export default clerkMiddleware((auth, req: NextRequest) => {
   // Handle admin subdomain routing
   const host = req.headers.get('host') || ''
   const isAdminSubdomain = host.startsWith('admin.') || host.startsWith('administrator.')
@@ -14,7 +15,7 @@ export default function middleware(req: NextRequest) {
   }
 
   return NextResponse.next()
-}
+})
 
 export const config = {
   matcher: [

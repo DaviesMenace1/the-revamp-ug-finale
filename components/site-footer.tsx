@@ -34,8 +34,7 @@ const footerLinks = {
 export function SiteFooter() {
   return (
     <footer className="bg-foreground text-background">
-      <Separator className="my-6"
-       <NewsletterSignup /> 
+     
       {/* Main footer */}
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12">
@@ -128,6 +127,8 @@ export function SiteFooter() {
           ))}
         </div>
       </div>
+      <Separator className="my-6" />
+      <NewsletterSignup /> 
     </footer>
   )
 }

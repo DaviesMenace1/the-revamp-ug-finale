@@ -1,5 +1,8 @@
 import Link from 'next/link'
 import { Separator } from '@/components/ui/separator'
+import { NewsletterSignup } from '@/components/newsletter-signup.tsx'
+
+
 
 const footerLinks = {
   Services: [
@@ -27,7 +30,7 @@ const footerLinks = {
     { label: 'Support', href: '/support' },
   ],
 }
-
+<NewsletterSignup/> 
 export function SiteFooter() {
   return (
     <footer className="bg-foreground text-background">

@@ -42,7 +42,7 @@ export function HeroSection() {
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-px bg-gold" />
             <span className="font-sans text-xs tracking-[0.3em] uppercase text-gold">
-              
+              Est. Uganda
             </span>
           </div>
 

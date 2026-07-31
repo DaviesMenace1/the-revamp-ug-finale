@@ -47,11 +47,21 @@ export default function MembershipCommunity() {
 
   return (
     <PortalLayout
-      title="Member Community"
-      subtitle="Share ideas, ask questions, and connect with fellow designers and architects."
-      portalType="membership"
+      portalName="VIP Membership"
+      portalSlug="membership"
+      navItems={[
+        { label: 'Dashboard', href: '/membership' },
+        { label: 'Collections', href: '/membership/collections' },
+        { label: 'Events', href: '/membership/events' },
+        { label: 'Community', href: '/membership/community' },
+        { label: 'Benefits', href: '/membership/benefits' },
+      ]}
     >
       <div className="space-y-8">
+        <div>
+          <h1 className="font-serif text-4xl font-light text-foreground mb-2">Member Community</h1>
+          <p className="text-lg text-muted-foreground">Share ideas, ask questions, and connect with fellow designers and architects.</p>
+        </div>
         {/* New Post */}
         <div className="border border-border/20 rounded-lg p-6 bg-muted/30">
           <p className="text-sm text-muted-foreground font-light mb-4">Share your experience</p>

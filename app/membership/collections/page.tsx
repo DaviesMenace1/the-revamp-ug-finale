@@ -68,11 +68,21 @@ export default function MembershipCollections() {
 
   return (
     <PortalLayout
-      title="Exclusive Collections"
-      subtitle="Members-only access to limited-edition designs and early releases."
-      portalType="membership"
+      portalName="VIP Membership"
+      portalSlug="membership"
+      navItems={[
+        { label: 'Dashboard', href: '/membership' },
+        { label: 'Collections', href: '/membership/collections' },
+        { label: 'Events', href: '/membership/events' },
+        { label: 'Community', href: '/membership/community' },
+        { label: 'Benefits', href: '/membership/benefits' },
+      ]}
     >
       <div className="space-y-8">
+        <div>
+          <h1 className="font-serif text-4xl font-light text-foreground mb-2">Exclusive Collections</h1>
+          <p className="text-lg text-muted-foreground">Members-only access to limited-edition designs and early releases.</p>
+        </div>
         {/* Membership Tier Info */}
         <div className="bg-gradient-to-r from-gold/10 to-primary/10 border border-gold/20 rounded-lg p-6">
           <div className="flex items-center gap-2 mb-2">

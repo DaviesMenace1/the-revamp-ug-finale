@@ -65,11 +65,21 @@ export default function TradeResources() {
 
   return (
     <PortalLayout
-      title="Trade Resources"
-      subtitle="Access marketing materials, guides, videos, and product documentation."
-      portalType="trade"
+      portalName="Wholesale Partner"
+      portalSlug="trade"
+      navItems={[
+        { label: 'Dashboard', href: '/trade' },
+        { label: 'Collections', href: '/trade/collections' },
+        { label: 'Orders', href: '/trade/orders' },
+        { label: 'Pricing', href: '/trade/pricing' },
+        { label: 'Resources', href: '/trade/resources' },
+      ]}
     >
       <div className="space-y-12">
+        <div>
+          <h1 className="font-serif text-4xl font-light text-foreground mb-2">Trade Resources</h1>
+          <p className="text-lg text-muted-foreground">Access marketing materials, guides, videos, and product documentation.</p>
+        </div>
         {/* Resources Grid */}
         <div className="grid md:grid-cols-2 gap-6">
           {resources.map(resource => {

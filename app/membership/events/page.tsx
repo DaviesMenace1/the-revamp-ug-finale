@@ -66,11 +66,21 @@ export default function MembershipEvents() {
 
   return (
     <PortalLayout
-      title="Member Events"
-      subtitle="Exclusive gatherings, workshops, and experiences for our community."
-      portalType="membership"
+      portalName="VIP Membership"
+      portalSlug="membership"
+      navItems={[
+        { label: 'Dashboard', href: '/membership' },
+        { label: 'Collections', href: '/membership/collections' },
+        { label: 'Events', href: '/membership/events' },
+        { label: 'Community', href: '/membership/community' },
+        { label: 'Benefits', href: '/membership/benefits' },
+      ]}
     >
       <div className="space-y-6">
+        <div>
+          <h1 className="font-serif text-4xl font-light text-foreground mb-2">Member Events</h1>
+          <p className="text-lg text-muted-foreground">Exclusive gatherings, workshops, and experiences for our community.</p>
+        </div>
         {events.map(event => (
           <div
             key={event.id}

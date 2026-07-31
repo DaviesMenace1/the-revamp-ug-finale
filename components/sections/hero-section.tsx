@@ -23,11 +23,11 @@ export function HeroSection() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
       </div>
 
-      {/* Decorative gold line top-left */}
+      {/* Decorative gold line top-left 
       <div className="absolute top-28 md:top-36 left-6 lg:left-12 flex items-center gap-3 z-10">
         <div className="w-10 h-px bg-gold opacity-60" />
         <span className="font-sans text-xs tracking-[0.25em] uppercase text-white/50">Est. Uganda</span>
-      </div>
+      </div>*/}
 
       {/* Scroll indicator */}
       <div className="absolute right-6 lg:right-12 bottom-1/3 z-10 flex flex-col items-center gap-2">

@@ -37,11 +37,10 @@ export function SiteFooter() {
      
       {/* Main footer */}
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-20">
+        <NewsletterSignup /> 
+        <Separator className="my-6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12">
-          <NewsletterSignup /> 
-          <Separator className="my-6" />
-
-          
+        
           {/* Brand column */}
           <div className="lg:col-span-2">
             <Link href="/" className="font-serif text-2xl tracking-widest uppercase text-background">

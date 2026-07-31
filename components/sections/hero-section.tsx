@@ -13,7 +13,7 @@ export function HeroSection() {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: `url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1800&q=90&auto=format&fit=crop')`,
+            backgroundImage: `url('https://res.cloudinary.com/r8epy5mg/image/upload/L3D733S57ENDOVMJQ5QUWIF6ILUFX73BZXQ8_cpiqvz.jpg')`,
           }}
           role="img"
           aria-label="Luxury interior design space"
@@ -23,11 +23,11 @@ export function HeroSection() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
       </div>
 
-      {/* Decorative gold line top-left */}
+      {/* Decorative gold line top-left 
       <div className="absolute top-28 md:top-36 left-6 lg:left-12 flex items-center gap-3 z-10">
         <div className="w-10 h-px bg-gold opacity-60" />
         <span className="font-sans text-xs tracking-[0.25em] uppercase text-white/50">Est. Uganda</span>
-      </div>
+      </div>*/}
 
       {/* Scroll indicator */}
       <div className="absolute right-6 lg:right-12 bottom-1/3 z-10 flex flex-col items-center gap-2">
@@ -42,7 +42,7 @@ export function HeroSection() {
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-px bg-gold" />
             <span className="font-sans text-xs tracking-[0.3em] uppercase text-gold">
-              Interior Design &amp; Architecture
+              Est. Uganda
             </span>
           </div>
 
@@ -56,7 +56,7 @@ export function HeroSection() {
 
           {/* Sub-copy */}
           <p className="font-sans text-white/60 text-base md:text-lg leading-relaxed max-w-xl mb-10">
-            Bespoke interior design, architecture, and global sourcing — crafted for
+            Bespoke interior design, architecture, and global sourcing , crafted for
             clients who demand the extraordinary. From concept to white-glove installation.
           </p>
 

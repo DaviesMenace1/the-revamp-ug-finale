@@ -22,8 +22,8 @@ const instrument = Instrument_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: 'The Revamp UG — Luxury Interior Design & Architecture',
-    template: '%s | The Revamp UG',
+    default: 'The Revamp Ug | Luxury Interior Design & Architecture',
+    template: '%s | The Revamp Ug',
   },
   description: 'Bespoke interior design, architecture, global sourcing, and white-glove installation. Transforming spaces into extraordinary living experiences across East Africa and beyond.',
   keywords: ['interior design', 'architecture', 'luxury furniture', 'global sourcing', 'Uganda', 'East Africa'],

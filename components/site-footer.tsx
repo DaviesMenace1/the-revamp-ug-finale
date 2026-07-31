@@ -1,5 +1,8 @@
 import Link from 'next/link'
 import { Separator } from '@/components/ui/separator'
+import { NewsletterSignup } from '@/components/newsletter-signup'
+
+
 
 const footerLinks = {
   Services: [
@@ -22,7 +25,7 @@ const footerLinks = {
   ],
   Client: [
     { label: 'Book Consultation', href: '/contact' },
-    { label: 'Client Portal', href: '/portal' },
+    { label: 'Client Portal', href: '/client' },
     { label: 'Track Project', href: '/portal/projects' },
     { label: 'Support', href: '/support' },
   ],
@@ -31,21 +34,25 @@ const footerLinks = {
 export function SiteFooter() {
   return (
     <footer className="bg-foreground text-background">
+     
       {/* Main footer */}
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-20">
+        <NewsletterSignup /> 
+        <Separator className="my-6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12">
+        
           {/* Brand column */}
           <div className="lg:col-span-2">
             <Link href="/" className="font-serif text-2xl tracking-widest uppercase text-background">
               The Revamp<span className="text-gold ml-1">UG</span>
             </Link>
             <p className="font-sans text-background/50 text-sm leading-relaxed mt-4 max-w-xs">
-              Bespoke interior design, architecture, and global sourcing — transforming spaces across East Africa and beyond.
+              Bespoke interior design, architecture, and global sourcing | transforming spaces across East Africa and beyond.
             </p>
 
             {/* Social links */}
             <div className="flex items-center gap-4 mt-6">
-              {['Instagram', 'Pinterest', 'Houzz', 'LinkedIn'].map((platform) => (
+              {['Instagram', 'Tiktok', 'Snapchat', 'LinkedIn'].map((platform) => (
                 <a
                   key={platform}
                   href={`#${platform.toLowerCase()}`}
@@ -60,10 +67,10 @@ export function SiteFooter() {
             {/* Contact */}
             <div className="mt-8 space-y-2">
               <a
-                href="tel:+256000000000"
+                href="tel:+256745867098"
                 className="block font-sans text-sm text-background/60 hover:text-gold transition-colors"
               >
-                +256 000 000 000
+                +256 703 861 668
               </a>
               <a
                 href="mailto:hello@therevampug.com"
@@ -72,7 +79,7 @@ export function SiteFooter() {
                 hello@therevampug.com
               </a>
               <p className="font-sans text-sm text-background/40 mt-2">
-                Kampala, Uganda
+                Kyanja | Kampala, Uganda
               </p>
             </div>
           </div>
@@ -105,7 +112,7 @@ export function SiteFooter() {
       {/* Bottom bar */}
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
         <p className="font-sans text-xs text-background/30">
-          &copy; {new Date().getFullYear()} The Revamp UG. All rights reserved.
+          &copy; {new Date().getFullYear()} The Revamp Ug. All rights reserved.
         </p>
         <div className="flex items-center gap-6">
           {[
@@ -123,6 +130,7 @@ export function SiteFooter() {
           ))}
         </div>
       </div>
+      
     </footer>
   )
 }

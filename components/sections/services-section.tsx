@@ -6,10 +6,10 @@ const services = [
     number: '01',
     title: 'Interior Design',
     description:
-      'Full-service residential and commercial interior design — from concept boards and spatial planning to material selection and final installation.',
+      'Full-service residential and commercial interior design | from concept boards and spatial planning to material selection and final installation.',
     tags: ['Residential', 'Commercial', 'Hospitality'],
     href: '/services/interior-design',
-    image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&q=80&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487082/L3D124S57ENDOVMIRRIUWLZS6LUFX73OHPI8_4000x3000_tk64wj.jpg',
   },
   {
     number: '02',
@@ -18,7 +18,7 @@ const services = [
       'Award-winning architectural design that harmonises form, function, and environment. We craft buildings that endure and inspire.',
     tags: ['New Build', 'Renovation', 'Masterplanning'],
     href: '/architecture',
-    image: 'https://images.unsplash.com/photo-1545569262-a5f9d0d83b93?w=800&q=80&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785573390/Screenshot_2026-08-01-11-33-52-556_cn.wps.moffice_eng_nzviq6.jpg',
   },
   {
     number: '03',
@@ -27,7 +27,7 @@ const services = [
       'Access to the world\'s finest furniture, art, and décor. We source from over 15 countries, securing exclusive pieces unavailable elsewhere.',
     tags: ['Furniture', 'Lighting', 'Art & Objects'],
     href: '/services/sourcing',
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785575628/3c01978f6da28d6772001d9bad12cc_j6e7tf.jpg',
   },
   {
     number: '04',
@@ -36,7 +36,7 @@ const services = [
       'Seamless project delivery from logistics coordination to precision installation. Your vision, realised without compromise.',
     tags: ['Logistics', 'Installation', 'Handover'],
     href: '/services/installation',
-    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&q=80&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/IMG_20260801_120540_xr8ffi.jpg',
   },
 ]
 
@@ -53,7 +53,7 @@ export function ServicesSection() {
             </h2>
           </div>
           <p className="font-sans text-muted-foreground text-sm leading-relaxed max-w-sm md:text-right">
-            A comprehensive suite of luxury design services — architecture, interiors, global sourcing, and meticulous installation.
+            A comprehensive suite of luxury design services , architecture, interiors, global sourcing, and meticulous installation.
           </p>
         </div>
 

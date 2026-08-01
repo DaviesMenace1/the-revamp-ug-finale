@@ -6,7 +6,7 @@ const services = [
     number: '01',
     title: 'Interior Design',
     description:
-      'Full-service residential and commercial interior design — from concept boards and spatial planning to material selection and final installation.',
+      'Full-service residential and commercial interior design | from concept boards and spatial planning to material selection and final installation.',
     tags: ['Residential', 'Commercial', 'Hospitality'],
     href: '/services/interior-design',
     image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&q=80&auto=format&fit=crop',
@@ -18,7 +18,7 @@ const services = [
       'Award-winning architectural design that harmonises form, function, and environment. We craft buildings that endure and inspire.',
     tags: ['New Build', 'Renovation', 'Masterplanning'],
     href: '/architecture',
-    image: 'https://images.unsplash.com/photo-1545569262-a5f9d0d83b93?w=800&q=80&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785573390/Screenshot_2026-08-01-11-33-52-556_cn.wps.moffice_eng_nzviq6.jpg',
   },
   {
     number: '03',
@@ -53,7 +53,7 @@ export function ServicesSection() {
             </h2>
           </div>
           <p className="font-sans text-muted-foreground text-sm leading-relaxed max-w-sm md:text-right">
-            A comprehensive suite of luxury design services — architecture, interiors, global sourcing, and meticulous installation.
+            A comprehensive suite of luxury design services , architecture, interiors, global sourcing, and meticulous installation.
           </p>
         </div>
 

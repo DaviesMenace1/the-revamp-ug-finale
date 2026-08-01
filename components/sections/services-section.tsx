@@ -36,7 +36,7 @@ const services = [
       'Seamless project delivery from logistics coordination to precision installation. Your vision, realised without compromise.',
     tags: ['Logistics', 'Installation', 'Handover'],
     href: '/services/installation',
-    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&q=80&auto=format&fit=crop',
+    image: 'https://www.instagram.com/reel/DV-8w80DeCe/?igsh=OTZqZ2cwNG1kcGR3',
   },
 ]
 

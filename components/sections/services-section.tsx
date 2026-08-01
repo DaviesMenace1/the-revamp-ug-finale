@@ -27,7 +27,7 @@ const services = [
       'Access to the world\'s finest furniture, art, and décor. We source from over 15 countries, securing exclusive pieces unavailable elsewhere.',
     tags: ['Furniture', 'Lighting', 'Art & Objects'],
     href: '/services/sourcing',
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785575628/3c01978f6da28d6772001d9bad12cc_j6e7tf.jpg',
   },
   {
     number: '04',

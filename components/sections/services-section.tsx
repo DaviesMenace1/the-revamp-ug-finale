@@ -9,7 +9,7 @@ const services = [
       'Full-service residential and commercial interior design | from concept boards and spatial planning to material selection and final installation.',
     tags: ['Residential', 'Commercial', 'Hospitality'],
     href: '/services/interior-design',
-    image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&q=80&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487082/L3D124S57ENDOVMIRRIUWLZS6LUFX73OHPI8_4000x3000_tk64wj.jpg',
   },
   {
     number: '02',
@@ -36,7 +36,7 @@ const services = [
       'Seamless project delivery from logistics coordination to precision installation. Your vision, realised without compromise.',
     tags: ['Logistics', 'Installation', 'Handover'],
     href: '/services/installation',
-    image: 'https://www.instagram.com/reel/DV-8w80DeCe/?igsh=OTZqZ2cwNG1kcGR3',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/IMG_20260801_120540_xr8ffi.jpg',
   },
 ]
 

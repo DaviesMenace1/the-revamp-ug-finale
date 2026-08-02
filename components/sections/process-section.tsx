@@ -35,20 +35,20 @@ export function ProcessSection() {
             <div className="grid grid-cols-2 gap-3">
               <div
                 className="aspect-[3/4] bg-cover bg-center"
-                style={{ backgroundImage: "https://res.cloudinary.com/r8epy5mg/image/upload/v1785487074/L3D124S57ENDOVL3H5YUWLUFALUFX7Y65OA8_4000x3000_qj0lbk.jpg" }}
+                style={{ backgroundImage: "url(https://res.cloudinary.com/r8epy5mg/image/upload/v1785487074/L3D124S57ENDOVL3H5YUWLUFALUFX7Y65OA8_4000x3000_qj0lbk.jpg)" }}
                 role="img"
                 aria-label="Interior design process"
               />
               <div className="flex flex-col gap-3">
                 <div
                   className="aspect-square bg-cover bg-center"
-                  style={{ backgroundImage: "https://res.cloudinary.com/r8epy5mg/image/upload/v1785487028/5f5c41f087539fc2821a6f05e55eed_lxumef.jpg" }}
+                  style={{ backgroundImage: "url(https://res.cloudinary.com/r8epy5mg/image/upload/v1785487028/5f5c41f087539fc2821a6f05e55eed_lxumef.jpg)" }}
                   role="img"
                   aria-label="Furniture selection"
                 />
                 <div
                   className="flex-1 bg-cover bg-center"
-                  style={{ backgroundImage: "https://res.cloudinary.com/r8epy5mg/image/upload/v1785487031/6931b753827f8f97837eab8737c63e_mko4pq.jpg" }}
+                  style={{ backgroundImage: "url(https://res.cloudinary.com/r8epy5mg/image/upload/v1785487031/6931b753827f8f97837eab8737c63e_mko4pq.jpg)" }}
                   role="img"
                   aria-label="Global sourcing"
                 />

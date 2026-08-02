@@ -50,7 +50,7 @@ export function TestimonialsSection() {
             <div className="flex items-center gap-4 mb-10">
               <div
                 className="size-14 rounded-full bg-cover bg-center flex-none"
-                style={{ backgroundImage: `url(https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg)` }}
+                style={{ backgroundImage: `url('${t.image}')` }}
                 role="img"
                 aria-label={t.author}
               />
@@ -97,7 +97,7 @@ export function TestimonialsSection() {
             <div
               className="aspect-[4/5] bg-cover bg-center"
               style={{
-                backgroundImage: "url('https://images.unsplash.com/photo-1600210492493-0946911123ea?w=900&q=80&auto=format&fit=crop')",
+                backgroundImage: "url('https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg')",
               }}
               role="img"
               aria-label="Interior design showcase"

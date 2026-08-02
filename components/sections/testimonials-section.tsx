@@ -8,15 +8,15 @@ const testimonials = [
   {
     quote:
       'The Revamp UG transformed our home into something beyond what we imagined. Their attention to detail, global taste, and white-glove delivery were impeccable.',
-    author: 'Amira Hassan',
+    author: 'Henry Mugenyi',
     title: 'Residential Client, Kampala',
-    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80&auto=format&fit=crop&crop=face',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785647630/image_20260314_001645_yvfkdw.png',
   },
   {
     quote:
-      'Working with The Revamp UG on our corporate headquarters was an experience of true luxury. Every space tells our brand story with extraordinary craft.',
+      'Working with The Revamp UG on our corporate offices was an experience of true luxury. Every space tells our brand story with extraordinary craft.',
     author: 'James Okiror',
-    title: 'CEO, Pearl Marina Group',
+    title: 'HC of Bosnia & Hezergonia',
     image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&crop=face',
   },
   {
@@ -24,7 +24,7 @@ const testimonials = [
       'Their sourcing capabilities are world-class. They found pieces for our villa that we could not have discovered anywhere else. Absolutely unmatched.',
     author: 'Fatima Al-Rashid',
     title: 'Villa Owner, Munyonyo',
-    image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80&auto=format&fit=crop&crop=face',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785651076/client.jpg',
   },
 ]
 
@@ -97,7 +97,7 @@ export function TestimonialsSection() {
             <div
               className="aspect-[4/5] bg-cover bg-center"
               style={{
-                backgroundImage: "url('https://images.unsplash.com/photo-1600210492493-0946911123ea?w=900&q=80&auto=format&fit=crop')",
+                backgroundImage: "url('https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg')",
               }}
               role="img"
               aria-label="Interior design showcase"

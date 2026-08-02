@@ -11,7 +11,7 @@ export function CtaSection() {
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage:
-              "url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1800&q=85&auto=format&fit=crop')",
+              "url('https://res.cloudinary.com/r8epy5mg/image/upload/v1785487043/f0779d7a1f24b500f151ff2301e8e9_dqpccd.jpg')",
           }}
           role="img"
           aria-label="Luxury interior design"
@@ -52,7 +52,7 @@ export function CtaSection() {
                 <ArrowRight size={14} className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <a href="tel:+256000000000">
+            <a href="tel:+256703861668">
               <Button
                 variant="ghost"
                 size="lg"

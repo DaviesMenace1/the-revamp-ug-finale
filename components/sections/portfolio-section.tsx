@@ -10,7 +10,7 @@ const projects = [
     category: 'Residential Interior',
     location: 'Kampala, Uganda',
     year: '2024',
-    image: 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&q=85&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487038/8b1d75021b8a7a8e012e34efa8e029_xmuibg.jpg',
     size: 'large', // spans 2 cols
   },
   {
@@ -20,7 +20,7 @@ const projects = [
     category: 'Architecture',
     location: 'Kololo, Uganda',
     year: '2024',
-    image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=85&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487079/L3D124S57ENDOVMH4UYUWIF6ILUFX73NOMA8_4000x3000_loxyzb.jpg',
     size: 'small',
   },
   {
@@ -30,7 +30,7 @@ const projects = [
     category: 'Hospitality',
     location: 'Kampala, Uganda',
     year: '2023',
-    image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=85&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487083/L3D552S148ENDOVNXUSIUWIOKALUFX73VHJQ8_1024x576_wfxusq.jpg',
     size: 'small',
   },
   {
@@ -40,17 +40,17 @@ const projects = [
     category: 'Residential Interior',
     location: 'Muyenga, Uganda',
     year: '2023',
-    image: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&q=85&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487080/L3D124S57ENDOVMH53YUWLVIELUFX73NCSY8_4000x3000_wsv3cj.jpg',
     size: 'small',
   },
   {
     id: 5,
     slug: 'pearl-marina-corporate-hq',
-    title: 'Pearl Marina Corporate HQ',
+    title: 'HC of Bosnia & Herzegovina',
     category: 'Commercial Design',
     location: 'Entebbe, Uganda',
     year: '2023',
-    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=85&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785649986/Untitled-reception-20240830-171128_1_enmmlf.jpg',
     size: 'large',
   },
 ]

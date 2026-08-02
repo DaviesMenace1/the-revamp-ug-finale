@@ -14,8 +14,8 @@ const teamMembers = [
   },
   {
     name: 'Davis Musinguzi',
-    title: 'Co-Founder & Head of Operations',
-    bio: 'Drives flawless delivery across every project, from global sourcing to white-glove installation.',
+    title: 'Technical Lead',
+    bio:'Coordinates technical projects, platform maintenance, and developer workflows.',
     image: '/team/davis-musinguzi.jpg',
   },
 ]
@@ -60,8 +60,14 @@ export default function AboutPage() {
                   to commercial spaces, deserves thoughtful design, quality materials, and meticulous execution.
                 </p>
               </div>
-              <div className="h-96 bg-gradient-to-br from-muted to-muted/50 rounded-lg" />
-            </div>
+              <div className="h-96 bg-gradient-to-br from-muted to-muted/50 rounded-lg overflow-hidden" >
+                  <img
+                      src="https://res.cloudinary.com/r8epy5mg/image/upload/v1785658769/file_0000000044ec71f48458614b2de85725_l4eeso.png"
+                      alt="The Revamp UG design showcase"
+                      className="w-full h-full object-cover"
+                    />   
+             </div>
+           </div>
           </div>
         </section>
 

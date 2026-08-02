@@ -11,7 +11,7 @@ const articles = [
       'How the interplay of linen, velvet, marble, and raw timber creates depth and warmth that defines truly exceptional spaces.',
     date: 'January 2025',
     readTime: '6 min read',
-    image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&q=80&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487078/L3D124S57ENDOVLZRRYUWLZS6LUFX7Y3WLA8_4000x3000_gb14hk.jpg',
     featured: true,
   },
   {
@@ -22,7 +22,7 @@ const articles = [
       'Our approach to architecture that responds intelligently to the equatorial climate while celebrating local heritage.',
     date: 'December 2024',
     readTime: '8 min read',
-    image: 'https://images.unsplash.com/photo-1545569262-a5f9d0d83b93?w=800&q=80&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785649177/Untitled-hallway-20240830-180031_ubzqez.jpg',
     featured: false,
   },
   {
@@ -33,7 +33,7 @@ const articles = [
       'Our buyers traveled to Salone del Mobile to discover the finest emerging studios and established ateliers.',
     date: 'November 2024',
     readTime: '5 min read',
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487043/f0779d7a1f24b500f151ff2301e8e9_dqpccd.jpg',
     featured: false,
   },
 ]

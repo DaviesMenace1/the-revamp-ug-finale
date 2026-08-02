@@ -34,7 +34,7 @@ export function ProcessSection() {
           <div className="relative">
             <div className="grid grid-cols-2 gap-3">
               <div
-                className="aspect-[3/4] bg-cover bg-center"
+                className="aspect-[3/10] bg-cover bg-center"
                 style={{ backgroundImage: "url(https://res.cloudinary.com/r8epy5mg/image/upload/v1785487074/L3D124S57ENDOVL3H5YUWLUFALUFX7Y65OA8_4000x3000_qj0lbk.jpg)" }}
                 role="img"
                 aria-label="Interior design process"

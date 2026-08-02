@@ -14,8 +14,8 @@ const teamMembers = [
   },
   {
     name: 'Davis Musinguzi',
-    title: 'Co-Founder & Head of Operations',
-    bio: 'Drives flawless delivery across every project, from global sourcing to white-glove installation.',
+    title: 'Technical Lead',
+    bio:'Coordinates technical projects, platform maintenance, and developer workflows.',
     image: '/team/davis-musinguzi.jpg',
   },
 ]

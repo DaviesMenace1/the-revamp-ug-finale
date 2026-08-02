@@ -2,6 +2,7 @@
 
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -15,6 +16,7 @@ const articles = [
     author: 'Sarah Chen',
     date: '2024-01-15',
     readTime: '5 min read',
+        imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg'
   },
   {
     id: 2,
@@ -25,6 +27,7 @@ const articles = [
     author: 'James Wilson',
     date: '2024-01-10',
     readTime: '8 min read',
+    imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg'
   },
   {
     id: 3,
@@ -35,6 +38,7 @@ const articles = [
     author: 'Emma Rodriguez',
     date: '2024-01-05',
     readTime: '6 min read',
+   imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg'
   },
   {
     id: 4,
@@ -45,6 +49,7 @@ const articles = [
     author: 'David Park',
     date: '2023-12-28',
     readTime: '7 min read',
+        imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg'
   },
 ]
 
@@ -109,7 +114,17 @@ export default function JournalPage() {
                     <div className="relative w-full h-64 bg-gradient-to-br from-muted to-muted/50 rounded-lg overflow-hidden group-hover:opacity-80 transition-opacity">
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-muted-foreground/40 font-light">Article Image</span>
-                      </div>*/}
+                        </div>*/}
+                    <div className="relative w-full h-64 rounded-lg overflow-hidden group-hover:opacity-80 transition-opacity">
+                                    <Image
+                                      src={article.imageUrl} // Replace with your image URL or variable
+                                      alt={article.title || "Article Image"}
+                                      fill
+                                      className="object-cover"
+                                      sizes="(max-width: 768px) 100vw, 50vw"
+                                    />
+                                  </div>
+                      
                     </div>
 
                     {/* Category & Date */}

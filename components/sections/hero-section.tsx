@@ -48,9 +48,9 @@ export function HeroSection() {
 
           {/* Headline */}
           <h1 className="font-serif font-light text-white leading-[1.05] mb-8">
-            <span className="block text-5xl md:text-7xl lg:text-8xl">Spaces That</span>
+            <span className="block text-5xl md:text-7xl lg:text-8xl">The Architecture</span>
             <span className="block text-5xl md:text-7xl lg:text-8xl italic text-gold-gradient mt-1">
-              Tell Your Story
+              of Refined Living
             </span>
           </h1>
 

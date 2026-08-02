@@ -46,11 +46,11 @@ const projects = [
   {
     id: 5,
     slug: 'pearl-marina-corporate-hq',
-    title: 'Pearl Marina Corporate HQ',
+    title: 'HC of Bosnia & Herzegovina',
     category: 'Commercial Design',
     location: 'Entebbe, Uganda',
     year: '2023',
-    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487083/L3D552S148ENDOVNXUSIUWIOKALUFX73VHJQ8_1024x576_wfxusq.jpg',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785649986/Untitled-reception-20240830-171128_1_enmmlf.jpg',
     size: 'large',
   },
 ]

@@ -8,9 +8,9 @@ const testimonials = [
   {
     quote:
       'The Revamp UG transformed our home into something beyond what we imagined. Their attention to detail, global taste, and white-glove delivery were impeccable.',
-    author: 'Amira Hassan',
+    author: 'Henry Mugenyi',
     title: 'Residential Client, Kampala',
-    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80&auto=format&fit=crop&crop=face',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785647630/image_20260314_001645_yvfkdw.png',
   },
   {
     quote:

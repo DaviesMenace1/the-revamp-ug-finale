@@ -40,7 +40,7 @@ const projects = [
     category: 'Residential Interior',
     location: 'Muyenga, Uganda',
     year: '2023',
-    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487026/2c46cee0762f2b5d4bab36462cf7c5_lm3edy.jpg',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487080/L3D124S57ENDOVMH53YUWLVIELUFX73NCSY8_4000x3000_wsv3cj.jpg',
     size: 'small',
   },
   {

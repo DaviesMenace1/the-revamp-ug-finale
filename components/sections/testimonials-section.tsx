@@ -14,9 +14,9 @@ const testimonials = [
   },
   {
     quote:
-      'Working with The Revamp UG on our corporate headquarters was an experience of true luxury. Every space tells our brand story with extraordinary craft.',
+      'Working with The Revamp UG on our corporate offices was an experience of true luxury. Every space tells our brand story with extraordinary craft.',
     author: 'James Okiror',
-    title: 'CEO, Pearl Marina Group',
+    title: 'HC of Bosnia & Hezergonia',
     image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&crop=face',
   },
   {

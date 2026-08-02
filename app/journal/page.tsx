@@ -125,7 +125,7 @@ export default function JournalPage() {
                                     />
                                   </div>
                       
-                    </div>
+                
 
                     {/* Category & Date */}
                     <div className="flex items-center justify-between text-xs">

@@ -105,11 +105,11 @@ export default function JournalPage() {
                   className="group h-full"
                 >
                   <article className="space-y-4 cursor-pointer h-full flex flex-col">
-                    {/* Image Placeholder */}
+                    {/* Image Placeholder 
                     <div className="relative w-full h-64 bg-gradient-to-br from-muted to-muted/50 rounded-lg overflow-hidden group-hover:opacity-80 transition-opacity">
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-muted-foreground/40 font-light">Article Image</span>
-                      </div>
+                      </div>*/}
                     </div>
 
                     {/* Category & Date */}

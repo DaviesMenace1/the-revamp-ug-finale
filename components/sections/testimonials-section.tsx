@@ -50,7 +50,7 @@ export function TestimonialsSection() {
             <div className="flex items-center gap-4 mb-10">
               <div
                 className="size-14 rounded-full bg-cover bg-center flex-none"
-                style={{ backgroundImage: `url('${t.image}')` }}
+                style={{ backgroundImage: `url(https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg)` }}
                 role="img"
                 aria-label={t.author}
               />

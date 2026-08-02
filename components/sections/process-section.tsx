@@ -41,14 +41,14 @@ export function ProcessSection() {
               />
               <div className="flex flex-col gap-3">
                 <div
-                  className="aspect-square bg-cover bg-center"
+                  className="aspect-[3/4] bg-cover bg-center"
                   style={{ backgroundImage: "url(https://res.cloudinary.com/r8epy5mg/image/upload/v1785487028/5f5c41f087539fc2821a6f05e55eed_lxumef.jpg)" }}
                   role="img"
                   aria-label="Furniture selection"
                 />
                 <div
-                  className="flex-1 bg-cover bg-center"
-                  style={{ backgroundImage: "url(https://res.cloudinary.com/r8epy5mg/image/upload/v1785487031/6931b753827f8f97837eab8737c63e_mko4pq.jpg)" }}
+                  className="aspect-square flex-1 bg-cover bg-center"
+                  style={{ backgroundImage: "url(https://res.cloudinary.com/r8epy5mg/image/upload/v1785487065/IMG_3841_1_datflu.jpg)" }}
                   role="img"
                   aria-label="Global sourcing"
                 />

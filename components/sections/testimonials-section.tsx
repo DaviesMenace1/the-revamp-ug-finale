@@ -24,7 +24,7 @@ const testimonials = [
       'Their sourcing capabilities are world-class. They found pieces for our villa that we could not have discovered anywhere else. Absolutely unmatched.',
     author: 'Fatima Al-Rashid',
     title: 'Villa Owner, Munyonyo',
-    image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80&auto=format&fit=crop&crop=face',
+    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785651076/client.jpg',
   },
 ]
 

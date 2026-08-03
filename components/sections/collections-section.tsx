@@ -16,7 +16,7 @@ export function CollectionsSection() {
               Curated Collections
             </h2>
             <p className="font-sans text-sm text-muted-foreground mt-3 max-w-md">
-              The latest pieces to join our catalog — sourced, crafted, and ready to define your space.
+              The latest pieces to join our catalog | sourced, crafted, and ready to define your space.
             </p>
           </div>
           <Link

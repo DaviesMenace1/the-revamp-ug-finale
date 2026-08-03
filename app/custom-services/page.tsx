@@ -43,14 +43,6 @@ export default function CustomServicesPage() {
     setFormData({ ...formData, [name]: value })
   }
 
-  const handleSelectChange = (value: string) => {
-    setFormData({ ...formData, budget: value })
-  }
-
-  const handleTimelineChange = (value: string) => {
-    setFormData({ ...formData, timeline: value })
-  }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // Here you would send the form data to your backend
@@ -218,35 +210,35 @@ export default function CustomServicesPage() {
                       <label className="block text-sm font-medium text-foreground mb-2">
                         Estimated Budget
                       </label>
-                      <Select value={formData.budget} onValueChange={handleSelectChange}>
-                        <SelectTrigger className="bg-background border-border">
-                          <SelectValue placeholder="Select your budget range" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="under-5k">Under $5,000</SelectItem>
-                          <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
-                          <SelectItem value="10k-25k">$10,000 - $25,000</SelectItem>
-                          <SelectItem value="25k-50k">$25,000 - $50,000</SelectItem>
-                          <SelectItem value="50k+">$50,000+</SelectItem>
-                          <SelectItem value="not-sure">Not sure yet</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <select
+                        value={formData.budget}
+                        onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-background border border-border rounded text-foreground text-sm"
+                      >
+                        <option value="">Select your budget range</option>
+                        <option value="under-5k">Under $5,000</option>
+                        <option value="5k-10k">$5,000 - $10,000</option>
+                        <option value="10k-25k">$10,000 - $25,000</option>
+                        <option value="25k-50k">$25,000 - $50,000</option>
+                        <option value="50k+">$50,000+</option>
+                        <option value="not-sure">Not sure yet</option>
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
                         Project Timeline
                       </label>
-                      <Select value={formData.timeline} onValueChange={handleTimelineChange}>
-                        <SelectTrigger className="bg-background border-border">
-                          <SelectValue placeholder="When do you need this completed?" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="asap">ASAP (0-3 months)</SelectItem>
-                          <SelectItem value="3-6months">3-6 months</SelectItem>
-                          <SelectItem value="6-12months">6-12 months</SelectItem>
-                          <SelectItem value="flexible">Flexible timeline</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <select
+                        value={formData.timeline}
+                        onChange={(e) => setFormData({ ...formData, timeline: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-background border border-border rounded text-foreground text-sm"
+                      >
+                        <option value="">When do you need this completed?</option>
+                        <option value="asap">ASAP (0-3 months)</option>
+                        <option value="3-6months">3-6 months</option>
+                        <option value="6-12months">6-12 months</option>
+                        <option value="flexible">Flexible timeline</option>
+                      </select>
                     </div>
                   </div>
 

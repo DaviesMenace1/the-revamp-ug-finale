@@ -53,7 +53,7 @@ export function CollectionsBrowser() {
                 )}
               >
                 {f.icon === 'star' && <Star size={13} className="fill-gold text-gold" />}
-                {f.label}
+                {'f.label'}
               </button>
             ))}
           </div>

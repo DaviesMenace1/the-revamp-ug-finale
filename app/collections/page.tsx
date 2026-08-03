@@ -7,7 +7,7 @@ import { CollectionsBrowser } from '@/components/collections/collections-browser
 export const metadata: Metadata = {
   title: 'Collections',
   description:
-    'Browse our curated collection of furniture, lighting, and décor — filter by quick picks, by space, and by item type.',
+    'Browse our curated collection of furniture, lighting, and décor | filter by quick picks, by space, and by item type.',
 }
 
 export default function CollectionsPage() {
@@ -22,7 +22,7 @@ export default function CollectionsPage() {
               Collections
             </h1>
             <p className="max-w-2xl text-lg text-muted-foreground font-light">
-              Curated furniture, lighting, and décor — filter by quick picks, by the space you&apos;re
+              Curated furniture, lighting, and décor | filter by quick picks, by the space you&apos;re
               designing, or by the exact piece you need.
             </p>
           </div>

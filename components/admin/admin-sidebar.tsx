@@ -8,11 +8,13 @@ import {
   FileText,
   Settings,
   LogOut,
+  Grid3x3,
 } from 'lucide-react'
 
 const sidebarItems = [
   { label: 'Dashboard', href: '/admin', icon: BarChart3 },
   { label: 'Products', href: '/admin/products', icon: Package },
+  { label: 'Categories', href: '/admin/categories', icon: Grid3x3 },
   { label: 'Projects', href: '/admin/projects', icon: FolderOpen },
   { label: 'Orders', href: '/admin/orders', icon: ShoppingCart },
   { label: 'Users', href: '/admin/users', icon: Users },

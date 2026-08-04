@@ -32,7 +32,20 @@ export const metadata: Metadata = {
     locale: 'en_UG',
     siteName: 'The Revamp UG',
   },
-  generator: 'v0.app',
+  metadataBase: new URL("https://therevampug.com"),
+  robots: {
+    index: true,
+    follow: true,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  generator: 'daviesmusinguzi',
   icons: {
     icon: [
       {
@@ -48,7 +61,7 @@ export const metadata: Metadata = {
         type: 'image/svg+xml',
       },
     ],
-    apple: '/apple-icon.png',
+    apple: 'icon-dark-32x32.png',
   },
 }
 

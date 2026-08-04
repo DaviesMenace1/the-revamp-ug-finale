@@ -3,7 +3,7 @@ const steps = [
     number: '01',
     title: 'Discovery',
     description:
-      'We begin with a deep consultation — understanding your lifestyle, aesthetic, and vision before a single line is drawn.',
+      'We begin with a deep consultation , understanding your lifestyle, aesthetic, and vision before a single line is drawn.',
   },
   {
     number: '02',
@@ -15,7 +15,7 @@ const steps = [
     number: '03',
     title: 'Global Sourcing',
     description:
-      'We source the finest pieces worldwide — working with artisans, studios, and suppliers across Europe, Asia, and beyond.',
+      'We source the finest pieces worldwide, working with artisans, studios, and suppliers across Europe, Asia, and beyond.',
   },
   {
     number: '04',
@@ -69,7 +69,7 @@ export function ProcessSection() {
               <span className="italic text-gold">Refined</span>
             </h2>
             <p className="font-sans text-background/60 text-sm leading-relaxed mb-12">
-              Every Revamp UG project follows a meticulous four-phase process — built to deliver
+              Every Revamp UG project follows a meticulous four-phase process built to deliver
               extraordinary results while keeping you informed and inspired at every step.
             </p>
 

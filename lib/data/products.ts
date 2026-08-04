@@ -95,7 +95,9 @@ export const QUICK_FILTERS: { label: string; value: QuickTag | 'all'; icon?: str
 ]
 
 const IMG = (id: string, w = 900) =>
-  `https://images.unsplash.com/photo-${id}?w=${w}&q=85&auto=format&fit=crop`
+`https://res.cloudinary.com/r8epy5mg/image/upload/${id}.jpg`
+/*"https://cloudinary.com{w},q_85,c_crop,f_auto/${id}"
+  `https://images.unsplash.com/photo-${id}?w=${w}&q=85&auto=format&fit=crop`*/
 
 const defaultColors: ProductOption[] = [
   { label: 'Obsidian', value: '#1c1c1c' },
@@ -151,10 +153,10 @@ export const products: Product[] = [
     itemType: 'Sofas',
     tags: ['new-arrival', 'featured', 'best-seller'],
     images: [
-      IMG('1600210492493-0946911123ea', 1200),
-      IMG('1493663284031-b7e3aefcae8e'),
-      IMG('1567016432779-094069958ea5'),
-      IMG('1555041469-a586c61ea9bc'),
+      IMG('70cb96cf894b07f22c2b4e03843d60_nrigo8', 1200),
+      IMG('5f5c41f087539fc2821a6f05e55eed_tt543y'),
+      IMG('5f5c41f087539fc2821a6f05e55eed_tt543y'),
+      IMG('5f5c41f087539fc2821a6f05e55eed_tt543y'),
     ],
     colors: defaultColors,
     fabrics: defaultFabrics,
@@ -168,7 +170,7 @@ export const products: Product[] = [
   {
     id: 'p2',
     slug: 'kabira-lounge-chair',
-    name: 'Kabira Lounge Chair',
+    name: 'Lounge Chair',
     tagline: 'Curved boucle lounge chair with brass base',
     description:
       'An enveloping lounge chair with a hand-curved shell, upholstered in textured boucle and set on a solid brass swivel base. A statement piece for reading corners and lounges.',
@@ -178,9 +180,9 @@ export const products: Product[] = [
     itemType: 'Chairs',
     tags: ['new-arrival', 'ready-to-ship'],
     images: [
-      IMG('1567538096630-e0c55bd6374c', 1200),
-      IMG('1506439773649-6e0eb8cfb237'),
-      IMG('1519947486511-46149fa0a254'),
+      IMG('5f5c41f087539fc2821a6f05e55eed_tt543y', 1200),
+      IMG('5f5c41f087539fc2821a6f05e55eed_tt543y'),
+      IMG('5f5c41f087539fc2821a6f05e55eed_tt543y'),
     ],
     colors: defaultColors,
     fabrics: defaultFabrics,
@@ -194,7 +196,7 @@ export const products: Product[] = [
   {
     id: 'p3',
     slug: 'entebbe-dining-table',
-    name: 'Entebbe Dining Table',
+    name: 'Dining Table',
     tagline: 'Solid oak dining table for eight',
     description:
       'A generous solid-oak dining table with a live-edge silhouette and hand-oiled finish. Seats eight comfortably and anchors the dining room with quiet presence.',
@@ -204,9 +206,9 @@ export const products: Product[] = [
     itemType: 'Tables',
     tags: ['featured', 'best-seller'],
     images: [
-      IMG('1616486338812-3dadae4b4ace', 1200),
-      IMG('1617806118233-18e1de247200'),
-      IMG('1594026112284-02bb6f3352fe'),
+      IMG('L3D124S57ENDOVMISTQUWIKKELUFX73ONXQ8_4000x3000_mua1j5', 1200),
+      IMG('L3D124S57ENDOVMISTQUWIKKELUFX73ONXQ8_4000x3000_mua1j5'),
+      IMG('L3D124S57ENDOVMISTQUWIKKELUFX73ONXQ8_4000x3000_mua1j5'),
     ],
     colors: defaultColors,
     fabrics: [],
@@ -230,9 +232,9 @@ export const products: Product[] = [
     itemType: 'Lighting',
     tags: ['new-arrival', 'featured'],
     images: [
-      IMG('1507003211169-0a1dd7228f2d', 1200),
-      IMG('1524484485831-a92ffc0de03f'),
-      IMG('1513506003901-1e6a229e2d15'),
+      IMG('L3D124S57ENDOVL4HFQUWLZS6LUFX7YSLLQ8_4000x3000_guugcz', 1200),
+      IMG('L3D124S57ENDOVL4HFQUWLZS6LUFX7YSLLQ8_4000x3000_guugcz'),
+      IMG('L3D124S57ENDOVL4HFQUWLZS6LUFX7YSLLQ8_4000x3000_guugcz'),
     ],
     colors: defaultColors,
     fabrics: [],
@@ -246,7 +248,7 @@ export const products: Product[] = [
   {
     id: 'p5',
     slug: 'muyenga-platform-bed',
-    name: 'Muyenga Platform Bed',
+    name: 'Platform Bed',
     tagline: 'Upholstered platform bed with floating frame',
     description:
       'A low-profile platform bed with a fully upholstered headboard and a floating base detail. Built for king mattresses with a slatted support system.',
@@ -256,9 +258,9 @@ export const products: Product[] = [
     itemType: 'Beds',
     tags: ['best-seller', 'ready-to-ship'],
     images: [
-      IMG('1631049307264-da0ec9d70304', 1200),
-      IMG('1522708323590-d24dbb6b0267'),
-      IMG('1560448204-e02f11c3d0e2'),
+      IMG('L3D124S57ENDOVL2NOAUWIF6ILUFX7Y2USY8_4000x3000_dj0nbl', 1200),
+      IMG('L3D124S57ENDOVL2NOAUWIF6ILUFX7Y2USY8_4000x3000_dj0nbl'),
+      IMG('L3D124S57ENDOVL2NOAUWIF6ILUFX7Y2USY8_4000x3000_dj0nbl'),
     ],
     colors: defaultColors,
     fabrics: defaultFabrics,
@@ -272,7 +274,7 @@ export const products: Product[] = [
   {
     id: 'p6',
     slug: 'kololo-sideboard',
-    name: 'Kololo Sideboard',
+    name: 'Sideboard',
     tagline: 'Fluted-front storage credenza',
     description:
       'A fluted-oak credenza with soft-close doors, adjustable shelving, and a concealed cable channel. Equally at home in a dining room or living space.',
@@ -282,9 +284,9 @@ export const products: Product[] = [
     itemType: 'Storage',
     tags: ['new-arrival'],
     images: [
-      IMG('1594620302200-9a762244a156', 1200),
-      IMG('1533090161767-e6ffed986c88'),
-      IMG('1595428774223-ef52624120d2'),
+      IMG('IMG_3831_3_hd9rfe', 1200),
+      IMG('IMG_3831_3_hd9rfe'),
+      IMG('IMG_3831_3_hd9rfe'),
     ],
     colors: defaultColors,
     fabrics: [],
@@ -308,9 +310,9 @@ export const products: Product[] = [
     itemType: 'Sofas',
     tags: ['featured', 'ready-to-ship'],
     images: [
-      IMG('1600566753086-00f18fb6b3ea', 1200),
-      IMG('1600585154340-be6161a56a0c'),
-      IMG('1600607687920-4e2a09cf159d'),
+      IMG('589c450c0bd080063bbc38ce9680d3_s9knxj', 1200),
+      IMG('589c450c0bd080063bbc38ce9680d3_s9knxj'),
+      IMG('589c450c0bd080063bbc38ce9680d3_s9knxj'),
     ],
     colors: defaultColors,
     fabrics: defaultFabrics,
@@ -334,9 +336,9 @@ export const products: Product[] = [
     itemType: 'Mirrors',
     tags: ['new-arrival', 'best-seller'],
     images: [
-      IMG('1618220179428-22790b461013', 1200),
-      IMG('1616627561950-9f746e330187'),
-      IMG('1616486029423-aaa4789e8c9a'),
+      IMG('IMG_3738_4_eeqdtd', 1200),
+      IMG('IMG_3738_4_eeqdtd'),
+      IMG('IMG_3738_4_eeqdtd'),
     ],
     colors: defaultColors,
     fabrics: [],
@@ -360,9 +362,9 @@ export const products: Product[] = [
     itemType: 'Rugs',
     tags: ['featured'],
     images: [
-      IMG('1600166898405-da9535204843', 1200),
-      IMG('1603204077779-bed963ea7d0e'),
-      IMG('1584285405429-136bf988919c'),
+      IMG('IMG_3760_1_amgiep', 1200),
+      IMG('IMG_3760_1_amgiep'),
+      IMG('IMG_3760_1_amgiep'),
     ],
     colors: defaultColors,
     fabrics: [],
@@ -386,9 +388,9 @@ export const products: Product[] = [
     itemType: 'Tables',
     tags: ['new-arrival', 'ready-to-ship'],
     images: [
-      IMG('1518455027359-f3f8164ba6bd', 1200),
-      IMG('1595515106969-1ce29566ff1c'),
-      IMG('1544140708-514b7837e6b5'),
+      IMG('IMG_3501_euje8s', 1200),
+      IMG('IMG_3501_euje8s'),
+      IMG('IMG_3501_euje8s'),
     ],
     colors: defaultColors,
     fabrics: [],
@@ -412,9 +414,9 @@ export const products: Product[] = [
     itemType: 'Lighting',
     tags: ['best-seller'],
     images: [
-      IMG('1543198126-a4d9f8b7d0e5', 1200),
-      IMG('1517991104123-1d56a6e81ed9'),
-      IMG('1530603907829-659ab8f6e0c6'),
+      IMG('IMG_3264_hljhnq', 1200),
+      IMG('IMG_3264_hljhnq'),
+      IMG('IMG_3264_hljhnq'),
     ],
     colors: defaultColors,
     fabrics: [],
@@ -438,9 +440,9 @@ export const products: Product[] = [
     itemType: 'Decor',
     tags: ['new-arrival', 'featured'],
     images: [
-      IMG('1578500494198-246f612d3b3d', 1200),
-      IMG('1602028915047-37269d1a73f7'),
-      IMG('1581783898377-1c85bf937427'),
+      IMG('4708E4D2-D548-4584-A21E-17DCD016562A_yfukav', 1200),
+      IMG('4708E4D2-D548-4584-A21E-17DCD016562A_yfukav'),
+      IMG('4708E4D2-D548-4584-A21E-17DCD016562A_yfukav'),
     ],
     colors: defaultColors,
     fabrics: [],

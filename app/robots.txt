@@ -1,0 +1,48 @@
+# ===========================================
+# The Revamp UG
+# https://therevampug.com
+# ===========================================
+
+User-agent: *
+Allow: /
+
+# Public pages
+Allow: /projects/
+Allow: /collections/
+Allow: /journal/
+Allow: /services/
+Allow: /about/
+Allow: /contact/
+Allow: /trade-program/
+Allow: /membership/
+
+# Block private areas
+Disallow: /admin/
+Disallow: /administrator/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /client/
+Disallow: /account/
+Disallow: /checkout/
+Disallow: /cart/
+Disallow: /wishlist/
+Disallow: /orders/
+Disallow: /login/
+Disallow: /sign-in/
+Disallow: /sign-up/
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /tmp/
+Disallow: /private/
+
+# Allow static assets
+Allow: /images/
+Allow: /uploads/
+Allow: /fonts/
+Allow: /icons/
+
+# Sitemap
+Sitemap: https://therevampug.com/sitemap.xml
+
+# Host
+Host: https://therevampug.com

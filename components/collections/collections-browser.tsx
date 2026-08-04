@@ -179,12 +179,14 @@ function FilterGroup({ title, children }: { title: string; children: React.React
   )
 }
 
+type FilterOption = string | { label: string; value: string }
+
 function FilterList({
   options,
   active,
   onSelect,
 }: {
-  options: readonly string[]
+  options: readonly FilterOption[]
   active: string
   onSelect: (value: string) => void
 }) {
@@ -197,7 +199,31 @@ function FilterList({
           active === 'all' ? 'text-gold' : 'text-foreground/70 hover:text-foreground',
         )}
       >
-        All
+
+             All
+      </button>
+      {options.map((opt) => {
+        // Extract label and value whether opt is a string or an object
+        const label = typeof opt === 'string' ? opt : opt.label
+        const value = typeof opt === 'string' ? opt : opt.value
+
+        return (
+          <button
+            key={value}
+            onClick={() => onSelect(value)}
+            className={cn(
+              'text-left font-sans text-sm py-1.5 lg:py-1 transition-colors',
+              active === value ? 'text-gold' : 'text-foreground/70 hover:text-foreground',
+            )}
+          >
+            {label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+        {/* All
       </button>
       {options.map((opt) => (
         <button
@@ -213,4 +239,4 @@ function FilterList({
       ))}
     </div>
   )
-}
+} */}

@@ -1,4 +1,4 @@
-'use client'
+{/*'use client'*/}
 
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -12,7 +12,7 @@ const projects = [
     title: 'Skyline Apartment',
     category: 'Residential',
     location: 'Kampala, Uganda',
-    image: 'bg-gradient-to-br from-blue-200 to-blue-100',
+    image: 'url('https://res.cloudinary.com/r8epy5mg/image/upload/v1785487071/L3D121S57ENDOVL2MOYUWLXMCLUFX7Y3AOY8_1600x1200_mhyep1.jpg')',
   },
   {
     id: 2,
@@ -20,7 +20,7 @@ const projects = [
     title: 'Corporate Office Refurbishment',
     category: 'Commercial',
     location: 'Nairobi, Kenya',
-    image: 'bg-gradient-to-br from-gray-200 to-gray-100',
+    image: 'url('https://res.cloudinary.com/r8epy5mg/image/upload/v1785487053/IMG_3609_3_un8mzr.jpg')',
   },
   {
     id: 3,
@@ -28,7 +28,7 @@ const projects = [
     title: 'Lakeside Villa Renovation',
     category: 'Residential',
     location: 'Entebbe, Uganda',
-    image: 'bg-gradient-to-br from-green-200 to-green-100',
+    image: 'url('https://res.cloudinary.com/r8epy5mg/image/upload/v1785487078/L3D124S57ENDOVLZRRYUWLZS6LUFX7Y3WLA8_4000x3000_gb14hk.jpg')',
   },
   {
     id: 4,
@@ -36,7 +36,7 @@ const projects = [
     title: 'Luxury Retail Showroom',
     category: 'Commercial',
     location: 'Kampala, Uganda',
-    image: 'bg-gradient-to-br from-amber-200 to-amber-100',
+    image: 'url('https://res.cloudinary.com/r8epy5mg/image/upload/v1785575628/3c01978f6da28d6772001d9bad12cc_j6e7tf.jpg')',
   },
   {
     id: 5,
@@ -44,7 +44,7 @@ const projects = [
     title: 'Penthouse Suite Design',
     category: 'Residential',
     location: 'Dar es Salaam, Tanzania',
-    image: 'bg-gradient-to-br from-purple-200 to-purple-100',
+    image: 'url('https://res.cloudinary.com/r8epy5mg/image/upload/v1785487082/L3D124S57ENDOVMJO2QUWLXMCLUFX73OMKQ8_4000x3000_tpuyal.jpg')',
   },
   {
     id: 6,
@@ -52,7 +52,7 @@ const projects = [
     title: 'Hospitality Resort Interior',
     category: 'Hospitality',
     location: 'Kampala, Uganda',
-    image: 'bg-gradient-to-br from-cyan-200 to-cyan-100',
+    image: 'url('https://res.cloudinary.com/r8epy5mg/image/upload/v1785487083/L3D552S148ENDOVNXUSIUWIOKALUFX73VHJQ8_1024x576_wfxusq.jpg')',
   },
   {
     id: 7,
@@ -60,7 +60,7 @@ const projects = [
     title: 'Boutique Hotel Concept',
     category: 'Hospitality',
     location: 'Kigali, Rwanda',
-    image: 'bg-gradient-to-br from-pink-200 to-pink-100',
+    image: 'url('https://res.cloudinary.com/r8epy5mg/image/upload/v1785487084/L3D552S148ENDOVNXUXIUWLQRWLUFX73V6EA8_1024x576_z8fqi0.jpg')',
   },
   {
     id: 8,
@@ -68,7 +68,7 @@ const projects = [
     title: 'Family Home Extension',
     category: 'Residential',
     location: 'Jinja, Uganda',
-    image: 'bg-gradient-to-br from-yellow-200 to-yellow-100',
+    image: 'url('https://res.cloudinary.com/r8epy5mg/image/upload/v1785487085/L3D733S57ENDOVMJQ5QUWIF6ILUFX73BZXQ8_cpiqvz.jpg')',
   },
 ]
 

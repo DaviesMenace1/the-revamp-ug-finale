@@ -99,6 +99,9 @@ const articles: Record<string, any> = {
     `,
   },
 }
+export function generateStaticParams() {
+  return Object.keys(articles).map((slug) => ({ slug }))
+}
 
 interface ArticlePageProps {
   params: { slug: string }

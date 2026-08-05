@@ -1,4 +1,4 @@
-'use client'
+{/*'use client'*/}
 
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -36,7 +36,7 @@ const articles: Record<string, any> = {
     category: 'Sustainability',
     readTime: '8 min read',
     content: `
-      <p>The future of luxury design is sustainable. High-end materials and eco-conscious choices are no longer mutually exclusive—they're becoming the new standard.</p>
+      <p>The future of luxury design is sustainable. High-end materials and eco-conscious choices are no longer mutually exclusive, they're becoming the new standard.</p>
       
       <h3>Why Sustainable Luxury Matters</h3>
       <p>Today's conscious consumers demand more than aesthetics. They want to know that their purchases align with their values. Sustainable luxury meets this demand.</p>
@@ -98,6 +98,9 @@ const articles: Record<string, any> = {
       <p>Our globalized world offers endless inspiration. The most beautiful spaces are those that respectfully incorporate influences from multiple cultures.</p>
     `,
   },
+}
+export function generateStaticParams() {
+  return Object.keys(articles).map((slug) => ({ slug }))
 }
 
 interface ArticlePageProps {

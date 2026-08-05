@@ -27,7 +27,7 @@ const articles = [
     author: 'James Wilson',
     date: '2024-01-10',
     readTime: '8 min read',
-    imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg'
+    imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487069/L3D121S57ENDOVL2K7YUWLXMCLUFX7Y3MYQ8_1600x1200_kacydr.jpg'
   },
   {
     id: 3,
@@ -38,7 +38,7 @@ const articles = [
     author: 'Emma Rodriguez',
     date: '2024-01-05',
     readTime: '6 min read',
-   imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg'
+   imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785649177/Untitled-hallway-20240830-180031_ubzqez.jpg'
   },
   {
     id: 4,
@@ -49,7 +49,7 @@ const articles = [
     author: 'David Park',
     date: '2023-12-28',
     readTime: '7 min read',
-        imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg'
+        imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487046/IMG_3185_1_fqirxr.jpg'
   },
 ]
 

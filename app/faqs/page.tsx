@@ -3,17 +3,59 @@ import { SiteFooter } from '@/components/site-footer'
 
 const questionCategories = [
     {
-        category: 'Design',
+        category: 'General',
     },
     {
-        category: 'Development',
+        category: 'Interior Design',
+    },
+    {
+        category: 'Architecture',
+    }
+    {
+        category: 'Global Sourcing',
+    }
+    {
+        category: 'Products & Collections',
+    }
+    {
+        category: 'Orders & Payments',
+    }
+    {
+        category: 'Shipping & Installation',
+    }
+    {
+        category: 'Trade Program',
+    },
+    {
+        category: 'Membership & Loyalty',
+    },
+    {
+        category: 'Returns & Warranties',
+    },
+    {
+        category: 'Contact & Support',
     },
     {
         category: 'Consulting',
-    }
+    },
 ]
 
 const defaultFaqs = [
+    {
+      q: 'What is The Revamp UG?',
+      a: 'The Revamp UG is a luxury interior design and architecture studio specializing in thoughtfully designed spaces, globally sourced furnishings, bespoke solutions, and white-glove project delivery. We create timeless residential, commercial, hospitality, and lifestyle environments tailored to every client\'s vision.',
+      category: 'General',
+    },
+    {
+      q: 'What is the process for starting a design project with Revamp UG?',
+      a: 'The process begins with an initial consultation to understand your needs, followed by a proposal and design plan.',
+      category: 'General',
+    },
+    {
+      q: 'How does The Revamp UG source its products and materials?',
+      a: 'We have a global network of suppliers and artisans, ensuring high-quality and unique materials for our projects.',
+      category: 'Global Sourcing',
+    },
     {
         q: 'What are the real goals of a good project?',
         a: 'A strong , secure and functional structure',
@@ -43,7 +85,7 @@ export default function Faqs() {
               <div className="grid md:grid-cols-2 gap-12"></div>
                 {defaultFaqs.map(member => (
                   <div key={member.q} className="space-y-4 p-6 rounded-lg border border-border/20 hover:border-primary/20 transition-colors">
-                    <p className="text-primary/70 font-medium text-sm ">{member.q}</p>
+                    <p className="text-primary/90 font-medium text-sm ">{member.q}</p>
                   <p className="text-muted-foreground font-light leading-relaxed">{member.a}</p>
                     </div>
                 ))}

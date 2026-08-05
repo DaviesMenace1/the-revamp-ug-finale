@@ -75,43 +75,39 @@ export default function Faqs() {
         </section>
 
         <div className="mx-auto max-w-5xl px-6 md:px-8 py-12 lg:py-16">
-          <div className="grid lg:grid-cols-[260px_1fr] gap-10 lg:gap-16">
-            <aside className="space-y-10">
-              <FilterGroup title="Filters">
-                <div className="flex flex-wrap lg:flex-col gap-2">
-                  {questionCategories.map((f) => (
-                    <button
-                      key={f.category}
-                      type="button"
-                      onClick={() => setCategory(f.category)}
-                      className={cn(
-                        'inline-flex items-center gap-1.5 text-left font-sans text-sm py-1.5 lg:py-1 transition-colors',
-                        category === f.category ? 'text-gold' : 'text-foreground/70 hover:text-foreground',
-                      )}
-                    >
-                      {f.category}
-                    </button>
-                  ))}
-                </div>
-              </FilterGroup>
-            </aside>
+          <FilterGroup title="Filters">
+            <div className="flex">
+              {questionCategories.map((f) => (
+                <button
+                  key={f.category}
+                  type="button"
+                  onClick={() => setCategory(f.category)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 text-left font-sans text-sm py-1.5 lg:py-1 transition-colors',
+                    category === f.category ? 'text-gold' : 'text-foreground/70 hover:text-foreground',
+                  )}
+                >
+                  {f.category}
+                </button>
+              ))}
+            </div>
+          </FilterGroup>
 
-            <section className="py-6 md:py-8 border-b border-border/20 bg-muted/5 rounded-2xl">
-              <div className="mx-auto max-w-5xl px-4 md:px-6">
-                <div className="grid md:grid-cols-2 gap-12">
-                  {filteredFaqs.map((member) => (
-                    <div
-                      key={member.q}
-                      className="space-y-4 p-6 rounded-lg border border-border/20 hover:border-primary/20 transition-colors"
-                    >
-                      <p className="text-primary/90 font-medium text-sm">{member.q}</p>
-                      <p className="text-muted-foreground font-light leading-relaxed">{member.a}</p>
-                    </div>
-                  ))}
-                </div>
+          <section className="py-6 md:py-8 border-b border-border/20 bg-muted/5 rounded-2xl">
+            <div className="mx-auto max-w-5xl px-4 md:px-6">
+              <div className="grid md:grid-cols-2 gap-12">
+                {filteredFaqs.map((member) => (
+                  <div
+                    key={member.q}
+                    className="space-y-4 p-6 rounded-lg border border-border/20 hover:border-primary/20 transition-colors"
+                  >
+                    <p className="text-primary/90 font-medium text-sm">{member.q}</p>
+                    <p className="text-muted-foreground font-light leading-relaxed">{member.a}</p>
+                  </div>
+                ))}
               </div>
-            </section>
-          </div>
+            </div>
+          </section>
         </div>
       </main>
       <SiteFooter />

@@ -30,7 +30,7 @@ export default function Faqs() {
               <div className="grid md:grid-cols-2 gap-12"></div>
                 {defaultFaqs.map(member => (
                   <div key={member.q} className="space-y-4 p-6 rounded-lg border border-border/20 hover:border-primary/20 transition-colors">
-                    <p className="text-primary/80 font-medium text-sm uppercase tracking-wider">{member.q}</p>
+                    <p className="text-primary/50 font-medium text-sm ">{member.q}</p>
                   <p className="text-muted-foreground font-light leading-relaxed">{member.a}</p>
                     </div>
                 ))}

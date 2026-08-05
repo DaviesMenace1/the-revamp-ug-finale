@@ -15,6 +15,7 @@ Allow: /about/
 Allow: /contact/
 Allow: /trade-program/
 Allow: /membership/
+Allow: /faqs
 
 # Block private areas
 Disallow: /admin/

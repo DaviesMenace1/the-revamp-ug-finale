@@ -102,7 +102,7 @@ export default function Faqs() {
                     key={member.q}
                     className="space-y-4 p-6 rounded-lg border border-border/20 hover:border-primary/20 transition-colors"
                   >
-                    <p className="text-primary/90 font-medium text-sm">{member.q}</p>
+                    <p className="text-primary/90 font-medium text-sm font-size/4">{member.q}</p>
                     <p className="text-muted-foreground font-light leading-relaxed">{member.a}</p>
                   </div>
                 ))}

@@ -67,16 +67,16 @@ export function SiteFooter() {
             {/* Contact */}
             <div className="mt-8 space-y-2">
               <a
-                href="tel:+256745867098"
+                href="tel:+256703861668"
                 className="block font-sans text-sm text-background/60 hover:text-gold transition-colors"
               >
                 +256 703 861 668
               </a>
               <a
-                href="mailto:hello@therevampug.com"
+                href="mailto:support@therevampug.com"
                 className="block font-sans text-sm text-background/60 hover:text-gold transition-colors"
               >
-                hello@therevampug.com
+                support@therevampug.com
               </a>
               <p className="font-sans text-sm text-background/40 mt-2">
                 Kyanja | Kampala, Uganda
@@ -118,7 +118,8 @@ export function SiteFooter() {
           {[
             { label: 'Privacy Policy', href: '/legal/privacy' },
             { label: 'Terms of Service', href: '/legal/terms' },
-            { label: 'Cookie Policy', href: '/legal/cookies' },
+            { label: 'Cookie Policy', href: '/legal/cookies' }, 
+            { label: 'FAQ\'s', href: '/faqs' },
           ].map((link) => (
             <Link
               key={link.href}

@@ -16,6 +16,7 @@ const navLinks = [
   { label: 'Portfolio', href: '/portfolio' },
   { label: 'About', href: '/about' },
   { label: 'Journal', href: '/journal' },
+  { label: 'FAQs', href: '/faqs' },
 ]
 
 export function SiteHeader() {

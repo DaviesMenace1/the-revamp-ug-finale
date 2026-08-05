@@ -76,7 +76,7 @@ export default function Faqs() {
 
         <div className="mx-auto max-w-5xl px-6 md:px-8 py-12 lg:py-16">
           <FilterGroup title="Filters">
-            <div >
+            <div className="flex flex-wrap gap-3">
               {questionCategories.map((f) => (
                 <button
                   key={f.category}

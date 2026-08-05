@@ -108,7 +108,7 @@ export function SiteHeader() {
 
       {/* Mobile drawer */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="right" className="w-full max-w-sm bg-background border-border p-0">
+        <SheetContent side="right" showCloseButton={false} className="w-full max-w-sm bg-background border-border p-0">
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <div className="flex flex-col h-full">
             {/* Header */}

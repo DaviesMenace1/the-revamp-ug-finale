@@ -1,10 +1,23 @@
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 
+const questionCategories = [
+    {
+        category: 'Design',
+    },
+    {
+        category: 'Development',
+    },
+    {
+        category: 'Consulting',
+    }
+]
+
 const defaultFaqs = [
     {
         q: 'What are the real goals of a good project?',
         a: 'A strong , secure and functional structure',
+        category: 'Design',
     }
 ]
 

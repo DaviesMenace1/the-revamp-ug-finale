@@ -10,19 +10,19 @@ const questionCategories = [
     },
     {
         category: 'Architecture',
-    }
+    },
     {
         category: 'Global Sourcing',
-    }
+    },
     {
         category: 'Products & Collections',
-    }
+    },
     {
         category: 'Orders & Payments',
-    }
+    },
     {
         category: 'Shipping & Installation',
-    }
+    },
     {
         category: 'Trade Program',
     },

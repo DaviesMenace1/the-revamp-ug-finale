@@ -96,7 +96,7 @@ export default function Faqs() {
 
           <section className="py-6 md:py-8 border-b border-border/20 bg-muted/5 rounded-2xl">
             <div className="mx-auto max-w-5xl px-4 md:px-6">
-              <div className="grid md:grid-cols-2 gap-12">
+              <div >
                 {filteredFaqs.map((member) => (
                   <div
                     key={member.q}

@@ -27,13 +27,13 @@ export default function Faqs() {
       <SiteHeader />
       <main className="min-h-screen bg-background">
         {/* Hero */}
-        <section className="border-b border-border/14 bg-gradient-to-br from-background via-background to-muted/20 py-20 md:py-26">
+        <section className="border-b border-border/10 bg-gradient-to-br from-background via-background to-muted/20 py-20 md:py-26">
           <div className="mx-auto max-w-5xl px-6 md:px-8 space-y-4">
             <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground">
-              Frequetly Asked Questions (FAQs)
+              Frequently Asked Questions
             </h1>
             <p className="max-w-2xl text-xl text-muted-foreground font-light">
-              Transforming spaces and lives through thoughtful design, architecture, and global curation
+              Find answers to common questions about our design, development, and consulting services.
             </p>
           </div>
         </section>

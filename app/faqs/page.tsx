@@ -27,7 +27,7 @@ export default function Faqs() {
       <SiteHeader />
       <main className="min-h-screen bg-background">
         {/* Hero */}
-        <section className="border-b border-border/20 bg-gradient-to-br from-background via-background to-muted/20 py-20 md:py-32">
+        <section className="border-b border-border/14 bg-gradient-to-br from-background via-background to-muted/20 py-20 md:py-26">
           <div className="mx-auto max-w-5xl px-6 md:px-8 space-y-4">
             <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground">
               Frequetly Asked Questions (FAQs)

@@ -27,11 +27,10 @@ export default function Faqs() {
         {/* Faqs */}
         <section className="py-20 md:py-28 border-b border-border/20 bg-muted/5">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <h2 className="font-serif text-4xl font-light text-foreground mb-16 text-center">Meet Our Team</h2>
               <div className="grid md:grid-cols-2 gap-12"></div>
                 {defaultFaqs.map(member => (
                   <div key={member.q} className="space-y-4 p-6 rounded-lg border border-border/20 hover:border-primary/20 transition-colors">
-                    <p className="text-primary/80 font-medium text-sm uppercase tracking-wider">{member.a}</p>
+                    <p className="text-primary/80 font-medium text-sm uppercase tracking-wider">{member.q}</p>
                   <p className="text-muted-foreground font-light leading-relaxed">{member.a}</p>
                     </div>
                 ))}

@@ -83,8 +83,9 @@ export default function Faqs() {
                   type="button"
                   onClick={() => setCategory(f.category)}
                   className={cn(
-                    'inline-flex items-center gap-1.5 text-left font-sans text-sm py-1.5 lg:py-1 transition-colors',
-                    category === f.category ? 'text-gold' : 'text-foreground/70 hover:text-foreground',
+                    'inline-flex items-center gap-1.5 text-sm font-sans transition-colors px-3 py-1.5 rounded-full border focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    category === f.category ? 'bg-gold/10 text-gold border-gold/30'
+                      : 'bg-transparent text-foreground/70 hover:text-foreground hover:bg-muted/5 border-transparent',
                   )}
                 >
                   {f.category}

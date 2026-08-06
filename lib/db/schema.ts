@@ -90,11 +90,13 @@ export const products = pgTable(
     name: varchar('name', { length: 255 }).notNull(),
     slug: varchar('slug', { length: 255 }).notNull().unique(),
     description: text('description'),
+    longDescription: text('long_description'),
     category: varchar('category', { length: 100 }).notNull(),
     subCategory: varchar('sub_category', { length: 100 }),
     price: decimal('price', { precision: 10, scale: 2 }).notNull(),
     originalPrice: decimal('original_price', { precision: 10, scale: 2 }),
     images: jsonb('images').default([]), // Array of Cloudinary URLs
+    gallery: jsonb('gallery').default([]), // Additional product gallery images
     thumbnailImage: text('thumbnail_image'), // Cloudinary URL
     inStock: boolean('in_stock').default(true),
     quantity: integer('quantity').default(0),
@@ -109,6 +111,10 @@ export const products = pgTable(
     views: integer('views').default(0),
     seoTitle: varchar('seo_title', { length: 255 }),
     seoDescription: varchar('seo_description', { length: 255 }),
+    ogImage: text('og_image'), // Cloudinary URL for social sharing
+    tags: jsonb('tags').default([]), // Array of tags for filtering/search
+    relatedProducts: jsonb('related_products').default([]), // Array of product IDs
+    featured: boolean('featured').default(false),
     status: varchar('status', { length: 50 }).default('published'), // published, draft, archived
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -118,6 +124,7 @@ export const products = pgTable(
     categoryIdx: index('category_idx').on(table.category),
     statusIdx: index('status_idx').on(table.status),
     slugIdx: uniqueIndex('slug_idx').on(table.slug),
+    featuredIdx: index('product_featured_idx').on(table.featured),
   })
 );
 
@@ -129,11 +136,14 @@ export const projects = pgTable(
     title: varchar('title', { length: 255 }).notNull(),
     slug: varchar('slug', { length: 255 }).notNull().unique(),
     description: text('description'),
+    longDescription: text('long_description'),
     category: varchar('category', { length: 100 }),
+    subCategory: varchar('sub_category', { length: 100 }),
     clientName: varchar('client_name', { length: 255 }),
     location: varchar('location', { length: 255 }),
     budget: decimal('budget', { precision: 12, scale: 2 }),
     images: jsonb('images').default([]), // Array of Cloudinary URLs
+    gallery: jsonb('gallery').default([]), // Project gallery for before/after
     thumbnailImage: text('thumbnail_image'), // Cloudinary URL
     designer: varchar('designer', { length: 255 }),
     status: projectStatusEnum('status').default('consultation_scheduled'),
@@ -143,6 +153,10 @@ export const projects = pgTable(
     views: integer('views').default(0),
     seoTitle: varchar('seo_title', { length: 255 }),
     seoDescription: varchar('seo_description', { length: 255 }),
+    ogImage: text('og_image'), // Cloudinary URL for social sharing
+    tags: jsonb('tags').default([]), // Array of tags
+    relatedProjects: jsonb('related_projects').default([]), // Array of project IDs
+    featured: boolean('featured').default(false),
     publishStatus: varchar('publish_status', { length: 50 }).default('published'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -152,6 +166,7 @@ export const projects = pgTable(
     categoryIdx: index('project_category_idx').on(table.category),
     statusIdx: index('project_status_idx').on(table.status),
     slugIdx: uniqueIndex('project_slug_idx').on(table.slug),
+    featuredIdx: index('project_featured_idx').on(table.featured),
   })
 );
 
@@ -166,14 +181,19 @@ export const articles = pgTable(
     excerpt: varchar('excerpt', { length: 500 }),
     author: varchar('author', { length: 255 }),
     category: varchar('category', { length: 100 }),
+    subCategory: varchar('sub_category', { length: 100 }),
     tags: jsonb('tags').default([]), // Array of tag strings
     featuredImage: text('featured_image'), // Cloudinary URL
+    gallery: jsonb('gallery').default([]), // Article gallery for hero and content images
     rating: decimal('rating', { precision: 3, scale: 2 }).default('0'),
     ratingCount: integer('rating_count').default(0),
     likes: integer('likes').default(0),
     views: integer('views').default(0),
     seoTitle: varchar('seo_title', { length: 255 }),
     seoDescription: varchar('seo_description', { length: 255 }),
+    ogImage: text('og_image'), // Cloudinary URL for social sharing
+    relatedArticles: jsonb('related_articles').default([]), // Array of article IDs
+    featured: boolean('featured').default(false),
     status: varchar('status', { length: 50 }).default('published'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -183,6 +203,7 @@ export const articles = pgTable(
     categoryIdx: index('article_category_idx').on(table.category),
     statusIdx: index('article_status_idx').on(table.status),
     slugIdx: uniqueIndex('article_slug_idx').on(table.slug),
+    featuredIdx: index('article_featured_idx').on(table.featured),
   })
 );
 

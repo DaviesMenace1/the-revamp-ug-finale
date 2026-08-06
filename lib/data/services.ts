@@ -243,3 +243,6 @@ export const CUSTOM_SERVICE_TYPES = [
 export type ServiceCategory = typeof SERVICE_CATEGORIES[0];
 export type Service = ServiceCategory['services'][0];
 export type CustomServiceType = typeof CUSTOM_SERVICE_TYPES[0];
+
+// Export alias for backwards compatibility with imports expecting `SERVICES`
+export const SERVICES = SERVICE_CATEGORIES;

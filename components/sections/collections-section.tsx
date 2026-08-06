@@ -29,7 +29,7 @@ export function CollectionsSection() {
         </div>
 
         {/* Horizontal scroll on mobile, grid on desktop */}
-        <div className="flex gap-px overflow-x-auto snap-x snap-mandatory scrollbar-none md:grid md:grid-cols-3 lg:grid-cols-6 bg-border">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-px bg-border">
           {items.map((item) => (
             <Link
               key={item.id}

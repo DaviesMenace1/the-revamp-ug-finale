@@ -184,7 +184,7 @@ function FilterList({
   active,
   onSelect,
 }: {
-  options: readonly string[]
+  options: readonly (string | { label: string; value: string })[]
   active: string
   onSelect: (value: string) => void
 }) {
@@ -199,18 +199,22 @@ function FilterList({
       >
         All
       </button>
-      {options.map((opt) => (
-        <button
-          key={opt}
-          onClick={() => onSelect(opt)}
-          className={cn(
-            'text-left font-sans text-sm py-1.5 lg:py-1 transition-colors',
-            active === opt ? 'text-gold' : 'text-foreground/70 hover:text-foreground',
-          )}
-        >
-          {opt}
-        </button>
-      ))}
+      {options.map((opt) => {
+        const val = typeof opt === 'string' ? opt : opt.value
+        const label = typeof opt === 'string' ? opt : opt.label
+        return (
+          <button
+            key={val}
+            onClick={() => onSelect(val)}
+            className={cn(
+              'text-left font-sans text-sm py-1.5 lg:py-1 transition-colors',
+              active === val ? 'text-gold' : 'text-foreground/70 hover:text-foreground',
+            )}
+          >
+            {label}
+          </button>
+        )
+      })}
     </div>
   )
 }

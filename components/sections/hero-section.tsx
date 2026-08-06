@@ -47,8 +47,8 @@ const slides: Slide[] = [
   },
   {
     id: 3,
-    type: 'image',
-    src: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487031/6931b753827f8f97837eab8737c63e_mko4pq.jpg',
+    type: 'video',
+    src: 'https://res.cloudinary.com/r8epy5mg/video/upload/v1785487048/IMG_3268_kpqjhz.mov',
     eyebrow: 'Global Sourcing',
     titleLine1: 'Exclusive Collections',
     titleLine2: 'Sourced Worldwide',

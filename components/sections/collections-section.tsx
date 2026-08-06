@@ -33,8 +33,7 @@ export function CollectionsSection() {
             <Link
               key={item.id}
               href={`/collections/${item.slug}`}
-              className="group relative bg-background w-full min-w-0 overflow-hidden block"
-            >
+              className="group relative bg-background w-full min-w-0 overflow-hidden block">
               {/* Image Container */}
               <div className="relative aspect-[3/4] w-full overflow-hidden">
                 <div
@@ -52,13 +51,7 @@ export function CollectionsSection() {
                   </span>
                 )}
               </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-
-              {/* Label */}
+               {/* Label */}
               <div className="p-4 border-t border-border">
                 <h3 className="font-serif text-base font-light text-foreground group-hover:text-gold transition-colors leading-tight mb-1">
                   {item.name}
@@ -72,8 +65,15 @@ export function CollectionsSection() {
                   </span>
                 </div>
               </div>
-            </section>
-          )}
+          )
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+
+             
 
 {/*import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'

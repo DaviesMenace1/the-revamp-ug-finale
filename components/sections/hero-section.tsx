@@ -75,8 +75,33 @@ export function HeroSection() {
   }, [isPaused])
 
   // Play video on active slide, pause others
-  useEffect(() => {
-    videoRefs.current.forEach((video, index) => {
+  useEffect(() => {// Constants
+const SLIDE_DURATION = 4 // Duration in seconds
+
+// Play video on active slide, reset playback, and enforce 4-second cap
+useEffect(() => {
+  videoRefs.current.forEach((video, index) => {
+    if (video) {
+      if (index === current) {
+        video.currentTime = 0
+        video.play().catch(() => {})
+      } else {
+        video.pause()
+      }
+    }
+  })
+}, [current])
+
+// Handler to force slide change when video reaches SLIDE_DURATION
+const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+  const video = e.currentTarget
+  if (video.currentTime >= SLIDE_DURATION) {
+    video.pause()
+    nextSlide()
+  }
+}
+    
+    {/*  videoRefs.current.forEach((video, index) => {
       if (video) {
         if (index === current) {
           video.currentTime = 0
@@ -89,7 +114,7 @@ export function HeroSection() {
   }, [current])
 
   const nextSlide = () => setCurrent((prev) => (prev + 1) % slides.length)
-  const prevSlide = () => setCurrent((prev) => (prev - 1 + slides.length) % slides.length)
+  const prevSlide = () => setCurrent((prev) => (prev - 1 + slides.length) % slides.length)*/}
 
   return (
     <section 

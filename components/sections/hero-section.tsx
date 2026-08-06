@@ -36,7 +36,7 @@ const slides: Slide[] = [
     id: 2,
     type: 'video',
     src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', // Replace with your video URL
-    poster: 'https://res.cloudinary.com/r8epy5mg/image/upload/L3D733S57ENDOVMJQ5QUWIF6ILUFX73BZXQ8_cpiqvz.jpg',
+    poster: '',
     eyebrow: 'Curated Spaces',
     titleLine1: 'Craftsmanship &',
     titleLine2: 'Timeless Elegance',
@@ -69,7 +69,7 @@ export function HeroSection() {
     if (isPaused) return
     const timer = setInterval(() => {
       setCurrent((prev) => (prev + 1) % slides.length)
-    }, 7000)
+    }, 2000)
 
     return () => clearInterval(timer)
   }, [isPaused])

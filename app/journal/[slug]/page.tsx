@@ -1,5 +1,3 @@
-'use client'
-
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import Link from 'next/link'
@@ -16,7 +14,7 @@ const articles: Record<string, any> = {
     category: 'Design Trends',
     readTime: '5 min read',
     content: `
-      <p>Minimalism has become more than a design trend—it's a lifestyle philosophy that resonates deeply with contemporary living. In our quest for clarity and purpose, we're discovering that less truly can be more.</p>
+      <p>Minimalism has become more than a design trend—it's a lifestyle philosophy that resonates deeply with contemporary living. In our quest for clarity and purpose, we're discovering that l[...]
       
       <h3>The Philosophy Behind Minimalism</h3>
       <p>Minimalism isn't about emptiness or cold spaces. Rather, it's about intentionality. Every object, color, and element serves a purpose. It's a celebration of what matters most.</p>

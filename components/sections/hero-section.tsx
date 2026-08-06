@@ -97,8 +97,9 @@ const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
   const video = e.currentTarget
   if (video.currentTime >= SLIDE_DURATION) {
     video.pause()
-    nextSlide() or prevSlide()
+    nextSlide()  
   }
+  const prevSlide = () => setCurrent((prev) => (prev - 1 + slides.length) % slides.length)
 }
     
     {/*  videoRefs.current.forEach((video, index) => {

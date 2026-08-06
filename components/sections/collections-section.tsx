@@ -65,7 +65,7 @@ export function CollectionsSection() {
                   </span>
                 </div>
               </div>
-          )
+    
             </Link>
           ))}
         </div>

@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react'
 import { getNewArrivals, isNewArrival, formatPrice } from '@/lib/data/products'
 
 export function CollectionsSection() {
-  const items = getNewArrivals(8)
+  const items = getNewArrivals(10)
 
   return (
     <section className="section-pad bg-background">

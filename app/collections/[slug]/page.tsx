@@ -5,6 +5,8 @@ import { ArrowLeft } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { ProductDetail, ProductReviews } from '@/components/collections/product-detail'
+import { SchemaScript } from '@/components/seo/schema-script'
+import { generateProductSchema } from '@/lib/seo/schema-generator'
 import {
   products,
   getProductBySlug,
@@ -24,11 +26,32 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const product = getProductBySlug(slug)
-  if (!product) return { title: 'Product Not Found' }
+  if (!product) {
+    return {
+      title: 'Product Not Found',
+      description: 'This product could not be found',
+    }
+  }
   return {
-    title: product.name,
-    description: product.tagline,
-    openGraph: { images: [product.images[0]] },
+    title: `${product.name} | The Revamp UG`,
+    description: product.tagline || product.description,
+    keywords: [product.name, product.category, product.subCategory],
+    openGraph: {
+      title: product.name,
+      description: product.tagline || product.description,
+      type: 'product',
+      images: product.images.map((img: string) => ({
+        url: img,
+        width: 1200,
+        height: 1200,
+      })),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.name,
+      description: product.tagline,
+      images: [product.images[0]],
+    },
   }
 }
 
@@ -43,8 +66,18 @@ export default async function ProductPage({
 
   const related = getRelatedProducts(product)
 
+  const productSchema = generateProductSchema({
+    name: product.name,
+    description: product.description,
+    image: product.images[0],
+    price: product.price,
+    currency: 'USD',
+    inStock: product.inStock,
+  })
+
   return (
     <>
+      <SchemaScript schema={productSchema} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
         {/* Breadcrumb */}

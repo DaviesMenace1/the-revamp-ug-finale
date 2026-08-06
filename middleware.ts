@@ -1,6 +1,36 @@
-import { clerkMiddleware } from '@clerk/nextjs/server'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+
+// Define public routes that don't require login
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/login(.*)',
+  '/signup(.*)',
+  '/sign-in(.*)',
+  '/about(.*)',
+  '/services(.*)',
+  '/projects(.*)',
+  '/collections(.*)',
+  '/journal(.*)',
+  '/api/webhooks(.*)'
+]);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (!isPublicRoute(req)) {
+    await auth.protect();
+  }
+});
+
+export const config = {
+  matcher: [
+    // Skip Next.js internals and all static files
+    '/((?!_next|[^?]*\\.(?:html|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|xml)|_not-found).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
+};
+
 
 export default clerkMiddleware((auth, req: NextRequest) => {
   // Handle admin subdomain routing

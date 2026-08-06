@@ -148,16 +148,6 @@ const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
             onTimeUpdate={handleVideoTimeUpdate} // 👈 Force switch at 4s
             className="absolute inset-0 w-full h-full object-cover"
           />
-          
-          {/*<video
-              ref={(el) => { videoRefs.current[index] = el }}
-              src={slide.src}
-              poster={slide.poster}
-              muted
-              loop
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover"
-            />*/}
           )}
 
           {/* Layered dark gradients for legibility */}

@@ -19,19 +19,6 @@ export function generateStaticParams() {
   return products.map((p) => ({ slug: p.slug }))
 }
 
-{/*export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}): Promise<Metadata> {
-  const { slug } = await params
-  const product = getProductBySlug(slug)
-  if (!product) {
-    return {
-      title: 'Product Not Found',
-      description: 'This product could not be found',
-    }
-  }*/}
 export async function generateMetadata({
   params,
 }: {
@@ -71,28 +58,6 @@ export async function generateMetadata({
     },
   }
 }
-  return {
-    title: `${product.name} | The Revamp UG`,
-    description: product.tagline || product.description,
-    keywords: [product.name, product.category, product.subCategory],
-    openGraph: {
-      title: product.name,
-      description: product.tagline || product.description,
-      type: 'product',
-      images: product.images.map((img: string) => ({
-        url: img,
-        width: 1200,
-        height: 1200,
-      })),
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: product.name,
-      description: product.tagline,
-      images: [product.images[0]],
-    },
-  }
-}
 
 export default async function ProductPage({
   params,
@@ -105,13 +70,18 @@ export default async function ProductPage({
 
   const related = getRelatedProducts(product)
 
+  // Defensive: ensure images array
+  const images = (product.images ?? []).filter(Boolean)
+  const pageUrl = `https://therevampug.com/collections/${product.slug}`
+
+  // Use object-style call (schema-generator supports it) and provide fallbacks
   const productSchema = generateProductSchema({
     name: product.name,
     description: product.description,
-    image: product.images[0],
     price: product.price,
-    currency: 'USD',
-    inStock: product.inStock,
+    currency: product.currency || 'USD',
+    images,
+    options: { url: pageUrl, image: images[0] },
   })
 
   return (
@@ -163,7 +133,7 @@ export default async function ProductPage({
                     <div className="relative aspect-[3/4] overflow-hidden">
                       <div
                         className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                        style={{ backgroundImage: `url('${p.images[0]}')` }}
+                        style={{ backgroundImage: `url('${p.images?.[0] ?? 'https://therevampug.com/default-thumb.png'}')` }}
                         role="img"
                         aria-label={p.name}
                       />

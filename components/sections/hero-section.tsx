@@ -64,6 +64,14 @@ export function HeroSection() {
   const [isPaused, setIsPaused] = useState(false)
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
 
+  const nextSlide = () => {
+    setCurrent((prev) => (prev + 1) % slides.length)
+  }
+
+  const prevSlide = () => {
+    setCurrent((prev) => (prev - 1 + slides.length) % slides.length)
+  }
+  
   // Handle auto-advance
   useEffect(() => {
     if (isPaused) return
@@ -99,7 +107,6 @@ const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     video.pause()
     nextSlide()  
   }
-  const prevSlide = () => setCurrent((prev) => (prev - 1 + slides.length) % slides.length)
 }
     
     {/*  videoRefs.current.forEach((video, index) => {

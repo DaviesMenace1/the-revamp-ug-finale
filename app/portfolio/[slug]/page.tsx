@@ -205,7 +205,7 @@ const projectDetails: Record<string, any> = {
     category: 'Commercial',
     location: 'Kampala, Uganda',
     year: '2023',
-    description: 'A high-end furniture and décor showroom designed to showcase collections in curated vignettes and inspire customers.',
+    description: 'A high-end furniture and d\u00e9cor showroom designed to showcase collections in curated vignettes and inspire customers.',
     challenge: 'Creating an engaging retail environment that displays 500+ products while maintaining a cohesive luxury aesthetic.',
     solution: 'We designed thematic zones, strategic lighting, and flexible display systems that highlight products while telling a design story.',
     highlights: [
@@ -507,7 +507,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={1.5}
-                    d="M21 8.25c0-1.085-.712-2.025-1.97-2.318m-12.06 0C6.712 6.225 5 7.165 5 8.25m16.06 0a24.001 24.001 0 01-23.064 12.061m0 0c1.232.855 2.635 1.5 4.157 1.5c5.4 0 7.859-4.02 9.868-6.04.231-.264.481-.529.752-.793m0 0c.271.264.521.529.752.793C15.141 20.98 17.6 25 23 25c1.522 0 2.925-.645 4.157-1.5"
+                    d="M12 21s-6.716-4.736-9.237-7.257A5.5 5.5 0 0 1 6 4.5 5.5 5.5 0 0 1 12 8.09 5.5 5.5 0 0 1 18 4.5a5.5 5.5 0 0 1 3.237 9.243C18.716 16.264 12 21 12 21z"
                   />
                 </svg>
                 <span>{likes} likes</span>

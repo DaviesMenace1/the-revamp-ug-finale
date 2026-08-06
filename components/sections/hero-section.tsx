@@ -23,7 +23,7 @@ const slides: Slide[] = [
   {
     id: 1,
     type: 'video',
-    src: 'https://res.cloudinary.com/r8epy5mg/video/upload/v1785487036/83_pou47z.mp4',
+    src: 'https://res.cloudinary.com/r8epy5mg/video/upload/v1785487037/85_ytqesd.mp4',
     eyebrow: 'Est. Uganda',
     titleLine1: 'The Architecture',
     titleLine2: 'of Refined Living',

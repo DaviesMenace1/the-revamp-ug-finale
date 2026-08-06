@@ -1,4 +1,52 @@
-import type { NextRequest } from 'next/server'
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
+
+// Define routes that should NOT require authentication
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/login(.*)',
+  '/signup(.*)',
+  '/sign-in(.*)',
+  '/about(.*)',
+  '/services(.*)',
+  '/projects(.*)',
+  '/collections(.*)',
+  '/journal(.*)',
+  '/api/webhooks(.*)',
+])
+
+// Define subdomains or custom path rewrites if applicable
+const isAdminRoute = createRouteMatcher(['/admin(.*)'])
+
+export default clerkMiddleware(async (auth, req) => {
+  const url = req.nextUrl.clone()
+
+  // 1. Protect non-public routes
+  if (!isPublicRoute(req)) {
+    await auth.protect()
+  }
+
+  // 2. Handle admin route rewriting (if needed)
+  if (isAdminRoute(req)) {
+    url.pathname = `/admin${url.pathname === '/' ? '' : url.pathname}`
+    return NextResponse.rewrite(url)
+  }
+
+  return NextResponse.next()
+})
+
+export const config = {
+  matcher: [
+    // Skip Next.js internals and static files
+    '/((?!_next|[^?]*\\.(?:html|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|xml)|_not-found).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
+}
+
+
+
+{/*import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
@@ -54,4 +102,4 @@ export const config = {
     // Always run for API routes
     '/(api|trpc)(.*)',
   ],
-}
+}*/}

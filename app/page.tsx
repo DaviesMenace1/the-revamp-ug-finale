@@ -15,12 +15,12 @@ export default function HomePage() {
       <SiteHeader />
       <main>
         <HeroSection />
-        <ServicesSection />
-        <PortfolioSection />
-        <ProcessSection />
-        <CollectionsSection />
-        <TestimonialsSection />
         <JournalSection />
+        <PortfolioSection />
+        <CollectionsSection />
+        <ServicesSection />
+        <ProcessSection />
+        <TestimonialsSection />
         <CtaSection />
       </main>
       <SiteFooter />

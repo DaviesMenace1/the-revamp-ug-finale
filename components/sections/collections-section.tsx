@@ -28,33 +28,34 @@ export function CollectionsSection() {
           </Link>
         </div>
 
-<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-px bg-border w-full">
-  {items.map((item) => (
-    <Link
-      key={item.id}
-      href={`/collections/${item.slug}`}
-      className="group relative bg-background w-full min-w-0 overflow-hidden block"
-    >
-      {/* Image Container */}
-      <div className="relative aspect-[3/4] w-full overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-          style={{ backgroundImage: `url('${item.images[0]}')` }}
-          role="img"
-          aria-label={item.name}
-        />
-        <div className="absolute inset-0 bg-foreground/20 group-hover:bg-foreground/40 transition-colors duration-500" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-px bg-border w-full">
+          {items.map((item) => (
+            <Link
+              key={item.id}
+              href={`/collections/${item.slug}`}
+              className="group relative bg-background w-full min-w-0 overflow-hidden block"
+            >
+              {/* Image Container */}
+              <div className="relative aspect-[3/4] w-full overflow-hidden">
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+                  style={{ backgroundImage: `url('${item.images[0]}')` }}
+                  role="img"
+                  aria-label={item.name}
+                />
+                <div className="absolute inset-0 bg-foreground/20 group-hover:bg-foreground/40 transition-colors duration-500" />
 
-        {/* New Arrivals Tag */}
-        {isNewArrival(item) && (
-          <span className="absolute top-3 left-3 bg-gold text-obsidian font-sans text-[10px] tracking-widest uppercase px-2.5 py-1 z-10">
-            New Arrivals
-          </span>
-        )}
+                {/* New Arrivals Tag */}
+                {isNewArrival(item) && (
+                  <span className="absolute top-3 left-3 bg-gold text-obsidian font-sans text-[10px] tracking-widest uppercase px-2.5 py-1 z-10">
+                    New Arrivals
+                  </span>
+                )}
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
-    </Link>
-  ))}
-</div>
 
 
               {/* Label */}
@@ -71,13 +72,8 @@ export function CollectionsSection() {
                   </span>
                 </div>
               </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
+            </section>
+          )}
 
 {/*import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'

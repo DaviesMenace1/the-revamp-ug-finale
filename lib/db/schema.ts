@@ -207,6 +207,22 @@ export const articles = pgTable(
   })
 );
 
+// Cart Table - stores user's shopping cart
+export const carts = pgTable(
+  'carts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull(),
+    items: jsonb('items').default([]), // Array of { productId, quantity, price, name, image }
+    subtotal: decimal('subtotal', { precision: 12, scale: 2 }).default('0'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: uniqueIndex('cart_user_idx').on(table.userId),
+  })
+);
+
 // Orders Table
 export const orders = pgTable(
   'orders',
@@ -507,6 +523,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   tradeMembers: many(tradeMembers),
   memberships: many(memberships),
   sourcingRequests: many(sourcingRequests),
+  cart: many(carts),
 }));
 
 export const productsRelations = relations(products, ({ many }) => ({

@@ -1,9 +1,150 @@
 'use client';
 
 import React, { createContext, useCallback, useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { Cart, CartItem, Product, Color, Variant, Accessory } from '@/lib/types'
 
-export interface CartItem {
+interface CartContextType {
+  cart: Cart | null
+  items: CartItem[]
+  addToCart: (
+    product: Product,
+    quantity: number,
+    selectedColor?: Color,
+    selectedVariant?: Variant,
+    selectedAccessories?: Accessory[],
+    customDimensions?: { width?: number; height?: number; depth?: number }
+  ) => void
+  removeFromCart: (productId: string) => void
+  updateQuantity: (productId: string, quantity: number) => void
+  clearCart: () => void
+  cartCount: number
+  cartTotal: number
+}
+
+const CartContext = createContext<CartContextType | undefined>(undefined)
+
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  const [cart, setCart] = useState<Cart | null>(null)
+  const [items, setItems] = useState<CartItem[]>([])
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('revamp-cart')
+    if (savedCart) {
+      try {
+        const parsedCart = JSON.parse(savedCart)
+        setItems(parsedCart)
+      } catch (error) {
+        console.error('Failed to load cart:', error)
+      }
+    }
+  }, [])
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('revamp-cart', JSON.stringify(items))
+  }, [items])
+
+  const calculateTotals = (cartItems: CartItem[]) => {
+    const subtotal = cartItems.reduce((total, item) => {
+      const itemPrice = item.product.salePrice || item.product.price
+      return total + itemPrice * item.quantity
+    }, 0)
+
+    const tax = subtotal * 0.1 // 10% tax
+    const shipping = subtotal > 0 ? 150 : 0 // $150 flat shipping
+    const total = subtotal + tax + shipping
+
+    return { subtotal, tax, shipping, total }
+  }
+
+  const addToCart = (
+    product: Product,
+    quantity: number,
+    selectedColor?: Color,
+    selectedVariant?: Variant,
+    selectedAccessories?: Accessory[],
+    customDimensions?: { width?: number; height?: number; depth?: number }
+  ) => {
+    setItems((prevItems) => {
+      const existingItem = prevItems.find((item) => item.productId === product.id)
+
+      if (existingItem) {
+        return prevItems.map((item) =>
+          item.productId === product.id
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        )
+      }
+
+      return [
+        ...prevItems,
+        {
+          productId: product.id,
+          product,
+          quantity,
+          selectedColor,
+          selectedVariant,
+          selectedAccessories: selectedAccessories || [],
+          customDimensions,
+        },
+      ]
+    })
+  }
+
+  const removeFromCart = (productId: string) => {
+    setItems((prevItems) => prevItems.filter((item) => item.productId !== productId))
+  }
+
+  const updateQuantity = (productId: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeFromCart(productId)
+      return
+    }
+
+    setItems((prevItems) =>
+      prevItems.map((item) =>
+        item.productId === productId ? { ...item, quantity } : item
+      )
+    )
+  }
+
+  const clearCart = () => {
+    setItems([])
+  }
+
+  const totals = calculateTotals(items)
+
+  const value: CartContextType = {
+    cart: cart || {
+      id: 'temp-cart',
+      userId: 'guest',
+      items,
+      ...totals,
+      updatedAt: new Date(),
+    },
+    items,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    cartCount: items.reduce((count, item) => count + item.quantity, 0),
+    cartTotal: totals.total,
+  }
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>
+}
+
+export function useCart() {
+  const context = useContext(CartContext)
+  if (context === undefined) {
+    throw new Error('useCart must be used within CartProvider')
+  }
+  return context
+}
+
+
+{/*export interface CartItem {
   productId: string;
   name: string;
   price: number;
@@ -217,4 +358,4 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       {children}
     </CartContext.Provider>
   );
-}
+} */}

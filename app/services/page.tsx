@@ -1,132 +1,144 @@
 'use client'
 
+import { useState } from 'react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-
-const services = [
-  {
-    id: 'architecture',
-    title: 'Architecture',
-    subtitle: 'Visionary design & structural excellence',
-    description: 'From concept to completion, we transform spaces through thoughtful architectural design that balances aesthetics with function.',
-    href: '/services/architecture',
-  },
-  {
-    id: 'interior-design',
-    title: 'Interior Design',
-    subtitle: 'Curated interiors & storytelling',
-    description: 'Our designers create bespoke interiors that reflect your vision, lifestyle, and the unique character of each space.',
-    href: '/services/interior-design',
-  },
-  {
-    id: 'sourcing',
-    title: 'Global Sourcing',
-    subtitle: 'Furniture & décor from around the world',
-    description: 'Access to curated collections from international artisans, designers, and manufacturers. We handle all logistics and compliance.',
-    href: '/services/sourcing',
-  },
-  {
-    id: 'installation',
-    title: 'White-Glove Installation',
-    subtitle: 'Seamless execution & project management',
-    description: 'Our expert team ensures flawless execution from delivery through final installation, with meticulous attention to detail.',
-    href: '/services/installation',
-  },
-]
+import { SERVICES } from '@/lib/data/services'
+import { ChevronRight, ArrowRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default function ServicesPage() {
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(SERVICES[0]?.id || null)
+
   return (
     <>
       <SiteHeader />
       <main className="min-h-screen bg-background">
         {/* Hero */}
-        <section className="border-b border-border/20 bg-gradient-to-br from-background via-background to-muted/20 py-24 md:py-32">
+        <section className="border-b border-border/20 py-20 md:py-28">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <div className="space-y-6 text-center">
-              <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground">
+            <div className="space-y-6">
+              <h1 className="font-serif text-5xl md:text-6xl font-light text-foreground leading-tight">
                 Our Services
               </h1>
-              <p className="mx-auto max-w-2xl text-lg text-muted-foreground font-light">
-                Comprehensive solutions for architectural design, interior curation, global sourcing, and installation
+              <p className="max-w-2xl text-lg text-muted-foreground font-light">
+                From concept to completion, we offer a comprehensive range of luxury design and procurement services 
+                tailored to your unique vision and requirements. Choose from 11 service categories and 70+ specialized services.
               </p>
             </div>
           </div>
         </section>
 
         {/* Services Grid */}
-        <section className="py-20 md:py-28">
+        <section className="py-16 md:py-20">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
-            <div className="grid gap-12 md:grid-cols-2">
-              {services.map((service, idx) => (
-                <Link key={service.id} href={service.href}>
-                  <div className="group h-full cursor-pointer">
-                    <div className="relative space-y-6 rounded-lg border border-border/40 bg-card/30 p-8 transition-all duration-300 hover:border-primary/40 hover:bg-card/60">
-                      {/* Number */}
-                      <div className="inline-block">
-                        <span className="font-serif text-7xl font-light text-primary/20 group-hover:text-primary/40 transition-colors">
-                          {String(idx + 1).padStart(2, '0')}
-                        </span>
-                      </div>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              {/* Categories Sidebar */}
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-4">
+                  Service Categories
+                </p>
+                {SERVICES.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() =>
+                      setExpandedCategory(expandedCategory === category.id ? null : category.id)
+                    }
+                    className={cn(
+                      'w-full text-left px-4 py-3 rounded-lg transition-all duration-200',
+                      expandedCategory === category.id
+                        ? 'bg-gold/10 border border-gold/20'
+                        : 'hover:bg-background/50 border border-transparent'
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className={cn(
+                        'font-medium text-sm transition-colors',
+                        expandedCategory === category.id ? 'text-gold' : 'text-foreground'
+                      )}>
+                        {category.name}
+                      </h3>
+                      <ChevronRight
+                        size={16}
+                        className={cn(
+                          'transition-transform',
+                          expandedCategory === category.id ? 'rotate-90 text-gold' : 'text-muted-foreground'
+                        )}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {category.services.length} services
+                    </p>
+                  </button>
+                ))}
+              </div>
 
-                      {/* Title */}
-                      <div className="space-y-2">
-                        <h2 className="font-serif text-3xl font-light text-foreground group-hover:text-primary transition-colors">
-                          {service.title}
+              {/* Services Content */}
+              <div className="lg:col-span-3">
+                {SERVICES.map((category) => (
+                  expandedCategory === category.id && (
+                    <div key={category.id} className="space-y-8">
+                      <div>
+                        <h2 className="font-serif text-4xl font-light text-foreground mb-3">
+                          {category.name}
                         </h2>
-                        <p className="font-sans text-sm font-medium text-primary/80 uppercase tracking-wider">
-                          {service.subtitle}
+                        <p className="text-foreground/70 max-w-2xl">
+                          {category.description}
                         </p>
                       </div>
 
-                      {/* Description */}
-                      <p className="text-base text-muted-foreground font-light leading-relaxed">
-                        {service.description}
-                      </p>
-
-                      {/* Arrow */}
-                      <div className="pt-4">
-                        <span className="inline-flex items-center gap-2 font-sans text-sm font-medium text-primary/70 group-hover:text-primary transition-colors">
-                          Learn more
-                          <svg
-                            className="size-4 transition-transform group-hover:translate-x-1"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                      {/* Services Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {category.services.map((service) => (
+                          <Link
+                            key={service.slug}
+                            href={`/services/${category.slug}/${service.slug}`}
+                            className="group block"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.5}
-                              d="M13 7l5 5m0 0l-5 5m5-5H6"
-                            />
-                          </svg>
-                        </span>
+                            <div className="h-full p-6 border border-border/30 rounded-lg hover:border-gold/50 hover:bg-gold/5 transition-all duration-300">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h3 className="font-medium text-foreground group-hover:text-gold transition-colors">
+                                    {service.name}
+                                  </h3>
+                                  <p className="text-sm text-foreground/60 mt-2 group-hover:text-foreground/70 transition-colors">
+                                    {service.description}
+                                  </p>
+                                </div>
+                                <ArrowRight
+                                  size={16}
+                                  className="text-muted-foreground group-hover:text-gold transition-all duration-300 ml-3 flex-shrink-0 group-hover:translate-x-1"
+                                />
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  )
+                ))}
+              </div>
             </div>
           </div>
         </section>
 
         {/* CTA */}
-        <section className="border-t border-border/20 bg-muted/5 py-20 md:py-24">
+        <section className="border-t border-border/20 bg-foreground text-background py-20 md:py-24">
           <div className="mx-auto max-w-3xl px-6 md:px-8 text-center space-y-8">
             <div className="space-y-4">
-              <h2 className="font-serif text-4xl md:text-5xl font-light text-foreground">
+              <h2 className="font-serif text-4xl md:text-5xl font-light">
                 Ready to transform your space?
               </h2>
-              <p className="text-lg text-muted-foreground font-light">
-                Book a consultation with our team to discuss your project
+              <p className="text-lg opacity-90">
+                Book a consultation with our team to discuss your project and discover how we can bring your vision to life.
               </p>
             </div>
             <Button
               asChild
               size="lg"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none font-light text-base px-8 py-6"
+              className="bg-gold text-foreground hover:bg-gold/90 rounded font-medium text-base px-8 py-3"
             >
               <Link href="/book-consultation">Schedule a Consultation</Link>
             </Button>

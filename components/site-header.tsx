@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, ChevronDown } from 'lucide-react'
+import { Menu, X, ChevronDown, ShoppingBag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useCart } from '@/lib/context/cart-context'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 
@@ -28,8 +29,8 @@ const navLinks = [
       { label: 'Signature Services', href: '/services/signature-services' },
     ]
   },
-  { label: 'Portfolio', href: '/portfolio' },
-  { label: 'Shop', href: '/shop' },
+  { label: 'Projects', href: '/projects' },
+  { label: 'Shop', href: '/collections' },
   { label: 'Journal', href: '/journal' },
   { label: 'Source With Revamp', href: '/source-with-revamp' },
   { label: 'Trade Program', href: '/trade' },
@@ -38,6 +39,8 @@ const navLinks = [
 ]
 
 export function SiteHeader() {
+  const [isOpen, setIsOpen] = useState(false)
+  const { cartCount } = useCart()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mobileSubmenu, setMobileSubmenu] = useState<string | null>(null)
@@ -113,6 +116,19 @@ export function SiteHeader() {
             {/* Right actions */}
             <div className="flex items-center gap-3">
               <ThemeSwitcher />
+               <Link href="/cart" className="relative p-2 hover:text-accent transition-colors">
+              <ShoppingBag size={24} />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+            <Link href="/login">
+              <Button variant="ghost" size="sm">
+                Sign In
+              </Button>
+            </Link>
               <Link href="/contact" className="hidden lg:block">
                 <Button
                   size="sm"

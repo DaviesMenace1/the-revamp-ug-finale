@@ -1,13 +1,11 @@
-'use client'
-
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { useState } from 'react'
 import type { Metadata } from 'next'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateProjectSchema } from '@/lib/seo/schema-generator'
+import LikeButton from '@/components/like-button'
 
 interface ProjectPageProps {
   params: { slug: string }
@@ -312,10 +310,6 @@ const projectDetails: Record<string, any> = {
   },
 }
 
-interface ProjectPageProps {
-  params: { slug: string }
-}
-
 export async function generateStaticParams() {
   return Object.keys(projectDetails).map((slug) => ({
     slug,
@@ -359,16 +353,9 @@ export async function generateMetadata({
 
 export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const project = projectDetails[params.slug]
-  const [likes, setLikes] = useState(147)
-  const [liked, setLiked] = useState(false)
 
   if (!project) {
     notFound()
-  }
-
-  const toggleLike = () => {
-    setLiked(!liked)
-    setLikes(liked ? likes - 1 : likes + 1)
   }
 
   const projectSchema = generateProjectSchema({
@@ -493,25 +480,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
         <section className="py-12 border-b border-border/20">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
             <div className="flex items-center gap-8">
-              <button
-                onClick={toggleLike}
-                className="flex items-center gap-2 px-4 py-2 rounded-full border border-border/20 hover:border-primary/40 text-muted-foreground hover:text-primary transition-colors font-light"
-              >
-                <svg
-                  className={`size-5 ${liked ? 'fill-current' : ''}`}
-                  fill={liked ? 'currentColor' : 'none'}
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M12 21s-6.716-4.736-9.237-7.257A5.5 5.5 0 0 1 6 4.5 5.5 5.5 0 0 1 12 8.09 5.5 5.5 0 0 1 18 4.5a5.5 5.5 0 0 1 3.237 9.243C18.716 16.264 12 21 12 21z"
-                  />
-                </svg>
-                <span>{likes} likes</span>
-              </button>
+              <LikeButton initial={147} />
             </div>
           </div>
         </section>

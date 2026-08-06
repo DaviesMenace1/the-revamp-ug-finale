@@ -97,7 +97,7 @@ const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
   const video = e.currentTarget
   if (video.currentTime >= SLIDE_DURATION) {
     video.pause()
-    nextSlide()
+    nextSlide() or prevSlide()
   }
 }
     

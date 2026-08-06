@@ -22,8 +22,8 @@ interface Slide {
 const slides: Slide[] = [
   {
     id: 1,
-    type: 'image',
-    src: 'https://res.cloudinary.com/r8epy5mg/image/upload/L3D733S57ENDOVMJQ5QUWIF6ILUFX73BZXQ8_cpiqvz.jpg',
+    type: 'video',
+    src: 'https://res.cloudinary.com/r8epy5mg/video/upload/v1785487036/83_pou47z.mp4',
     eyebrow: 'Est. Uganda',
     titleLine1: 'The Architecture',
     titleLine2: 'of Refined Living',
@@ -48,7 +48,7 @@ const slides: Slide[] = [
   {
     id: 3,
     type: 'image',
-    src: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1920&auto=format&fit=crop',
+    src: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487031/6931b753827f8f97837eab8737c63e_mko4pq.jpg',
     eyebrow: 'Global Sourcing',
     titleLine1: 'Exclusive Collections',
     titleLine2: 'Sourced Worldwide',

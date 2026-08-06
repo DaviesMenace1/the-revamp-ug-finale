@@ -47,7 +47,8 @@ export async function generateMetadata({
     openGraph: {
       title: product.name,
       description: product.tagline || product.description,
-      type: 'product',
+      // Next.js OpenGraph type must be one of the supported types — use 'website' instead of custom 'product'
+      type: 'website',
       images: openGraphImages,
     },
     twitter: {

@@ -1,0 +1,35 @@
+{
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "destination": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "^admin(\\.therevampug\\.com|localhost(:\\d+)?)$"
+        }
+      ]
+    }
+  ],
+  "headers": [
+    {
+      "source": "/admin/:path*",
+      "headers": [
+        {
+          "key": "X-Admin-Panel",
+          "value": "true"
+        }
+      ]
+    }
+  ]
+}

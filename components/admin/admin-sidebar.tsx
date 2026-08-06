@@ -9,12 +9,16 @@ import {
   Settings,
   LogOut,
   Grid3x3,
+  Briefcase,
+  HelpCircle,
 } from 'lucide-react'
 
 const sidebarItems = [
   { label: 'Dashboard', href: '/admin', icon: BarChart3 },
   { label: 'Products', href: '/admin/products', icon: Package },
   { label: 'Categories', href: '/admin/categories', icon: Grid3x3 },
+  { label: 'Services', href: '/admin/services', icon: Briefcase },
+  { label: 'FAQs', href: '/admin/faqs', icon: HelpCircle },
   { label: 'Projects', href: '/admin/projects', icon: FolderOpen },
   { label: 'Orders', href: '/admin/orders', icon: ShoppingCart },
   { label: 'Users', href: '/admin/users', icon: Users },

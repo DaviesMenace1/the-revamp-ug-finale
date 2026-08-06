@@ -19,6 +19,19 @@ export function generateStaticParams() {
   return products.map((p) => ({ slug: p.slug }))
 }
 
+{/*export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+  const { slug } = await params
+  const product = getProductBySlug(slug)
+  if (!product) {
+    return {
+      title: 'Product Not Found',
+      description: 'This product could not be found',
+    }
+  }*/}
 export async function generateMetadata({
   params,
 }: {
@@ -32,6 +45,32 @@ export async function generateMetadata({
       description: 'This product could not be found',
     }
   }
+
+  // Defensive: ensure images is always an array of strings
+  const images = (product.images ?? []).filter(Boolean)
+
+  const openGraphImages = images.length
+    ? images.map((img: string) => ({ url: String(img), width: 1200, height: 1200 }))
+    : [{ url: 'https://therevampug.com/default-og.png', width: 1200, height: 1200 }]
+
+  return {
+    title: `${product.name} | The Revamp UG`,
+    description: product.tagline || product.description,
+    keywords: [product.name, product.category, (product as any).subCategory].filter(Boolean),
+    openGraph: {
+      title: product.name,
+      description: product.tagline || product.description,
+      type: 'product',
+      images: openGraphImages,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.name,
+      description: product.tagline || product.description,
+      images: images.length ? [images[0]] : ['https://therevampug.com/default-twitter.png'],
+    },
+  }
+}
   return {
     title: `${product.name} | The Revamp UG`,
     description: product.tagline || product.description,

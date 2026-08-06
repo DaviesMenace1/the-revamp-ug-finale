@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/lib/theme-provider'
+import CartProvider from '@/lib/context/cart-context'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateOrganizationSchema, generateLocalBusinessSchema } from '@/lib/seo/schema-generator'
 import './globals.css'
@@ -139,9 +140,11 @@ export default function RootLayout({
           <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         </head>
         <body className="antialiased">
-          <ThemeProvider>
-            {children}
-          </ThemeProvider>
+          <CartProvider>
+            <ThemeProvider>
+              {children}
+            </ThemeProvider>
+          </CartProvider>
           {process.env.NODE_ENV === 'production' && <Analytics />}
         </body>
       </html>

@@ -40,8 +40,8 @@ const navLinks = [
 
 export function SiteHeader() {
   const [isOpen, setIsOpen] = useState(false)
-  const cartContext = useCart()
-  const cartCount = cartContext ? cartContext.cartCount : 0
+  const CartContext = useCart()
+  const cartCount = CartContext ? CartContext.cartCount : 0
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mobileSubmenu, setMobileSubmenu] = useState<string | null>(null)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, X, ChevronDown, ShoppingBag, Search, Heart, User, MessageSquare } from 'lucide-react'
@@ -52,8 +52,11 @@ export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
+  const [desktopDropdownOpen, setDesktopDropdownOpen] = useState<string | null>(null)
+  
   const pathname = usePathname()
   const isHome = pathname === '/'
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const onScroll = () => {
@@ -66,8 +69,29 @@ export function SiteHeader() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // Close desktop dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDesktopDropdownOpen(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Close menus on page route changes
+  useEffect(() => {
+    setDesktopDropdownOpen(null)
+    setDrawerOpen(false)
+  }, [pathname])
+
   const toggleSubmenu = (href: string) => {
     setOpenSubmenu(prev => (prev === href ? null : href))
+  }
+
+  const toggleDesktopDropdown = (href: string) => {
+    setDesktopDropdownOpen(prev => (prev === href ? null : href))
   }
 
   return (
@@ -83,10 +107,7 @@ export function SiteHeader() {
         <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 md:h-20">
             
-            {/* ========================================================= */}
-            {/* 1. LEFT SECTION                                           */}
-            {/* Mobile: Menu + Search | Desktop: Logo                      */}
-            {/* ========================================================= */}
+            {/* 1. LEFT SECTION */}
             <div className="flex items-center gap-1 sm:gap-2">
               {/* Mobile Only: Menu & Search */}
               <div className="flex items-center gap-1 md:hidden">
@@ -128,11 +149,8 @@ export function SiteHeader() {
               </div>
             </div>
 
-            {/* ========================================================= */}
-            {/* 2. CENTER SECTION                                         */}
-            {/* Mobile: Compact Logo | Desktop: Nav Links                 */}
-            {/* ========================================================= */}
-            {/* Mobile: Clean, scaled-down centered logo */}
+            {/* 2. CENTER SECTION */}
+            {/* Mobile: Clean Logo */}
             <div className="flex md:hidden items-center justify-center text-center px-1">
               <Link
                 href="/"
@@ -145,43 +163,88 @@ export function SiteHeader() {
               </Link>
             </div>
 
-            {/* Desktop: Navigation Links */}
-            <nav className="hidden md:flex items-center gap-6 lg:gap-8" aria-label="Main navigation">
+            {/* Desktop: Navigation Links with Fixed Dropdown */}
+            <nav className="hidden md:flex items-center gap-6 lg:gap-8" aria-label="Main navigation" ref={dropdownRef}>
               {primaryNavLinks.map((link) => (
-                <div key={link.href} className="relative group">
-                  <Link
-                    href={link.href}
-                    className={cn(
-                      'font-sans text-xs lg:text-sm tracking-wide uppercase transition-colors flex items-center gap-1',
-                      scrolled || !isHome ? 'text-foreground/80 hover:text-foreground' : 'text-white/80 hover:text-white',
-                      pathname === link.href && 'text-gold',
-                    )}
-                  >
-                    {link.label}
-                    {link.submenu && <ChevronDown size={14} className="opacity-50" />}
-                  </Link>
+                <div 
+                  key={link.href} 
+                  className="relative group"
+                  onMouseEnter={() => link.submenu && setDesktopDropdownOpen(link.href)}
+                  onMouseLeave={() => link.submenu && setDesktopDropdownOpen(null)}
+                >
+                  {link.submenu ? (
+                    <div className="flex items-center gap-1 cursor-pointer">
+                      <Link
+                        href={link.href}
+                        className={cn(
+                          'font-sans text-xs lg:text-sm tracking-wide uppercase transition-colors',
+                          scrolled || !isHome ? 'text-foreground/80 hover:text-foreground' : 'text-white/80 hover:text-white',
+                          pathname.startsWith(link.href) && 'text-gold',
+                        )}
+                      >
+                        {link.label}
+                      </Link>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          toggleDesktopDropdown(link.href)
+                        }}
+                        className={cn(
+                          'p-1 transition-colors',
+                          scrolled || !isHome ? 'text-foreground/80 hover:text-foreground' : 'text-white/80 hover:text-white'
+                        )}
+                        aria-label="Toggle Submenu"
+                      >
+                        <ChevronDown 
+                          size={14} 
+                          className={cn(
+                            'transition-transform duration-200 opacity-70',
+                            desktopDropdownOpen === link.href && 'rotate-180 text-gold'
+                          )} 
+                        />
+                      </button>
+                    </div>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      className={cn(
+                        'font-sans text-xs lg:text-sm tracking-wide uppercase transition-colors',
+                        scrolled || !isHome ? 'text-foreground/80 hover:text-foreground' : 'text-white/80 hover:text-white',
+                        pathname === link.href && 'text-gold',
+                      )}
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                   
+                  {/* Dropdown Container */}
                   {link.submenu && (
-                    <div className="absolute left-0 mt-0 w-60 bg-background border border-border shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-40 max-h-80 overflow-y-auto">
-                      {link.submenu.map((subitem) => (
-                        <Link
-                          key={subitem.href}
-                          href={subitem.href}
-                          className="block px-4 py-2.5 text-sm text-foreground/70 hover:text-gold hover:bg-muted/50 border-b border-border/50 last:border-b-0 transition-colors"
-                        >
-                          {subitem.label}
-                        </Link>
-                      ))}
+                    <div
+                      className={cn(
+                        'absolute left-0 top-full pt-2 w-64 transition-all duration-200 z-50',
+                        desktopDropdownOpen === link.href
+                          ? 'opacity-100 visible translate-y-0'
+                          : 'opacity-0 invisible -translate-y-2 pointer-events-none'
+                      )}
+                    >
+                      <div className="bg-background border border-border shadow-xl rounded-sm py-2 max-h-80 overflow-y-auto">
+                        {link.submenu.map((subitem) => (
+                          <Link
+                            key={subitem.href}
+                            href={subitem.href}
+                            className="block px-4 py-2 text-xs uppercase tracking-wider text-foreground/70 hover:text-gold hover:bg-muted/50 border-b border-border/30 last:border-b-0 transition-colors"
+                          >
+                            {subitem.label}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
               ))}
             </nav>
 
-            {/* ========================================================= */}
-            {/* 3. RIGHT SECTION                                          */}
-            {/* Mobile & Desktop Actions                                  */}
-            {/* ========================================================= */}
+            {/* 3. RIGHT SECTION */}
             <div className="flex items-center gap-0.5 sm:gap-1.5 md:gap-3">
               {/* Desktop Search Icon */}
               <Link
@@ -241,7 +304,7 @@ export function SiteHeader() {
                 )}
               </Link>
 
-              {/* Desktop Drawer Toggle (Icon Only - "Menu" text removed) */}
+              {/* Desktop Drawer Toggle */}
               <button
                 className={cn(
                   'hidden md:flex p-1.5 transition-colors items-center ml-1',
@@ -271,7 +334,7 @@ export function SiteHeader() {
         </Link>
       </div>
 
-      {/* Unified Side Drawer */}
+      {/* Side Drawer */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent side="right" className="w-full max-w-md bg-background border-border p-0">
           <SheetTitle className="sr-only">Main Navigation Menu</SheetTitle>
@@ -353,7 +416,6 @@ export function SiteHeader() {
     </>
   )
 }
-
 
 
 

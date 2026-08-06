@@ -28,7 +28,7 @@ const navLinks = [
       { label: 'Signature Services', href: '/services/signature-services' },
     ]
   },
-  { label: 'Projects', href: '/projects' },
+  { label: 'Portfolio', href: '/portfolio' },
   { label: 'Shop', href: '/shop' },
   { label: 'Journal', href: '/journal' },
   { label: 'Source With Revamp', href: '/source-with-revamp' },

@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { Separator } from '@/components/ui/separator'
 import { NewsletterSignup } from '@/components/newsletter-signup'
-
-
+import type { IconType } from 'react-icons'
+import { FaInstagram, FaSnapchatGhost, FaLinkedinIn } from 'react-icons/fa'
+import { SiTiktok } from 'react-icons/si'
 
 const footerLinks = {
   Services: [
@@ -31,16 +32,21 @@ const footerLinks = {
   ],
 }
 
+const socialLinks: { name: string; href: string; Icon: IconType }[] = [
+  { name: 'Instagram', href: 'https://www.instagram.com/therevamp_ug', Icon: FaInstagram },
+  { name: 'TikTok', href: 'https://www.tiktok.com/@revamp_ree', Icon: SiTiktok },
+  { name: 'Snapchat', href: 'https://www.snapchat.com/add/therevamp_ug', Icon: FaSnapchatGhost },
+  { name: 'LinkedIn', href: 'https://www.linkedin.com/company/therevampug', Icon: FaLinkedinIn },
+]
+
 export function SiteFooter() {
   return (
     <footer className="bg-foreground text-background">
-     
       {/* Main footer */}
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-20">
-        <NewsletterSignup /> 
+        <NewsletterSignup />
         <Separator className="my-6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12">
-        
           {/* Brand column */}
           <div className="lg:col-span-2">
             <Link href="/" className="font-serif text-2xl tracking-widest uppercase text-background">
@@ -52,14 +58,17 @@ export function SiteFooter() {
 
             {/* Social links */}
             <div className="flex items-center gap-4 mt-6">
-              {['Instagram', 'Tiktok', 'Snapchat', 'LinkedIn'].map((platform) => (
+              {socialLinks.map(({ name, href, Icon }) => (
                 <a
-                  key={platform}
-                  href={`#${platform.toLowerCase()}`}
-                  className="font-sans text-[10px] tracking-widest uppercase text-background/30 hover:text-gold transition-colors"
-                  aria-label={platform}
+                  key={name}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={name}
+                  className="text-background/30 hover:text-gold transition-colors p-1"
                 >
-                  {platform}
+                  <Icon className="w-5 h-5" aria-hidden="true" />
+                  <span className="sr-only">{name}</span>
                 </a>
               ))}
             </div>
@@ -67,16 +76,16 @@ export function SiteFooter() {
             {/* Contact */}
             <div className="mt-8 space-y-2">
               <a
-                href="tel:+256745867098"
+                href="tel:+256703861668"
                 className="block font-sans text-sm text-background/60 hover:text-gold transition-colors"
               >
                 +256 703 861 668
               </a>
               <a
-                href="mailto:hello@therevampug.com"
+                href="mailto:support@therevampug.com"
                 className="block font-sans text-sm text-background/60 hover:text-gold transition-colors"
               >
-                hello@therevampug.com
+                support@therevampug.com
               </a>
               <p className="font-sans text-sm text-background/40 mt-2">
                 Kyanja | Kampala, Uganda
@@ -116,6 +125,7 @@ export function SiteFooter() {
         </p>
         <div className="flex items-center gap-6">
           {[
+            { label: 'FAQs', href: '/faqs'},
             { label: 'Privacy Policy', href: '/legal/privacy' },
             { label: 'Terms of Service', href: '/legal/terms' },
             { label: 'Cookie Policy', href: '/legal/cookies' },
@@ -130,7 +140,7 @@ export function SiteFooter() {
           ))}
         </div>
       </div>
-      
     </footer>
   )
 }
+

@@ -4,7 +4,7 @@
  */
 
 export interface SchemaMarkupOptions {
-  url: string
+  url?: string
   image?: string
   datePublished?: string
   dateModified?: string
@@ -39,19 +39,26 @@ export function generateOrganizationSchema() {
 
 /**
  * Generate Service schema for individual services
+ * Accepts either positional args (name, description, options) or a single object { name, description, options }
  */
-export function generateServiceSchema(
-  name: string,
-  description: string,
-  options: SchemaMarkupOptions
-) {
+export function generateServiceSchema(...args: any) {
+  let name: string
+  let description: string
+  let options: SchemaMarkupOptions | undefined
+
+  if (args.length === 1 && typeof args[0] === 'object') {
+    ;({ name, description, options } = args[0])
+  } else {
+    ;[name, description, options] = args
+  }
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Service',
     name,
     description,
-    url: options.url,
-    image: options.image,
+    url: options?.url,
+    image: options?.image,
     provider: {
       '@type': 'Organization',
       name: 'The Revamp UG',
@@ -67,15 +74,30 @@ export function generateServiceSchema(
 
 /**
  * Generate Product schema for items in shop
+ * Supports two call styles:
+ * - Positional: (name, description, price, currency, images, options)
+ * - Object: ({ name, description, price, currency, images | image, options | url })
  */
-export function generateProductSchema(
-  name: string,
-  description: string,
-  price: string,
-  currency: string,
-  images: string[],
-  options: SchemaMarkupOptions
-) {
+export function generateProductSchema(...args: any) {
+  let name: string
+  let description: string
+  let price: string
+  let currency: string
+  let images: string[]
+  let options: SchemaMarkupOptions | undefined
+
+  if (args.length === 1 && typeof args[0] === 'object') {
+    const o = args[0]
+    name = o.name
+    description = o.description
+    price = typeof o.price === 'number' ? String(o.price) : o.price
+    currency = o.currency || 'USD'
+    images = o.images || (o.image ? [o.image] : [])
+    options = o.options || { url: o.url, image: o.image }
+  } else {
+    ;[name, description, price, currency, images, options] = args
+  }
+
   return {
     '@context': 'https://schema.org/',
     '@type': 'Product',
@@ -88,7 +110,7 @@ export function generateProductSchema(
     },
     offers: {
       '@type': 'Offer',
-      url: options.url,
+      url: options?.url,
       priceCurrency: currency,
       price,
       availability: 'https://schema.org/InStock',
@@ -103,13 +125,24 @@ export function generateProductSchema(
 
 /**
  * Generate Project/Portfolio schema
+ * Supports either positional (name, description, images, options) or object ({ name, description, images | image, options | url, datePublished })
  */
-export function generateProjectSchema(
-  name: string,
-  description: string,
-  images: string[],
-  options: SchemaMarkupOptions
-) {
+export function generateProjectSchema(...args: any) {
+  let name: string
+  let description: string
+  let images: string[]
+  let options: SchemaMarkupOptions | undefined
+
+  if (args.length === 1 && typeof args[0] === 'object') {
+    const o = args[0]
+    name = o.name
+    description = o.description
+    images = o.images || (o.image ? [o.image] : [])
+    options = o.options || { url: o.url, datePublished: o.startDate || o.datePublished }
+  } else {
+    ;[name, description, images, options] = args
+  }
+
   return {
     '@context': 'https://schema.org',
     '@type': 'VisualArtwork',
@@ -120,22 +153,34 @@ export function generateProjectSchema(
       '@type': 'Organization',
       name: 'The Revamp UG',
     },
-    url: options.url,
-    datePublished: options.datePublished,
-    dateModified: options.dateModified,
+    url: options?.url,
+    datePublished: options?.datePublished,
+    dateModified: options?.dateModified,
   }
 }
 
 /**
  * Generate Article schema for blog posts
+ * Supports positional or object-style call
  */
-export function generateArticleSchema(
-  title: string,
-  description: string,
-  image: string,
-  author: string,
-  options: SchemaMarkupOptions
-) {
+export function generateArticleSchema(...args: any) {
+  let title: string
+  let description: string
+  let image: string | undefined
+  let author: string
+  let options: SchemaMarkupOptions | undefined
+
+  if (args.length === 1 && typeof args[0] === 'object') {
+    const o = args[0]
+    title = o.title || o.headline || o.headline
+    description = o.description
+    image = o.image
+    author = o.author
+    options = o.options || { url: o.url, datePublished: o.datePublished }
+  } else {
+    ;[title, description, image, author, options] = args
+  }
+
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -146,14 +191,14 @@ export function generateArticleSchema(
       '@type': 'Person',
       name: author,
     },
-    datePublished: options.datePublished,
-    dateModified: options.dateModified,
-    url: options.url,
+    datePublished: options?.datePublished,
+    dateModified: options?.dateModified,
+    url: options?.url,
     mainEntity: {
       '@type': 'Article',
       headline: title,
       image,
-      datePublished: options.datePublished,
+      datePublished: options?.datePublished,
       author: {
         '@type': 'Person',
         name: author,

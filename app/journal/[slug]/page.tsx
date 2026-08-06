@@ -4,6 +4,9 @@ import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
+import { SchemaScript } from '@/components/seo/schema-script'
+import { generateArticleSchema } from '@/lib/seo/schema-generator'
 
 const articles: Record<string, any> = {
   'the-art-of-minimalism': {
@@ -104,6 +107,43 @@ interface ArticlePageProps {
   params: { slug: string }
 }
 
+export async function generateStaticParams() {
+  return Object.keys(articles).map((slug) => ({
+    slug,
+  }))
+}
+
+export async function generateMetadata({
+  params,
+}: ArticlePageProps): Promise<Metadata> {
+  const article = articles[params.slug]
+
+  if (!article) {
+    return {
+      title: 'Article Not Found',
+      description: 'This article could not be found',
+    }
+  }
+
+  return {
+    title: article.title,
+    description: article.content.substring(0, 160),
+    openGraph: {
+      title: article.title,
+      description: article.content.substring(0, 160),
+      type: 'article',
+      publishedTime: article.date,
+      authors: [article.author],
+      tags: [article.category],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description: article.content.substring(0, 160),
+    },
+  }
+}
+
 export default function ArticlePage({ params }: ArticlePageProps) {
   const article = articles[params.slug]
 
@@ -111,8 +151,18 @@ export default function ArticlePage({ params }: ArticlePageProps) {
     notFound()
   }
 
+  const articleSchema = generateArticleSchema({
+    headline: article.title,
+    description: article.content.substring(0, 160),
+    image: `https://therevampug.com/api/og?title=${encodeURIComponent(article.title)}`,
+    datePublished: article.date,
+    author: article.author,
+    category: article.category,
+  })
+
   return (
     <>
+      <SchemaScript schema={articleSchema} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
         {/* Article Hero */}

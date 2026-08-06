@@ -5,6 +5,13 @@ import { SiteFooter } from '@/components/site-footer'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { useState } from 'react'
+import type { Metadata } from 'next'
+import { SchemaScript } from '@/components/seo/schema-script'
+import { generateProjectSchema } from '@/lib/seo/schema-generator'
+
+interface ProjectPageProps {
+  params: { slug: string }
+}
 
 const projectDetails: Record<string, any> = {
   'nakasero-residence': {
@@ -309,6 +316,47 @@ interface ProjectPageProps {
   params: { slug: string }
 }
 
+export async function generateStaticParams() {
+  return Object.keys(projectDetails).map((slug) => ({
+    slug,
+  }))
+}
+
+export async function generateMetadata({
+  params,
+}: ProjectPageProps): Promise<Metadata> {
+  const project = projectDetails[params.slug]
+
+  if (!project) {
+    return {
+      title: 'Project Not Found',
+      description: 'This project could not be found',
+    }
+  }
+
+  return {
+    title: `${project.title} | The Revamp UG`,
+    description: project.description,
+    openGraph: {
+      title: project.title,
+      description: project.description,
+      type: 'website',
+      images: [
+        {
+          url: `https://therevampug.com/api/og?title=${encodeURIComponent(project.title)}`,
+          width: 1200,
+          height: 630,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: project.title,
+      description: project.description,
+    },
+  }
+}
+
 export default function ProjectDetailPage({ params }: ProjectPageProps) {
   const project = projectDetails[params.slug]
   const [likes, setLikes] = useState(147)
@@ -323,8 +371,17 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
     setLikes(liked ? likes - 1 : likes + 1)
   }
 
+  const projectSchema = generateProjectSchema({
+    name: project.title,
+    description: project.description,
+    image: `https://therevampug.com/api/og?title=${encodeURIComponent(project.title)}`,
+    location: project.location,
+    startDate: new Date(project.year).toISOString(),
+  })
+
   return (
     <>
+      <SchemaScript schema={projectSchema} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
         {/* Hero */}

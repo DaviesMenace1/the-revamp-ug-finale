@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/lib/theme-provider'
+import { SchemaScript } from '@/components/seo/schema-script'
+import { generateOrganizationSchema, generateLocalBusinessSchema } from '@/lib/seo/schema-generator'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({
@@ -22,15 +24,47 @@ const instrument = Instrument_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: 'The Revamp Ug | Luxury Interior Design & Architecture',
-    template: '%s | The Revamp Ug',
+    default: 'The Revamp UG | Luxury Interior Design & Architecture',
+    template: '%s | The Revamp UG',
   },
   description: 'Bespoke interior design, architecture, global sourcing, and white-glove installation. Transforming spaces into extraordinary living experiences across East Africa and beyond.',
-  keywords: ['interior design', 'architecture', 'luxury furniture', 'global sourcing', 'Uganda', 'East Africa'],
+  keywords: ['interior design', 'architecture', 'luxury furniture', 'global sourcing', 'procurement', 'Uganda', 'East Africa', 'design services', 'custom furniture'],
   openGraph: {
     type: 'website',
     locale: 'en_UG',
     siteName: 'The Revamp UG',
+    title: 'The Revamp UG | Luxury Interior Design & Architecture',
+    description: 'Bespoke interior design, architecture, global sourcing, and white-glove installation. Transforming spaces into extraordinary living experiences.',
+    url: 'https://therevampug.com',
+    images: [
+      {
+        url: 'https://therevampug.com/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'The Revamp UG - Luxury Design House',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'The Revamp UG | Luxury Design House',
+    description: 'Interior design, architecture, procurement, and custom furniture services.',
+    creator: '@therevampug',
+    images: ['https://therevampug.com/og-image.png'],
+  },
+  alternates: {
+    canonical: 'https://therevampug.com',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
   generator: 'v0.app',
   icons: {
@@ -74,6 +108,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${instrument.variable} bg-background`}>
         <head>
+          {/* Theme Script */}
           <script
             dangerouslySetInnerHTML={{
               __html: `
@@ -90,6 +125,18 @@ export default function RootLayout({
               `,
             }}
           />
+          
+          {/* JSON-LD Schema Markup for SEO */}
+          <SchemaScript schema={generateOrganizationSchema()} />
+          <SchemaScript schema={generateLocalBusinessSchema()} />
+          
+          {/* Sitemap */}
+          <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+          
+          {/* Preconnect to external domains */}
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         </head>
         <body className="antialiased">
           <ThemeProvider>

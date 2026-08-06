@@ -84,7 +84,7 @@ export function HeroSection() {
 
   // Play video on active slide, pause others
  // Constants
-const SLIDE_DURATION = 4 // Duration in seconds
+const SLIDE_DURATION = 7 // Duration in seconds
 
 // Play video on active slide, reset playback, and enforce 4-second cap
 useEffect(() => {

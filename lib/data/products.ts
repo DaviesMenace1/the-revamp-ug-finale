@@ -1,6 +1,5 @@
-// Shared product catalog. Structured to mirror the DB `products` schema so it
-// can be swapped for live API data without changing the consuming components.
-// Public product imagery is served via Cloudinary in production.
+// Shared product catalog. Structured to mirror the DB `products` schema.
+// Public product imagery is served via Cloudinary.
 
 export type QuickTag = 'new-arrival' | 'featured' | 'best-seller' | 'ready-to-ship'
 
@@ -57,6 +56,7 @@ export interface Product {
   fabrics: ProductOption[]
   addons: ProductOption[]
   rating: number
+  likes: number
   reviewCount: number
   reviews: ProductReview[]
   /** ISO date — used to compute "New Arrivals" dynamically */
@@ -95,9 +95,7 @@ export const QUICK_FILTERS: { label: string; value: QuickTag | 'all'; icon?: str
 ]
 
 const IMG = (id: string, w = 900) =>
-`https://res.cloudinary.com/r8epy5mg/image/upload/${id}.jpg`
-/*"https://cloudinary.com{w},q_85,c_crop,f_auto/${id}"
-  `https://images.unsplash.com/photo-${id}?w=${w}&q=85&auto=format&fit=crop`*/
+  `https://res.cloudinary.com/r8epy5mg/image/upload/${id}.jpg`
 
 const defaultColors: ProductOption[] = [
   { label: 'Obsidian', value: '#1c1c1c' },
@@ -140,13 +138,14 @@ const sampleReviews: ProductReview[] = [
 ]
 
 export const products: Product[] = [
+  // 1. SOFAS
   {
     id: 'p1',
     slug: 'savannah-modular-sofa',
     name: 'Savannah Modular Sofa',
     tagline: 'Low-slung modular seating in Belgian linen',
     description:
-      'A sculptural, deep-seated modular sofa built on a kiln-dried hardwood frame with feather-wrapped foam cushions. Configure it to your space and finish it in your choice of premium textile.',
+      'A sculptural, deep-seated modular sofa built on a kiln-dried hardwood frame with feather-wrapped foam cushions.',
     price: 4200,
     currency: 'USD',
     space: 'Living Room',
@@ -155,25 +154,25 @@ export const products: Product[] = [
     images: [
       IMG('70cb96cf894b07f22c2b4e03843d60_nrigo8', 1200),
       IMG('5f5c41f087539fc2821a6f05e55eed_tt543y'),
-      IMG('5f5c41f087539fc2821a6f05e55eed_tt543y'),
-      IMG('5f5c41f087539fc2821a6f05e55eed_tt543y'),
     ],
     colors: defaultColors,
     fabrics: defaultFabrics,
     addons: defaultAddons,
     rating: 4.8,
+    likes: 124,
     reviewCount: 42,
     reviews: sampleReviews,
     createdAt: '2026-07-20',
     inStock: true,
   },
+  // 2. CHAIRS
   {
     id: 'p2',
     slug: 'kabira-lounge-chair',
-    name: 'Lounge Chair',
+    name: 'Kabira Lounge Chair',
     tagline: 'Curved boucle lounge chair with brass base',
     description:
-      'An enveloping lounge chair with a hand-curved shell, upholstered in textured boucle and set on a solid brass swivel base. A statement piece for reading corners and lounges.',
+      'An enveloping lounge chair with a hand-curved shell, upholstered in textured boucle and set on a solid brass swivel base.',
     price: 1850,
     currency: 'USD',
     space: 'Living Room',
@@ -181,25 +180,25 @@ export const products: Product[] = [
     tags: ['new-arrival', 'ready-to-ship'],
     images: [
       IMG('5f5c41f087539fc2821a6f05e55eed_tt543y', 1200),
-      IMG('5f5c41f087539fc2821a6f05e55eed_tt543y'),
-      IMG('5f5c41f087539fc2821a6f05e55eed_tt543y'),
     ],
     colors: defaultColors,
     fabrics: defaultFabrics,
     addons: defaultAddons,
     rating: 4.9,
+    likes: 89,
     reviewCount: 28,
     reviews: sampleReviews,
     createdAt: '2026-07-18',
     inStock: true,
   },
+  // 3. TABLES
   {
     id: 'p3',
     slug: 'entebbe-dining-table',
-    name: 'Dining Table',
+    name: 'Entebbe Dining Table',
     tagline: 'Solid oak dining table for eight',
     description:
-      'A generous solid-oak dining table with a live-edge silhouette and hand-oiled finish. Seats eight comfortably and anchors the dining room with quiet presence.',
+      'A generous solid-oak dining table with a live-edge silhouette and hand-oiled finish. Seats eight comfortably.',
     price: 3600,
     currency: 'USD',
     space: 'Dining Room',
@@ -207,25 +206,25 @@ export const products: Product[] = [
     tags: ['featured', 'best-seller'],
     images: [
       IMG('L3D124S57ENDOVMISTQUWIKKELUFX73ONXQ8_4000x3000_mua1j5', 1200),
-      IMG('L3D124S57ENDOVMISTQUWIKKELUFX73ONXQ8_4000x3000_mua1j5'),
-      IMG('L3D124S57ENDOVMISTQUWIKKELUFX73ONXQ8_4000x3000_mua1j5'),
     ],
     colors: defaultColors,
     fabrics: [],
     addons: defaultAddons,
     rating: 4.7,
+    likes: 210,
     reviewCount: 19,
     reviews: sampleReviews,
     createdAt: '2026-06-30',
     inStock: true,
   },
+  // 4. LIGHTING
   {
     id: 'p4',
     slug: 'nile-pendant-light',
     name: 'Nile Pendant Light',
     tagline: 'Hand-blown glass pendant with brass fittings',
     description:
-      'A cascading pendant of hand-blown smoked glass globes suspended from an aged-brass frame. Dimmable, with warm integrated LED modules.',
+      'A cascading pendant of hand-blown smoked glass globes suspended from an aged-brass frame. Dimmable LED modules.',
     price: 980,
     currency: 'USD',
     space: 'Dining Room',
@@ -233,25 +232,25 @@ export const products: Product[] = [
     tags: ['new-arrival', 'featured'],
     images: [
       IMG('L3D124S57ENDOVL4HFQUWLZS6LUFX7YSLLQ8_4000x3000_guugcz', 1200),
-      IMG('L3D124S57ENDOVL4HFQUWLZS6LUFX7YSLLQ8_4000x3000_guugcz'),
-      IMG('L3D124S57ENDOVL4HFQUWLZS6LUFX7YSLLQ8_4000x3000_guugcz'),
     ],
     colors: defaultColors,
     fabrics: [],
     addons: defaultAddons,
     rating: 4.6,
+    likes: 67,
     reviewCount: 14,
     reviews: sampleReviews,
     createdAt: '2026-07-22',
     inStock: true,
   },
+  // 5. BEDS
   {
     id: 'p5',
     slug: 'muyenga-platform-bed',
-    name: 'Platform Bed',
+    name: 'Muyenga Platform Bed',
     tagline: 'Upholstered platform bed with floating frame',
     description:
-      'A low-profile platform bed with a fully upholstered headboard and a floating base detail. Built for king mattresses with a slatted support system.',
+      'A low-profile platform bed with a fully upholstered headboard and a floating base detail. Slatted support system.',
     price: 2900,
     currency: 'USD',
     space: 'Bedroom',
@@ -259,25 +258,25 @@ export const products: Product[] = [
     tags: ['best-seller', 'ready-to-ship'],
     images: [
       IMG('L3D124S57ENDOVL2NOAUWIF6ILUFX7Y2USY8_4000x3000_dj0nbl', 1200),
-      IMG('L3D124S57ENDOVL2NOAUWIF6ILUFX7Y2USY8_4000x3000_dj0nbl'),
-      IMG('L3D124S57ENDOVL2NOAUWIF6ILUFX7Y2USY8_4000x3000_dj0nbl'),
     ],
     colors: defaultColors,
     fabrics: defaultFabrics,
     addons: defaultAddons,
     rating: 4.8,
+    likes: 156,
     reviewCount: 33,
     reviews: sampleReviews,
     createdAt: '2026-06-15',
     inStock: true,
   },
+  // 6. STORAGE
   {
     id: 'p6',
     slug: 'kololo-sideboard',
-    name: 'Sideboard',
+    name: 'Kololo Sideboard Credenza',
     tagline: 'Fluted-front storage credenza',
     description:
-      'A fluted-oak credenza with soft-close doors, adjustable shelving, and a concealed cable channel. Equally at home in a dining room or living space.',
+      'A fluted-oak credenza with soft-close doors, adjustable shelving, and a concealed cable channel.',
     price: 2400,
     currency: 'USD',
     space: 'Living Room',
@@ -285,51 +284,51 @@ export const products: Product[] = [
     tags: ['new-arrival'],
     images: [
       IMG('IMG_3831_3_hd9rfe', 1200),
-      IMG('IMG_3831_3_hd9rfe'),
-      IMG('IMG_3831_3_hd9rfe'),
     ],
     colors: defaultColors,
     fabrics: [],
     addons: defaultAddons,
     rating: 4.5,
+    likes: 43,
     reviewCount: 11,
     reviews: sampleReviews,
     createdAt: '2026-07-25',
     inStock: true,
   },
+  // 7. RUGS
   {
-    id: 'p7',
-    slug: 'terrace-outdoor-set',
-    name: 'Terrace Outdoor Set',
-    tagline: 'Weatherproof lounge set in teak & rope',
+    id: 'p9',
+    slug: 'savannah-wool-rug',
+    name: 'Savannah Wool Rug',
+    tagline: 'Hand-knotted wool rug, tonal geometric',
     description:
-      'A three-piece outdoor lounge set in FSC-certified teak with UV-stable rope detailing and quick-dry performance cushions. Built to weather the elements.',
-    price: 3200,
+      'A hand-knotted 100% wool rug with a subtle tonal geometric motif and a dense, plush pile.',
+    price: 1600,
     currency: 'USD',
-    space: 'Outdoor',
-    itemType: 'Sofas',
+    space: 'Living Room',
+    itemType: 'Rugs',
     tags: ['featured', 'ready-to-ship'],
     images: [
-      IMG('589c450c0bd080063bbc38ce9680d3_s9knxj', 1200),
-      IMG('589c450c0bd080063bbc38ce9680d3_s9knxj'),
-      IMG('589c450c0bd080063bbc38ce9680d3_s9knxj'),
+      IMG('IMG_3760_1_amgiep', 1200),
     ],
     colors: defaultColors,
-    fabrics: defaultFabrics,
+    fabrics: [],
     addons: defaultAddons,
-    rating: 4.7,
-    reviewCount: 22,
+    rating: 4.6,
+    likes: 92,
+    reviewCount: 16,
     reviews: sampleReviews,
-    createdAt: '2026-07-10',
+    createdAt: '2026-05-30',
     inStock: true,
   },
+  // 8. MIRRORS
   {
     id: 'p8',
     slug: 'arch-floor-mirror',
     name: 'Arch Floor Mirror',
     tagline: 'Full-length arched mirror with thin brass frame',
     description:
-      'A full-length arched floor mirror framed in slim aged brass. Leans elegantly against the wall to open up entryways and dressing areas.',
+      'A full-length arched floor mirror framed in slim aged brass. Leans elegantly against the wall.',
     price: 720,
     currency: 'USD',
     space: 'Entryway',
@@ -337,103 +336,25 @@ export const products: Product[] = [
     tags: ['new-arrival', 'best-seller'],
     images: [
       IMG('IMG_3738_4_eeqdtd', 1200),
-      IMG('IMG_3738_4_eeqdtd'),
-      IMG('IMG_3738_4_eeqdtd'),
     ],
     colors: defaultColors,
     fabrics: [],
     addons: defaultAddons,
     rating: 4.9,
+    likes: 310,
     reviewCount: 47,
     reviews: sampleReviews,
     createdAt: '2026-07-24',
     inStock: true,
   },
-  {
-    id: 'p9',
-    slug: 'savannah-wool-rug',
-    name: 'Savannah Wool Rug',
-    tagline: 'Hand-knotted wool rug, tonal geometric',
-    description:
-      'A hand-knotted 100% wool rug with a subtle tonal geometric motif and a dense, plush pile. Made to soften and define open-plan spaces.',
-    price: 1600,
-    currency: 'USD',
-    space: 'Living Room',
-    itemType: 'Rugs',
-    tags: ['featured'],
-    images: [
-      IMG('IMG_3760_1_amgiep', 1200),
-      IMG('IMG_3760_1_amgiep'),
-      IMG('IMG_3760_1_amgiep'),
-    ],
-    colors: defaultColors,
-    fabrics: [],
-    addons: defaultAddons,
-    rating: 4.6,
-    reviewCount: 16,
-    reviews: sampleReviews,
-    createdAt: '2026-05-30',
-    inStock: true,
-  },
-  {
-    id: 'p10',
-    slug: 'studio-work-desk',
-    name: 'Studio Work Desk',
-    tagline: 'Minimal oak desk with leather inlay',
-    description:
-      'A minimal home-office desk in solid oak with a hand-stitched leather writing inlay and a discreet cable tray. Designed for focus.',
-    price: 1450,
-    currency: 'USD',
-    space: 'Office',
-    itemType: 'Tables',
-    tags: ['new-arrival', 'ready-to-ship'],
-    images: [
-      IMG('IMG_3501_euje8s', 1200),
-      IMG('IMG_3501_euje8s'),
-      IMG('IMG_3501_euje8s'),
-    ],
-    colors: defaultColors,
-    fabrics: [],
-    addons: defaultAddons,
-    rating: 4.7,
-    reviewCount: 9,
-    reviews: sampleReviews,
-    createdAt: '2026-07-26',
-    inStock: true,
-  },
-  {
-    id: 'p11',
-    slug: 'sculpt-table-lamp',
-    name: 'Sculpt Table Lamp',
-    tagline: 'Ceramic table lamp with linen shade',
-    description:
-      'A hand-thrown ceramic table lamp with an organic silhouette and a natural linen drum shade. Warm, diffused light for bedside and console styling.',
-    price: 380,
-    currency: 'USD',
-    space: 'Bedroom',
-    itemType: 'Lighting',
-    tags: ['best-seller'],
-    images: [
-      IMG('IMG_3264_hljhnq', 1200),
-      IMG('IMG_3264_hljhnq'),
-      IMG('IMG_3264_hljhnq'),
-    ],
-    colors: defaultColors,
-    fabrics: [],
-    addons: defaultAddons,
-    rating: 4.8,
-    reviewCount: 25,
-    reviews: sampleReviews,
-    createdAt: '2026-06-08',
-    inStock: true,
-  },
+  // 9. DECOR
   {
     id: 'p12',
     slug: 'objet-vase-trio',
     name: 'Objet Vase Trio',
     tagline: 'Set of three sculptural stoneware vases',
     description:
-      'A curated trio of sculptural stoneware vases in complementary matte glazes. Sold as a set to style shelves, consoles, and dining tables.',
+      'A curated trio of sculptural stoneware vases in complementary matte glazes.',
     price: 260,
     currency: 'USD',
     space: 'Living Room',
@@ -441,13 +362,12 @@ export const products: Product[] = [
     tags: ['new-arrival', 'featured'],
     images: [
       IMG('4708E4D2-D548-4584-A21E-17DCD016562A_yfukav', 1200),
-      IMG('4708E4D2-D548-4584-A21E-17DCD016562A_yfukav'),
-      IMG('4708E4D2-D548-4584-A21E-17DCD016562A_yfukav'),
     ],
     colors: defaultColors,
     fabrics: [],
     addons: defaultAddons,
     rating: 4.5,
+    likes: 78,
     reviewCount: 12,
     reviews: sampleReviews,
     createdAt: '2026-07-27',
@@ -455,43 +375,19 @@ export const products: Product[] = [
   },
 ]
 
-/** Returns products sorted newest-first. */
+/** Helper utilities */
 export function getByRecency(list: Product[] = products): Product[] {
   return [...list].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   )
 }
 
-/**
- * New Arrivals is computed dynamically: any product explicitly tagged
- * `new-arrival`, PLUS the most recently created products. This means the
- * homepage tag automatically updates whenever newer products are added.
- */
 export function getNewArrivals(limit = 8): Product[] {
   const tagged = products.filter((p) => p.tags.includes('new-arrival'))
   const recent = getByRecency().slice(0, limit)
   const merged = [...tagged, ...recent]
   const unique = Array.from(new Map(merged.map((p) => [p.id, p])).values())
   return getByRecency(unique).slice(0, limit)
-}
-
-const NEW_WINDOW_DAYS = 30
-
-/** Whether a product should visually carry the "New Arrivals" tag. */
-export function isNewArrival(product: Product): boolean {
-  if (product.tags.includes('new-arrival')) return true
-  const ageMs = Date.now() - new Date(product.createdAt).getTime()
-  return ageMs <= NEW_WINDOW_DAYS * 24 * 60 * 60 * 1000
-}
-
-export function getProductBySlug(slug: string): Product | undefined {
-  return products.find((p) => p.slug === slug)
-}
-
-export function getRelatedProducts(product: Product, limit = 4): Product[] {
-  return products
-    .filter((p) => p.id !== product.id && (p.space === product.space || p.itemType === product.itemType))
-    .slice(0, limit)
 }
 
 export function formatPrice(price: number, currency = 'USD'): string {

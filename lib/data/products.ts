@@ -397,3 +397,13 @@ export function formatPrice(price: number, currency = 'USD'): string {
     maximumFractionDigits: 0,
   }).format(price)
 }
+/** Check if a product is considered a new arrival (either tagged or created recently) */
+export function isNewArrival(product: Product, daysThreshold = 30): boolean {
+  if (product.tags.includes('new-arrival')) return true
+
+  const createdDate = new Date(product.createdAt).getTime()
+  const now = new Date().getTime()
+  const diffInDays = (now - createdDate) / (1000 * 3600 * 24)
+
+  return diffInDays <= daysThreshold
+}

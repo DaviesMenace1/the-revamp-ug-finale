@@ -407,3 +407,43 @@ export function isNewArrival(product: Product, daysThreshold = 30): boolean {
 
   return diffInDays <= daysThreshold
 }
+/** Helper utilities */
+export function getByRecency(list: Product[] = products): Product[] {
+  return [...list].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )
+}
+
+export function getNewArrivals(limit = 8): Product[] {
+  const tagged = products.filter((p) => p.tags.includes('new-arrival'))
+  const recent = getByRecency().slice(0, limit)
+  const merged = [...tagged, ...recent]
+  const unique = Array.from(new Map(merged.map((p) => [p.id, p])).values())
+  return getByRecency(unique).slice(0, limit)
+}
+
+export function getProductBySlug(slug: string): Product | undefined {
+  return products.find((p) => p.slug === slug)
+}
+
+export function getRelatedProducts(product: Product, limit = 4): Product[] {
+  return products
+    .filter(
+      (p) =>
+        p.id !== product.id &&
+        (p.space === product.space || p.itemType === product.itemType),
+    )
+    .slice(0, limit)
+}
+
+export function isNewArrival(product: Product): boolean {
+  return product.tags.includes('new-arrival')
+}
+
+export function formatPrice(price: number, currency = 'USD'): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(price)
+}

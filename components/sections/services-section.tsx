@@ -52,7 +52,7 @@ export function ServicesSection() {
               What We Do
             </h2>
           </div>
-          <p className="font-sans text-muted-foreground text-sm leading-relaxed max-w-sm md:text-right">
+          <p className="font-sans text-sm text-muted-foreground mt-3 max-w-md">
             A comprehensive suite of luxury design services , architecture, interiors, global sourcing, and meticulous installation.
           </p>
           <Link

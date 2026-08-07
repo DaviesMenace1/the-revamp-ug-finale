@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, ArrowRight } from 'lucide-react'
 
 const services = [
   {

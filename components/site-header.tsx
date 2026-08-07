@@ -32,6 +32,7 @@ const primaryNavLinks = [
   },
   { label: 'Projects', href: '/projects' },
   { label: 'Shop', href: '/collections' },
+  { label: 'FAQs', href: '/faqs' },
 ]
 
 // Secondary links available via the Drawer/Sheet

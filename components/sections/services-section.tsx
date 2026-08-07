@@ -55,6 +55,13 @@ export function ServicesSection() {
           <p className="font-sans text-muted-foreground text-sm leading-relaxed max-w-sm md:text-right">
             A comprehensive suite of luxury design services , architecture, interiors, global sourcing, and meticulous installation.
           </p>
+          <Link
+            href="/services"
+            className="inline-flex items-center gap-2 font-sans text-xs tracking-widest uppercase text-gold hover-line group"
+          >
+            Explore Services
+            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+          </Link>
         </div>
 
         {/* Services grid */}

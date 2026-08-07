@@ -26,7 +26,7 @@ export type ItemType =
 export interface ProductOption {
   label: string
   /** hex or descriptor for swatch rendering */
-  value: string
+  value?: string
   /** optional price delta in the product currency */
   priceDelta?: number
 }
@@ -375,47 +375,17 @@ export const products: Product[] = [
   },
 ]
 
-/** Helper utilities */
+/** Helper utilities (Guarded against undefined/null) */
 export function getByRecency(list: Product[] = products): Product[] {
+  if (!Array.isArray(list)) return []
   return [...list].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   )
 }
 
 export function getNewArrivals(limit = 8): Product[] {
-  const tagged = products.filter((p) => p.tags.includes('new-arrival'))
-  const recent = getByRecency().slice(0, limit)
-  const merged = [...tagged, ...recent]
-  const unique = Array.from(new Map(merged.map((p) => [p.id, p])).values())
-  return getByRecency(unique).slice(0, limit)
-}
-
-export function formatPrice(price: number, currency = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(price)
-}
-/** Check if a product is considered a new arrival (either tagged or created recently) */
-export function isNewArrival(product: Product, daysThreshold = 30): boolean {
-  if (product.tags.includes('new-arrival')) return true
-
-  const createdDate = new Date(product.createdAt).getTime()
-  const now = new Date().getTime()
-  const diffInDays = (now - createdDate) / (1000 * 3600 * 24)
-
-  return diffInDays <= daysThreshold
-}
-/** Helper utilities */
-export function getByRecency(list: Product[] = products): Product[] {
-  return [...list].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  )
-}
-
-export function getNewArrivals(limit = 8): Product[] {
-  const tagged = products.filter((p) => p.tags.includes('new-arrival'))
+  if (!Array.isArray(products)) return []
+  const tagged = products.filter((p) => p.tags?.includes('new-arrival'))
   const recent = getByRecency().slice(0, limit)
   const merged = [...tagged, ...recent]
   const unique = Array.from(new Map(merged.map((p) => [p.id, p])).values())
@@ -423,10 +393,12 @@ export function getNewArrivals(limit = 8): Product[] {
 }
 
 export function getProductBySlug(slug: string): Product | undefined {
+  if (!Array.isArray(products)) return undefined
   return products.find((p) => p.slug === slug)
 }
 
 export function getRelatedProducts(product: Product, limit = 4): Product[] {
+  if (!product || !Array.isArray(products)) return []
   return products
     .filter(
       (p) =>
@@ -437,10 +409,12 @@ export function getRelatedProducts(product: Product, limit = 4): Product[] {
 }
 
 export function isNewArrival(product: Product): boolean {
+  if (!product?.tags) return false
   return product.tags.includes('new-arrival')
 }
 
 export function formatPrice(price: number, currency = 'USD'): string {
+  if (typeof price !== 'number') return '$0'
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,

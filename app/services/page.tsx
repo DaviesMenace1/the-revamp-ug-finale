@@ -9,6 +9,25 @@ import { SERVICES } from '@/lib/data/services'
 import { ArrowRight, Search, X, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+// Default fallback image provided
+const DEFAULT_FALLBACK_IMAGE = 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487078/L3D124S57ENDOVLZRRYUWLZS6LUFX7Y3WLA8_4000x3000_gb14hk.jpg'
+
+/**
+ * Helper to dynamically construct individual image URLs per service slug.
+ * You can either place local images in `/public/images/services/[category-slug]/[service-slug].jpg`
+ * or override individual images directly in `@/lib/data/services`.
+ */
+function getServiceImageUrl(categorySlug: string, serviceSlug: string, customImage?: string): string {
+  if (customImage) return customImage
+  
+  // Predictable unique path per service:
+  // e.g. /images/services/interior-design/3d-rendering.jpg
+  const localServiceImagePath = `/images/services/${categorySlug}/${serviceSlug}.jpg`
+  
+  // Return custom/local path or default fallback
+  return localServiceImagePath || DEFAULT_FALLBACK_IMAGE
+}
+
 export default function ServicesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
@@ -149,33 +168,54 @@ export default function ServicesPage() {
                       </p>
                     </div>
 
-                    {/* Services Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {category!.services.map((service) => (
-                        <Link
-                          key={service.slug}
-                          href={`/services/${category!.slug}/${service.slug}`}
-                          className="group block h-full"
-                        >
-                          <div className="h-full p-6 border border-border/40 bg-background rounded-lg hover:border-gold/60 hover:bg-gold/5 transition-all duration-300 flex flex-col justify-between">
-                            <div>
-                              <h3 className="font-medium text-foreground group-hover:text-gold transition-colors text-base">
-                                {service.name}
-                              </h3>
-                              <p className="text-xs text-muted-foreground mt-2 line-clamp-3 leading-relaxed">
-                                {service.description}
-                              </p>
-                            </div>
-                            <div className="mt-4 pt-3 flex items-center justify-between border-t border-border/20 text-xs font-medium text-gold uppercase tracking-wider">
-                              <span>View Service</span>
-                              <ArrowRight
-                                size={14}
-                                className="group-hover:translate-x-1 transition-transform duration-200"
+                    {/* Services Visual Cards Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {category!.services.map((service: any) => {
+                        // Unique image link per service
+                        const imageUrl = getServiceImageUrl(category!.slug, service.slug, service.image)
+
+                        return (
+                          <Link
+                            key={service.slug}
+                            href={`/services/${category!.slug}/${service.slug}`}
+                            className="group flex flex-col h-full bg-background border border-border/40 rounded-xl overflow-hidden hover:border-gold/60 hover:shadow-lg transition-all duration-300"
+                          >
+                            {/* Card Image */}
+                            <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+                              <img
+                                src={imageUrl}
+                                alt={service.name}
+                                onError={(e) => {
+                                  // Fallback gracefully if custom image fails to load
+                                  e.currentTarget.src = DEFAULT_FALLBACK_IMAGE
+                                }}
+                                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                               />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                             </div>
-                          </div>
-                        </Link>
-                      ))}
+
+                            {/* Card Content */}
+                            <div className="flex flex-col justify-between flex-1 p-6">
+                              <div>
+                                <h3 className="font-medium text-foreground group-hover:text-gold transition-colors text-base">
+                                  {service.name}
+                                </h3>
+                                <p className="text-xs text-muted-foreground mt-2 line-clamp-3 leading-relaxed">
+                                  {service.description}
+                                </p>
+                              </div>
+
+                              <div className="mt-6 pt-4 flex items-center justify-between border-t border-border/20 text-xs font-medium text-gold uppercase tracking-wider">
+                                <span>Explore Service</span>
+                                <ArrowRight
+                                  size={14}
+                                  className="group-hover:translate-x-1 transition-transform duration-200"
+                                />
+                              </div>
+                            </div>
+                          </Link>
+                        )
+                      })}
                     </div>
                   </div>
                 ))}
@@ -227,7 +267,6 @@ export default function ServicesPage() {
     </>
   )
 }
-
 
 
 

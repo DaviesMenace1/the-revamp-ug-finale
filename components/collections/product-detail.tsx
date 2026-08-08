@@ -1,10 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Heart, Share2, Star, Check, ShoppingBag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { WishlistButton } from '@/components/collections/wishlist-button'
+import { useCart } from '@/lib/context/cart-context'
 import { formatPrice, type Product, type ProductReview } from '@/lib/data/products'
 
 export function ProductDetail({ product }: { product: Product }) {
@@ -12,6 +13,9 @@ export function ProductDetail({ product }: { product: Product }) {
   const [color, setColor] = useState(product.colors[0]?.label ?? '')
   const [fabric, setFabric] = useState(product.fabrics[0]?.label ?? '')
   const [addons, setAddons] = useState<string[]>([])
+  const [quantity, setQuantity] = useState(1)
+  const [added, setAdded] = useState(false)
+  const { addToCart } = useCart()
 
   const total = useMemo(() => {
     let sum = product.price
@@ -178,12 +182,25 @@ export function ProductDetail({ product }: { product: Product }) {
 
         {/* Actions */}
         <div className="flex flex-col gap-3 mt-10">
+          <div className="flex items-center justify-between border border-border px-4 py-2">
+            <span className="font-sans text-xs uppercase tracking-widest text-muted-foreground">Quantity</span>
+            <div className="flex items-center gap-4">
+              <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} aria-label="Decrease quantity">−</button>
+              <span className="min-w-4 text-center font-sans text-sm">{quantity}</span>
+              <button type="button" onClick={() => setQuantity((value) => Math.min(99, value + 1))} aria-label="Increase quantity">+</button>
+            </div>
+          </div>
           <Button
             size="lg"
+            onClick={() => {
+              addToCart(product, quantity, product.colors.find((item) => item.label === color), product.fabrics.find((item) => item.label === fabric), product.addons.filter((item) => addons.includes(item.label)))
+              setAdded(true)
+              window.setTimeout(() => setAdded(false), 2200)
+            }}
             className="w-full rounded-none bg-foreground text-background hover:bg-gold hover:text-obsidian font-sans text-xs tracking-widest uppercase py-6"
           >
             <ShoppingBag size={15} className="mr-2" />
-            Enquire to Purchase — {formatPrice(total, product.currency)}
+            {added ? 'Added to Cart' : `Add to Cart — ${formatPrice(total * quantity, product.currency)}`}
           </Button>
           <div className="grid grid-cols-2 gap-3">
             <WishlistButton productId={product.id} />
@@ -231,20 +248,23 @@ function Stars({ value }: { value: number }) {
 }
 
 function LikeButton({ productId }: { productId: string }) {
+  const storageKey = `revamp:like:${productId}`
   const [liked, setLiked] = useState(false)
   const [count, setCount] = useState(0)
 
-  // Seed a stable-ish like count from the id so the number feels real.
-  useMemo(() => {
+  useEffect(() => {
     const seed = productId.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
     setCount(40 + (seed % 120))
-  }, [productId])
+    setLiked(window.localStorage.getItem(storageKey) === 'true')
+  }, [productId, storageKey])
 
   return (
     <button
       onClick={() => {
-        setLiked((v) => !v)
-        setCount((c) => (liked ? c - 1 : c + 1))
+        const nextLiked = !liked
+        setLiked(nextLiked)
+        window.localStorage.setItem(storageKey, String(nextLiked))
+        setCount((c) => (nextLiked ? c + 1 : Math.max(0, c - 1)))
       }}
       aria-pressed={liked}
       className={cn(

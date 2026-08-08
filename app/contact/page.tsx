@@ -33,6 +33,8 @@ export default function ContactPage() {
     <>
       <SiteHeader />
       <br />
+      <br />
+      <br />
       <main className="min-h-screen bg-background">
         {/* Hero */}
         <section className="border-b border-border/20 bg-gradient-to-br from-background via-background to-muted/20 py-6 md:py-8">

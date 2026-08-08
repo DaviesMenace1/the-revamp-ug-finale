@@ -4,12 +4,19 @@ import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/context/cart-context'
-import { X, Plus, Minus } from 'lucide-react'
+import { X, Plus, Minus, MessageCircle, Trash2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
 export default function CartPage() {
-  const { items, removeFromCart, updateQuantity, cart } = useCart()
+  const { items, removeFromCart, updateQuantity, clearCart, cart } = useCart()
+
+  const shareToWhatsApp = () => {
+    const lines = items.map((item) => `${item.product.name} × ${item.quantity} — ${item.product.currency} ${((item.product.salePrice || item.product.price) * item.quantity).toLocaleString()}`)
+    const message = `Hello The Revamp UG, I would like to enquire about this cart:\n\n${lines.join('\n')}\n\nTotal: ${cart?.total.toLocaleString() ?? '0'}`
+    const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '')
+    window.open(`https://wa.me/${phone || ''}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
+  }
 
   if (items.length === 0) {
     return (
@@ -198,9 +205,15 @@ export default function CartPage() {
                     <Button
                       className="w-full bg-primary text-primary-foreground hover:bg-opacity-90 py-6 mb-4"
                     >
-                      <Link href="/checkout">
-                        Proceed to Checkout
-                      </Link>
+                      <Link href="/checkout">Proceed to Checkout</Link>
+                    </Button>
+
+                    <Button onClick={shareToWhatsApp} variant="outline" className="w-full border-border mb-3">
+                      <MessageCircle className="mr-2" /> Send Cart to WhatsApp
+                    </Button>
+
+                    <Button onClick={clearCart} variant="ghost" className="w-full text-muted-foreground hover:text-destructive">
+                      <Trash2 className="mr-2" /> Clear Cart
                     </Button>
 
                     <Button

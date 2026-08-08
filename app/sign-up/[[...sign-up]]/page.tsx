@@ -15,6 +15,7 @@ function getSafeRedirectUrl(value: string | null) {
 }
 
 export default function SignUpPage() {
+  const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
   const redirectUrl = useMemo(() => {
     if (typeof window === 'undefined') return '/account'
     return getSafeRedirectUrl(new URLSearchParams(window.location.search).get('redirect_url'))
@@ -29,14 +30,17 @@ export default function SignUpPage() {
           <p className="mt-6 max-w-md font-sans text-base leading-7 text-muted-foreground">Create your account to save pieces, follow orders, book consultations, and continue your design journey.</p>
         </section>
         <div className="w-full max-w-md rounded-sm border border-border bg-card p-2 shadow-sm sm:p-4">
-          <SignUp
+          {!clerkPublishableKey ? (
+            <div role="alert" className="p-8 text-center font-sans text-sm leading-6 text-muted-foreground">
+              Authentication is temporarily unavailable. Please configure the Clerk publishable key for this deployment.
+            </div>
+          ) : <SignUp
             routing="path"
             path="/sign-up"
             fallbackRedirectUrl={redirectUrl}
             signInUrl="/sign-in"
-            signUpUrl="/sign-up"
             appearance={{ elements: { rootBox: 'w-full', card: 'w-full border-0 bg-transparent shadow-none' } }}
-          />
+          />}
         </div>
       </div>
     </main>

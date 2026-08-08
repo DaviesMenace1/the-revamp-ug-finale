@@ -278,7 +278,7 @@ export function SiteHeader() {
 
               {/* Profile / Account Icon */}
               <Link
-                href="/account"
+                href="/client"
                 className={cn(
                   'p-1 sm:p-1.5 hover:text-gold transition-colors',
                   scrolled || !isHome ? 'text-foreground' : 'text-white',
@@ -345,9 +345,9 @@ export function SiteHeader() {
               <span className="font-serif text-xl tracking-widest uppercase">
                 The Revamp<span className="text-gold ml-1">UG</span>
               </span>
-              <button onClick={() => setDrawerOpen(false)} className="text-foreground/60 hover:text-foreground p-2">
+              {/*  <button onClick={() => setDrawerOpen(false)} className="text-foreground/60 hover:text-foreground p-2">
                 <X size={20} />
-              </button>
+              </button>*/}
             </div>
 
             {/* Navigation links inside Drawer */}
@@ -405,6 +405,11 @@ export function SiteHeader() {
 
             {/* Bottom Actions */}
             <div className="p-6 border-t border-border mt-auto flex flex-col gap-3">
+              <Link href="/client" onClick={() => setDrawerOpen(false)}>
+                <Button className="w-half rounded bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest  py-6">
+                  Sign In
+                </Button>
+              </Link>
               <Link href="/contact" onClick={() => setDrawerOpen(false)}>
                 <Button className="w-full rounded-none bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest uppercase py-6">
                   Book a Consultation

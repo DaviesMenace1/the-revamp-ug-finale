@@ -151,7 +151,6 @@ export default function CustomSignInPage() {
 
               <button
                 type="submit"
-                disabled={loading || !isLoaded}
                 className="mt-2 w-full rounded-sm bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {loading ? 'Signing in...' : 'Sign In'}

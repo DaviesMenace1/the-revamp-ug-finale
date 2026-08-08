@@ -67,7 +67,7 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  generator: 'v0.app',
+  generator: 'Davis',
   icons: {
     icon: [
       {
@@ -100,6 +100,10 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
+// app/layout.tsx
+
+const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -126,14 +130,9 @@ export default function RootLayout({
           }}
         />
         
-        {/* JSON-LD Schema Markup for SEO */}
         <SchemaScript schema={generateOrganizationSchema()} />
         <SchemaScript schema={generateLocalBusinessSchema()} />
-        
-        {/* Sitemap */}
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
-        
-        {/* Preconnect to external domains */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
@@ -141,7 +140,7 @@ export default function RootLayout({
       
       <body className="antialiased">
         <ClerkProvider
-          publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+          publishableKey={publishableKey || ''}
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
         >
@@ -154,3 +153,4 @@ export default function RootLayout({
     </html>
   )
 }
+

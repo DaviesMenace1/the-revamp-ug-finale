@@ -96,11 +96,21 @@ export default function CustomSignInPage() {
         {/* Form Box */}
         <div className="w-full max-w-md rounded-sm border border-border bg-card p-6 shadow-sm sm:p-8">
           
-          {/* DIAGNOSTIC PANEL: Shows exact state if loaded fails */}
-          <div className="mb-4 rounded bg-muted/40 p-2 text-xs font-mono text-muted-foreground border border-border">
-            <span>SDK Ready: <strong>{isLoaded ? 'YES' : 'NO'}</strong></span> | 
-            <span> Handlers: <strong>{signIn ? 'AVAILABLE' : 'MISSING'}</strong></span>
-          </div>
+          {/* TABLET DIAGNOSTIC PANEL */}
+<div className="mb-4 rounded bg-muted/40 p-3 text-xs font-mono text-muted-foreground border border-border flex flex-col gap-1">
+  <div>
+    SDK Ready: <strong className={isLoaded ? 'text-green-500' : 'text-red-500'}>{isLoaded ? 'YES' : 'NO'}</strong>
+  </div>
+  <div>
+    Publishable Key Status: {' '}
+    <strong className={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? 'text-green-500' : 'text-red-500'}>
+      {process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY 
+        ? `FOUND (${process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.substring(0, 8)}...)` 
+        : 'MISSING / UNDEFINED'}
+    </strong>
+  </div>
+</div>
+
 
           {/* ACTIVE ERROR DISPLAY */}
           {activeError && (

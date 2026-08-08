@@ -32,6 +32,7 @@ export default function ContactPage() {
   return (
     <>
       <SiteHeader />
+      <br />
       <main className="min-h-screen bg-background">
         {/* Hero */}
         <section className="border-b border-border/20 bg-gradient-to-br from-background via-background to-muted/20 py-6 md:py-8">
@@ -56,23 +57,23 @@ export default function ContactPage() {
                   <div>
                     <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-2">Address</p>
                     <p className="text-muted-foreground font-light">
-                      Plot 12, Industrial Area<br />
+                      Plot 12, Kyanja<br />
                       Kampala, Uganda
                     </p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-2">Phone</p>
                     <p className="text-muted-foreground font-light">
-                      <a href="tel:+256700000000" className="hover:text-primary transition-colors">
-                        +256 (0) 700 000 000
+                      <a href="tel:+256703861668" className="hover:text-primary transition-colors">
+                        +256 (0) 703 861 668
                       </a>
                     </p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-2">Email</p>
                     <p className="text-muted-foreground font-light">
-                      <a href="mailto:hello@revampug.com" className="hover:text-primary transition-colors">
-                        hello@revampug.com
+                      <a href="mailto:support@revampug.com" className="hover:text-primary transition-colors">
+                        support@revampug.com
                       </a>
                     </p>
                   </div>

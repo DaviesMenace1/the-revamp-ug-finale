@@ -23,7 +23,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   // 1. Protect non-public routes
   if (!isPublicRoute(req)) {
-    await auth.protect()
+    await auth.protect({ returnBackUrl: req.url })
   }
 
   // 2. Handle admin route rewriting (if needed)

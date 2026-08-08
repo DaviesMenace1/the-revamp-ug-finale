@@ -278,7 +278,7 @@ export function SiteHeader() {
 
               {/* Profile / Account Icon */}
               <Link
-                href="/client"
+                href="/account"
                 className={cn(
                   'p-1 sm:p-1.5 hover:text-gold transition-colors',
                   scrolled || !isHome ? 'text-foreground' : 'text-white',

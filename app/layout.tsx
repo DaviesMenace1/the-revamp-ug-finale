@@ -139,9 +139,9 @@ export default function RootLayout({
           <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         </head>
         <body className="antialiased">
-          {process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? (
+          {/*{process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?*/} (
             <ClerkProvider
-              publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+              {/*publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}*/}
               signInUrl="/sign-in"
               signUpUrl="/sign-up"
             >

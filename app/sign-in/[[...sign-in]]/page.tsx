@@ -13,8 +13,40 @@ function getSafeRedirectUrl(value: string | null) {
     return '/account'
   }
 }
-
 export default function SignInPage() {
+  const redirectUrl = useMemo(() => {
+    if (typeof window === 'undefined') return '/account'
+    return getSafeRedirectUrl(new URLSearchParams(window.location.search).get('redirect_url'))
+  }, [])
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-background px-6 py-16">
+      <div className="flex w-full max-w-6xl flex-col items-center gap-10 lg:flex-row lg:justify-between lg:gap-20">
+        <section className="max-w-xl text-center lg:text-left">
+          <p className="font-sans text-xs font-medium uppercase tracking-[0.28em] text-muted-foreground">
+            The Revamp UG
+          </p>
+          <h1 className="mt-5 font-serif text-5xl leading-[0.95] text-foreground sm:text-6xl">
+            Welcome back to your world of considered living.
+          </h1>
+          <p className="mt-6 max-w-md font-sans text-base leading-7 text-muted-foreground">
+            Sign in to manage your saved pieces, orders, consultations, membership, and design journey.
+          </p>
+        </section>
+
+        <div className="flex w-full max-w-md justify-center">
+          <SignIn
+            path="/sign-in"
+            routing="path"
+            signUpUrl="/sign-up"
+            fallbackRedirectUrl={redirectUrl}
+          />
+        </div>
+      </div>
+    </main>
+  )
+}
+{/*export default function SignInPage() {
   const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
   const redirectUrl = useMemo(() => {
     if (typeof window === 'undefined') return '/account'
@@ -44,5 +76,5 @@ export default function SignInPage() {
         </div>
       </div>
     </main>
-  )
-}
+  )*/}
+

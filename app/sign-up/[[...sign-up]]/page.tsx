@@ -35,8 +35,7 @@ export default function SignUpPage() {
               Authentication is temporarily unavailable. Please configure the Clerk publishable key for this deployment.
             </div>
           ) : <SignUp
-            routing="path"
-            path="/sign-up"
+            routing="hash"
             fallbackRedirectUrl={redirectUrl}
             signInUrl="/sign-in"
             appearance={{ elements: { rootBox: 'w-full', card: 'w-full border-0 bg-transparent shadow-none' } }}

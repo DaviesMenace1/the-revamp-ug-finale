@@ -4,8 +4,23 @@ interface SignInPageProps {
   searchParams: Promise<{ redirect_url?: string }>
 }
 
+function getSafeRedirectUrl(value?: string) {
+  if (!value) return '/account'
+
+  try {
+    const parsed = new URL(value, 'https://therevampug.com')
+    if (parsed.origin !== 'https://therevampug.com' && parsed.origin !== 'https://www.therevampug.com') {
+      return '/account'
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return '/account'
+  }
+}
+
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   const { redirect_url: redirectUrl } = await searchParams
+  const safeRedirectUrl = getSafeRedirectUrl(redirectUrl)
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-16">
@@ -23,7 +38,8 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         </section>
         <div className="w-full max-w-md rounded-sm border border-border bg-card p-2 shadow-sm sm:p-4">
           <SignIn
-            fallbackRedirectUrl={redirectUrl || '/account'}
+            fallbackRedirectUrl={safeRedirectUrl}
+            signInUrl="/sign-in"
             signUpUrl="/sign-up"
             appearance={{
               elements: {

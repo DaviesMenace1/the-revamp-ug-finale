@@ -38,6 +38,8 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
         </section>
         <div className="w-full max-w-md rounded-sm border border-border bg-card p-2 shadow-sm sm:p-4">
           <SignUp
+            path="/sign-up"
+            routing="path"
             fallbackRedirectUrl={safeRedirectUrl}
             signInUrl="/sign-in"
             signUpUrl="/sign-up"

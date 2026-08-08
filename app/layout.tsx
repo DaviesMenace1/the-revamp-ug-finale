@@ -108,55 +108,49 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${instrument.variable} bg-background`}>
       <head>
-          {/* Theme Script */}
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                try {
-                  const theme = localStorage.getItem('revamp-theme-preference') || 
-                    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-                  if (theme === 'dark') {
-                    document.documentElement.classList.add('dark');
-                  } else {
-                    document.documentElement.classList.remove('dark');
-                  }
-                  document.documentElement.style.colorScheme = theme;
-                } catch (e) {}
-              `,
-            }}
-          />
-          
-          {/* JSON-LD Schema Markup for SEO */}
-          <SchemaScript schema={generateOrganizationSchema()} />
-          <SchemaScript schema={generateLocalBusinessSchema()} />
-          
-          {/* Sitemap */}
-          <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
-          
-          {/* Preconnect to external domains */}
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link rel="dns-prefetch" href="https://res.cloudinary.com" />
-        </head>
-           <body className="antialiased">
-          {process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? (
-            <ClerkProvider
-              publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-              signInUrl="/sign-in"
-              signUpUrl="/sign-up"
-            >
-              <CartProvider>
-                <ThemeProvider>{children}</ThemeProvider>
-              </CartProvider>
-              {process.env.NODE_ENV === 'production' && <Analytics />}
-            </ClerkProvider>
-          ) : (
-            <CartProvider>
-              <ThemeProvider>{children}</ThemeProvider>
-            </CartProvider>
-          )}
-        </body>
+        {/* Theme Script */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const theme = localStorage.getItem('revamp-theme-preference') || 
+                  (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                if (theme === 'dark') {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+                document.documentElement.style.colorScheme = theme;
+              } catch (e) {}
+            `,
+          }}
+        />
+        
+        {/* JSON-LD Schema Markup for SEO */}
+        <SchemaScript schema={generateOrganizationSchema()} />
+        <SchemaScript schema={generateLocalBusinessSchema()} />
+        
+        {/* Sitemap */}
+        <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+        
+        {/* Preconnect to external domains */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+      </head>
       
+      <body className="antialiased">
+        <ClerkProvider
+          publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+        >
+          <CartProvider>
+            <ThemeProvider>{children}</ThemeProvider>
+          </CartProvider>
+          {process.env.NODE_ENV === 'production' && <Analytics />}
+        </ClerkProvider>
+      </body>
     </html>
   )
 }

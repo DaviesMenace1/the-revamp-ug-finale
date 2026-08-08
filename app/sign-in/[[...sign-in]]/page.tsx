@@ -36,8 +36,7 @@ export default function SignInPage() {
 
         <div className="flex w-full max-w-md justify-center">
           <SignIn
-            path="/sign-in"
-            routing="path"
+            routing="hash"
             signUpUrl="/sign-up"
             fallbackRedirectUrl={redirectUrl}
           />

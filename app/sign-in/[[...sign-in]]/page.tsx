@@ -5,7 +5,7 @@ import { useSignIn } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 export default function CustomSignInPage() {
-  const { isLoaded, signIn, setActive } = useSignIn()
+  const { isLoaded, signIn, setActive, errors: clerkErrors } = useSignIn() as any
   const router = useRouter()
 
   // Form State
@@ -13,16 +13,15 @@ export default function CustomSignInPage() {
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
   
-  // UI State
+  // UI & Diagnostics State
   const [verifyingFactor, setVerifyingFactor] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [errorDetails, setErrorDetails] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [redirectPath, setRedirectPath] = useState('/account')
 
-  // Safely extract and validate redirect URL on mount
+  // Parse redirect URL on mount
   useEffect(() => {
     if (typeof window === 'undefined') return
-    
     const params = new URLSearchParams(window.location.search)
     const rawRedirect = params.get('redirect_url')
     
@@ -38,65 +37,47 @@ export default function CustomSignInPage() {
     }
   }, [])
 
-  // Handle standard Email + Password submission
+  // Handle Form Submit
   const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault()
-  if (!isLoaded || !signIn) return
-
-  setLoading(true)
-  setError(null)
-
-  try {
-    const result = await signIn.create({
-      identifier: email,
-      password: password,
-    })
-
-    if (result.status === 'complete') {
-      await setActive({ session: result.createdSessionId })
-      router.push(redirectPath)
-    } else if (result.status === 'needs_second_factor') {
-      setVerifyingFactor(true)
-    } else {
-      setError('Further authentication steps required.')
-    }
-  } catch (err: any) {
-    // Standard Clerk error response array parsing
-    const errorMessage = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Invalid email or password.'
-    setError(errorMessage)
-  } finally {
-    setLoading(false)
-  }
-}
-
-
-  // Handle OTP verification (2FA) if triggered
-  const handleVerifyOTP = async (e: FormEvent) => {
     e.preventDefault()
-    if (!isLoaded) return
+    setErrorDetails(null)
+
+    if (!isLoaded || !signIn) {
+      setErrorDetails('Clerk is still loading or could not connect to authentication services.')
+      return
+    }
 
     setLoading(true)
-    setError(null)
 
     try {
-      const result = await signIn.attemptSecondFactor({
-        strategy: 'totp',
-        code,
+      const result = await signIn.create({
+        identifier: email,
+        password,
       })
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId })
         router.push(redirectPath)
+      } else if (result.status === 'needs_second_factor') {
+        setVerifyingFactor(true)
+      } else {
+        setErrorDetails(`Unhandled sign-in status: ${result.status}`)
       }
     } catch (err: any) {
-      setError(err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Invalid verification code.')
+      // Print exact API error message directly to the UI
+      console.error('Sign-in Error:', err)
+      const rawError = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || JSON.stringify(err)
+      setErrorDetails(rawError)
     } finally {
       setLoading(false)
     }
   }
 
+  // Combine hook-level errors or runtime errors
+  const activeError = errorDetails || (clerkErrors?.length > 0 ? clerkErrors[0].message : null)
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-6 py-16">
+    <main className="flex min-h-screen items-center justify-center bg-background px-6 py-16 text-foreground">
       <div className="flex w-full max-w-6xl flex-col items-center gap-10 lg:flex-row lg:justify-between lg:gap-20">
         
         {/* Branding Section */}
@@ -114,14 +95,21 @@ export default function CustomSignInPage() {
 
         {/* Form Box */}
         <div className="w-full max-w-md rounded-sm border border-border bg-card p-6 shadow-sm sm:p-8">
-          {error && (
-            <div role="alert" className="mb-6 rounded-sm bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20">
-              {error}
+          
+          {/* DIAGNOSTIC PANEL: Shows exact state if loaded fails */}
+          <div className="mb-4 rounded bg-muted/40 p-2 text-xs font-mono text-muted-foreground border border-border">
+            <span>SDK Ready: <strong>{isLoaded ? 'YES' : 'NO'}</strong></span> | 
+            <span> Handlers: <strong>{signIn ? 'AVAILABLE' : 'MISSING'}</strong></span>
+          </div>
+
+          {/* ACTIVE ERROR DISPLAY */}
+          {activeError && (
+            <div role="alert" className="mb-6 rounded-sm bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20 font-mono text-xs break-words">
+              <strong>Error:</strong> {activeError}
             </div>
           )}
 
           {!verifyingFactor ? (
-            /* Standard Sign-In Form */
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">
@@ -149,16 +137,17 @@ export default function CustomSignInPage() {
                 />
               </div>
 
+              {/* ENABLED BUTTON: Forces click to surface hidden errors */}
               <button
                 type="submit"
+                disabled={loading}
                 className="mt-2 w-full rounded-sm bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
           ) : (
-            /* Second Factor / OTP Verification Form */
-            <form onSubmit={handleVerifyOTP} className="flex flex-col gap-4">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">
                   Two-Factor Authentication Code
@@ -175,7 +164,7 @@ export default function CustomSignInPage() {
 
               <button
                 type="submit"
-                disabled={loading || !isLoaded}
+                disabled={loading}
                 className="mt-2 w-full rounded-sm bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {loading ? 'Verifying...' : 'Verify Code'}
@@ -195,6 +184,7 @@ export default function CustomSignInPage() {
     </main>
   )
 }
+
 
 
 

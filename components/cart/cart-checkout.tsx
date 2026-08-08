@@ -17,16 +17,16 @@ export function CartCheckout() {
     const orderDetails = items
       .map(
         (item) =>
-          `• ${item.name} x${item.quantity} - UGX ${(item.price * item.quantity).toLocaleString()}`
+          `• ${item.name}  x${item.quantity} - USD ${(item.price * item.quantity).toLocaleString()}`
       )
       .join('\n');
 
-    const message = `Hello! I would like to place an order:\n\n${orderDetails}\n\nTotal: UGX ${subtotal.toLocaleString()}\n\nPlease confirm availability and delivery details.`;
+    const message = `Hello! I would like to place an order:\n\n${orderDetails}\n\nTotal: USD ${subtotal.toLocaleString()}\n\nPlease confirm availability and delivery details.`;
     return encodeURIComponent(message);
   };
 
   const handleWhatsAppCheckout = () => {
-    const whatsappNumber = '256700000000'; // Replace with your WhatsApp number
+    const whatsappNumber = '256703861668'; // Replace with your WhatsApp number
     const message = generateWhatsAppMessage();
     const whatsappURL = `https://wa.me/${whatsappNumber}?text=${message}`;
     window.open(whatsappURL, '_blank');

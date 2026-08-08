@@ -40,33 +40,35 @@ export default function CustomSignInPage() {
 
   // Handle standard Email + Password submission
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!isLoaded) return
+  e.preventDefault()
+  if (!isLoaded || !signIn) return
 
-    setLoading(true)
-    setError(null)
+  setLoading(true)
+  setError(null)
 
-    try {
-      const result = await signIn.create({
-        identifier: email,
-        password,
-      })
+  try {
+    const result = await signIn.create({
+      identifier: email,
+      password: password,
+    })
 
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
-        router.push(redirectPath)
-      } else if (result.status === 'needs_second_factor') {
-        // Handle 2FA / OTP if configured on your Clerk dashboard
-        setVerifyingFactor(true)
-      } else {
-        console.log('Additional sign-in steps required:', result)
-      }
-    } catch (err: any) {
-      setError(err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'An error occurred during sign in.')
-    } finally {
-      setLoading(false)
+    if (result.status === 'complete') {
+      await setActive({ session: result.createdSessionId })
+      router.push(redirectPath)
+    } else if (result.status === 'needs_second_factor') {
+      setVerifyingFactor(true)
+    } else {
+      setError('Further authentication steps required.')
     }
+  } catch (err: any) {
+    // Standard Clerk error response array parsing
+    const errorMessage = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Invalid email or password.'
+    setError(errorMessage)
+  } finally {
+    setLoading(false)
   }
+}
+
 
   // Handle OTP verification (2FA) if triggered
   const handleVerifyOTP = async (e: FormEvent) => {

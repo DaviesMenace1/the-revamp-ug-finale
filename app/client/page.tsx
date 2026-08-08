@@ -4,6 +4,7 @@ import { PortalLayout } from '@/components/portals/portal-layout'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
 import { FileText, MessageSquare, ShoppingBag, Calendar } from 'lucide-react'
+import { SiteHeader } from '@/components/site-header'
 
 const clientNavItems = [
   { label: 'Dashboard', href: '/client' },
@@ -21,6 +22,7 @@ export default function ClientDashboard() {
       portalSlug="client"
       navItems={clientNavItems}
     >
+      <SiteHeader />
       <div className="space-y-12">
         {/* Header */}
         <div className="space-y-2">

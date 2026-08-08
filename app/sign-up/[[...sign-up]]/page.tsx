@@ -25,7 +25,8 @@ export default function SignUpPage() {
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-16">
       <div className="flex w-full max-w-6xl flex-col items-center gap-10 lg:flex-row lg:justify-between lg:gap-20">
         <section className="max-w-xl text-center lg:text-left">
-          <p className="font-sans text-xs font-medium uppercase tracking-[0.28em] text-muted-foreground">The Revamp UG</p>
+          <p className="font-serif text-xl md:text-2xl font-light tracking-widest uppercase transition-colors">The Revamp 
+            <span className="text-gold ml-1">UG</span></p>
           <h1 className="mt-5 font-serif text-5xl leading-[0.95] text-foreground sm:text-6xl">Begin a more considered way of living.</h1>
           <p className="mt-6 max-w-md font-sans text-base leading-7 text-muted-foreground">Create your account to save pieces, follow orders, book consultations, and continue your design journey.</p>
         </section>

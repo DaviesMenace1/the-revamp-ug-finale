@@ -1,5 +1,4 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
 
 const isPublicRoute = createRouteMatcher([
   '/',
@@ -22,12 +21,6 @@ const isPublicRoute = createRouteMatcher([
 ])
 
 export default clerkMiddleware(async (auth, request) => {
-  if (request.nextUrl.hostname === 'www.therevampug.com') {
-    const url = request.nextUrl.clone()
-    url.hostname = 'therevampug.com'
-    return NextResponse.redirect(url, 308)
-  }
-
   if (!isPublicRoute(request)) {
     await auth.protect()
   }

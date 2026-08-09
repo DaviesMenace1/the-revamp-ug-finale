@@ -80,15 +80,15 @@ export async function getUserTradeMember(userId: string) {
 export async function verifyPortalAccess(portal: 'client' | 'trade' | 'membership' | 'admin'): Promise<boolean> {
   const user = await getCurrentUser()
   
-  if (!user) return false
+  if (!user || !user.id) return false
 
   switch (portal) {
     case 'admin':
       return user.role === 'admin'
     case 'trade':
-      return user.role === 'admin' || user.role === 'trade_member' || ['designer', 'architect', 'interior_designer'].includes(user.role)
+      return user.role === 'admin' || user.role === 'trade_member' || ['designer', 'architect', 'interior_designer'].includes(user.role ?? 'customer')
     case 'membership':
-      const membership = await getUserMembership(user.id)
+      const membership = await getUserMembership(user.id as string)
       return !!membership && membership.status === 'active'
     case 'client':
     default:

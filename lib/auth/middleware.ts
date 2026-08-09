@@ -56,7 +56,7 @@ export function withPortalAuth(requiredRoles: UserRole[] = []) {
       // Attach user info to request for use in handlers
       const requestHeaders = new Headers(request.headers)
       requestHeaders.set('x-user-id', user.id)
-      requestHeaders.set('x-user-role', user.role)
+      requestHeaders.set('x-user-role', user.role ?? 'customer')
 
       return NextResponse.next({
         request: {

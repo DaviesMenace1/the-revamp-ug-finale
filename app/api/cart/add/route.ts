@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         .values({
           userId: user.id,
           items: [newItem],
-          subtotal: newItem.price * newItem.quantity,
+          subtotal: String(newItem.price * newItem.quantity),
         })
         .returning();
       return NextResponse.json({ items: newCart.items }, { status: 200 });
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       .update(carts)
       .set({
         items: updatedItems,
-        subtotal: newSubtotal,
+        subtotal: String(newSubtotal),
         updatedAt: new Date(),
       })
       .where(eq(carts.id, cart.id));

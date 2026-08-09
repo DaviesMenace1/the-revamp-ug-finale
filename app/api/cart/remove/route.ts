@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       .update(carts)
       .set({
         items: updatedItems,
-        subtotal: newSubtotal,
+        subtotal: String(newSubtotal),
         updatedAt: new Date(),
       })
       .where(eq(carts.id, cart.id));

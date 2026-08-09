@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       .update(carts)
       .set({
         items: [],
-        subtotal: 0,
+        subtotal: '0',
         updatedAt: new Date(),
       })
       .where(eq(carts.id, cart.id));

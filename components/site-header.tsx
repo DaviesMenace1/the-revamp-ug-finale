@@ -8,10 +8,16 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/context/cart-context'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
-import { ThemeSwitcher } from '@/components/theme-switcher'
+  import { ThemeSwitcher } from '@/components/theme-switcher'
 
-// Primary links shown directly in the header bar
-const primaryNavLinks = [
+  interface NavLink {
+    label: string
+    href: string
+    submenu?: NavLink[]
+  }
+
+  // Primary links shown directly in the header bar
+  const primaryNavLinks: NavLink[] = [
   { label: 'About', href: '/about' },
   { 
     label: 'Services', 
@@ -36,7 +42,7 @@ const primaryNavLinks = [
 ]
 
 // Secondary links available via the Drawer/Sheet
-const secondaryNavLinks = [
+const secondaryNavLinks: NavLink[] = [
   { label: 'Journal', href: '/journal' },
   { label: 'Source With Revamp', href: '/source-with-revamp' },
   { label: 'Trade Program', href: '/trade' },
@@ -54,7 +60,7 @@ export function SiteHeader() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
   const [desktopDropdownOpen, setDesktopDropdownOpen] = useState<string | null>(null)
-  
+
   const pathname = usePathname()
   const isHome = pathname === '/'
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -107,7 +113,7 @@ export function SiteHeader() {
       >
         <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 md:h-20">
-            
+          
             {/* 1. LEFT SECTION */}
             <div className="flex items-center gap-1 sm:gap-2">
               {/* Mobile Only: Menu & Search */}
@@ -217,7 +223,7 @@ export function SiteHeader() {
                       {link.label}
                     </Link>
                   )}
-                  
+                
                   {/* Dropdown Container */}
                   {link.submenu && (
                     <div
@@ -435,10 +441,16 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/context/cart-context'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
-import { ThemeSwitcher } from '@/components/theme-switcher'
+  import { ThemeSwitcher } from '@/components/theme-switcher'
 
-// Primary links shown directly in the header bar
-const primaryNavLinks = [
+  interface NavLink {
+    label: string
+    href: string
+    submenu?: NavLink[]
+  }
+
+  // Primary links shown directly in the header bar
+  const primaryNavLinks: NavLink[] = [
   { label: 'About', href: '/about' },
   { 
     label: 'Services', 
@@ -462,7 +474,7 @@ const primaryNavLinks = [
 ]
 
 // Secondary links available via the Drawer/Sheet
-const secondaryNavLinks = [
+const secondaryNavLinks: NavLink[] = [
   { label: 'Journal', href: '/journal' },
   { label: 'Source With Revamp', href: '/source-with-revamp' },
   { label: 'Trade Program', href: '/trade' },
@@ -509,7 +521,7 @@ export function SiteHeader() {
       >
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 md:h-20">
-            
+          
             {/* 1. LEFT SECTION *
             {/* Mobile: Hamburger Drawer Toggle *
             <div className="flex items-center md:hidden">
@@ -569,7 +581,7 @@ export function SiteHeader() {
                     {link.label}
                     {link.submenu && <ChevronDown size={14} className="opacity-50" />}
                   </Link>
-                  
+                
                   {link.submenu && (
                     <div className="absolute left-0 mt-0 w-60 bg-background border border-border shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-40 max-h-80 overflow-y-auto">
                       {link.submenu.map((subitem) => (
@@ -776,10 +788,16 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/context/cart-context'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
-import { ThemeSwitcher } from '@/components/theme-switcher'
+  import { ThemeSwitcher } from '@/components/theme-switcher'
 
-// Primary links shown directly in the header bar
-const primaryNavLinks = [
+  interface NavLink {
+    label: string
+    href: string
+    submenu?: NavLink[]
+  }
+
+  // Primary links shown directly in the header bar
+  const primaryNavLinks: NavLink[] = [
   { label: 'About', href: '/about' },
   { 
     label: 'Services', 
@@ -803,7 +821,7 @@ const primaryNavLinks = [
 ]
 
 // Secondary links available via the Drawer/Sheet
-const secondaryNavLinks = [
+const secondaryNavLinks: NavLink[] = [
   { label: 'Journal', href: '/journal' },
   { label: 'Source With Revamp', href: '/source-with-revamp' },
   { label: 'Trade Program', href: '/trade' },
@@ -886,7 +904,7 @@ useEffect(() => {
                     {link.label}
                     {link.submenu && <ChevronDown size={14} className="opacity-50" />}
                   </Link>
-                  
+                
                   {/* Dropdown for Primary Nav *
                   {link.submenu && (
                     <div className="absolute left-0 mt-0 w-60 bg-background border border-border shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-40 max-h-80 overflow-y-auto">
@@ -908,7 +926,7 @@ useEffect(() => {
             {/* Right Side Controls *
             <div className="flex items-center gap-3">
               <ThemeSwitcher />
-              
+            
               <Link href="/cart" className="relative p-2 hover:text-gold transition-colors">
                 <ShoppingBag size={22} className={scrolled || !isHome ? 'text-foreground' : 'text-white'} />
                 {cartCount > 0 && (
@@ -1138,7 +1156,7 @@ export function SiteHeader() {
                     {link.label}
                     {link.submenu && <ChevronDown size={14} className="opacity-50" />}
                   </Link>
-                  
+                
                   {/* Submenu *
                   {link.submenu && (
                     <div className="absolute left-0 mt-0 w-56 bg-background border border-border shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-40">
@@ -1245,7 +1263,7 @@ export function SiteHeader() {
                       />
                     )}
                   </button>
-                  
+                
                   {/* Mobile Submenu *
                   {link.submenu && mobileSubmenu === link.href && (
                     <div className="bg-background/50 border-b border-border/50">

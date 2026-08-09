@@ -1,4 +1,22 @@
-export const SERVICE_CATEGORIES = [
+export interface ServiceEntry {
+  name: string
+  slug: string
+  description?: string
+  longDescription?: string
+  icon?: string
+}
+
+export interface ServiceCategory {
+  id: string
+  name: string
+  slug: string
+  description: string
+  icon: string
+  order: number
+  services: ServiceEntry[]
+}
+
+export const SERVICE_CATEGORIES: ServiceCategory[] = [
   {
     id: 'interior-design',
     name: 'Interior Design',
@@ -240,8 +258,7 @@ export const CUSTOM_SERVICE_TYPES = [
   { value: 'other', label: 'Other Services', description: 'Other custom design services' },
 ];
 
-export type ServiceCategory = typeof SERVICE_CATEGORIES[0];
-export type Service = ServiceCategory['services'][0];
+export type Service = ServiceEntry;
 export type CustomServiceType = typeof CUSTOM_SERVICE_TYPES[0];
 
 // Export alias for backwards compatibility with imports expecting `SERVICES`

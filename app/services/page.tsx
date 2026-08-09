@@ -47,7 +47,7 @@ export default function ServicesPage() {
 
         return (
           service.name.toLowerCase().includes(query) ||
-          service.description.toLowerCase().includes(query) ||
+          (service.description ?? '').toLowerCase().includes(query) ||
           category.name.toLowerCase().includes(query)
         )
       })

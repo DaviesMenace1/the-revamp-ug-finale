@@ -2,7 +2,20 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import { requirePortalUser } from '@/lib/auth/portal-auth'
 
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  // Automatically redirects if unauthenticated or missing 'admin' role
+    const user = await requirePortalUser(['admin'])
+
+      return (
+          <div>
+                <p>Welcome back, {user.firstName}!</p>
+                      {children}
+                          </div>
+                            )
+                            }
+                            
 const revenueData = [
   { month: 'Jan', revenue: 12000 },
   { month: 'Feb', revenue: 19000 },

@@ -3,6 +3,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  serverExternalPackages: ['@getbrevo/brevo'],
   images: {
     unoptimized: true,
   },

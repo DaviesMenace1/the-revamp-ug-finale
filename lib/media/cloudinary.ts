@@ -1,146 +1,149 @@
 /**
- * Cloudinary Upload Handler
- * Handles public media uploads (products, projects, blogs, profiles, etc.)
- */
+ *  * Cloudinary Upload Handler
+  * Handles public media uploads (products, projects, blogs, profiles, etc.)
+   */
 
-import { v2 as cloudinary } from 'cloudinary';
-import { CLOUDINARY_CONFIG, MEDIA_TYPES, UPLOAD_ERRORS } from './config';
+   import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
+   import { Readable } from 'stream';
+   import { CLOUDINARY_CONFIG, MEDIA_TYPES, UPLOAD_ERRORS } from './config';
 
-// Configure Cloudinary
-if (CLOUDINARY_CONFIG.apiKey && CLOUDINARY_CONFIG.apiSecret) {
-  cloudinary.config({
-    cloud_name: CLOUDINARY_CONFIG.cloudName,
-    api_key: CLOUDINARY_CONFIG.apiKey,
-    api_secret: CLOUDINARY_CONFIG.apiSecret,
-  });
-}
+   // Configure Cloudinary SDK instance
+   if (CLOUDINARY_CONFIG.apiKey && CLOUDINARY_CONFIG.apiSecret) {
+     cloudinary.config({
+         cloud_name: CLOUDINARY_CONFIG.cloudName,
+             api_key: CLOUDINARY_CONFIG.apiKey,
+                 api_secret: CLOUDINARY_CONFIG.apiSecret,
+                     secure: true,
+                       });
+                       }
 
-interface CloudinaryUploadOptions {
-  mediaType: keyof typeof MEDIA_TYPES.PUBLIC;
-  file: File | Buffer;
-  fileName?: string;
-  tags?: string[];
-}
+                       interface CloudinaryUploadOptions {
+                         mediaType: keyof typeof MEDIA_TYPES.PUBLIC;
+                           file: File | Buffer;
+                             fileName?: string;
+                               tags?: string[];
+                               }
 
-interface CloudinaryUploadResponse {
-  success: boolean;
-  url?: string;
-  secureUrl?: string;
-  publicId?: string;
-  error?: string;
-}
+                               interface CloudinaryUploadResponse {
+                                 success: boolean;
+                                   url?: string;
+                                     secureUrl?: string;
+                                       publicId?: string;
+                                         error?: string;
+                                         }
 
-/**
- * Upload file to Cloudinary
- */
-export async function uploadToCloudinary(
-  options: CloudinaryUploadOptions
-): Promise<CloudinaryUploadResponse> {
-  try {
-    // Validate configuration
-    if (!CLOUDINARY_CONFIG.cloudName || !CLOUDINARY_CONFIG.apiKey) {
-      console.error('[v0] Cloudinary config missing');
-      return {
-        success: false,
-        error: UPLOAD_ERRORS.MISSING_CONFIG,
-      };
-    }
+                                         /**
+                                          * Upload file buffer to Cloudinary using SDK Upload Stream
+                                           */
+                                           export async function uploadToCloudinary(
+                                             options: CloudinaryUploadOptions
+                                             ): Promise<CloudinaryUploadResponse> {
+                                               try {
+                                                   // Validate configuration
+                                                       if (!CLOUDINARY_CONFIG.cloudName || !CLOUDINARY_CONFIG.apiKey) {
+                                                             console.error('[v0] Cloudinary config missing');
+                                                                   return {
+                                                                           success: false,
+                                                                                   error: UPLOAD_ERRORS.MISSING_CONFIG,
+                                                                                         };
+                                                                                             }
 
-    const mediaConfig = MEDIA_TYPES.PUBLIC[options.mediaType];
-    if (!mediaConfig) {
-      return {
-        success: false,
-        error: UPLOAD_ERRORS.INVALID_TYPE,
-      };
-    }
+                                                                                                 const mediaConfig = MEDIA_TYPES.PUBLIC[options.mediaType];
+                                                                                                     if (!mediaConfig) {
+                                                                                                           return {
+                                                                                                                   success: false,
+                                                                                                                           error: UPLOAD_ERRORS.INVALID_TYPE,
+                                                                                                                                 };
+                                                                                                                                     }
 
-    // Convert File to buffer if needed
-    let buffer: Buffer;
-    if (options.file instanceof File) {
-      buffer = Buffer.from(await options.file.arrayBuffer());
-    } else {
-      buffer = options.file;
-    }
+                                                                                                                                         // Convert File to buffer if needed
+                                                                                                                                             let buffer: Buffer;
+                                                                                                                                                 if (options.file instanceof File) {
+                                                                                                                                                       buffer = Buffer.from(await options.file.arrayBuffer());
+                                                                                                                                                           } else {
+                                                                                                                                                                 buffer = options.file;
+                                                                                                                                                                     }
 
-    // File size validation
-    if (buffer.length > mediaConfig.maxSize) {
-      return {
-        success: false,
-        error: UPLOAD_ERRORS.FILE_TOO_LARGE,
-      };
-    }
+                                                                                                                                                                         // File size validation
+                                                                                                                                                                             if (buffer.length > mediaConfig.maxSize) {
+                                                                                                                                                                                   return {
+                                                                                                                                                                                           success: false,
+                                                                                                                                                                                                   error: UPLOAD_ERRORS.FILE_TOO_LARGE,
+                                                                                                                                                                                                         };
+                                                                                                                                                                                                             }
 
-    // Upload to Cloudinary
-    return new Promise((resolve) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: mediaConfig.folder,
-          resource_type: 'auto',
-          tags: [options.mediaType, ...(options.tags || [])],
-          public_id: options.fileName ? options.fileName.replace(/\.[^/.]+$/, '') : undefined,
-        },
-        (error, result) => {
-          if (error) {
-            console.error('[v0] Cloudinary error:', error);
-            resolve({
-              success: false,
-              error: UPLOAD_ERRORS.CLOUDINARY_ERROR,
-            });
-          } else {
-            resolve({
-              success: true,
-              url: result?.url,
-              secureUrl: result?.secure_url,
-              publicId: result?.public_id,
-            });
-          }
-        }
-      );
+                                                                                                                                                                                                                 // Upload to Cloudinary using Stream API
+                                                                                                                                                                                                                     const result = await new Promise<UploadApiResponse>((resolve, reject) => {
+                                                                                                                                                                                                                           const uploadStream = cloudinary.uploader.upload_stream(
+                                                                                                                                                                                                                                   {
+                                                                                                                                                                                                                                             folder: mediaConfig.folder,
+                                                                                                                                                                                                                                                       resource_type: 'auto',
+                                                                                                                                                                                                                                                                 tags: [options.mediaType as string, ...(options.tags || [])],
+                                                                                                                                                                                                                                                                           public_id: options.fileName
+                                                                                                                                                                                                                                                                                       ? options.fileName.replace(/\.[^/.]+$/, '')
+                                                                                                                                                                                                                                                                                                   : undefined,
+                                                                                                                                                                                                                                                                                                           },
+                                                                                                                                                                                                                                                                                                                   (error, res) => {
+                                                                                                                                                                                                                                                                                                                             if (error || !res) {
+                                                                                                                                                                                                                                                                                                                                         reject(error);
+                                                                                                                                                                                                                                                                                                                                                   } else {
+                                                                                                                                                                                                                                                                                                                                                               resolve(res);
+                                                                                                                                                                                                                                                                                                                                                                         }
+                                                                                                                                                                                                                                                                                                                                                                                 }
+                                                                                                                                                                                                                                                                                                                                                                                       );
 
-      stream.end(buffer);
-    });
-  } catch (error) {
-    console.error('[v0] Cloudinary upload error:', error);
-    return {
-      success: false,
-      error: UPLOAD_ERRORS.CLOUDINARY_ERROR,
-    };
-  }
-}
+                                                                                                                                                                                                                                                                                                                                                                                             // Stream buffer through Node Readable stream
+                                                                                                                                                                                                                                                                                                                                                                                                   Readable.from(buffer).pipe(uploadStream);
+                                                                                                                                                                                                                                                                                                                                                                                                       });
 
-/**
- * Delete file from Cloudinary
- */
-export async function deleteFromCloudinary(publicId: string): Promise<boolean> {
-  try {
-    if (!CLOUDINARY_CONFIG.cloudName || !CLOUDINARY_CONFIG.apiKey) {
-      console.error('[v0] Cloudinary config missing');
-      return false;
-    }
+                                                                                                                                                                                                                                                                                                                                                                                                           return {
+                                                                                                                                                                                                                                                                                                                                                                                                                 success: true,
+                                                                                                                                                                                                                                                                                                                                                                                                                       url: result.url,
+                                                                                                                                                                                                                                                                                                                                                                                                                             secureUrl: result.secure_url,
+                                                                                                                                                                                                                                                                                                                                                                                                                                   publicId: result.public_id,
+                                                                                                                                                                                                                                                                                                                                                                                                                                       };
+                                                                                                                                                                                                                                                                                                                                                                                                                                         } catch (error) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                             console.error('[v0] Cloudinary upload error:', error);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                 return {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                       success: false,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                             error: UPLOAD_ERRORS.CLOUDINARY_ERROR,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                 };
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                   }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                   }
 
-    const result = await cloudinary.uploader.destroy(publicId);
-    return result.result === 'ok';
-  } catch (error) {
-    console.error('[v0] Cloudinary delete error:', error);
-    return false;
-  }
-}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                   /**
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                    * Delete file from Cloudinary using SDK
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     export async function deleteFromCloudinary(publicId: string): Promise<boolean> {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                       try {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                           if (!CLOUDINARY_CONFIG.cloudName || !CLOUDINARY_CONFIG.apiKey) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 console.error('[v0] Cloudinary config missing');
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       return false;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           }
 
-/**
- * Get Cloudinary URL with transformations
- */
-export function getCloudinaryUrl(
-  publicId: string,
-  transformation?: string
-): string {
-  if (!CLOUDINARY_CONFIG.cloudName) {
-    console.error('[v0] Cloudinary cloud name missing');
-    return '';
-  }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               const result = await cloudinary.uploader.destroy(publicId);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   return result.result === 'ok';
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     } catch (error) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         console.error('[v0] Cloudinary delete error:', error);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             return false;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               }
 
-  const baseUrl = `https://res.cloudinary.com/${CLOUDINARY_CONFIG.cloudName}/image/upload`;
-  if (transformation) {
-    return `${baseUrl}/${transformation}/${publicId}`;
-  }
-  return `${baseUrl}/${publicId}`;
-}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               /**
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                * Get Cloudinary URL with transformations using official SDK URL helper
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 */
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 export function getCloudinaryUrl(
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   publicId: string,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     transformation?: string
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ): string {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       if (!CLOUDINARY_CONFIG.cloudName) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           console.error('[v0] Cloudinary cloud name missing');
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               return '';
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 }
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   return cloudinary.url(publicId, {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       raw_transformation: transformation,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           secure: true,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             });
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             }
+

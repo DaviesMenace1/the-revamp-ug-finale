@@ -1,6 +1,8 @@
+import 'server-only'
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
+
 
 // DATABASE_URL = pooled connection (for app queries at runtime)
 // DIRECT_URL   = direct connection (no pooler, used by drizzle-kit for migrations)

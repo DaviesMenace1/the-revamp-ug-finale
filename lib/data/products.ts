@@ -25,6 +25,8 @@ export type ItemType =
 
 export interface ProductOption {
   label: string
+  /** display label used by legacy cart rendering */
+  name?: string
   /** hex or descriptor for swatch rendering */
   value?: string
   /** optional price delta in the product currency */
@@ -50,6 +52,7 @@ export interface Product {
   currency: string
   space: Space
   itemType: ItemType
+  category?: string
   tags: QuickTag[]
   images: string[]
   colors: ProductOption[]

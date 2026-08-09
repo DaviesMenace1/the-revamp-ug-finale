@@ -15,13 +15,15 @@ interface CartContextType {
     customDimensions?: { width?: number; height?: number; depth?: number }
   ) => void
   removeFromCart: (productId: string) => void
+  removeItem: (productId: string) => void
   updateQuantity: (productId: string, quantity: number) => void
   clearCart: () => void
   cartCount: number
   cartTotal: number
+  subtotal: number
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined)
+export const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null)
@@ -126,10 +128,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     items,
     addToCart,
     removeFromCart,
+    removeItem: removeFromCart,
     updateQuantity,
     clearCart,
     cartCount: items.reduce((count, item) => count + item.quantity, 0),
     cartTotal: totals.total,
+    subtotal: totals.subtotal,
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

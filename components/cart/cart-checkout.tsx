@@ -17,7 +17,7 @@ export function CartCheckout() {
     const orderDetails = items
       .map(
         (item) =>
-          `• ${item.name}  x${item.quantity} - USD ${(item.price * item.quantity).toLocaleString()}`
+          `• ${item.name ?? item.product.name}  x${item.quantity} - USD ${((item.price ?? item.product.price) * item.quantity).toLocaleString()}`
       )
       .join('\n');
 
@@ -71,14 +71,14 @@ export function CartCheckout() {
               {item.image && (
                 <img
                   src={item.image}
-                  alt={item.name}
+                  alt={item.name ?? item.product.name}
                   className="w-16 h-16 rounded object-cover"
                 />
               )}
               <div className="flex-1">
-                <h3 className="font-medium">{item.name}</h3>
+                <h3 className="font-medium">{item.name ?? item.product.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  UGX {item.price.toLocaleString()} each
+                  UGX {(item.price ?? item.product.price).toLocaleString()} each
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -104,7 +104,7 @@ export function CartCheckout() {
               </div>
               <div className="text-right">
                 <p className="font-medium">
-                  UGX {(item.price * item.quantity).toLocaleString()}
+                  UGX {((item.price ?? item.product.price) * item.quantity).toLocaleString()}
                 </p>
                 <Button
                   variant="ghost"

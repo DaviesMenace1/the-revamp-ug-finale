@@ -61,7 +61,7 @@ export function generateMetadata(input: SEOMetadataInput): Metadata {
           alt: title,
         },
       ],
-      type: type === 'article' ? 'article' : type === 'product' ? 'object' : 'website',
+      type: type === 'article' ? 'article' : 'website',
       publishedTime: publishedDate,
       modifiedTime: modifiedDate,
     },

@@ -72,10 +72,11 @@ export async function POST(req: Request) {
           phone: phone ?? undefined,
           avatar: data.image_url ?? undefined,
         })
+        .onConflictDoNothing({ target: users.clerkId })
         .returning()
 
-      // Sync to Brevo
-      await syncNewUserToBrevo(newUser.id)
+      // A retried Clerk delivery is successful if the user already exists.
+      if (newUser) await syncNewUserToBrevo(newUser.id)
     } catch (err) {
       console.error('[v0] Clerk webhook user.created error:', err)
       return new Response('Error creating user', { status: 500 })

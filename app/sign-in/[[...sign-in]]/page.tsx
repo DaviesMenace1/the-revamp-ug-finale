@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { CustomSignIn, AuthIntro } from '@/components/auth/custom-auth-forms'
 import { safeRedirect } from '@/lib/auth/safe-redirect'
-import { AccountPage } from '@/app/account'
+
 
 export default function SignInPage() {
   const redirectUrl = useMemo(() => typeof window === 'undefined' ? '/account' : safeRedirect(new URLSearchParams(window.location.search).get('redirect_url')), [])

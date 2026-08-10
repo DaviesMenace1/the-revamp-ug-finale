@@ -1,94 +1,56 @@
-/**
- * POST /api/newsletter/subscribe
- * Subscribes email to Supabase AND syncs with Brevo CRM
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db'; // Make sure this path points to your Drizzle instance
-import { subscribers } from '@/lib/db/schema'; // Make sure 'subscribers' table exists in schema.ts
-import { subscribeToNewsletter } from '@/lib/brevo/sync';
+import { db } from '@/lib/db';
+import { subscribers } from '@/lib/db/schema';
+import { subscribeToNewsletter } from '@/lib/brevo/sync'; // Your sync service
 import { eq } from 'drizzle-orm';
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, firstName, lastName } = body;
+      const { email, firstName, lastName } = await req.json();
 
-    // 1. Validate email format
-    if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      return NextResponse.json(
-        { error: 'Invalid email address' },
-        { status: 400 }
-      );
-    }
+          if (!email || typeof email !== 'string') {
+                return NextResponse.json(
+                        { error: 'A valid email address is required.' },
+                                { status: 400 }
+                                      );
+                                          }
 
-    const cleanEmail = email.toLowerCase().trim();
+                                              // 1. Check if already subscribed in the database
+                                                  const existing = await db
+                                                        .select()
+                                                              .from(subscribers)
+                                                                    .where(eq(subscribers.email, email))
+                                                                          .limit(1);
 
-    // 2. Save / Check in Supabase Database via Drizzle
-    const existingSubscriber = await db
-      .select()
-      .from(subscribers)
-      .where(eq(subscribers.email, cleanEmail))
-      .limit(1);
+                                                                              if (existing.length > 0) {
+                                                                                    return NextResponse.json(
+                                                                                            { message: 'You are already subscribed!' },
+                                                                                                    { status: 200 }
+                                                                                                          );
+                                                                                                              }
 
-    if (existingSubscriber.length > 0) {
-      return NextResponse.json(
-        {
-          success: true,
-          message: 'You are already subscribed to our newsletter!',
-          email: cleanEmail,
-        },
-        { status: 200 }
-      );
-    }
+                                                                                                                  // 2. Sync subscriber with Brevo using your existing helper
+                                                                                                                      try {
+                                                                                                                            await subscribeToNewsletter(email, firstName, lastName);
+                                                                                                                                } catch (brevoError) {
+                                                                                                                                      console.warn('[Brevo] Sync failed, proceeding with DB insert:', brevoError);
+                                                                                                                                          }
 
-    // Insert new subscriber into Supabase
-    await db.insert(subscribers).values({
-      email: cleanEmail,
-      firstName: firstName || null,
-      lastName: lastName || null,
-      subscribedAt: new Date(),
-    });
+                                                                                                                                              // 3. Insert record into PostgreSQL subscribers table
+                                                                                                                                                  await db.insert(subscribers).values({
+                                                                                                                                                        email,
+                                                                                                                                                            });
 
-    // 3. Sync to Brevo CRM (wrap in try-catch so DB save still succeeds even if Brevo fails)
-    try {
-      await subscribeToNewsletter(cleanEmail, firstName, lastName);
-    } catch (brevoError) {
-      console.warn('[Newsletter] Saved to DB, but Brevo sync failed:', brevoError);
-      // We don't fail the request here because the lead IS saved in Supabase!
-    }
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Successfully subscribed to newsletter',
-        email: cleanEmail,
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('[Newsletter] Subscription error:', error);
-
-    return NextResponse.json(
-      {
-        error: 'Failed to subscribe to newsletter',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * OPTIONS /api/newsletter/subscribe
- * CORS support
- */
-export async function OPTIONS(request: NextRequest) {
-  return NextResponse.json({}, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
-}
+                                                                                                                                                                return NextResponse.json(
+                                                                                                                                                                      { message: 'Successfully subscribed to the newsletter!' },
+                                                                                                                                                                            { status: 201 }
+                                                                                                                                                                                );
+                                                                                                                                                                                  } catch (error) {
+                                                                                                                                                                                      console.error('Newsletter subscription error:', error);
+                                                                                                                                                                                          return NextResponse.json(
+                                                                                                                                                                                                { error: 'An unexpected error occurred. Please try again later.' },
+                                                                                                                                                                                                      { status: 500 }
+                                                                                                                                                                                                          );
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                            

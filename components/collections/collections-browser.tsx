@@ -81,13 +81,12 @@ export function CollectionsBrowser() {
           <p className="font-sans text-sm text-muted-foreground">
             {filtered.length} {filtered.length === 1 ? 'piece' : 'pieces'}
           </p>
-          {(quick !== 'all' || space !== 'all' || item !== 'all' || category !== 'all') && (
+          {(quick !== 'all' || space !== 'all' || item !== 'all') && (
             <button
               onClick={() => {
                 setQuick('all')
                 setSpace('all')
                 setItem('all')
-                setCategory('all')
               }}
               className="font-sans text-xs tracking-widest uppercase text-gold hover-line"
             >

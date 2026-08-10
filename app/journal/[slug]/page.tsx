@@ -6,6 +6,7 @@ import type { Metadata } from 'next'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateArticleSchema } from '@/lib/seo/schema-generator'
 
+
 const articles: Record<string, any> = {
   'the-art-of-minimalism': {
     title: 'The Art of Minimalism in Modern Living',
@@ -102,18 +103,19 @@ const articles: Record<string, any> = {
 }
 
 interface ArticlePageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 export async function generateStaticParams() {
   return Object.keys(articles).map((slug) => ({
-    slug,
+    slug: slug,
   }))
 }
 
 export async function generateMetadata({
   params,
 }: ArticlePageProps): Promise<Metadata> {
+  const { slug } = await params
   const article = articles[params.slug]
 
   if (!article) {
@@ -142,8 +144,11 @@ export async function generateMetadata({
   }
 }
 
+export const dynamicParams = true
+
 export default function ArticlePage({ params }: ArticlePageProps) {
-  const article = articles[params.slug]
+  const { slug } = await params
+  const article = articles[slug]
 
   if (!article) {
     notFound()

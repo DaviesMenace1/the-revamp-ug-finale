@@ -36,7 +36,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
       { label: 'Signature Services', href: '/services/signature-services' },
     ]
   },
-  { label: 'Projects', href: '/projects' },
+  { label: 'Projects', href: '/portfolio' },
   { label: 'Shop', href: '/collections' },
   { label: 'FAQs', href: '/faqs' },
 ]

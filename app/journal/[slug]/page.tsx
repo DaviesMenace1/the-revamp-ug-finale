@@ -1,5 +1,6 @@
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
+import image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
@@ -14,6 +15,7 @@ const articles: Record<string, any> = {
     date: '2024-01-15',
     category: 'Design Trends',
     readTime: '5 min read',
+    imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
     content: `
       <p>Minimalism has become more than a design trend—it's a lifestyle philosophy that resonates deeply with contemporary living. In our quest for clarity and purpose, we're discovering that l[...]
       
@@ -37,6 +39,7 @@ const articles: Record<string, any> = {
     date: '2024-01-10',
     category: 'Sustainability',
     readTime: '8 min read',
+    imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
     content: `
       <p>The future of luxury design is sustainable. High-end materials and eco-conscious choices are no longer mutually exclusive—they're becoming the new standard.</p>
       
@@ -60,6 +63,7 @@ const articles: Record<string, any> = {
     date: '2024-01-05',
     category: 'Design Theory',
     readTime: '6 min read',
+    imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
     content: `
       <p>Color is one of the most powerful tools in interior design. It influences our mood, perception, and overall wellbeing. Understanding color psychology can transform any space.</p>
       
@@ -83,6 +87,7 @@ const articles: Record<string, any> = {
     date: '2023-12-28',
     category: 'Global Design',
     readTime: '7 min read',
+    imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
     content: `
       <p>The most compelling modern interiors blend design traditions from around the world. When executed thoughtfully, global influences create rich, layered spaces with depth and character.</p>
       
@@ -210,8 +215,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         {/* Featured Image */}
         <section className="border-b border-border/20">
           <div className="mx-auto max-w-4xl px-6 md:px-8 py-12">
-            <div className="w-full h-96 bg-gradient-to-br from-muted to-muted/50 rounded-lg flex items-center justify-center">
-              <span className="text-muted-foreground/40 font-light">Article Featured Image</span>
+            <div className="relative w-full h-96 rounded-lg overflow-hiden">
+              <Image
+                src={article.imageUrl}
+                alt={article.title}
+                fill
+                className="object-cover"
+                priority
+                sizes="(max-width: 1024px) 100vw, 896px"
+                />
             </div>
           </div>
         </section>

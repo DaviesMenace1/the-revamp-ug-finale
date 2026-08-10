@@ -4,8 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/drizzle/db'; // Make sure this path points to your Drizzle instance
-import { subscribers } from '@/drizzle/schema'; // Make sure 'subscribers' table exists in schema.ts
+import { db } from '@/lib/db'; // Make sure this path points to your Drizzle instance
+import { subscribers } from '@/lib/db/schema'; // Make sure 'subscribers' table exists in schema.ts
 import { subscribeToNewsletter } from '@/lib/brevo/sync';
 import { eq } from 'drizzle-orm';
 

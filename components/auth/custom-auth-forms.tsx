@@ -101,11 +101,15 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
 
   const activate = async (sessionId: string | null) => {
-    if (sessionId && setActive) {
-      await setActive({ session: sessionId })
-      router.push(redirectUrl || '/account')
-    }
+  if (sessionId && setActive) {
+    // 1. Set the session in Clerk
+    await setActive({ session: sessionId })
+    
+    // 2. Perform a hard navigation to guarantee session cookies are attached
+    window.location.href = redirectUrl || '/account'
   }
+}
+
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -262,6 +266,17 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
       setLoading(false)
     }
   }
+
+  const activate = async (sessionId: string | null) => {
+  if (sessionId && setActive) {
+    // 1. Set the session in Clerk
+    await setActive({ session: sessionId })
+    
+    // 2. Perform a hard navigation to guarantee session cookies are attached
+    window.location.href = redirectUrl || '/account'
+  }
+}
+
 
   const verify = async (event: FormEvent) => {
     event.preventDefault()

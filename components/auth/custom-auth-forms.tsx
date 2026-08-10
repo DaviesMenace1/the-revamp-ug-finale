@@ -47,6 +47,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
     else if (result.status === 'needs_client_trust') {
   console.log('Clerk Client Trust state:', result)
   setError('Additional verification is required.')
+  setLoading(false)
 } 
     else if (result.status === 'needs_second_factor') { const factor = result.supportedSecondFactors?.find((item) => item.strategy === 'email_code'); if (!factor || !('emailAddressId' in factor) || !factor.emailAddressId) throw new Error('Email verification is required, but no email verification method is available for this account.'); await signIn.prepareSecondFactor({ strategy: 'email_code', emailAddressId: factor.emailAddressId }); setStep('code') } else setError('This sign-in method requires a verification step that is not available yet.') } catch (error) { setError(error instanceof Error ? error.message : 'Unable to sign in. Check your details and try again.') } finally { setLoading(false) } }
   const verify = async (event: FormEvent) => { event.preventDefault(); if (!isLoaded) return; setLoading(true); setError(null); try { const result = await signIn.attemptSecondFactor({ strategy: 'email_code', code }); if (result.status === 'complete') await activate(result.createdSessionId); else setError('That verification code was not accepted. Try again.') } catch (error) { setError(error instanceof Error ? error.message : 'That verification code was not accepted.') } finally { setLoading(false) } }

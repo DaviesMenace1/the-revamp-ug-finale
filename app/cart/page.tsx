@@ -34,7 +34,7 @@ export default function CartPage() {
                   Your cart is empty
                 </p>
                 <Button  className="bg-primary text-primary-foreground">
-                  <Link href="/products">
+                  <Link href="/collections">
                     Continue Shopping
                   </Link>
                 </Button>

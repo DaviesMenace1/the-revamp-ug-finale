@@ -37,7 +37,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   const [loading, setLoading] = useState(false); 
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
   const activate = async (sessionId: string | null) => { if (sessionId && setActive) await setActive({ session: sessionId, navigate: async ({ session }) => window.location.assign(session ? redirectUrl : '/sign-in') }) }
-  const submit = async (event: FormEvent) => { event.preventDefault(); if (!isLoaded) { setError('Authentication is still loading. Refresh the page and try again.'); return }; setLoading(true); setError(null); try { 
+  const submit = async (event: FormEvent) => { event.preventDefault(); if (!isLoaded) { setError('Authentication is still loading. Refresh the page and try again.'); return }; setLoading(false); setError(null); try { 
   const result = await Promise.race([signIn.create({
      identifier: email,
       password 

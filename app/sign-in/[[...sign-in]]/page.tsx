@@ -3,8 +3,7 @@
 import { useEffect, useMemo } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { CustomSignIn, AuthIntro } from '@/components/auth/custom-auth-forms'
-
-function safeRedirect(value: string | null) { if (!value) return '/account'; try { const url = new URL(value, window.location.origin); return url.origin === window.location.origin ? `${url.pathname}${url.search}${url.hash}` : '/account' } catch { return '/account' } }
+import { safeRedirect } from '@/lib/auth/safe-redirect'
 
 export default function SignInPage() {
   const redirectUrl = useMemo(() => typeof window === 'undefined' ? '/account' : safeRedirect(new URLSearchParams(window.location.search).get('redirect_url')), [])

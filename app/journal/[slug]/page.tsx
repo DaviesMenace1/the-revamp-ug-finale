@@ -146,7 +146,7 @@ export async function generateMetadata({
 
 export const dynamicParams = true
 
-export default function ArticlePage({ params }: ArticlePageProps) {
+export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params
   const article = articles[slug]
 

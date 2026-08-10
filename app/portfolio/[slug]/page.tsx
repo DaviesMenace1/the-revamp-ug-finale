@@ -1,5 +1,6 @@
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
+import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
@@ -8,318 +9,125 @@ import { generateProjectSchema } from '@/lib/seo/schema-generator'
 import LikeButton from '@/components/like-button'
 
 interface ProjectPageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
-const projectDetails: Record<string, any> = {
+interface HighlightItem {
+  title: string
+  description?: string
+  imageUrl?: string
+}
+
+interface TimelineItem {
+  phase: string
+  duration: string
+  description?: string
+  mediaUrl?: string
+  mediaType?: 'image' | 'video'
+}
+
+interface ProjectDetail {
+  slug: string
+  title: string
+  category: string
+  location: string
+  year: string
+  heroImage: string
+  heroVideo?: string
+  galleryImages: string[]
+  description: string
+  challenge: string
+  solution: string
+  highlights: HighlightItem[]
+  timeline: TimelineItem[]
+  services: string[]
+}
+
+const projectDetails: Record<string, ProjectDetail> = {
   'nakasero-residence': {
+    slug: 'nakasero-residence',
     title: 'The Nakasero Residence',
     category: 'Residential Interior',
     location: 'Kampala, Uganda',
     year: '2024',
+    heroImage: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
+    // Example: add heroVideo if available
+    // heroVideo: 'https://assets.mixkit.co/videos/preview/mixkit-interior-design-of-a-modern-living-room-41551-large.mp4',
+    galleryImages: [
+      'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
+      'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
+      'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
+    ],
     description:
       'A full interior design of a hillside family residence in Nakasero, balancing warm materiality with contemporary restraint and framing panoramic city views.',
     challenge: 'Unifying a large multi-level home into one calm, cohesive design language.',
     solution:
       'We developed a layered neutral palette, custom joinery, and curated lighting that flows seamlessly across every level of the home.',
     highlights: [
-      'Bespoke joinery throughout',
-      'Curated statement lighting',
-      'Warm, tactile material palette',
-      'View-framing living spaces',
+      {
+        title: 'Bespoke joinery throughout',
+        description: 'Custom-milled African hardwood cabinetry tailored to exact structural dimensions.',
+        imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
+      },
+      {
+        title: 'Curated statement lighting',
+        description: 'Handcrafted pendant lights strategically anchored in high-ceiling living zones.',
+        imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
+      },
+      {
+        title: 'Warm, tactile material palette',
+        description: 'Natural stone, linen drapery, and brushed brass details.',
+        imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
+      },
+      {
+        title: 'View-framing living spaces',
+        description: 'Floor-to-ceiling glass paneling framing the hills of Kampala.',
+        imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
+      },
     ],
     timeline: [
-      { phase: 'Consultation & Concept', duration: '3 weeks' },
-      { phase: 'Design Development', duration: '8 weeks' },
-      { phase: 'Sourcing & Procurement', duration: '10 weeks' },
-      { phase: 'Installation & Styling', duration: '3 weeks' },
+      {
+        phase: 'Consultation & Concept',
+        duration: '3 weeks',
+        description: 'Initial site walkthrough, moodboarding, and material sample selection.',
+        mediaUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
+        mediaType: 'image',
+      },
+      {
+        phase: 'Design Development',
+        duration: '8 weeks',
+        description: 'Full 3D modeling, spatial rendering, and architectural drawing sign-off.',
+        mediaUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
+        mediaType: 'image',
+      },
+      {
+        phase: 'Sourcing & Procurement',
+        duration: '10 weeks',
+        description: 'Custom furniture fabrication, textile importing, and stone selection.',
+        mediaUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
+        mediaType: 'image',
+      },
+      {
+        phase: 'Installation & Styling',
+        duration: '3 weeks',
+        description: 'Final assembly, art placement, site curation, and lighting calibration.',
+        mediaUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
+        mediaType: 'image',
+      },
     ],
     services: ['Interior Design', 'Furniture Sourcing', 'Installation'],
-  },
-  'kololo-villa-renovation': {
-    title: 'Kololo Villa Renovation',
-    category: 'Architecture',
-    location: 'Kololo, Uganda',
-    year: '2024',
-    description:
-      'An architectural renovation of a classic Kololo villa, reworking the plan for modern living while preserving the home\u2019s original character.',
-    challenge: 'Opening up a compartmentalized plan without losing the villa\u2019s heritage charm.',
-    solution:
-      'We reconfigured the ground floor around a central courtyard, introduced large glazed openings, and restored key period details.',
-    highlights: [
-      'Reworked open-plan ground floor',
-      'Central courtyard connection',
-      'Restored heritage detailing',
-      'Expansive glazed openings',
-    ],
-    timeline: [
-      { phase: 'Survey & Planning', duration: '3 weeks' },
-      { phase: 'Design Development', duration: '8 weeks' },
-      { phase: 'Construction', duration: '16 weeks' },
-      { phase: 'Final Installations', duration: '3 weeks' },
-    ],
-    services: ['Architecture', 'Interior Design', 'Project Management'],
-  },
-  'serena-penthouse-suite': {
-    title: 'Serena Penthouse Suite',
-    category: 'Hospitality',
-    location: 'Kampala, Uganda',
-    year: '2023',
-    description:
-      'A signature penthouse suite for a leading hospitality group, designed as a refined, residential-feeling retreat above the city.',
-    challenge: 'Delivering a luxury hospitality standard that still feels personal and warm.',
-    solution:
-      'We layered soft textures, bespoke furniture, and dimmable ambient lighting to create an intimate yet elevated guest experience.',
-    highlights: [
-      'Residential-style suite layout',
-      'Bespoke furniture pieces',
-      'Layered ambient lighting',
-      'Premium textile palette',
-    ],
-    timeline: [
-      { phase: 'Brand & Concept', duration: '3 weeks' },
-      { phase: 'Design Development', duration: '6 weeks' },
-      { phase: 'Sourcing & Procurement', duration: '8 weeks' },
-      { phase: 'Installation & Launch', duration: '2 weeks' },
-    ],
-    services: ['Interior Design', 'Sourcing', 'Installation'],
-  },
-  'muyenga-heritage-home': {
-    title: 'Muyenga Heritage Home',
-    category: 'Residential Interior',
-    location: 'Muyenga, Uganda',
-    year: '2023',
-    description:
-      'A sensitive interior refresh of a beloved family home in Muyenga, honoring its history while introducing contemporary comfort.',
-    challenge: 'Modernizing the interiors without erasing decades of family character.',
-    solution:
-      'We preserved key heirloom pieces, reupholstered and restored where possible, and wove them into a refreshed contemporary scheme.',
-    highlights: [
-      'Restored heirloom furniture',
-      'Contemporary comfort upgrades',
-      'Enhanced natural light',
-      'Cohesive refreshed palette',
-    ],
-    timeline: [
-      { phase: 'Consultation & Concept', duration: '2 weeks' },
-      { phase: 'Design Development', duration: '6 weeks' },
-      { phase: 'Sourcing & Procurement', duration: '6 weeks' },
-      { phase: 'Installation & Styling', duration: '2 weeks' },
-    ],
-    services: ['Interior Design', 'Restoration', 'Installation'],
-  },
-  'pearl-marina-corporate-hq': {
-    title: 'Pearl Marina Corporate HQ',
-    category: 'Commercial Design',
-    location: 'Entebbe, Uganda',
-    year: '2023',
-    description:
-      'A full commercial fit-out for a corporate headquarters at Pearl Marina, designed to promote collaboration and reflect the brand.',
-    challenge: 'Creating an engaging, brand-aligned workplace across a large open floorplate.',
-    solution:
-      'We zoned the floor into collaborative and focus areas, introduced natural materials, and integrated brand accents throughout.',
-    highlights: [
-      'Collaborative open workspace',
-      'Dedicated focus zones',
-      'Brand-integrated design',
-      'Natural material palette',
-    ],
-    timeline: [
-      { phase: 'Strategic Planning', duration: '3 weeks' },
-      { phase: 'Design & Approvals', duration: '6 weeks' },
-      { phase: 'Construction & Installation', duration: '12 weeks' },
-      { phase: 'Final Styling', duration: '2 weeks' },
-    ],
-    services: ['Architecture', 'Interior Design', 'Project Management'],
-  },
-  'skyline-apartment': {
-    title: 'Skyline Apartment',
-    category: 'Residential',
-    location: 'Kampala, Uganda',
-    year: '2023',
-    description: 'A contemporary urban apartment designed for a young executive. The project emphasized maximizing limited space with multifunctional furniture and strategic color blocking.',
-    challenge: 'The 800 sq ft apartment needed to serve as both living and working space without feeling cramped or cluttered.',
-    solution: 'We created distinct zones using furniture arrangement and subtle color transitions, incorporated custom storage solutions, and selected pieces that served multiple purposes.',
-    highlights: [
-      'Open-concept living area with integrated workspace',
-      'Custom built-in storage throughout',
-      'Statement lighting as functional art',
-      'Luxury finishes on a urban budget',
-    ],
-    timeline: [
-      { phase: 'Consultation & Concept', duration: '2 weeks' },
-      { phase: 'Design Development', duration: '4 weeks' },
-      { phase: 'Sourcing & Procurement', duration: '6 weeks' },
-      { phase: 'Installation & Styling', duration: '2 weeks' },
-    ],
-    services: ['Interior Design', 'Furniture Sourcing', 'Installation'],
-  },
-  'corporate-office': {
-    title: 'Corporate Office Refurbishment',
-    category: 'Commercial',
-    location: 'Nairobi, Kenya',
-    year: '2023',
-    description: 'Complete refurbishment of a corporate headquarters for a major tech company. The design balances modern efficiency with welcoming warmth across 15,000 sq ft.',
-    challenge: 'Transforming a sterile corporate space into an engaging environment that promotes collaboration and reflects company values.',
-    solution: 'We implemented open floor plans with collaborative zones, introduced natural materials and warm colors, and created dedicated spaces for different work styles.',
-    highlights: [
-      'Collaborative open workspace',
-      'Private focus areas for deep work',
-      'Casual meeting zones',
-      'High-quality finishes throughout',
-    ],
-    timeline: [
-      { phase: 'Strategic Planning', duration: '3 weeks' },
-      { phase: 'Design & Approvals', duration: '6 weeks' },
-      { phase: 'Construction & Installation', duration: '12 weeks' },
-      { phase: 'Final Styling', duration: '2 weeks' },
-    ],
-    services: ['Architecture', 'Interior Design', 'Project Management'],
-  },
-  'villa-renovation': {
-    title: 'Lakeside Villa Renovation',
-    category: 'Residential',
-    location: 'Entebbe, Uganda',
-    year: '2022',
-    description: 'Complete renovation of a 1970s villa with modern updates while preserving its architectural character and lake views.',
-    challenge: 'Honoring the property\'s heritage while introducing contemporary comfort and efficiency.',
-    solution: 'We carefully restored original features, added modern systems, and created flexible living spaces that celebrate the lake views.',
-    highlights: [
-      'Restored original hardwood floors',
-      'Modern kitchen with period-appropriate design',
-      'Expanded living areas',
-      'Seamless indoor-outdoor flow',
-    ],
-    timeline: [
-      { phase: 'Survey & Planning', duration: '2 weeks' },
-      { phase: 'Design Development', duration: '8 weeks' },
-      { phase: 'Construction', duration: '16 weeks' },
-      { phase: 'Final Installations', duration: '3 weeks' },
-    ],
-    services: ['Architecture', 'Interior Design', 'Installation'],
-  },
-  'retail-showroom': {
-    title: 'Luxury Retail Showroom',
-    category: 'Commercial',
-    location: 'Kampala, Uganda',
-    year: '2023',
-    description: 'A high-end furniture and d\u00e9cor showroom designed to showcase collections in curated vignettes and inspire customers.',
-    challenge: 'Creating an engaging retail environment that displays 500+ products while maintaining a cohesive luxury aesthetic.',
-    solution: 'We designed thematic zones, strategic lighting, and flexible display systems that highlight products while telling a design story.',
-    highlights: [
-      'Multiple thematic vignettes',
-      'Professional product lighting',
-      'Customer consultation zones',
-      'Seasonal flexibility',
-    ],
-    timeline: [
-      { phase: 'Concept Development', duration: '4 weeks' },
-      { phase: 'Detailed Design', duration: '6 weeks' },
-      { phase: 'Installation', duration: '4 weeks' },
-      { phase: 'Launch & Styling', duration: '2 weeks' },
-    ],
-    services: ['Interior Design', 'Installation', 'Project Management'],
-  },
-  'penthouse-suite': {
-    title: 'Penthouse Suite Design',
-    category: 'Residential',
-    location: 'Dar es Salaam, Tanzania',
-    year: '2022',
-    description: 'Luxury penthouse with 360-degree city views designed as a contemporary art collector\'s home and entertainment space.',
-    challenge: 'Creating a sophisticated backdrop for a significant art collection while maintaining functional living spaces.',
-    solution: 'We designed neutral, museum-quality walls with strategic lighting to showcase art, while creating warm living zones.',
-    highlights: [
-      'Gallery-quality wall treatments',
-      'Professional art lighting systems',
-      'Sophisticated entertaining spaces',
-      'Integrated smart home systems',
-    ],
-    timeline: [
-      { phase: 'Art Display Planning', duration: '3 weeks' },
-      { phase: 'Design Development', duration: '8 weeks' },
-      { phase: 'Installation & Finishes', duration: '6 weeks' },
-      { phase: 'Art Curation & Styling', duration: '2 weeks' },
-    ],
-    services: ['Interior Design', 'Furniture Sourcing', 'Installation'],
-  },
-  'hospitality-resort': {
-    title: 'Hospitality Resort Interior',
-    category: 'Hospitality',
-    location: 'Kampala, Uganda',
-    year: '2023',
-    description: 'Interior design for a 40-room luxury resort emphasizing comfort, local culture, and sustainability.',
-    challenge: 'Creating a cohesive luxury brand experience across 40 individual rooms while incorporating local artistry.',
-    solution: 'We developed a design language celebrating local craftsmanship, sustainable materials, and consistent luxury standards.',
-    highlights: [
-      'Locally-sourced materials',
-      'Local artist collaborations',
-      'Sustainable luxury practices',
-      'Consistent brand experience',
-    ],
-    timeline: [
-      { phase: 'Brand & Concept', duration: '4 weeks' },
-      { phase: 'Design Development', duration: '10 weeks' },
-      { phase: 'Sourcing & Procurement', duration: '12 weeks' },
-      { phase: 'Installation & Launch', duration: '8 weeks' },
-    ],
-    services: ['Interior Design', 'Sourcing', 'Installation', 'Project Management'],
-  },
-  'boutique-hotel': {
-    title: 'Boutique Hotel Concept',
-    category: 'Hospitality',
-    location: 'Kigali, Rwanda',
-    year: '2022',
-    description: 'Concept and design development for a 25-room boutique hotel emphasizing local culture and contemporary design.',
-    challenge: 'Creating authentic local atmosphere without cultural appropriation while maintaining international hospitality standards.',
-    solution: 'We collaborated with local artisans, artists, and cultural consultants to authentically integrate Rwandan design.',
-    highlights: [
-      'Authentic cultural integration',
-      'Artisan partnerships',
-      'Contemporary local design',
-      'Hospitality excellence',
-    ],
-    timeline: [
-      { phase: 'Cultural Research', duration: '3 weeks' },
-      { phase: 'Concept Development', duration: '6 weeks' },
-      { phase: 'Design & Planning', duration: '8 weeks' },
-      { phase: 'Implementation Support', duration: 'Ongoing' },
-    ],
-    services: ['Architecture', 'Interior Design', 'Cultural Consulting'],
-  },
-  'family-home': {
-    title: 'Family Home Extension',
-    category: 'Residential',
-    location: 'Jinja, Uganda',
-    year: '2022',
-    description: 'Addition and interior redesign of a family home to accommodate growing family and working-from-home needs.',
-    challenge: 'Extending the home without disrupting daily life while creating a cohesive design across old and new spaces.',
-    solution: 'We designed a seamless addition with consistent aesthetics, created flexible multi-use spaces, and phased construction carefully.',
-    highlights: [
-      'Seamless addition integration',
-      'Multi-functional spaces',
-      'Enhanced natural light',
-      'Family-focused design',
-    ],
-    timeline: [
-      { phase: 'Planning & Permits', duration: '4 weeks' },
-      { phase: 'Design Development', duration: '6 weeks' },
-      { phase: 'Construction', duration: '14 weeks' },
-      { phase: 'Interior Finishing', duration: '3 weeks' },
-    ],
-    services: ['Architecture', 'Interior Design', 'Project Management'],
   },
 }
 
 export async function generateStaticParams() {
-  return Object.keys(projectDetails).map((slug) => ({
-    slug,
-  }))
+  return Object.keys(projectDetails).map((slug) => ({ slug }))
 }
 
 export async function generateMetadata({
   params,
 }: ProjectPageProps): Promise<Metadata> {
-  const project = projectDetails[params.slug]
+  const { slug } = await params
+  const project = projectDetails[slug]
 
   if (!project) {
     return {
@@ -337,7 +145,7 @@ export async function generateMetadata({
       type: 'website',
       images: [
         {
-          url: `https://therevampug.com/api/og?title=${encodeURIComponent(project.title)}`,
+          url: project.heroImage || `https://therevampug.com/api/og?title=${encodeURIComponent(project.title)}`,
           width: 1200,
           height: 630,
         },
@@ -347,23 +155,36 @@ export async function generateMetadata({
       card: 'summary_large_image',
       title: project.title,
       description: project.description,
+      images: project.heroImage ? [project.heroImage] : [],
     },
   }
 }
 
-export default function ProjectDetailPage({ params }: ProjectPageProps) {
-  const project = projectDetails[params.slug]
+export default async function ProjectDetailPage({ params }: ProjectPageProps) {
+  const { slug } = await params
+  const project = projectDetails[slug]
 
   if (!project) {
     notFound()
   }
 
+  // Related Projects
+  const allProjects = Object.values(projectDetails)
+  const relatedProjects = allProjects
+    .filter((item) => item.slug !== slug)
+    .slice(0, 2)
+
+  const parsedYear = parseInt(project.year, 10)
+  const validStartDate = !isNaN(parsedYear)
+    ? new Date(parsedYear, 0, 1).toISOString()
+    : new Date().toISOString()
+
   const projectSchema = generateProjectSchema({
     name: project.title,
     description: project.description,
-    image: `https://therevampug.com/api/og?title=${encodeURIComponent(project.title)}`,
+    image: project.heroImage || `https://therevampug.com/api/og?title=${encodeURIComponent(project.title)}`,
     location: project.location,
-    startDate: new Date(project.year).toISOString(),
+    startDate: validStartDate,
   })
 
   return (
@@ -371,11 +192,35 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       <SchemaScript schema={projectSchema} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
-        {/* Hero */}
+        {/* 1. HERO SECTION (Supports Background Video or Hero Image) */}
         <section className="relative">
-          <div className="h-96 md:h-[600px] bg-gradient-to-br from-muted to-muted/50" />
+          <div className="relative h-[65vh] md:h-[80vh] w-full overflow-hidden bg-muted">
+            {project.heroVideo ? (
+              <video
+                src={project.heroVideo}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              project.heroImage && (
+                <Image
+                  src={project.heroImage}
+                  alt={project.title}
+                  fill
+                  priority
+                  className="object-cover"
+                  sizes="100vw"
+                />
+              )
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+          </div>
+
           <div className="absolute inset-0 flex items-end">
-            <div className="mx-auto w-full max-w-5xl px-6 md:px-8 pb-12 md:pb-16">
+            <div className="mx-auto w-full max-w-5xl px-6 md:px-8 pb-12 md:pb-16 z-10">
               <div className="space-y-4">
                 <Link
                   href="/portfolio"
@@ -399,7 +244,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           </div>
         </section>
 
-        {/* Overview */}
+        {/* 2. OVERVIEW */}
         <section className="border-b border-border/20 py-16 md:py-20">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
             <div className="grid md:grid-cols-2 gap-12">
@@ -421,45 +266,104 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           </div>
         </section>
 
-        {/* Highlights */}
+        {/* 3. VISUAL GALLERY (Showcases key spaces) */}
+        {project.galleryImages && project.galleryImages.length > 0 && (
+          <section className="border-b border-border/20 py-16 md:py-20">
+            <div className="mx-auto max-w-5xl px-6 md:px-8 space-y-8">
+              <h2 className="font-serif text-3xl font-light text-foreground">Space Gallery</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {project.galleryImages.map((img, idx) => (
+                  <div key={idx} className="relative h-64 md:h-80 rounded-lg overflow-hidden group">
+                    <Image
+                      src={img}
+                      alt={`${project.title} view ${idx + 1}`}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* 4. HIGHLIGHTS (Visual Cards) */}
         <section className="border-b border-border/20 py-16 md:py-20 bg-muted/5">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
             <h2 className="font-serif text-3xl font-light text-foreground mb-12">Project Highlights</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              {project.highlights.map((highlight: string, idx: number) => (
-                <div key={idx} className="flex gap-4">
-                  <div className="flex-shrink-0 pt-1">
-                    <div className="flex items-center justify-center size-6 rounded-full bg-primary/10">
-                      <span className="text-xs font-medium text-primary">✓</span>
+            <div className="grid md:grid-cols-2 gap-8">
+              {project.highlights.map((highlight, idx) => (
+                <div key={idx} className="border border-border/20 rounded-xl overflow-hidden bg-background/50 flex flex-col">
+                  {highlight.imageUrl && (
+                    <div className="relative h-48 w-full">
+                      <Image
+                        src={highlight.imageUrl}
+                        alt={highlight.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                      />
                     </div>
+                  )}
+                  <div className="p-6 space-y-2 flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center justify-center size-5 rounded-full bg-primary/10 text-xs font-medium text-primary">✓</span>
+                      <h3 className="font-medium text-foreground">{highlight.title}</h3>
+                    </div>
+                    {highlight.description && (
+                      <p className="text-sm text-muted-foreground font-light pl-8">{highlight.description}</p>
+                    )}
                   </div>
-                  <p className="text-muted-foreground font-light">{highlight}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Timeline */}
+        {/* 5. PHASES & TIMELINE (With Stage Media) */}
         <section className="border-b border-border/20 py-16 md:py-20">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <h2 className="font-serif text-3xl font-light text-foreground mb-12">Project Timeline</h2>
-            <div className="space-y-6">
-              {project.timeline.map((item: any, idx: number) => (
-                <div key={idx} className="flex gap-6 pb-6 border-b border-border/20 last:border-0">
-                  <div className="flex-shrink-0 w-24">
-                    <p className="text-sm font-medium text-primary/70">{item.duration}</p>
+            <h2 className="font-serif text-3xl font-light text-foreground mb-12">Project Timeline & Phases</h2>
+            <div className="space-y-12">
+              {project.timeline.map((item, idx) => (
+                <div key={idx} className="grid md:grid-cols-3 gap-6 items-center pb-8 border-b border-border/20 last:border-0">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-wider text-primary">{item.duration}</p>
+                    <h3 className="font-serif text-xl text-foreground font-light">{item.phase}</h3>
                   </div>
-                  <div>
-                    <p className="font-light text-foreground">{item.phase}</p>
+                  <div className="md:col-span-1">
+                    <p className="text-sm text-muted-foreground font-light leading-relaxed">{item.description}</p>
                   </div>
+                  {item.mediaUrl && (
+                    <div className="relative h-40 w-full rounded-lg overflow-hidden bg-muted">
+                      {item.mediaType === 'video' ? (
+                        <video
+                          src={item.mediaUrl}
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Image
+                          src={item.mediaUrl}
+                          alt={item.phase}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Services */}
+        {/* 6. SERVICES */}
         <section className="border-b border-border/20 py-16 md:py-20 bg-muted/5">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
             <h2 className="font-serif text-3xl font-light text-foreground mb-8">Services Provided</h2>
@@ -476,7 +380,42 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           </div>
         </section>
 
-        {/* Engagement */}
+        {/* 7. RELATED PROJECTS */}
+        {relatedProjects.length > 0 && (
+          <section className="border-b border-border/20 py-16 md:py-20">
+            <div className="mx-auto max-w-5xl px-6 md:px-8">
+              <h2 className="font-serif text-3xl font-light text-foreground mb-12">Related Projects</h2>
+              <div className="grid gap-8 md:grid-cols-2">
+                {relatedProjects.map((rel) => (
+                  <Link key={rel.slug} href={`/portfolio/${rel.slug}`} className="group">
+                    <article className="space-y-4 cursor-pointer">
+                      <div className="relative w-full h-60 rounded-lg overflow-hidden group-hover:opacity-80 transition-opacity">
+                        <Image
+                          src={rel.heroImage}
+                          alt={rel.title}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 50vw"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-primary/80 uppercase tracking-wider">
+                          {rel.category}
+                        </span>
+                        <h3 className="font-serif text-xl font-light text-foreground group-hover:text-primary transition-colors">
+                          {rel.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground font-light">{rel.location}</p>
+                      </div>
+                    </article>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ENGAGEMENT */}
         <section className="py-12 border-b border-border/20">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
             <div className="flex items-center gap-8">
@@ -508,4 +447,5 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       <SiteFooter />
     </>
   )
-}
+          }
+

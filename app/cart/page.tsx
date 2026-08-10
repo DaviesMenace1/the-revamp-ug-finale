@@ -12,11 +12,42 @@ export default function CartPage() {
   const { items, removeFromCart, updateQuantity, clearCart, cart } = useCart()
 
   const shareToWhatsApp = () => {
-    const lines = items.map((item) => `${item.product.name} × ${item.quantity} — ${item.product.currency} ${((item.product.salePrice || item.product.price) * item.quantity).toLocaleString()}`)
-    const message = `Hello The Revamp UG, I would like to enquire about this cart:\n\n${lines.join('\n')}\n\nTotal: ${cart?.total.toLocaleString() ?? '0'}`
-    const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '')
-    window.open(`https://wa.me/${phone || ''}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
-  }
+  const websiteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://therevampug.com' // Fallback to your domain
+
+  const itemDetails = items.map((item, index) => {
+    const price = (item.product.salePrice || item.product.price) * item.quantity
+    const details: string[] = []
+
+    if (item.selectedColor?.name) {
+      details.push(`• Color: ${item.selectedColor.name}`)
+    }
+    if (item.selectedVariant?.name) {
+      details.push(`• Variant: ${item.selectedVariant.name}`)
+    }
+    if (item.customDimensions) {
+      const { width, depth } = item.customDimensions
+      if (width || depth) {
+        details.push(`• Dimensions: ${width ? `${width}″ W` : ''} ${depth ? `× ${depth}″ D` : ''}`.trim())
+      }
+    }
+
+    // Image URL (Ensure absolute path for WhatsApp preview)
+    const rawImage = item.product.images?.[0] || ''
+    const imageUrl = rawImage.startsWith('http') 
+      ? rawImage 
+      : `${websiteUrl}${rawImage.startsWith('/') ? '' : '/'}${rawImage}`
+
+    const variantText = details.length > 0 ? `\n   ${details.join('\n   ')}` : ''
+
+    return `*${index + 1}. ${item.product.name}* × ${item.quantity}${variantText}\n   *Price:* ${item.product.currency || '$'} ${price.toLocaleString()}\n   *Image:* ${imageUrl}`
+  }).join('\n\n')
+
+  const message = `🛍️ *NEW CART ENQUIRY - The Revamp UG*\n\n${itemDetails}\n\n------------------------------\n💰 *TOTAL:* ${items[0]?.product.currency || '$'} ${cart?.total.toLocaleString() ?? '0'}\n------------------------------\n\nPlease let me know availability and delivery details!`
+
+  const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '')
+  window.open(`https://wa.me/${phone || ''}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
+}
+
 
   if (items.length === 0) {
     return (

@@ -1,75 +1,453 @@
 'use client'
 
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useState } from 'react'
 import { useSignIn, useSignUp } from '@clerk/nextjs/legacy'
 import { ArrowRight, Check, Globe2, Link2, Loader2, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 function AuthButton({ children, disabled = false, onClick }: { children: React.ReactNode; disabled?: boolean; onClick?: () => void }) {
-  return <button type={onClick ? 'button' : 'submit'} onClick={onClick} disabled={disabled} className="flex h-12 w-full items-center justify-center gap-2 bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">{disabled ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : children}</button>
+  return (
+    <button
+      type={onClick ? 'button' : 'submit'}
+      onClick={onClick}
+      disabled={disabled}
+      className="flex h-12 w-full items-center justify-center gap-2 bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {disabled ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : children}
+    </button>
+  )
 }
 
 function ErrorText({ message }: { message: string | null }) {
-  return message ? <p role="alert" className="border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{message}</p> : null
+  return message ? (
+    <p role="alert" className="border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+      {message}
+    </p>
+  ) : null
 }
 
-const clerkTimeout = (message = 'Clerk is taking too long to respond. Check your connection and try again.') => new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error(message)), 15000))
-
+const clerkTimeout = (message = 'Clerk is taking too long to respond. Check your connection and try again.') =>
+  new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error(message)), 15000))
 
 function OAuthButtons({ onOAuth, loading }: { onOAuth: (strategy: 'oauth_google' | 'oauth_linkedin') => void; loading: string | null }) {
-  return <div className="grid gap-3 sm:grid-cols-2">
-    <button type="button" onClick={() => onOAuth('oauth_google')} disabled={!!loading} className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"><Globe2 className="size-4" aria-hidden="true" />{loading === 'oauth_google' ? 'Connecting…' : 'Google'}</button>
-    <button type="button" onClick={() => onOAuth('oauth_linkedin')} disabled={!!loading} className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"><Link2 className="size-4" aria-hidden="true" />{loading === 'oauth_linkedin' ? 'Connecting…' : 'LinkedIn'}</button>
-  </div>
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <button
+        type="button"
+        onClick={() => onOAuth('oauth_google')}
+        disabled={!!loading}
+        className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
+      >
+        <Globe2 className="size-4" aria-hidden="true" />
+        {loading === 'oauth_google' ? 'Connecting…' : 'Google'}
+      </button>
+      <button
+        type="button"
+        onClick={() => onOAuth('oauth_linkedin')}
+        disabled={!!loading}
+        className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
+      >
+        <Link2 className="size-4" aria-hidden="true" />
+        {loading === 'oauth_linkedin' ? 'Connecting…' : 'LinkedIn'}
+      </button>
+    </div>
+  )
 }
 
-function Field({ label, type = 'text', value, onChange, autoComplete, placeholder, inputMode }: { label: string; type?: string; value: string; onChange: (value: string) => void; autoComplete?: string; placeholder?: string; inputMode?: 'text' | 'numeric' | 'email' }) {
-  return <label className="grid gap-2 text-sm font-medium"><span>{label}</span><input required type={type} value={value} onChange={(event) => onChange(event.target.value)} autoComplete={autoComplete} inputMode={inputMode} placeholder={placeholder} className="h-12 border border-border bg-background px-3 outline-none ring-primary/30 transition focus:ring-2" /></label>
+function Field({
+  label,
+  type = 'text',
+  value,
+  onChange,
+  autoComplete,
+  placeholder,
+  inputMode,
+}: {
+  label: string
+  type?: string
+  value: string
+  onChange: (value: string) => void
+  autoComplete?: string
+  placeholder?: string
+  inputMode?: 'text' | 'numeric' | 'email'
+}) {
+  return (
+    <label className="grid gap-2 text-sm font-medium">
+      <span>{label}</span>
+      <input
+        required
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        autoComplete={autoComplete}
+        inputMode={inputMode}
+        placeholder={placeholder}
+        className="h-12 border border-border bg-background px-3 outline-none ring-primary/30 transition focus:ring-2"
+      />
+    </label>
+  )
 }
 
 export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
+  const router = useRouter()
   const { isLoaded, signIn, setActive } = useSignIn()
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState(''); 
-  const [code, setCode] = useState(''); 
-  const [step, setStep] = useState<'password' | 'code'>('password'); 
-  const [error, setError] = useState<string | null>(null); 
-  const [loading, setLoading] = useState(false); 
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
+  const [step, setStep] = useState<'password' | 'code'>('password')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
-  const activate = async (sessionId: string | null) => { if (sessionId && setActive) await setActive({ session: sessionId, navigate: async ({ session }) => window.location.assign(session ? redirectUrl : '/sign-in') }) }
-  const submit = async (event: FormEvent) => { event.preventDefault(); if (!isLoaded) { setError('Authentication is still loading. Refresh the page and try again.'); return }; setLoading(true); setError(null); try { 
-  const result = await Promise.race([signIn.create({
-     identifier: email,
-      password 
-    }),
-     clerkTimeout()]); 
-    if (result.status === 'complete') await activate(result.createdSessionId);
-    else if (result.status === 'needs_client_trust') {
-    console.log('Clerk Client Trust state:', result)
-    setError('Additional verification is required.')
+
+  const activate = async (sessionId: string | null) => {
+    if (sessionId && setActive) {
+      await setActive({ session: sessionId })
+      router.push(redirectUrl || '/account')
     }
-    else if (result.status === 'needs_second_factor') { const factor = result.supportedSecondFactors?.find((item) => item.strategy === 'email_code'); if (!factor || !('emailAddressId' in factor) || !factor.emailAddressId) throw new Error('Email verification is required, but no email verification method is available for this account.'); await signIn.prepareSecondFactor({ strategy: 'email_code', emailAddressId: factor.emailAddressId }); setStep('code') } else setError('This sign-in method requires a verification step that is not available yet.') } catch (error) { setError(error instanceof Error ? error.message : 'Unable to sign in. Check your details and try again.') } finally { setLoading(false) } }
-  const verify = async (event: FormEvent) => { event.preventDefault(); if (!isLoaded) return; setLoading(true); setError(null); try { const result = await signIn.attemptSecondFactor({ strategy: 'email_code', code }); if (result.status === 'complete') await activate(result.createdSessionId); else setError('That verification code was not accepted. Try again.') } catch (error) { setError(error instanceof Error ? error.message : 'That verification code was not accepted.') } finally { setLoading(false) } }
-  const oauth = async (strategy: 'oauth_google' | 'oauth_linkedin') => { if (!isLoaded) return; setOauthLoading(strategy); setError(null); try { await signIn.authenticateWithRedirect({ strategy, redirectUrl: `/sign-in/sso-callback?redirect_url=${encodeURIComponent(redirectUrl)}`, redirectUrlComplete: redirectUrl }) } catch (error) { setError(error instanceof Error ? error.message : 'Unable to connect to the provider.'); setOauthLoading(null) } }
-  return <AuthCard eyebrow={step === 'code' ? 'Additional verification' : 'Welcome back'} title={step === 'code' ? 'Enter your verification code' : 'Sign in to your account'} description={step === 'code' ? `We sent a verification code to ${email}. Enter it to finish signing in.` : 'Continue your considered design journey.'}>{step === 'code' ? <form onSubmit={verify} className="grid gap-5"><Field label="Verification code" value={code} onChange={setCode} inputMode="numeric" autoComplete="one-time-code" placeholder="123456" /><ErrorText message={error} /><AuthButton disabled={!isLoaded || loading}>{loading ? 'Verifying…' : <>Verify and continue <Check className="size-4" /></>}</AuthButton><button type="button" onClick={() => { setStep('password'); setCode(''); setError(null) }} className="text-center text-sm text-muted-foreground underline underline-offset-4">Use a different sign-in method</button></form> : <form onSubmit={submit} className="grid gap-5"><OAuthButtons onOAuth={oauth} loading={oauthLoading} /><Divider /><Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" /><Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="current-password" /><div className="flex justify-end"><Link href="/reset-password" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">Forgot password?</Link></div><ErrorText message={error} /><AuthButton disabled={!isLoaded || loading}>{loading ? 'Signing in…' : <>Sign in <ArrowRight className="size-4" /></>}</AuthButton><p className="text-center text-sm text-muted-foreground">New here? <Link href={`/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}`} className="font-medium text-foreground underline underline-offset-4">Create an account</Link></p></form>}</AuthCard>
+  }
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!isLoaded) {
+      setError('Authentication is still loading. Refresh the page and try again.')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await Promise.race([
+        signIn.create({
+          identifier: email,
+          password,
+        }),
+        clerkTimeout(),
+      ])
+      if (result.status === 'complete') {
+        await activate(result.createdSessionId)
+      } else if (result.status === 'needs_client_trust') {
+        setError('Additional verification is required.')
+      } else if (result.status === 'needs_second_factor') {
+        const factor = result.supportedSecondFactors?.find((item) => item.strategy === 'email_code')
+        if (!factor || !('emailAddressId' in factor) || !factor.emailAddressId) {
+          throw new Error('Email verification is required, but no email verification method is available for this account.')
+        }
+        await signIn.prepareSecondFactor({ strategy: 'email_code', emailAddressId: factor.emailAddressId })
+        setStep('code')
+      } else {
+        setError('This sign-in method requires a verification step that is not available yet.')
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to sign in. Check your details and try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const verify = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!isLoaded) return
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await signIn.attemptSecondFactor({ strategy: 'email_code', code })
+      if (result.status === 'complete') {
+        await activate(result.createdSessionId)
+      } else {
+        setError('That verification code was not accepted. Try again.')
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'That verification code was not accepted.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const oauth = async (strategy: 'oauth_google' | 'oauth_linkedin') => {
+    if (!isLoaded) return
+    setOauthLoading(strategy)
+    setError(null)
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy,
+        redirectUrl: `/sign-in/sso-callback?redirect_url=${encodeURIComponent(redirectUrl)}`,
+        redirectUrlComplete: redirectUrl,
+      })
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to connect to the provider.')
+      setOauthLoading(null)
+    }
+  }
+
+  return (
+    <AuthCard
+      eyebrow={step === 'code' ? 'Additional verification' : 'Welcome back'}
+      title={step === 'code' ? 'Enter your verification code' : 'Sign in to your account'}
+      description={
+        step === 'code'
+          ? `We sent a verification code to ${email}. Enter it to finish signing in.`
+          : 'Continue your considered design journey.'
+      }
+    >
+      {step === 'code' ? (
+        <form onSubmit={verify} className="grid gap-5">
+          <Field label="Verification code" value={code} onChange={setCode} inputMode="numeric" autoComplete="one-time-code" placeholder="123456" />
+          <ErrorText message={error} />
+          <AuthButton disabled={!isLoaded || loading}>{loading ? 'Verifying…' : <>Verify and continue <Check className="size-4" /></>}</AuthButton>
+          <button
+            type="button"
+            onClick={() => {
+              setStep('password')
+              setCode('')
+              setError(null)
+            }}
+            className="text-center text-sm text-muted-foreground underline underline-offset-4"
+          >
+            Use a different sign-in method
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={submit} className="grid gap-5">
+          <OAuthButtons onOAuth={oauth} loading={oauthLoading} />
+          <Divider />
+          <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" />
+          <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
+          <div className="flex justify-end">
+            <Link href="/reset-password" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">
+              Forgot password?
+            </Link>
+          </div>
+          <ErrorText message={error} />
+          <AuthButton disabled={!isLoaded || loading}>{loading ? 'Signing in…' : <>Sign in <ArrowRight className="size-4" /></>}</AuthButton>
+          <p className="text-center text-sm text-muted-foreground">
+            New here?{' '}
+            <Link href={`/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}`} className="font-medium text-foreground underline underline-offset-4">
+              Create an account
+            </Link>
+          </p>
+        </form>
+      )}
+    </AuthCard>
+  )
 }
 
 export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
-  const { isLoaded, signUp, setActive } = useSignUp(); const [step, setStep] = useState<'form' | 'verify'>('form'); const [firstName, setFirstName] = useState(''); const [lastName, setLastName] = useState(''); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [code, setCode] = useState(''); const [error, setError] = useState<string | null>(null); const [loading, setLoading] = useState(false); const [oauthLoading, setOauthLoading] = useState<string | null>(null)
-  const submit = async (event: FormEvent) => { event.preventDefault(); if (!isLoaded) { setError('Authentication is still loading. Refresh the page and try again.'); return }; setLoading(true); setError(null); try { await Promise.race([signUp.create({ firstName, lastName, emailAddress: email, password }), clerkTimeout()]); await signUp.prepareEmailAddressVerification({ strategy: 'email_code' }); setStep('verify') } catch (error) { setError(error instanceof Error ? error.message : 'Unable to create your account.') } finally { setLoading(false) } }
-  const verify = async (event: FormEvent) => { event.preventDefault(); if (!isLoaded) return; setLoading(true); setError(null); try { const result = await signUp.attemptEmailAddressVerification({ code }); if (result.status === 'complete') await setActive({ session: result.createdSessionId, navigate: async ({ session }) => window.location.assign(session ? redirectUrl : '/sign-in') }); else setError('Verification is incomplete. Please try again.') } catch (error) { setError(error instanceof Error ? error.message : 'That code was not accepted.') } finally { setLoading(false) } }
-  const oauth = async (strategy: 'oauth_google' | 'oauth_linkedin') => { if (!isLoaded) return; setOauthLoading(strategy); try { await signUp.authenticateWithRedirect({ strategy, redirectUrl: `/sign-up/sso-callback?redirect_url=${encodeURIComponent(redirectUrl)}`, redirectUrlComplete: redirectUrl }) } catch (error) { setError(error instanceof Error ? error.message : 'Unable to connect to the provider.'); setOauthLoading(null) } }
-  return <AuthCard eyebrow={step === 'verify' ? 'Verify your email' : 'Start here'} title={step === 'verify' ? 'Check your inbox' : 'Create your account'} description={step === 'verify' ? `We sent a six-digit code to ${email}.` : 'A personal space for pieces, projects, and possibilities.'}>{step === 'verify' ? <form onSubmit={verify} className="grid gap-5"><Field label="Verification code" value={code} onChange={setCode} inputMode="numeric" autoComplete="one-time-code" /><ErrorText message={error} /><AuthButton disabled={!isLoaded || loading}>{loading ? 'Verifying…' : <>Verify email <Check className="size-4" /></>}</AuthButton></form> : <form onSubmit={submit} className="grid gap-5"><OAuthButtons onOAuth={oauth} loading={oauthLoading} /><Divider /><div className="grid gap-4 sm:grid-cols-2"><Field label="First name" value={firstName} onChange={setFirstName} autoComplete="given-name" /><Field label="Last name" value={lastName} onChange={setLastName} autoComplete="family-name" /></div><Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" /><Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="new-password" /><ErrorText message={error} /><AuthButton disabled={!isLoaded || loading}>{loading ? 'Creating account…' : <>Create account <ArrowRight className="size-4" /></>}</AuthButton><p className="text-center text-sm text-muted-foreground">Already have an account? <Link href={`/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`} className="font-medium text-foreground underline underline-offset-4">Sign in</Link></p></form>}</AuthCard>
+  const router = useRouter()
+  const { isLoaded, signUp, setActive } = useSignUp()
+  const [step, setStep] = useState<'form' | 'verify'>('form')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!isLoaded) {
+      setError('Authentication is still loading. Refresh the page and try again.')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      await Promise.race([signUp.create({ firstName, lastName, emailAddress: email, password }), clerkTimeout()])
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
+      setStep('verify')
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to create your account.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const verify = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!isLoaded) return
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await signUp.attemptEmailAddressVerification({ code })
+      if (result.status === 'complete' && setActive) {
+        await setActive({ session: result.createdSessionId })
+        router.push(redirectUrl || '/account')
+      } else {
+        setError('Verification is incomplete. Please try again.')
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'That code was not accepted.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const oauth = async (strategy: 'oauth_google' | 'oauth_linkedin') => {
+    if (!isLoaded) return
+    setOauthLoading(strategy)
+    try {
+      await signUp.authenticateWithRedirect({
+        strategy,
+        redirectUrl: `/sign-up/sso-callback?redirect_url=${encodeURIComponent(redirectUrl)}`,
+        redirectUrlComplete: redirectUrl,
+      })
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to connect to the provider.')
+      setOauthLoading(null)
+    }
+  }
+
+  return (
+    <AuthCard
+      eyebrow={step === 'verify' ? 'Verify your email' : 'Start here'}
+      title={step === 'verify' ? 'Check your inbox' : 'Create your account'}
+      description={step === 'verify' ? `We sent a six-digit code to ${email}.` : 'A personal space for pieces, projects, and possibilities.'}
+    >
+      {step === 'verify' ? (
+        <form onSubmit={verify} className="grid gap-5">
+          <Field label="Verification code" value={code} onChange={setCode} inputMode="numeric" autoComplete="one-time-code" />
+          <ErrorText message={error} />
+          <AuthButton disabled={!isLoaded || loading}>{loading ? 'Verifying…' : <>Verify email <Check className="size-4" /></>}</AuthButton>
+        </form>
+      ) : (
+        <form onSubmit={submit} className="grid gap-5">
+          <OAuthButtons onOAuth={oauth} loading={oauthLoading} />
+          <Divider />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="First name" value={firstName} onChange={setFirstName} autoComplete="given-name" />
+            <Field label="Last name" value={lastName} onChange={setLastName} autoComplete="family-name" />
+          </div>
+          <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" />
+          <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="new-password" />
+          <ErrorText message={error} />
+          <AuthButton disabled={!isLoaded || loading}>{loading ? 'Creating account…' : <>Create account <ArrowRight className="size-4" /></>}</AuthButton>
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{' '}
+            <Link href={`/sign-in?redirect_url=${encodeURIComponent(redirectUrl)}`} className="font-medium text-foreground underline underline-offset-4">
+              Sign in
+            </Link>
+          </p>
+        </form>
+      )}
+    </AuthCard>
+  )
 }
 
 export function CustomResetPassword() {
-  const { isLoaded, signIn } = useSignIn(); const [email, setEmail] = useState(''); const [code, setCode] = useState(''); const [password, setPassword] = useState(''); const [step, setStep] = useState<'email' | 'code' | 'done'>('email'); const [error, setError] = useState<string | null>(null); const [loading, setLoading] = useState(false)
-  const submit = async (event: FormEvent) => { event.preventDefault(); if (!isLoaded) { setError('Authentication is still loading. Refresh the page and try again.'); return }; setLoading(true); setError(null); try { if (step === 'email') { await Promise.race([signIn.create({ strategy: 'reset_password_email_code', identifier: email }), clerkTimeout()]); setStep('code') } else { const result = await signIn.attemptFirstFactor({ strategy: 'reset_password_email_code', code }); if (result.status === 'needs_new_password') setStep('done') } } catch (error) { setError(error instanceof Error ? error.message : 'Unable to process that request.') } finally { setLoading(false) } }
-  const finish = async (event: FormEvent) => { event.preventDefault(); if (!isLoaded) { setError('Authentication is still loading. Refresh the page and try again.'); return }; setLoading(true); setError(null); try { await Promise.race([signIn.resetPassword({ password }), clerkTimeout()]); window.location.assign('/sign-in?reset=success') } catch (error) { setError(error instanceof Error ? error.message : 'Unable to update your password.') } finally { setLoading(false) } }
-  return <AuthCard eyebrow="Account recovery" title={step === 'done' ? 'Choose a new password' : 'Reset your password'} description={step === 'email' ? 'We will send a secure reset code to your email.' : step === 'code' ? `Enter the code sent to ${email}.` : 'Use a strong password you have not used elsewhere.'}>{step === 'done' ? <form onSubmit={finish} className="grid gap-5"><Field label="New password" type="password" value={password} onChange={setPassword} autoComplete="new-password" /><ErrorText message={error} /><AuthButton disabled={!isLoaded || loading}>{loading ? 'Updating…' : 'Update password'}</AuthButton></form> : <form onSubmit={submit} className="grid gap-5"><Field label={step === 'email' ? 'Email address' : 'Verification code'} type={step === 'email' ? 'email' : 'text'} value={step === 'email' ? email : code} onChange={step === 'email' ? setEmail : setCode} autoComplete={step === 'email' ? 'email' : 'one-time-code'} /><ErrorText message={error} /><AuthButton disabled={!isLoaded || loading}>{loading ? 'Please wait…' : step === 'email' ? 'Send reset code' : 'Verify code'}</AuthButton><Link href="/sign-in" className="text-center text-sm text-muted-foreground underline underline-offset-4">Back to sign in</Link></form>}</AuthCard>
+  const { isLoaded, signIn } = useSignIn()
+  const [email, setEmail] = useState('')
+  const [code, setCode] = useState('')
+  const [password, setPassword] = useState('')
+  const [step, setStep] = useState<'email' | 'code' | 'done'>('email')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!isLoaded) {
+      setError('Authentication is still loading. Refresh the page and try again.')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      if (step === 'email') {
+        await Promise.race([signIn.create({ strategy: 'reset_password_email_code', identifier: email }), clerkTimeout()])
+        setStep('code')
+      } else {
+        const result = await signIn.attemptFirstFactor({ strategy: 'reset_password_email_code', code })
+        if (result.status === 'needs_new_password') setStep('done')
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to process that request.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const finish = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!isLoaded) {
+      setError('Authentication is still loading. Refresh the page and try again.')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      await Promise.race([signIn.resetPassword({ password }), clerkTimeout()])
+      window.location.assign('/sign-in?reset=success')
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to update your password.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <AuthCard
+      eyebrow="Account recovery"
+      title={step === 'done' ? 'Choose a new password' : 'Reset your password'}
+      description={step === 'email' ? 'We will send a secure reset code to your email.' : step === 'code' ? `Enter the code sent to ${email}.` : 'Use a strong password you have not used elsewhere.'}
+    >
+      {step === 'done' ? (
+        <form onSubmit={finish} className="grid gap-5">
+          <Field label="New password" type="password" value={password} onChange={setPassword} autoComplete="new-password" />
+          <ErrorText message={error} />
+          <AuthButton disabled={!isLoaded || loading}>{loading ? 'Updating…' : 'Update password'}</AuthButton>
+        </form>
+      ) : (
+        <form onSubmit={submit} className="grid gap-5">
+          <Field
+            label={step === 'email' ? 'Email address' : 'Verification code'}
+            type={step === 'email' ? 'email' : 'text'}
+            value={step === 'email' ? email : code}
+            onChange={step === 'email' ? setEmail : setCode}
+            autoComplete={step === 'email' ? 'email' : 'one-time-code'}
+          />
+          <ErrorText message={error} />
+          <AuthButton disabled={!isLoaded || loading}>{loading ? 'Please wait…' : step === 'email' ? 'Send reset code' : 'Verify code'}</AuthButton>
+          <Link href="/sign-in" className="text-center text-sm text-muted-foreground underline underline-offset-4">
+            Back to sign in
+          </Link>
+        </form>
+      )}
+    </AuthCard>
+  )
 }
 
-function AuthCard({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) { return <div className="w-full max-w-md border border-border bg-card p-6 shadow-sm sm:p-8"><div className="mb-7"><p className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-primary">{eyebrow}</p><h2 className="font-serif text-3xl leading-tight text-foreground">{title}</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p></div>{children}</div> }
-function Divider() { return <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground"><span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" /></div> }
+function AuthCard({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) {
+  return (
+    <div className="w-full max-w-md border border-border bg-card p-6 shadow-sm sm:p-8">
+      <div className="mb-7">
+        <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-primary">{eyebrow}</p>
+        <h2 className="font-serif text-3xl leading-tight text-foreground">{title}</h2>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
+      </div>
+      {children}
+    </div>
+  )
+}
 
-export function AuthIntro({ title, description }: { title: string; description: string }) { return <section className="max-w-xl text-center lg:text-left"><p className="font-serif text-xl font-light uppercase tracking-[0.22em]">The Revamp <span className="text-primary">UG</span></p><p className="mt-8 flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground lg:justify-start"><ShieldCheck className="size-3" aria-hidden="true" /> Secure member access</p><h1 className="mt-5 font-serif text-5xl leading-[0.95] text-foreground sm:text-6xl">{title}</h1><p className="mt-6 max-w-md text-base leading-7 text-muted-foreground">{description}</p></section> }
+function Divider() {
+  return (
+    <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+      <span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" />
+    </div>
+  )
+}
+
+export function AuthIntro({ title, description }: { title: string; description: string }) {
+  return (
+    <section className="max-w-xl text-center lg:text-left">
+      <p className="font-serif text-xl font-light uppercase tracking-[0.22em]">
+        The Revamp <span className="text-primary">UG</span>
+      </p>
+      <p className="mt-8 flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground lg:justify-start">
+        <ShieldCheck className="size-3" aria-hidden="true" /> Secure member access
+      </p>
+      <h1 className="mt-5 font-serif text-5xl leading-[0.95] text-foreground sm:text-6xl">{title}</h1>
+      <p className="mt-6 max-w-md text-base leading-7 text-muted-foreground">{description}</p>
+    </section>
+  )
+}

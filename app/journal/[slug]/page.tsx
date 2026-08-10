@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateArticleSchema } from '@/lib/seo/schema-generator'
+import Image from 'next/image'
 
 
 const articles: Record<string, any> = {

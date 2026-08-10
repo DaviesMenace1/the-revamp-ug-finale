@@ -1,7 +1,7 @@
 'use client'
 
 import { FormEvent, useMemo, useState } from 'react'
-import { useSignIn, useSignUp } from '@clerk/nextjs/legacy'
+import { useSignIn, useSignUp } from '@clerk/nextjs'
 import { ArrowRight, Check, Globe2, Link2, Loader2, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 
@@ -29,9 +29,26 @@ function Field({ label, type = 'text', value, onChange, autoComplete, placeholde
 
 export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   const { isLoaded, signIn, setActive } = useSignIn()
-  const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [code, setCode] = useState(''); const [step, setStep] = useState<'password' | 'code'>('password'); const [error, setError] = useState<string | null>(null); const [loading, setLoading] = useState(false); const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState(''); 
+  const [code, setCode] = useState(''); 
+  const [step, setStep] = useState<'password' | 'code'>('password'); 
+  const [error, setError] = useState<string | null>(null); 
+  const [loading, setLoading] = useState(false); 
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null)
   const activate = async (sessionId: string | null) => { if (sessionId && setActive) await setActive({ session: sessionId, navigate: async ({ session }) => window.location.assign(session ? redirectUrl : '/sign-in') }) }
-  const submit = async (event: FormEvent) => { event.preventDefault(); if (!isLoaded) { setError('Authentication is still loading. Refresh the page and try again.'); return }; setLoading(true); setError(null); try { const result = await Promise.race([signIn.create({ identifier: email, password }), clerkTimeout()]); if (result.status === 'complete') await activate(result.createdSessionId); else if (result.status === 'needs_second_factor') { const factor = result.supportedSecondFactors?.find((item) => item.strategy === 'email_code'); if (!factor || !('emailAddressId' in factor) || !factor.emailAddressId) throw new Error('Email verification is required, but no email verification method is available for this account.'); await signIn.prepareSecondFactor({ strategy: 'email_code', emailAddressId: factor.emailAddressId }); setStep('code') } else setError('This sign-in method requires a verification step that is not available yet.') } catch (error) { setError(error instanceof Error ? error.message : 'Unable to sign in. Check your details and try again.') } finally { setLoading(false) } }
+  const submit = async (event: FormEvent) => { event.preventDefault(); if (!isLoaded) { setError('Authentication is still loading. Refresh the page and try again.'); return }; setLoading(true); setError(null); try { 
+  const result = await Promise.race([signIn.create({
+     identifier: email,
+      password 
+    }),
+     clerkTimeout()]); 
+    if (result.status === 'complete') await activate(result.createdSessionId);
+    else if (result.status === 'needs_client_trust') {
+  console.log('Clerk Client Trust state:', result)
+  setError('Additional verification is required.')
+} 
+    else if (result.status === 'needs_second_factor') { const factor = result.supportedSecondFactors?.find((item) => item.strategy === 'email_code'); if (!factor || !('emailAddressId' in factor) || !factor.emailAddressId) throw new Error('Email verification is required, but no email verification method is available for this account.'); await signIn.prepareSecondFactor({ strategy: 'email_code', emailAddressId: factor.emailAddressId }); setStep('code') } else setError('This sign-in method requires a verification step that is not available yet.') } catch (error) { setError(error instanceof Error ? error.message : 'Unable to sign in. Check your details and try again.') } finally { setLoading(false) } }
   const verify = async (event: FormEvent) => { event.preventDefault(); if (!isLoaded) return; setLoading(true); setError(null); try { const result = await signIn.attemptSecondFactor({ strategy: 'email_code', code }); if (result.status === 'complete') await activate(result.createdSessionId); else setError('That verification code was not accepted. Try again.') } catch (error) { setError(error instanceof Error ? error.message : 'That verification code was not accepted.') } finally { setLoading(false) } }
   const oauth = async (strategy: 'oauth_google' | 'oauth_linkedin') => { if (!isLoaded) return; setOauthLoading(strategy); setError(null); try { await signIn.authenticateWithRedirect({ strategy, redirectUrl: `/sign-in/sso-callback?redirect_url=${encodeURIComponent(redirectUrl)}`, redirectUrlComplete: redirectUrl }) } catch (error) { setError(error instanceof Error ? error.message : 'Unable to connect to the provider.'); setOauthLoading(null) } }
   return <AuthCard eyebrow={step === 'code' ? 'Additional verification' : 'Welcome back'} title={step === 'code' ? 'Enter your verification code' : 'Sign in to your account'} description={step === 'code' ? `We sent a verification code to ${email}. Enter it to finish signing in.` : 'Continue your considered design journey.'}>{step === 'code' ? <form onSubmit={verify} className="grid gap-5"><Field label="Verification code" value={code} onChange={setCode} inputMode="numeric" autoComplete="one-time-code" placeholder="123456" /><ErrorText message={error} /><AuthButton disabled={!isLoaded || loading}>{loading ? 'Verifying…' : <>Verify and continue <Check className="size-4" /></>}</AuthButton><button type="button" onClick={() => { setStep('password'); setCode(''); setError(null) }} className="text-center text-sm text-muted-foreground underline underline-offset-4">Use a different sign-in method</button></form> : <form onSubmit={submit} className="grid gap-5"><OAuthButtons onOAuth={oauth} loading={oauthLoading} /><Divider /><Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" /><Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="current-password" /><div className="flex justify-end"><Link href="/reset-password" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">Forgot password?</Link></div><ErrorText message={error} /><AuthButton disabled={!isLoaded || loading}>{loading ? 'Signing in…' : <>Sign in <ArrowRight className="size-4" /></>}</AuthButton><p className="text-center text-sm text-muted-foreground">New here? <Link href={`/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}`} className="font-medium text-foreground underline underline-offset-4">Create an account</Link></p></form>}</AuthCard>

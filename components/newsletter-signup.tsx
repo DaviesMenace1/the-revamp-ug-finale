@@ -38,13 +38,22 @@ export function NewsletterSignup({
         body: JSON.stringify({ email }),
       });
 
-      if (!response.ok) {
-        throw new Error('Subscription failed');
+      // Safely parse JSON response only if returned by server
+      const contentType = response.headers.get('content-type');
+      let data: { error?: string; message?: string } | null = null;
+
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          data?.error || `Server error (${response.status}). Please try again later.`
+        );
+      }
+
       setStatus('success');
-      setMessage('Thank you! Check your email to confirm.');
+      setMessage(data?.message || 'Thank you for subscribing!');
       setEmail('');
     } catch (error) {
       setStatus('error');
@@ -70,7 +79,7 @@ export function NewsletterSignup({
             onChange={(e) => setEmail(e.target.value)}
             required
             disabled={isLoading}
-            className="rounded-md border border-input bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-6"
+            className="rounded-md border border-input bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
           />
           <Button
             type="submit"
@@ -82,10 +91,14 @@ export function NewsletterSignup({
         </form>
 
         {status === 'success' && (
-          <p className="mt-3 text-sm font-medium text-green-600">{message}</p>
+          <p className="mt-3 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+            {message}
+          </p>
         )}
         {status === 'error' && (
-          <p className="mt-3 text-sm font-medium text-red-600">{message}</p>
+          <p className="mt-3 text-sm font-medium text-rose-600 dark:text-rose-400">
+            {message}
+          </p>
         )}
       </div>
     </section>

@@ -540,3 +540,20 @@ export const articlesRelations = relations(articles, ({ many }) => ({
   comments: many(comments),
   likes: many(likes),
 }));
+
+// Add this at the end of @/lib/db/schema.ts
+
+export const subscribers = pgTable(
+  'subscribers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    email: varchar('email', { length: 255 }).notNull().unique(),
+    brevoContactId: varchar('brevo_contact_id', { length: 100 }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    emailIdx: uniqueIndex('subscriber_email_idx').on(table.email),
+  })
+);
+

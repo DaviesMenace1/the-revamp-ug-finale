@@ -15,7 +15,6 @@ import {
   type Space,
   type ItemType,
 } from '@/lib/data/products'
-import { PRODUCT_CATEGORIES } from '@/lib/data/categories'
 import { WishlistButton } from '@/components/collections/wishlist-button'
 
 type QuickValue = QuickTag | 'all'
@@ -24,17 +23,15 @@ export function CollectionsBrowser() {
   const [quick, setQuick] = useState<QuickValue>('all')
   const [space, setSpace] = useState<Space | 'all'>('all')
   const [item, setItem] = useState<ItemType | 'all'>('all')
-  const [category, setCategory] = useState<string>('all')
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
       const matchQuick = quick === 'all' || p.tags.includes(quick)
       const matchSpace = space === 'all' || p.space === space
       const matchItem = item === 'all' || p.itemType === item
-      const matchCategory = category === 'all' || p.category === category
-      return matchQuick && matchSpace && matchItem && matchCategory
+      return matchQuick && matchSpace && matchItem 
     })
-  }, [quick, space, item, category])
+  }, [quick, space, item, ])
 
   return (
     <div className="grid lg:grid-cols-[260px_1fr] gap-10 lg:gap-16">
@@ -59,20 +56,8 @@ export function CollectionsBrowser() {
           </div>
         </FilterGroup>
 
-        {/* By Category */}
-        <FilterGroup title="By Category">
-          <FilterList
-            options={PRODUCT_CATEGORIES.map((c) => ({
-              label: c.name,
-              value: c.slug,
-            }))}
-            active={category}
-            onSelect={(v) => setCategory(v as string)}
-          />
-        </FilterGroup>
-
         {/* By Space */}
-        <FilterGroup title="By Space">
+        <FilterGroup title="By Category">
           <FilterList
             options={SPACES}
             active={space}
@@ -96,13 +81,12 @@ export function CollectionsBrowser() {
           <p className="font-sans text-sm text-muted-foreground">
             {filtered.length} {filtered.length === 1 ? 'piece' : 'pieces'}
           </p>
-          {(quick !== 'all' || space !== 'all' || item !== 'all' || category !== 'all') && (
+          {(quick !== 'all' || space !== 'all' || item !== 'all') && (
             <button
               onClick={() => {
                 setQuick('all')
                 setSpace('all')
                 setItem('all')
-                setCategory('all')
               }}
               className="font-sans text-xs tracking-widest uppercase text-gold hover-line"
             >

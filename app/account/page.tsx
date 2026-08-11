@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { currentUser } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { AccountNavigation } from '@/components/account/account-navigation'
 import { AccountOverview } from '@/components/account/account-overview'
 import { getAccountOverview } from '@/lib/account/queries'

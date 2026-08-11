@@ -1,10 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
-// Define routes that REQUIRE authentication
-const isProtectedRoute = createRouteMatcher([
-  '/account(.*)',
-  '/admin(.*)',
-])
+const isProtectedRoute = createRouteMatcher(['/account(.*)','/admin(.*)',])
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
@@ -14,13 +10,12 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|json|webmanifest|ttf|woff2?|png|jpg|jpeg|gif|svg|svgz|ico|tif|tiff|webp|avif|mp4|webm|ogg|ogv|mov|mp3|wav|flac|aac|heic|heif|heic|cur|ani|pdf|zip)|api|trpc).*)"',
-    // Always run for API routes
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|json|webmanifest|ttf|woff2?|png|jpg|jpeg|gif|svg|svgz|ico|tif|tiff|webp|avif|mp4|webm|ogg|ogv|mov|mp3|wav|flac|aac|heic|heif|heic|cur|ani|pdf|zip)|api|trpc).*)',
     '/(api|trpc)(.*)',
     '/_clerk(.*)',
   ],
 }
+
 
 
 

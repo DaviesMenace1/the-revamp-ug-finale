@@ -1,10 +1,9 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
-import { useSignIn, useSignUp } from '@clerk/nextjs'
+import { useSignIn, useSignUp } from "@clerk/nextjs"
 import { ArrowRight, Check, Globe2, Link2, Loader2, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
 function AuthButton({ children, disabled = false, onClick }: { children: React.ReactNode; disabled?: boolean; onClick?: () => void }) {
   return (
@@ -90,7 +89,6 @@ function Field({
 }
 
 export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
-  const router = useRouter()
   const { isLoaded, signIn, setActive } = useSignIn()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -101,15 +99,11 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
 
   const activate = async (sessionId: string | null) => {
-  if (sessionId && setActive) {
-    // 1. Set the session in Clerk
-    await setActive({ session: sessionId })
-    
-    // 2. Perform a hard navigation to guarantee session cookies are attached
-    window.location.href = redirectUrl || '/account'
+    if (sessionId && setActive) {
+      await setActive({ session: sessionId })
+      window.location.href = redirectUrl || '/account'
+    }
   }
-}
-
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -236,7 +230,6 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
 }
 
 export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
-  const router = useRouter()
   const { isLoaded, signUp, setActive } = useSignUp()
   const [step, setStep] = useState<'form' | 'verify'>('form')
   const [firstName, setFirstName] = useState('')
@@ -247,6 +240,13 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+
+  const activate = async (sessionId: string | null) => {
+    if (sessionId && setActive) {
+      await setActive({ session: sessionId })
+      window.location.href = redirectUrl || '/account'
+    }
+  }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -267,17 +267,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     }
   }
 
-  const activate = async (sessionId: string | null) => {
-  if (sessionId && setActive) {
-    // 1. Set the session in Clerk
-    await setActive({ session: sessionId })
-    
-    // 2. Perform a hard navigation to guarantee session cookies are attached
-    window.location.href = redirectUrl || '/account'
-  }
-}
-
-
+  // ✅ 2. Updated verify() to use activate() instead of router.push()
   const verify = async (event: FormEvent) => {
     event.preventDefault()
     if (!isLoaded) return
@@ -285,9 +275,8 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     setError(null)
     try {
       const result = await signUp.attemptEmailAddressVerification({ code })
-      if (result.status === 'complete' && setActive) {
-        await setActive({ session: result.createdSessionId })
-        router.push(redirectUrl || '/account')
+      if (result.status === 'complete') {
+        await activate(result.createdSessionId)
       } else {
         setError('Verification is incomplete. Please try again.')
       }

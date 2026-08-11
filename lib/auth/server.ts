@@ -1,33 +1,43 @@
 import 'server-only' // Ensures this file can NEVER be accidentally imported in 'use client' components
 import { auth } from '@clerk/nextjs/server'
-import { db } from '@/lib/db/client'
-import { users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { getOrCreateCurrentUser, type UserRole } from '@/lib/auth/utils'
 
-export type UserRole = 'customer' | 'designer' | 'admin' | 'trade_member' | 'architect' | 'interior_designer'
+export type { UserRole }
 
-export async function getCurrentUserWithRole(requiredRoles: UserRole[] = []) {
-  const authSession = await auth()
-    const userId = authSession.userId
+export type AuthorizationResult = {
+  user: Awaited<ReturnType<typeof getOrCreateCurrentUser>>
+  authorized: boolean
+  /**
+   * Distinguishes WHY authorization failed so callers can respond correctly:
+   * - 'unauthenticated': no Clerk session -> redirect to sign-in
+   * - 'forbidden': signed in but lacks the required role -> show unauthorized
+   */
+  reason: 'ok' | 'unauthenticated' | 'forbidden'
+}
 
-      if (!userId) {
-          return { user: null, authorized: false }
-            }
+/**
+ * Server-side authentication + role authorization.
+ *
+ * Uses on-demand provisioning (getOrCreateCurrentUser) so a user who just
+ * signed up is never bounced back to sign-in while the user.created webhook
+ * is still in flight. Roles come exclusively from the local database row —
+ * never from client-supplied data.
+ */
+export async function getCurrentUserWithRole(requiredRoles: UserRole[] = []): Promise<AuthorizationResult> {
+  const { userId } = await auth()
+  if (!userId) {
+    return { user: null, authorized: false, reason: 'unauthenticated' }
+  }
 
-              const user = await db
-                  .select()
-                      .from(users)
-                          .where(eq(users.clerkId, userId))
-                              .then(result => result[0])
+  const user = await getOrCreateCurrentUser()
+  if (!user) {
+    // Session disappeared between checks; treat as signed out.
+    return { user: null, authorized: false, reason: 'unauthenticated' }
+  }
 
-                                if (!user) {
-                                    return { user: null, authorized: false }
-                                      }
+  if (requiredRoles.length > 0 && !requiredRoles.includes(user.role as UserRole)) {
+    return { user, authorized: false, reason: 'forbidden' }
+  }
 
-                                        if (requiredRoles.length > 0 && !requiredRoles.includes(user.role as UserRole)) {
-                                            return { user, authorized: false }
-                                              }
-
-                                                return { user, authorized: true }
-                                                }
-                                                
+  return { user, authorized: true, reason: 'ok' }
+}

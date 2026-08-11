@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
 import { AccountNavigation } from '@/components/account/account-navigation'
 import { AccountOverview } from '@/components/account/account-overview'
 import { getAccountOverview } from '@/lib/account/queries'
@@ -10,9 +10,14 @@ export const metadata = {
 }
 
 export default async function AccountPage() {
-  const clerkUser = await currentUser()
-  if (!clerkUser) redirect('/sign-in?redirect_url=/account')
+  // Redirect to sign-in ONLY when genuinely unauthenticated.
+  const { userId } = await auth()
+  if (!userId) redirect('/sign-in?redirect_url=/account')
 
+  // The overview provisions the local profile on demand; if it still returns
+  // null the session was revoked mid-request. Database errors throw to the
+  // error boundary instead of masquerading as "not authenticated" (this was
+  // the cause of the sign-in <-> account redirect loop).
   const data = await getAccountOverview()
   if (!data) redirect('/sign-in?redirect_url=/account')
 

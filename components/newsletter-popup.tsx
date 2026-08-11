@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, Mail, CheckCircle2, Download, ArrowRight } from 'lucide-react'
+import { X, CheckCircle2, Download, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function NewsletterPopup() {
@@ -14,7 +14,7 @@ export function NewsletterPopup() {
   useEffect(() => {
     // Check if the user has already seen or dismissed the popup
     const hasSeenPopup = localStorage.getItem('revamp-newsletter-dismissed')
-    
+
     if (!hasSeenPopup) {
       // Trigger popup 4 seconds after arrival
       const timer = setTimeout(() => {
@@ -38,22 +38,25 @@ export function NewsletterPopup() {
     setErrorMessage('')
 
     try {
-      // 🚀 Calls your existing endpoint that saves to DB + Brevo
+      // Calls your exact API route (DB + Brevo)
       const res = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       })
 
+      const data = await res.json().catch(() => ({}))
+
+      // Handle server error responses
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.message || 'Something went wrong. Please try again.')
+        throw new Error(data.error || data.message || 'Failed to subscribe. Please try again.')
       }
 
+      // Success (New subscriber OR already subscribed)
       setIsSubmitted(true)
       localStorage.setItem('revamp-newsletter-dismissed', 'true')
     } catch (error: any) {
-      setErrorMessage(error.message || 'Failed to subscribe. Please try again.')
+      setErrorMessage(error.message || 'Something went wrong. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -63,7 +66,7 @@ export function NewsletterPopup() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-opacity duration-300">
-      <div 
+      <div
         className="relative w-full max-w-lg bg-background border border-border/80 p-8 sm:p-10 shadow-2xl rounded-lg animate-in fade-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
@@ -80,7 +83,7 @@ export function NewsletterPopup() {
         {!isSubmitted ? (
           <div className="flex flex-col gap-5 text-center">
             {/* Badge */}
-            <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1">
+            <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3.5 py-1">
               <Download className="h-3.5 w-3.5 text-primary" />
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary font-medium">
                 Complimentary Design Guide
@@ -92,7 +95,7 @@ export function NewsletterPopup() {
                 Elevate Your Living Space
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                Subscribe today to receive our exclusive <strong className="text-foreground font-semibold">2026 Interior Styling Guide (PDF)</strong> directly to your inbox, plus private access to new collection releases.
+                Subscribe today to receive our exclusive <strong className="text-foreground font-semibold">2026 Interior Styling Guide (PDF)</strong> emailed directly to your inbox.
               </p>
             </div>
 
@@ -127,7 +130,7 @@ export function NewsletterPopup() {
             </form>
 
             <p className="text-[11px] text-muted-foreground/70">
-              Instant PDF download delivered upon subscription. No spam, ever.
+              PDF guide emailed upon subscription. No spam, ever.
             </p>
           </div>
         ) : (
@@ -137,16 +140,16 @@ export function NewsletterPopup() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="font-serif text-3xl font-bold">Guide Sent to Your Inbox!</h3>
-              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                We’ve synced your subscription to Brevo and sent your complimentary <strong className="text-foreground">Interior Styling Guide PDF</strong>.
+              <h3 className="font-serif text-3xl font-bold">Check Your Inbox!</h3>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                We've sent your complimentary <strong className="text-foreground">2026 Interior Styling Guide PDF</strong> directly to <span className="text-foreground font-medium">{email}</span>.
               </p>
             </div>
 
             <Button
               onClick={handleClose}
               variant="outline"
-              className="mt-2 border-border"
+              className="mt-2 border-border text-xs uppercase tracking-wider"
             >
               Continue Browsing
             </Button>

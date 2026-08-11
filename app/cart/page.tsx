@@ -24,46 +24,53 @@ export default function CartPage() {
   }
 
   // 1. Enhanced Share to WhatsApp
-  const shareToWhatsApp = () => {
-    const formattedItems = items.map((item, index) => {
-      const price = (item.product.salePrice || item.product.price) * item.quantity
-      const details: string[] = []
+const shareToWhatsApp = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
 
-      // Extract Variations
-      if (item.selectedColor?.name || item.selectedColor) {
-        details.push(`• Color: ${item.selectedColor?.name || item.selectedColor}`)
-      }
-      if (item.selectedVariant?.name || item.selectedVariant) {
-        details.push(`• Variant: ${item.selectedVariant?.name || item.selectedVariant}`)
-      }
-      if (item.customDimensions) {
-        const { width, depth, height } = item.customDimensions as any
-        const dimStr = [
-          width ? `${width}″ W` : '',
-          depth ? `${depth}″ D` : '',
-          height ? `${height}″ H` : ''
-        ].filter(Boolean).join(' × ')
-        if (dimStr) details.push(`• Dimensions: ${dimStr}`)
-      }
+  // 1. Serialize items for URL transmission (handles UTF-8 strings safely)
+  const encodedData = encodeURIComponent(
+    btoa(unescape(encodeURIComponent(JSON.stringify(items))))
+  );
+  
+  const cartShareLink = `${baseUrl}/cart?share=${encodedData}`;
 
-      // Extract Add-ons (flexible check for common data key names)
-      const addOns = (item as any).addOns || (item as any).selectedAddons || (item as any).addons
-      if (Array.isArray(addOns) && addOns.length > 0) {
-        const addOnNames = addOns.map((a: any) => typeof a === 'string' ? a : a.name).join(', ')
-        details.push(`• Add-ons: ${addOnName}`)
-      }
+  // 2. Format message items with summary details
+  const formattedItems = items.map((item, idx) => {
+    const price = (item.product.salePrice || item.product.price) * item.quantity;
+    const details: string[] = [];
 
-      const imageUrl = getAbsoluteUrl(item.product.images?.[0])
-      const detailsText = details.length > 0 ? `\n   ${details.join('\n   ')}` : ''
+    if (item.selectedColor) {
+      details.push(`Color: ${item.selectedColor.name || item.selectedColor}`);
+    }
+    if (item.selectedVariant) {
+      details.push(`Variant: ${item.selectedVariant.name || item.selectedVariant}`);
+    }
+    if (item.selectedAccessories && item.selectedAccessories.length > 0) {
+      const accs = item.selectedAccessories.map((a) => a.name || a).join(', ');
+      details.push(`Accessories: ${accs}`);
+    }
+    if (item.customDimensions) {
+      const { width, depth, height } = item.customDimensions;
+      const dims = [
+        width ? `${width}″ W` : '',
+        depth ? `${depth}″ D` : '',
+        height ? `${height}″ H` : ''
+      ].filter(Boolean).join(' × ');
+      if (dims) details.push(`Dims: ${dims}`);
+    }
 
-      return `*${index + 1}. ${item.product.name}* (x${item.quantity})${detailsText}\n   *Subtotal:* ${item.product.currency || '$'} ${price.toLocaleString()}\n   *Image:* ${imageUrl}`
-    }).join('\n\n')
+    const detailString = details.length > 0 ? `\n   (${details.join(' | ')})` : '';
+    return `${idx + 1}. *${item.product.name}* × ${item.quantity}${detailString}\n   *Subtotal:* ${item.product.currency || '$'} ${price.toLocaleString()}`;
+  }).join('\n\n');
 
-    const message = `🛍️ *NEW CART ENQUIRY - The Revamp UG*\n\n${formattedItems}\n\n------------------------------\n💰 *TOTAL AMOUNT:* ${items[0]?.product.currency || '$'} ${cart?.total.toLocaleString() ?? '0'}\n------------------------------\n\nPlease confirm availability and payment/delivery details!`
+  // 3. Complete message with direct link
+  const message = `🛍️ *NEW CART ENQUIRY - The Revamp UG*\n\n${formattedItems}\n\n------------------------------\n💰 *TOTAL:* ${items[0]?.product.currency || '$'} ${cart?.total.toLocaleString() ?? '0'}\n------------------------------\n\n🔗 *Click here to view full cart & images:*\n${cartShareLink}`;
 
-    const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '')
-    window.open(`https://wa.me/${phone || ''}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
-  }
+  const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '');
+  window.open(`https://wa.me/${phone || ''}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+};
+
+
 
   // 2. Download Images Feature (Bundles into ZIP)
   const downloadCartImages = async () => {

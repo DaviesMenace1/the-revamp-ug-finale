@@ -1,11 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
-import { Cart, CartItem, Product, Color, Variant, Accessory } from '@/lib/types'
+import React, { createContext, useContext, useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Cart, CartItem, Product, Color, Variant, Accessory } from '@/lib/types';
 
 interface CartContextType {
-  cart: Cart | null
-  items: CartItem[]
+  cart: Cart | null;
+  items: CartItem[];
   addToCart: (
     product: Product,
     quantity: number,
@@ -13,52 +14,82 @@ interface CartContextType {
     selectedVariant?: Variant,
     selectedAccessories?: Accessory[],
     customDimensions?: { width?: number; height?: number; depth?: number }
-  ) => void
-  removeFromCart: (productId: string) => void
-  removeItem: (productId: string) => void
-  updateQuantity: (productId: string, quantity: number) => void
-  clearCart: () => void
-  cartCount: number
-  cartTotal: number
-  subtotal: number
+  ) => void;
+  removeFromCart: (productId: string) => void;
+  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
+  cartCount: number;
+  cartTotal: number;
+  subtotal: number;
 }
 
-export const CartContext = createContext<CartContextType | undefined>(undefined)
+export const CartContext = createContext<CartContextType | undefined>(undefined);
+
+// Helper component to safely read searchParams in Next.js
+function ShareHydrator({ onRestore }: { onRestore: (items: CartItem[]) => void }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const shareData = searchParams.get('share');
+    if (!shareData) return;
+
+    try {
+      // Decode base64 UTF-8 string safely
+      const jsonStr = decodeURIComponent(escape(atob(decodeURIComponent(shareData))));
+      const sharedItems: CartItem[] = JSON.parse(jsonStr);
+
+      if (Array.isArray(sharedItems) && sharedItems.length > 0) {
+        onRestore(sharedItems);
+        // Clean URL parameter without reloading page
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    } catch (error) {
+      console.error('Failed to parse shared cart link:', error);
+    }
+  }, [searchParams, onRestore]);
+
+  return null;
+}
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = useState<Cart | null>(null)
-  const [items, setItems] = useState<CartItem[]>([])
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('revamp-cart')
+    const savedCart = localStorage.getItem('revamp-cart');
     if (savedCart) {
       try {
-        const parsedCart = JSON.parse(savedCart)
-        setItems(parsedCart)
+        const parsedCart = JSON.parse(savedCart);
+        setItems(parsedCart);
       } catch (error) {
-        console.error('Failed to load cart:', error)
+        console.error('Failed to load cart:', error);
       }
     }
-  }, [])
+    setIsLoaded(true);
+  }, []);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('revamp-cart', JSON.stringify(items))
-  }, [items])
+    if (isLoaded) {
+      localStorage.setItem('revamp-cart', JSON.stringify(items));
+    }
+  }, [items, isLoaded]);
 
   const calculateTotals = (cartItems: CartItem[]) => {
     const subtotal = cartItems.reduce((total, item) => {
-      const itemPrice = item.product.salePrice || item.product.price
-      return total + itemPrice * item.quantity
-    }, 0)
+      const itemPrice = item.product.salePrice || item.product.price;
+      return total + itemPrice * item.quantity;
+    }, 0);
 
-    const tax = subtotal * 0.1 // 10% tax
-    const shipping = subtotal > 0 ? 150 : 0 // $150 flat shipping
-    const total = subtotal + tax + shipping
+    const tax = subtotal * 0.1; // 10% tax
+    const shipping = subtotal > 0 ? 150 : 0; // $150 flat shipping
+    const total = subtotal + tax + shipping;
 
-    return { subtotal, tax, shipping, total }
-  }
+    return { subtotal, tax, shipping, total };
+  };
 
   const addToCart = (
     product: Product,
@@ -69,14 +100,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     customDimensions?: { width?: number; height?: number; depth?: number }
   ) => {
     setItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.productId === product.id)
+      const existingItem = prevItems.find((item) => item.productId === product.id);
 
       if (existingItem) {
         return prevItems.map((item) =>
           item.productId === product.id
             ? { ...item, quantity: item.quantity + quantity }
             : item
-        )
+        );
       }
 
       return [
@@ -90,35 +121,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           selectedAccessories: selectedAccessories || [],
           customDimensions,
         },
-      ]
-    })
-  }
+      ];
+    });
+  };
 
   const removeFromCart = (productId: string) => {
-    setItems((prevItems) => prevItems.filter((item) => item.productId !== productId))
-  }
+    setItems((prevItems) => prevItems.filter((item) => item.productId !== productId));
+  };
 
   const updateQuantity = (productId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(productId)
-      return
+      removeFromCart(productId);
+      return;
     }
 
     setItems((prevItems) =>
-      prevItems.map((item) =>
-        item.productId === productId ? { ...item, quantity } : item
-      )
-    )
-  }
+      prevItems.map((item) => (item.productId === productId ? { ...item, quantity } : item))
+    );
+  };
 
   const clearCart = () => {
-    setItems([])
-  }
+    setItems([]);
+  };
 
-  const totals = calculateTotals(items)
+  const totals = calculateTotals(items);
 
   const value: CartContextType = {
-    cart: cart || {
+    cart: {
       id: 'temp-cart',
       userId: 'guest',
       items,
@@ -134,17 +163,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     cartCount: items.reduce((count, item) => count + item.quantity, 0),
     cartTotal: totals.total,
     subtotal: totals.subtotal,
-  }
+  };
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>
+  return (
+    <CartContext.Provider value={value}>
+      <Suspense fallback={null}>
+        <ShareHydrator onRestore={(restoredItems) => setItems(restoredItems)} />
+      </Suspense>
+      {children}
+    </CartContext.Provider>
+  );
 }
 
 export function useCart() {
-  const context = useContext(CartContext)
+  const context = useContext(CartContext);
   if (context === undefined) {
-    throw new Error('useCart must be used within CartProvider')
+    throw new Error('useCart must be used within CartProvider');
   }
-  return context
+  return context;
 }
 
 

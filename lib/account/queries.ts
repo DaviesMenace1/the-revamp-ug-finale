@@ -1,10 +1,12 @@
 import { and, desc, eq, gte } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { carts, consultations, memberships, orders } from '@/lib/db/schema'
-import { getCurrentUser, getUserMembership } from '@/lib/auth/utils'
+import { getOrCreateCurrentUser, getUserMembership } from '@/lib/auth/utils'
 
 export async function getAccountOverview() {
-  const user = await getCurrentUser()
+  // Provisions the local profile on demand, so a user who just signed up is
+  // never treated as unauthenticated while the user.created webhook is in flight.
+  const user = await getOrCreateCurrentUser()
   if (!user) return null
 
   const [cart, userOrders, upcomingConsultations, membership] = await Promise.all([

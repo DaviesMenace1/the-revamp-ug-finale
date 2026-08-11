@@ -8,7 +8,8 @@ export const metadata = {
 }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { authorized } = await getCurrentUserWithRole(['admin'])
+  const { authorized, reason } = await getCurrentUserWithRole(['admin'])
+  if (reason === 'unauthenticated') redirect('/sign-in?redirect_url=%2Fadmin')
   if (!authorized) redirect('/unauthorized')
 
   return (

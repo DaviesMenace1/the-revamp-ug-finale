@@ -1,6 +1,17 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
-const isProtectedRoute = createRouteMatcher(['/account(.*)','/admin(.*)',])
+/**
+ * Single request-authentication path for the app.
+ *
+ * - `/account` and `/admin` require a Clerk session. Unauthenticated visitors
+ *   are redirected to the local `/sign-in` page (NEXT_PUBLIC_CLERK_SIGN_IN_URL)
+ *   with `redirect_url` preserved by Clerk automatically.
+ * - Role-based authorization (admin vs customer, etc.) is enforced
+ *   server-side in layouts/pages via lib/auth — never in the client.
+ * - Webhooks (`/api/webhooks`) stay public; Svix signature verification
+ *   protects them in the route handler.
+ */
+const isProtectedRoute = createRouteMatcher(['/account(.*)', '/admin(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
@@ -10,47 +21,8 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|json|webmanifest|ttf|woff2?|png|jpg|jpeg|gif|svg|svgz|ico|tif|tiff|webp|avif|mp4|webm|ogg|ogv|mov|mp3|wav|flac|aac|heic|heif|heic|cur|ani|pdf|zip)|api|trpc).*)',
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|json|webmanifest|ttf|woff2?|png|jpg|jpeg|gif|svg|svgz|ico|tif|tiff|webp|avif|mp4|webm|ogg|ogv|mov|mp3|wav|flac|aac|heic|heif|cur|ani|pdf|zip)|api|trpc).*)',
     '/(api|trpc)(.*)',
     '/_clerk(.*)',
   ],
 }
-
-
-
-
-// import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-
-// const isPublicRoute = createRouteMatcher([
-//   '/',
-//   '/sign-in(.*)',
-//   '/sign-up(.*)',
-//   '/reset-password(.*)',
-//   '/about(.*)',
-//   '/services(.*)',
-//   '/projects(.*)',
-//   '/collections(.*)',
-//   '/search(.*)',
-//   '/cart(.*)',
-//   '/wishlist(.*)',
-//   '/journal(.*)',
-//   '/contact(.*)',
-//   '/api/webhooks(.*)',
-//   '_/clerk(.*),
-// ])
-
-// export default clerkMiddleware(async (auth, request) => {
-//   if (!isPublicRoute(request)) {
-//     const signInUrl = new URL('/sign-in', request.url)
-//     signInUrl.searchParams.set('redirect_url', request.nextUrl.pathname + request.nextUrl.search)
-//     await auth.protect({ unauthenticatedUrl: signInUrl.toString() })
-//   }
-// })
-
-// export const config = {
-//   matcher: [
-//     '/((?!_next|[^?]*\\.(?:html|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|xml)|_not-found).*)',
-//     '/(api|trpc)(.*)',
-//     '/__clerk/(.*)',
-//   ],
-// }

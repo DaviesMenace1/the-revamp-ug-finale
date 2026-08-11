@@ -1,7 +1,7 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
-import { useSignIn, useSignUp } from "@clerk/nextjs"
+import { useSignIn, useSignUp } from "@clerk/nextjs/legacy"
 import { ArrowRight, Check, Globe2, Link2, Loader2, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 

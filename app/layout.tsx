@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/lib/theme-provider'
+import { NewsletterPopup } from '@/components/newsletter-popup'
 import { CartProvider } from '@/lib/context/cart-context'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateOrganizationSchema, generateLocalBusinessSchema } from '@/lib/seo/schema-generator'
@@ -146,6 +147,7 @@ export default function RootLayout({
         >
           <CartProvider>
             <ThemeProvider>{children}</ThemeProvider>
+            <NewsletterPopup />
           </CartProvider>
           {process.env.NODE_ENV === 'production' && <Analytics />}
         </ClerkProvider>

@@ -24,51 +24,65 @@ export default function CartPage() {
   }
 
   // 1. Enhanced Share to WhatsApp
+const { items, cart, customerName, setCustomerName } = useCart()
+
 const shareToWhatsApp = () => {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+  // 1. Get or prompt for customer's name
+  let name = customerName
+  if (!name || name.trim() === '') {
+    const inputName = window.prompt("Please enter your name for the order enquiry:")
+    if (!inputName) return // User cancelled
+    name = inputName.trim()
+    setCustomerName(name)
+  }
 
-  // 1. Serialize items for URL transmission (handles UTF-8 strings safely)
-  const encodedData = encodeURIComponent(
-    btoa(unescape(encodeURIComponent(JSON.stringify(items))))
-  );
-  
-  const cartShareLink = `${baseUrl}/cart?share=${encodedData}`;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
 
-  // 2. Format message items with summary details
+  // 2. Ultra-compact payload (shrinks URL length by ~70%)
+  const compactPayload = items.map((item) => ({
+    i: item.productId,
+    q: item.quantity,
+    c: item.selectedColor?.name || item.selectedColor,
+    v: item.selectedVariant?.name || item.selectedVariant,
+    a: item.selectedAccessories?.map((acc: any) => acc.name || acc),
+    d: item.customDimensions,
+    // Minimal display fallback data
+    n: item.product.name,
+    pr: item.product.salePrice || item.product.price,
+    cur: item.product.currency || '$',
+    img: item.product.images?.[0] || '',
+    s: item.product.slug || ''
+  }))
+
+  // 3. Compact base64 string
+  const encodedCart = encodeURIComponent(btoa(JSON.stringify(compactPayload)))
+  const cartShareLink = `${baseUrl}/cart?c=${encodedCart}&name=${encodeURIComponent(name)}`
+
+  // 4. Clean WhatsApp Message
   const formattedItems = items.map((item, idx) => {
-    const price = (item.product.salePrice || item.product.price) * item.quantity;
-    const details: string[] = [];
+    const price = (item.product.salePrice || item.product.price) * item.quantity
+    const details: string[] = []
 
-    if (item.selectedColor) {
-      details.push(`Color: ${item.selectedColor.name || item.selectedColor}`);
-    }
-    if (item.selectedVariant) {
-      details.push(`Variant: ${item.selectedVariant.name || item.selectedVariant}`);
-    }
-    if (item.selectedAccessories && item.selectedAccessories.length > 0) {
-      const accs = item.selectedAccessories.map((a) => a.name || a).join(', ');
-      details.push(`Accessories: ${accs}`);
+    if (item.selectedColor) details.push(`Color: ${item.selectedColor.name || item.selectedColor}`)
+    if (item.selectedVariant) details.push(`Variant: ${item.selectedVariant.name || item.selectedVariant}`)
+    if (item.selectedAccessories?.length) {
+      details.push(`Accessories: ${item.selectedAccessories.map((a: any) => a.name || a).join(', ')}`)
     }
     if (item.customDimensions) {
-      const { width, depth, height } = item.customDimensions;
-      const dims = [
-        width ? `${width}″ W` : '',
-        depth ? `${depth}″ D` : '',
-        height ? `${height}″ H` : ''
-      ].filter(Boolean).join(' × ');
-      if (dims) details.push(`Dims: ${dims}`);
+      const { width, depth } = item.customDimensions
+      if (width || depth) details.push(`Dims: ${width ? `${width}″W` : ''}${depth ? `×${depth}″D` : ''}`)
     }
 
-    const detailString = details.length > 0 ? `\n   (${details.join(' | ')})` : '';
-    return `${idx + 1}. *${item.product.name}* × ${item.quantity}${detailString}\n   *Subtotal:* ${item.product.currency || '$'} ${price.toLocaleString()}`;
-  }).join('\n\n');
+    const detailText = details.length > 0 ? `\n   (${details.join(' | ')})` : ''
+    return `${idx + 1}. *${item.product.name}* × ${item.quantity}${detailText}\n   *Subtotal:* ${item.product.currency || '$'} ${price.toLocaleString()}`
+  }).join('\n\n')
 
-  // 3. Complete message with direct link
-  const message = `🛍️ *NEW CART ENQUIRY - The Revamp UG*\n\n${formattedItems}\n\n------------------------------\n💰 *TOTAL:* ${items[0]?.product.currency || '$'} ${cart?.total.toLocaleString() ?? '0'}\n------------------------------\n\n🔗 *Click here to view full cart & images:*\n${cartShareLink}`;
+  const message = `🛍️ *NEW CART ENQUIRY*\n👤 *Customer:* ${name}\n\n${formattedItems}\n\n------------------------------\n💰 *TOTAL:* ${items[0]?.product.currency || '$'} ${cart?.total.toLocaleString() ?? '0'}\n------------------------------\n\n🔗 *View Cart & Images:* \n${cartShareLink}`
 
-  const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '');
-  window.open(`https://wa.me/${phone || ''}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-};
+  const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '')
+  window.open(`https://wa.me/${phone || ''}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
+}
+
 
 
 

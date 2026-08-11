@@ -12,7 +12,15 @@ import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
 
 export default function CartPage() {
-  const { items, removeFromCart, updateQuantity, clearCart, cart } = useCart()
+  const { 
+    items, 
+    cart, 
+    customerName, 
+    setCustomerName, 
+    removeFromCart, 
+    updateQuantity, 
+    clearCart 
+  } = useCart()
   const [isDownloading, setIsDownloading] = useState(false)
 
   // Helper to ensure full absolute image URL for WhatsApp preview
@@ -27,61 +35,57 @@ export default function CartPage() {
 const { items, cart, customerName, setCustomerName } = useCart()
 
 const shareToWhatsApp = () => {
-  // 1. Get or prompt for customer's name
-  let name = customerName
-  if (!name || name.trim() === '') {
-    const inputName = window.prompt("Please enter your name for the order enquiry:")
-    if (!inputName) return // User cancelled
-    name = inputName.trim()
-    setCustomerName(name)
+    let name = customerName
+    if (!name || name.trim() === '') {
+      const inputName = window.prompt("Please enter your name for the order enquiry:")
+      if (!inputName) return
+      name = inputName.trim()
+      setCustomerName(name)
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
+
+    const compactPayload = items.map((item) => ({
+      i: item.productId,
+      q: item.quantity,
+      c: item.selectedColor?.name || item.selectedColor,
+      v: item.selectedVariant?.name || item.selectedVariant,
+      a: item.selectedAccessories?.map((acc: any) => acc.name || acc),
+      d: item.customDimensions,
+      n: item.product.name,
+      pr: item.product.salePrice || item.product.price,
+      cur: item.product.currency || '$',
+      img: item.product.images?.[0] || '',
+      s: item.product.slug || ''
+    }))
+
+    const encodedCart = encodeURIComponent(btoa(JSON.stringify(compactPayload)))
+    const cartShareLink = `${baseUrl}/cart?c=${encodedCart}&name=${encodeURIComponent(name)}`
+
+    const formattedItems = items.map((item, idx) => {
+      const price = (item.product.salePrice || item.product.price) * item.quantity
+      const details: string[] = []
+
+      if (item.selectedColor) details.push(`Color: ${item.selectedColor.name || item.selectedColor}`)
+      if (item.selectedVariant) details.push(`Variant: ${item.selectedVariant.name || item.selectedVariant}`)
+      if (item.selectedAccessories?.length) {
+        details.push(`Accessories: ${item.selectedAccessories.map((a: any) => a.name || a).join(', ')}`)
+      }
+      if (item.customDimensions) {
+        const { width, depth } = item.customDimensions
+        if (width || depth) details.push(`Dims: ${width ? `${width}″W` : ''}${depth ? `×${depth}″D` : ''}`)
+      }
+
+      const detailText = details.length > 0 ? `\n   (${details.join(' | ')})` : ''
+      return `${idx + 1}. *${item.product.name}* × ${item.quantity}${detailText}\n   *Subtotal:* ${item.product.currency || '$'} ${price.toLocaleString()}`
+    }).join('\n\n')
+
+    const message = `🛍️ *NEW CART ENQUIRY*\n👤 *Customer:* ${name}\n\n${formattedItems}\n\n------------------------------\n💰 *TOTAL:* ${items[0]?.product.currency || '$'} ${cart?.total.toLocaleString() ?? '0'}\n------------------------------\n\n🔗 *View Cart & Images:* \n${cartShareLink}`
+
+    const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '')
+    window.open(`https://wa.me/${phone || ''}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
-
-  // 2. Ultra-compact payload (shrinks URL length by ~70%)
-  const compactPayload = items.map((item) => ({
-    i: item.productId,
-    q: item.quantity,
-    c: item.selectedColor?.name || item.selectedColor,
-    v: item.selectedVariant?.name || item.selectedVariant,
-    a: item.selectedAccessories?.map((acc: any) => acc.name || acc),
-    d: item.customDimensions,
-    // Minimal display fallback data
-    n: item.product.name,
-    pr: item.product.salePrice || item.product.price,
-    cur: item.product.currency || '$',
-    img: item.product.images?.[0] || '',
-    s: item.product.slug || ''
-  }))
-
-  // 3. Compact base64 string
-  const encodedCart = encodeURIComponent(btoa(JSON.stringify(compactPayload)))
-  const cartShareLink = `${baseUrl}/cart?c=${encodedCart}&name=${encodeURIComponent(name)}`
-
-  // 4. Clean WhatsApp Message
-  const formattedItems = items.map((item, idx) => {
-    const price = (item.product.salePrice || item.product.price) * item.quantity
-    const details: string[] = []
-
-    if (item.selectedColor) details.push(`Color: ${item.selectedColor.name || item.selectedColor}`)
-    if (item.selectedVariant) details.push(`Variant: ${item.selectedVariant.name || item.selectedVariant}`)
-    if (item.selectedAccessories?.length) {
-      details.push(`Accessories: ${item.selectedAccessories.map((a: any) => a.name || a).join(', ')}`)
-    }
-    if (item.customDimensions) {
-      const { width, depth } = item.customDimensions
-      if (width || depth) details.push(`Dims: ${width ? `${width}″W` : ''}${depth ? `×${depth}″D` : ''}`)
-    }
-
-    const detailText = details.length > 0 ? `\n   (${details.join(' | ')})` : ''
-    return `${idx + 1}. *${item.product.name}* × ${item.quantity}${detailText}\n   *Subtotal:* ${item.product.currency || '$'} ${price.toLocaleString()}`
-  }).join('\n\n')
-
-  const message = `🛍️ *NEW CART ENQUIRY*\n👤 *Customer:* ${name}\n\n${formattedItems}\n\n------------------------------\n💰 *TOTAL:* ${items[0]?.product.currency || '$'} ${cart?.total.toLocaleString() ?? '0'}\n------------------------------\n\n🔗 *View Cart & Images:* \n${cartShareLink}`
-
-  const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '')
-  window.open(`https://wa.me/${phone || ''}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
-}
 
 
 

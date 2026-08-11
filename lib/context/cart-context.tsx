@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import { Cart, CartItem, Product, Color, Variant, Accessory } from '@/lib/types';
 
 interface CartContextType {
@@ -28,15 +29,15 @@ interface CartContextType {
 
 export const CartContext = createContext<CartContextType | undefined>(undefined);
 
-function ShareHydrator({ 
-  onRestore 
-}: { 
-  onRestore: (items: CartItem[], name?: string) => void 
+function ShareHydrator({
+  onRestore,
+}: {
+  onRestore: (items: CartItem[], name?: string) => void;
 }) {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const shareData = searchParams.get('c'); // 'c' instead of 'share' for shorter URL
+    const shareData = searchParams.get('c');
     const nameParam = searchParams.get('name');
 
     if (!shareData) return;
@@ -46,15 +47,16 @@ function ShareHydrator({
       const sharedItems = JSON.parse(decodedJson);
 
       if (Array.isArray(sharedItems) && sharedItems.length > 0) {
-        // If sharedItems is short payload, restore structure
         const restored: CartItem[] = sharedItems.map((s: any) => {
-          if (s.product) return s; // Full object fallback
+          if (s.product) return s;
           return {
             productId: s.i,
             quantity: s.q,
             selectedColor: s.c ? { id: s.c, name: s.c } : undefined,
             selectedVariant: s.v ? { id: s.v, name: s.v } : undefined,
-            selectedAccessories: Array.isArray(s.a) ? s.a.map((acc: string) => ({ id: acc, name: acc })) : [],
+            selectedAccessories: Array.isArray(s.a)
+              ? s.a.map((acc: string) => ({ id: acc, name: acc }))
+              : [],
             customDimensions: s.d,
             product: s.p || {
               id: s.i,
@@ -62,14 +64,12 @@ function ShareHydrator({
               price: s.pr || 0,
               currency: s.cur || '$',
               images: s.img ? [s.img] : [],
-              slug: s.s || ''
-            }
+              slug: s.s || '',
+            },
           };
         });
 
         onRestore(restored, nameParam || undefined);
-        
-        // Clean URL params
         window.history.replaceState({}, '', window.location.pathname);
       }
     } catch (error) {
@@ -81,26 +81,117 @@ function ShareHydrator({
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const { userId, isLoaded: isAuthLoaded } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState<string>('');
   const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
-    const savedCart = localStorage.getItem('revamp-cart');
-    const savedName = localStorage.getItem('revamp-customer-name');
-    if (savedCart) {
-      try { setItems(JSON.parse(savedCart)); } catch (e) {}
-    }
-    if (savedName) setCustomerName(savedName);
-    setIsLoaded(true);
-  }, []);
+  // Storage keys scoped by Clerk user or guest
+  const cartStorageKey = userId ? `revamp-cart-${userId}` : 'revamp-cart-guest';
+  const nameStorageKey = userId ? `revamp-name-${userId}` : 'revamp-customer-name';
 
+  // 1. Initial Load & Database Sync
   useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem('revamp-cart', JSON.stringify(items));
-      localStorage.setItem('revamp-customer-name', customerName);
+    if (!isAuthLoaded) return;
+
+    async function syncAndLoadCart() {
+      setIsLoaded(false);
+
+      if (userId) {
+        // Retrieve local guest items to merge if user just signed in
+        const guestCart = localStorage.getItem('revamp-cart-guest') || localStorage.getItem('revamp-cart');
+        const guestItems: CartItem[] = guestCart ? JSON.parse(guestCart) : [];
+
+        try {
+          const res = await fetch('/api/cart');
+          if (res.ok) {
+            const data = await res.json();
+            let serverItems: CartItem[] = data.items || [];
+
+            // Merge guest cart items into database items
+            if (guestItems.length > 0) {
+              const mergedMap = new Map<string, CartItem>();
+
+              serverItems.forEach((item) => mergedMap.set(item.productId, item));
+              guestItems.forEach((item) => {
+                if (mergedMap.has(item.productId)) {
+                  const existing = mergedMap.get(item.productId)!;
+                  mergedMap.set(item.productId, {
+                    ...existing,
+                    quantity: existing.quantity + item.quantity,
+                  });
+                } else {
+                  mergedMap.set(item.productId, item);
+                }
+              });
+
+              serverItems = Array.from(mergedMap.values());
+
+              // Clean local guest storage so items don't re-merge later
+              localStorage.removeItem('revamp-cart-guest');
+              localStorage.removeItem('revamp-cart');
+
+              // Persist merged cart back to the database
+              await fetch('/api/cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: serverItems }),
+              });
+            }
+
+            setItems(serverItems);
+            const savedName = localStorage.getItem(nameStorageKey);
+            if (savedName) setCustomerName(savedName);
+            setIsLoaded(true);
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to sync database cart:', error);
+        }
+      }
+
+      // Guest mode fallback
+      const savedCart = localStorage.getItem(cartStorageKey) || localStorage.getItem('revamp-cart');
+      const savedName = localStorage.getItem(nameStorageKey) || localStorage.getItem('revamp-customer-name');
+
+      if (savedCart) {
+        try {
+          setItems(JSON.parse(savedCart));
+        } catch (e) {
+          setItems([]);
+        }
+      } else {
+        setItems([]);
+      }
+
+      if (savedName) setCustomerName(savedName);
+      setIsLoaded(true);
     }
-  }, [items, customerName, isLoaded]);
+
+    syncAndLoadCart();
+  }, [userId, isAuthLoaded, cartStorageKey, nameStorageKey]);
+
+  // 2. Persist state edits to LocalStorage + Database
+  useEffect(() => {
+    if (!isLoaded || !isAuthLoaded) return;
+
+    // Save locally
+    localStorage.setItem(cartStorageKey, JSON.stringify(items));
+    localStorage.setItem(nameStorageKey, customerName);
+
+    // Save to Database via API if logged in
+    if (userId) {
+      const syncTimeout = setTimeout(() => {
+        fetch('/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items }),
+        }).catch((err) => console.error('Failed to sync cart updates:', err));
+      }, 300);
+
+      return () => clearTimeout(syncTimeout);
+    }
+  }, [items, customerName, isLoaded, isAuthLoaded, userId, cartStorageKey, nameStorageKey]);
 
   const calculateTotals = (cartItems: CartItem[]) => {
     const subtotal = cartItems.reduce((total, item) => {
@@ -145,11 +236,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const removeFromCart = (productId: string) => setItems((prev) => prev.filter((i) => i.productId !== productId));
+  const removeFromCart = (productId: string) =>
+    setItems((prev) => prev.filter((i) => i.productId !== productId));
+
   const updateQuantity = (productId: string, quantity: number) => {
     if (quantity <= 0) return removeFromCart(productId);
-    setItems((prev) => prev.map((i) => (i.productId === productId ? { ...i, quantity } : i)));
+    setItems((prev) =>
+      prev.map((i) => (i.productId === productId ? { ...i, quantity } : i))
+    );
   };
+
   const clearCart = () => setItems([]);
 
   const totals = calculateTotals(items);
@@ -157,7 +253,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   return (
     <CartContext.Provider
       value={{
-        cart: { id: 'temp-cart', userId: 'guest', items, ...totals, updatedAt: new Date() },
+        cart: {
+          id: 'temp-cart',
+          userId: userId || 'guest',
+          items,
+          ...totals,
+          updatedAt: new Date(),
+        },
         items,
         customerName,
         setCustomerName,

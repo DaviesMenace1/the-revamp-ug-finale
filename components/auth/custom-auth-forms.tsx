@@ -8,14 +8,21 @@ import Link from 'next/link'
 type OAuthStrategy = 'oauth_google' | 'oauth_linkedin_oidc'
 
 /**
- * Maps Clerk API error codes to clear, user-safe messages.
- * Falls back to Clerk's own message, then a generic one.
+ * Maps Clerk error codes to clear, user-safe messages.
+ * Handles both the flat ClerkError shape ({ code, message, longMessage })
+ * returned by the current SDK and the legacy { errors: [...] } shape.
  * Never leaks whether an account exists (enumeration-safe wording).
  */
 function clerkErrorMessage(err: unknown, fallback: string): string {
-  const anyErr = err as { errors?: Array<{ code?: string; message?: string; longMessage?: string }>; message?: string }
+  const anyErr = err as {
+    code?: string
+    message?: string
+    longMessage?: string
+    errors?: Array<{ code?: string; message?: string; longMessage?: string }>
+  }
   const first = anyErr?.errors?.[0]
-  switch (first?.code) {
+  const code = anyErr?.code ?? first?.code
+  switch (code) {
     case 'form_code_incorrect':
       return 'That verification code is incorrect. Check the latest email and try again.'
     case 'verification_expired':
@@ -36,12 +43,9 @@ function clerkErrorMessage(err: unknown, fallback: string): string {
     case 'form_password_length_too_short':
       return 'That password is too short. Use at least 8 characters.'
     default:
-      return first?.longMessage || first?.message || anyErr?.message || fallback
+      return anyErr?.longMessage || first?.longMessage || first?.message || anyErr?.message || fallback
   }
 }
-
-const clerkTimeout = (message = 'The authentication service is taking too long to respond. Check your connection and try again.') =>
-  new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error(message)), 15000))
 
 function AuthButton({ children, disabled = false, onClick }: { children: React.ReactNode; disabled?: boolean; onClick?: () => void }) {
   return (
@@ -132,63 +136,87 @@ function Field({
 }
 
 export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
-  const { isLoaded, signIn, setActive } = useSignIn()
+  const { signIn } = useSignIn()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
-  const [step, setStep] = useState<'password' | 'verify-email' | 'verify-2fa'>('password')
+  const [step, setStep] = useState<'password' | 'verify-device' | 'verify-2fa' | 'verify-email'>('password')
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
 
+  const isLoaded = !!signIn
   const destination = redirectUrl || '/account'
 
   /**
-   * Task-aware session activation: never redirects while Clerk reports a
-   * pending session task, which prevents redirect loops / stuck loading.
+   * Task-aware finalization: sets the session active and only navigates when
+   * Clerk reports no pending session task, preventing redirect loops.
    */
-  const activate = async (sessionId: string | null) => {
-    if (!sessionId || !setActive) {
-      setError('Your session could not be activated. Try signing in again.')
-      return
-    }
-    await setActive({
-      session: sessionId,
-      navigate: async ({ session }) => {
+  const finalize = async () => {
+    if (!signIn) return
+    const { error: finalizeError } = await signIn.finalize({
+      navigate: async ({ session, decorateUrl }) => {
         if (session?.currentTask) {
           console.error('[v0] Pending Clerk session task after sign-in:', session.currentTask)
           setError('Your account requires an additional setup step. Contact support if this persists.')
           return
         }
-        window.location.assign(destination)
+        window.location.href = decorateUrl(destination)
       },
     })
+    if (finalizeError) {
+      console.error('[v0] Session finalize error:', finalizeError)
+      setError(clerkErrorMessage(finalizeError, 'Your session could not be activated. Try signing in again.'))
+    }
   }
 
   /**
-   * Both Device Trust (needs_client_trust) and MFA (needs_second_factor)
-   * are resolved by completing an email-code second factor.
+   * Routes the sign-in to the correct next step based on Clerk's status.
+   * Device Trust (needs_client_trust) and MFA (needs_second_factor) are both
+   * resolved with an emailed second-factor code; needs_first_factor falls
+   * back to a first-factor email code.
    */
-  const startEmailSecondFactor = async (nextStep: 'verify-email' | 'verify-2fa') => {
+  const advance = async (): Promise<void> => {
     if (!signIn) return
-    const factor = signIn.supportedSecondFactors?.find((item) => item.strategy === 'email_code')
-    if (!factor || !('emailAddressId' in factor) || !factor.emailAddressId) {
-      console.error('[v0] No email_code second factor available. Factors:', signIn.supportedSecondFactors)
-      throw new Error('Verification by email is required but unavailable for this account. Contact support.')
+    switch (signIn.status) {
+      case 'complete':
+        await finalize()
+        break
+      case 'needs_client_trust': {
+        // New/untrusted device: verify by email code to establish device trust.
+        const { error: sendError } = await signIn.mfa.sendEmailCode()
+        if (sendError) throw sendError
+        setCode('')
+        setStep('verify-device')
+        break
+      }
+      case 'needs_second_factor': {
+        const { error: sendError } = await signIn.mfa.sendEmailCode()
+        if (sendError) throw sendError
+        setCode('')
+        setStep('verify-2fa')
+        break
+      }
+      case 'needs_first_factor': {
+        const { error: sendError } = await signIn.emailCode.sendCode()
+        if (sendError) throw sendError
+        setCode('')
+        setStep('verify-email')
+        break
+      }
+      case 'needs_new_password':
+        window.location.assign('/reset-password')
+        break
+      default:
+        console.error('[v0] Unhandled sign-in status:', signIn.status)
+        setError('Sign-in could not be completed. Try again, or contact support if this persists.')
     }
-    await Promise.race([
-      signIn.prepareSecondFactor({ strategy: 'email_code', emailAddressId: factor.emailAddressId }),
-      clerkTimeout(),
-    ])
-    setCode('')
-    setStep(nextStep)
-    setInfo(null)
   }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isLoaded || !signIn) {
+    if (!signIn) {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
@@ -196,42 +224,9 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
     setError(null)
     setInfo(null)
     try {
-      const result = await Promise.race([signIn.create({ identifier: email, password }), clerkTimeout()])
-      switch (result.status) {
-        case 'complete':
-          await activate(result.createdSessionId)
-          break
-        case 'needs_client_trust':
-          // New/untrusted device: Clerk requires verification to establish device trust.
-          await startEmailSecondFactor('verify-email')
-          break
-        case 'needs_second_factor':
-          await startEmailSecondFactor('verify-2fa')
-          break
-        case 'needs_first_factor': {
-          // Defensive: password strategy should complete the first factor,
-          // but if Clerk requires an email code, honor it.
-          const factor = result.supportedFirstFactors?.find((item) => item.strategy === 'email_code')
-          if (factor && 'emailAddressId' in factor && factor.emailAddressId) {
-            await Promise.race([
-              signIn.prepareFirstFactor({ strategy: 'email_code', emailAddressId: factor.emailAddressId }),
-              clerkTimeout(),
-            ])
-            setCode('')
-            setStep('verify-email')
-          } else {
-            console.error('[v0] Unexpected needs_first_factor without email_code. Factors:', result.supportedFirstFactors)
-            setError('This account cannot sign in with a password. Use the method you originally signed up with.')
-          }
-          break
-        }
-        case 'needs_new_password':
-          window.location.assign('/reset-password')
-          break
-        default:
-          console.error('[v0] Unhandled sign-in status:', result.status)
-          setError('Sign-in could not be completed. Try again, or contact support if this persists.')
-      }
+      const { error: passwordError } = await signIn.password({ identifier: email, password })
+      if (passwordError) throw passwordError
+      await advance()
     } catch (err) {
       console.error('[v0] Sign-in error:', err)
       setError(clerkErrorMessage(err, 'Unable to sign in. Check your details and try again.'))
@@ -242,24 +237,17 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
 
   const verify = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isLoaded || !signIn) return
+    if (!signIn) return
     setLoading(true)
     setError(null)
     setInfo(null)
     try {
-      const attempt =
-        signIn.firstFactorVerification?.strategy === 'email_code' && signIn.status === 'needs_first_factor'
-          ? signIn.attemptFirstFactor({ strategy: 'email_code', code })
-          : signIn.attemptSecondFactor({ strategy: 'email_code', code })
-      const result = await Promise.race([attempt, clerkTimeout()])
-      if (result.status === 'complete') {
-        await activate(result.createdSessionId)
-      } else if (result.status === 'needs_second_factor' || result.status === 'needs_client_trust') {
-        await startEmailSecondFactor('verify-2fa')
-      } else {
-        console.error('[v0] Unhandled post-verification status:', result.status)
-        setError('Verification did not complete. Request a new code and try again.')
-      }
+      const { error: verifyError } =
+        step === 'verify-email'
+          ? await signIn.emailCode.verifyCode({ code })
+          : await signIn.mfa.verifyEmailCode({ code })
+      if (verifyError) throw verifyError
+      await advance()
     } catch (err) {
       console.error('[v0] Verification error:', err)
       setError(clerkErrorMessage(err, 'That verification code was not accepted. Try again.'))
@@ -269,11 +257,13 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   }
 
   const resend = async () => {
-    if (!isLoaded || !signIn || loading) return
+    if (!signIn || loading) return
     setLoading(true)
     setError(null)
     try {
-      await startEmailSecondFactor(step === 'verify-2fa' ? 'verify-2fa' : 'verify-email')
+      const { error: sendError } =
+        step === 'verify-email' ? await signIn.emailCode.sendCode() : await signIn.mfa.sendEmailCode()
+      if (sendError) throw sendError
       setInfo('A new verification code has been sent to your email.')
     } catch (err) {
       console.error('[v0] Resend error:', err)
@@ -292,15 +282,17 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   }
 
   const oauth = async (strategy: OAuthStrategy) => {
-    if (!isLoaded || !signIn) return
+    if (!signIn) return
     setOauthLoading(strategy)
     setError(null)
     try {
-      await signIn.authenticateWithRedirect({
+      // Redirects the browser to the provider; only returns here on error.
+      const { error: ssoError } = await signIn.sso({
         strategy,
-        redirectUrl: `/sign-in/sso-callback?redirect_url=${encodeURIComponent(destination)}`,
-        redirectUrlComplete: destination,
+        redirectUrl: destination,
+        redirectCallbackUrl: `/sign-in/sso-callback?redirect_url=${encodeURIComponent(destination)}`,
       })
+      if (ssoError) throw ssoError
     } catch (err) {
       console.error('[v0] OAuth start error:', err)
       setError(clerkErrorMessage(err, 'Unable to connect to the provider. Try again.'))
@@ -308,11 +300,11 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
     }
   }
 
-  const verifying = step === 'verify-email' || step === 'verify-2fa'
+  const verifying = step !== 'password'
 
   return (
     <AuthCard
-      eyebrow={verifying ? 'Verify your sign-in' : 'Welcome back'}
+      eyebrow={step === 'verify-device' ? 'New device detected' : verifying ? 'Verify your sign-in' : 'Welcome back'}
       title={verifying ? 'Enter your verification code' : 'Sign in to your account'}
       description={
         verifying
@@ -392,7 +384,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
 }
 
 export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
-  const { isLoaded, signUp, setActive } = useSignUp()
+  const { signUp } = useSignUp()
   const [step, setStep] = useState<'form' | 'verify'>('form')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -404,29 +396,30 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
 
+  const isLoaded = !!signUp
   const destination = redirectUrl || '/account'
 
-  const activate = async (sessionId: string | null) => {
-    if (!sessionId || !setActive) {
-      setError('Your session could not be activated. Try signing in.')
-      return
-    }
-    await setActive({
-      session: sessionId,
-      navigate: async ({ session }) => {
+  const finalize = async () => {
+    if (!signUp) return
+    const { error: finalizeError } = await signUp.finalize({
+      navigate: async ({ session, decorateUrl }) => {
         if (session?.currentTask) {
           console.error('[v0] Pending Clerk session task after sign-up:', session.currentTask)
           setError('Your account requires an additional setup step. Contact support if this persists.')
           return
         }
-        window.location.assign(destination)
+        window.location.href = decorateUrl(destination)
       },
     })
+    if (finalizeError) {
+      console.error('[v0] Sign-up finalize error:', finalizeError)
+      setError(clerkErrorMessage(finalizeError, 'Your session could not be activated. Try signing in.'))
+    }
   }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isLoaded || !signUp) {
+    if (!signUp) {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
@@ -434,17 +427,18 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     setError(null)
     setInfo(null)
     try {
-      const result = await Promise.race([
-        signUp.create({ firstName, lastName, emailAddress: email, password }),
-        clerkTimeout(),
-      ])
-      if (result.status === 'complete') {
-        await activate(result.createdSessionId)
-      } else {
-        // Email verification (or other requirements) outstanding.
-        await Promise.race([signUp.prepareEmailAddressVerification({ strategy: 'email_code' }), clerkTimeout()])
+      const { error: createError } = await signUp.password({ emailAddress: email, password, firstName, lastName })
+      if (createError) throw createError
+      if (signUp.status === 'complete') {
+        await finalize()
+      } else if (signUp.unverifiedFields.includes('email_address')) {
+        const { error: sendError } = await signUp.verifications.sendEmailCode()
+        if (sendError) throw sendError
         setCode('')
         setStep('verify')
+      } else {
+        console.error('[v0] Sign-up missing requirements:', signUp.missingFields, signUp.unverifiedFields)
+        setError('Your account still needs more information. Check the form and try again, or contact support.')
       }
     } catch (err) {
       console.error('[v0] Sign-up error:', err)
@@ -456,20 +450,18 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
 
   const verify = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isLoaded || !signUp) return
+    if (!signUp) return
     setLoading(true)
     setError(null)
     setInfo(null)
     try {
-      const result = await Promise.race([signUp.attemptEmailAddressVerification({ code }), clerkTimeout()])
-      if (result.status === 'complete') {
-        await activate(result.createdSessionId)
-      } else if (result.status === 'missing_requirements') {
-        console.error('[v0] Sign-up missing requirements:', result.missingFields, result.unverifiedFields)
-        setError('Your account still needs more information. Check the form and try again, or contact support.')
+      const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code })
+      if (verifyError) throw verifyError
+      if (signUp.status === 'complete') {
+        await finalize()
       } else {
-        console.error('[v0] Unhandled sign-up status after verification:', result.status)
-        setError('Verification did not complete. Request a new code and try again.')
+        console.error('[v0] Sign-up incomplete after verification:', signUp.status, signUp.missingFields)
+        setError('Your account still needs more information. Contact support if this persists.')
       }
     } catch (err) {
       console.error('[v0] Sign-up verification error:', err)
@@ -480,11 +472,12 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
   }
 
   const resend = async () => {
-    if (!isLoaded || !signUp || loading) return
+    if (!signUp || loading) return
     setLoading(true)
     setError(null)
     try {
-      await Promise.race([signUp.prepareEmailAddressVerification({ strategy: 'email_code' }), clerkTimeout()])
+      const { error: sendError } = await signUp.verifications.sendEmailCode()
+      if (sendError) throw sendError
       setInfo('A new verification code has been sent to your email.')
     } catch (err) {
       console.error('[v0] Sign-up resend error:', err)
@@ -495,15 +488,16 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
   }
 
   const oauth = async (strategy: OAuthStrategy) => {
-    if (!isLoaded || !signUp) return
+    if (!signUp) return
     setOauthLoading(strategy)
     setError(null)
     try {
-      await signUp.authenticateWithRedirect({
+      const { error: ssoError } = await signUp.sso({
         strategy,
-        redirectUrl: `/sign-up/sso-callback?redirect_url=${encodeURIComponent(destination)}`,
-        redirectUrlComplete: destination,
+        redirectUrl: destination,
+        redirectCallbackUrl: `/sign-up/sso-callback?redirect_url=${encodeURIComponent(destination)}`,
       })
+      if (ssoError) throw ssoError
     } catch (err) {
       console.error('[v0] Sign-up OAuth start error:', err)
       setError(clerkErrorMessage(err, 'Unable to connect to the provider. Try again.'))
@@ -576,19 +570,21 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
 }
 
 export function CustomResetPassword() {
-  const { isLoaded, signIn } = useSignIn()
+  const { signIn } = useSignIn()
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [step, setStep] = useState<'email' | 'code' | 'done'>('email')
+  const [step, setStep] = useState<'email' | 'code' | 'new-password'>('email')
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  const isLoaded = !!signIn
+
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isLoaded || !signIn) {
+    if (!signIn) {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
@@ -597,54 +593,55 @@ export function CustomResetPassword() {
     setInfo(null)
     try {
       if (step === 'email') {
-        await Promise.race([signIn.create({ strategy: 'reset_password_email_code', identifier: email }), clerkTimeout()])
+        const { error: createError } = await signIn.create({ identifier: email })
+        if (!createError) {
+          const { error: sendError } = await signIn.resetPasswordEmailCode.sendCode()
+          if (sendError) console.error('[v0] Reset-code send error:', sendError)
+        } else {
+          console.error('[v0] Reset-password create error:', createError)
+        }
+        // Enumeration-safe: identical outcome whether or not the email exists.
+        setInfo('If an account exists for that email, a reset code has been sent. Check your inbox.')
         setStep('code')
       } else {
-        const result = await Promise.race([
-          signIn.attemptFirstFactor({ strategy: 'reset_password_email_code', code }),
-          clerkTimeout(),
-        ])
-        if (result.status === 'needs_new_password') {
-          setStep('done')
-        } else if (result.status === 'complete') {
+        const { error: verifyError } = await signIn.resetPasswordEmailCode.verifyCode({ code })
+        if (verifyError) throw verifyError
+        if (signIn.status === 'needs_new_password') {
+          setStep('new-password')
+        } else if (signIn.status === 'complete') {
           window.location.assign('/sign-in?reset=success')
         } else {
-          console.error('[v0] Unhandled reset-password status:', result.status)
+          console.error('[v0] Unhandled reset-password status:', signIn.status)
           setError('Verification did not complete. Request a new code and try again.')
         }
       }
     } catch (err) {
       console.error('[v0] Reset-password error:', err)
-      if (step === 'email') {
-        // Enumeration-safe: identical outcome whether or not the email exists.
-        setInfo('If an account exists for that email, a reset code has been sent. Check your inbox.')
-        setStep('code')
-      } else {
-        setError(clerkErrorMessage(err, 'That code was not accepted. Try again.'))
-      }
+      setError(clerkErrorMessage(err, 'That code was not accepted. Try again.'))
     } finally {
       setLoading(false)
     }
   }
 
   const resend = async () => {
-    if (!isLoaded || !signIn || loading) return
+    if (!signIn || loading) return
     setLoading(true)
     setError(null)
     try {
-      await Promise.race([signIn.create({ strategy: 'reset_password_email_code', identifier: email }), clerkTimeout()])
-      setInfo('A new reset code has been sent if an account exists for that email.')
+      const { error: createError } = await signIn.create({ identifier: email })
+      if (!createError) await signIn.resetPasswordEmailCode.sendCode()
     } catch (err) {
       console.error('[v0] Reset-password resend error:', err)
-      setInfo('A new reset code has been sent if an account exists for that email.')
     } finally {
+      // Enumeration-safe messaging regardless of outcome.
+      setInfo('A new reset code has been sent if an account exists for that email.')
       setLoading(false)
     }
   }
 
   const finish = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isLoaded || !signIn) {
+    if (!signIn) {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
@@ -655,8 +652,27 @@ export function CustomResetPassword() {
     setLoading(true)
     setError(null)
     try {
-      await Promise.race([signIn.resetPassword({ password }), clerkTimeout()])
-      window.location.assign('/sign-in?reset=success')
+      const { error: submitError } = await signIn.resetPasswordEmailCode.submitPassword({
+        password,
+        signOutOfOtherSessions: true,
+      })
+      if (submitError) throw submitError
+      if (signIn.status === 'complete') {
+        // Password reset creates a session; activate it and go to the account.
+        const { error: finalizeError } = await signIn.finalize({
+          navigate: async ({ session, decorateUrl }) => {
+            if (session?.currentTask) {
+              console.error('[v0] Pending session task after password reset:', session.currentTask)
+              window.location.assign('/sign-in?reset=success')
+              return
+            }
+            window.location.href = decorateUrl('/account')
+          },
+        })
+        if (finalizeError) window.location.assign('/sign-in?reset=success')
+      } else {
+        window.location.assign('/sign-in?reset=success')
+      }
     } catch (err) {
       console.error('[v0] Password update error:', err)
       setError(clerkErrorMessage(err, 'Unable to update your password. Try again.'))
@@ -668,7 +684,7 @@ export function CustomResetPassword() {
   return (
     <AuthCard
       eyebrow="Account recovery"
-      title={step === 'done' ? 'Choose a new password' : 'Reset your password'}
+      title={step === 'new-password' ? 'Choose a new password' : 'Reset your password'}
       description={
         step === 'email'
           ? 'We will send a secure reset code to your email.'
@@ -677,7 +693,7 @@ export function CustomResetPassword() {
             : 'Use a strong password you have not used elsewhere.'
       }
     >
-      {step === 'done' ? (
+      {step === 'new-password' ? (
         <form onSubmit={finish} className="grid gap-5">
           <Field label="New password" type="password" value={password} onChange={setPassword} autoComplete="new-password" />
           <Field

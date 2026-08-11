@@ -26,6 +26,8 @@
     "cloudinary": "^2.10.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
     "lucide-react": "^1.16.0",
     "next": "16.2.6",
     "next-cloudinary": "^6.17.5",
@@ -42,6 +44,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
+    "@types/file-saver": "^2.0.7",
     "@types/node": "^24",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",

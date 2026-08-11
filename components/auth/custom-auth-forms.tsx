@@ -1,7 +1,7 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
-import { useSignIn, useSignUp } from "@clerk/nextjs/legacy"
+import { useSignIn, useSignUp } from "@clerk/nextjs"
 import { ArrowRight, Check, Globe2, Link2, Loader2, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 
@@ -107,7 +107,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isLoaded) {
+    if (!isLoaded || !signIn) {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
@@ -126,7 +126,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       } else if (result.status === 'needs_client_trust') {
         setError('Additional verification is required.')
       } else if (result.status === 'needs_second_factor') {
-        const factor = result.supportedSecondFactors?.find((item) => item.strategy === 'email_code')
+        const factor = result.supportedSecondFactors?.find((item: any) => item.strategy === 'email_code')
         if (!factor || !('emailAddressId' in factor) || !factor.emailAddressId) {
           throw new Error('Email verification is required, but no email verification method is available for this account.')
         }
@@ -135,8 +135,8 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       } else {
         setError('This sign-in method requires a verification step that is not available yet.')
       }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unable to sign in. Check your details and try again.')
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.message || err?.message || 'Unable to sign in. Check your details and try again.')
     } finally {
       setLoading(false)
     }
@@ -144,7 +144,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
 
   const verify = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isLoaded) return
+    if (!isLoaded || !signIn) return
     setLoading(true)
     setError(null)
     try {
@@ -154,15 +154,15 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       } else {
         setError('That verification code was not accepted. Try again.')
       }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'That verification code was not accepted.')
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.message || err?.message || 'That verification code was not accepted.')
     } finally {
       setLoading(false)
     }
   }
 
   const oauth = async (strategy: 'oauth_google' | 'oauth_linkedin') => {
-    if (!isLoaded) return
+    if (!isLoaded || !signIn) return
     setOauthLoading(strategy)
     setError(null)
     try {
@@ -171,8 +171,8 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
         redirectUrl: `/sign-in/sso-callback?redirect_url=${encodeURIComponent(redirectUrl)}`,
         redirectUrlComplete: redirectUrl,
       })
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unable to connect to the provider.')
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.message || err?.message || 'Unable to connect to the provider.')
       setOauthLoading(null)
     }
   }
@@ -250,7 +250,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isLoaded) {
+    if (!isLoaded || !signUp) {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
@@ -260,17 +260,16 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
       await Promise.race([signUp.create({ firstName, lastName, emailAddress: email, password }), clerkTimeout()])
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
       setStep('verify')
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unable to create your account.')
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.message || err?.message || 'Unable to create your account.')
     } finally {
       setLoading(false)
     }
   }
 
-  // ✅ 2. Updated verify() to use activate() instead of router.push()
   const verify = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isLoaded) return
+    if (!isLoaded || !signUp) return
     setLoading(true)
     setError(null)
     try {
@@ -280,15 +279,15 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
       } else {
         setError('Verification is incomplete. Please try again.')
       }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'That code was not accepted.')
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.message || err?.message || 'That code was not accepted.')
     } finally {
       setLoading(false)
     }
   }
 
   const oauth = async (strategy: 'oauth_google' | 'oauth_linkedin') => {
-    if (!isLoaded) return
+    if (!isLoaded || !signUp) return
     setOauthLoading(strategy)
     try {
       await signUp.authenticateWithRedirect({
@@ -296,8 +295,8 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
         redirectUrl: `/sign-up/sso-callback?redirect_url=${encodeURIComponent(redirectUrl)}`,
         redirectUrlComplete: redirectUrl,
       })
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unable to connect to the provider.')
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.message || err?.message || 'Unable to connect to the provider.')
       setOauthLoading(null)
     }
   }
@@ -349,7 +348,7 @@ export function CustomResetPassword() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isLoaded) {
+    if (!isLoaded || !signIn) {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
@@ -363,8 +362,8 @@ export function CustomResetPassword() {
         const result = await signIn.attemptFirstFactor({ strategy: 'reset_password_email_code', code })
         if (result.status === 'needs_new_password') setStep('done')
       }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unable to process that request.')
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.message || err?.message || 'Unable to process that request.')
     } finally {
       setLoading(false)
     }
@@ -372,7 +371,7 @@ export function CustomResetPassword() {
 
   const finish = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isLoaded) {
+    if (!isLoaded || !signIn) {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
@@ -381,8 +380,8 @@ export function CustomResetPassword() {
     try {
       await Promise.race([signIn.resetPassword({ password }), clerkTimeout()])
       window.location.assign('/sign-in?reset=success')
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unable to update your password.')
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.message || err?.message || 'Unable to update your password.')
     } finally {
       setLoading(false)
     }

@@ -3,8 +3,6 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { Star, Heart, ShoppingBag, Truck, ShieldCheck, Check, Ruler, Sparkles } from 'lucide-react'
-
-// Import your existing Cart Context hook
 import { useCart } from '@/lib/context/cart-context'
 
 const DEFAULT_IMAGE = 'https://therevampug.com/default-thumb.png'
@@ -17,24 +15,25 @@ const formatPrice = (price: string | number, currency = 'USD') => {
 export function ProductDetail({ product }: { product: any }) {
   const cart = useCart() as any
 
-  // Extract images safely
   const rawImages: string[] = Array.isArray(product?.images) && product.images.length > 0
     ? product.images.filter(Boolean)
     : [DEFAULT_IMAGE]
 
-  // Safe extraction of variants & images
   const variants = Array.isArray(product?.variants) ? product.variants : []
   const colors = variants.filter((v: any) => v?.type === 'COLOR')
   const fabrics = variants.filter((v: any) => v?.type === 'FABRIC')
   const productImages = Array.isArray(product?.productImages) ? product.productImages : []
 
-  // Safe default dimension extraction
   const rawDims = product?.dimensions || {}
   const initialWidth = typeof rawDims === 'object' ? (rawDims.width || '') : ''
   const initialHeight = typeof rawDims === 'object' ? (rawDims.height || '') : ''
   const initialDepth = typeof rawDims === 'object' ? (rawDims.depth || '') : ''
 
-  // State
+  // Single Source of Truth for Reviews
+  const [reviews, setReviews] = useState<any[]>(
+    Array.isArray(product?.reviews) ? product.reviews : []
+  )
+
   const [selectedImage, setSelectedImage] = useState<string>(rawImages[0] || DEFAULT_IMAGE)
   const [selectedColor, setSelectedColor] = useState(colors[0] || null)
   const [selectedFabric, setSelectedFabric] = useState(fabrics[0] || null)
@@ -42,12 +41,6 @@ export function ProductDetail({ product }: { product: any }) {
   const [isWishlisted, setIsWishlisted] = useState<boolean>(false)
   const [added, setAdded] = useState<boolean>(false)
 
-  // Reviews State linked to parent
-  const [reviewsList, setReviewsList] = useState<any[]>(
-    Array.isArray(product?.reviews) ? product.reviews : []
-  )
-
-  // Custom Dimensions Toggle & Input States
   const [useCustomDims, setUseCustomDims] = useState<boolean>(false)
   const [dimensions, setDimensions] = useState({
     width: initialWidth,
@@ -55,20 +48,19 @@ export function ProductDetail({ product }: { product: any }) {
     depth: initialDepth,
   })
 
-  // Dynamic Rating & Count Calculation (Updates dynamically when a new review is submitted)
+  // Dynamic Rating Calculations based on live reviews array
   const baseRatingCount = typeof product?.ratingCount === 'number'
     ? product.ratingCount
     : parseInt(product?.ratingCount || '0', 10)
-  
-  const ratingCount = Math.max(reviewsList.length, baseRatingCount)
 
-  const calculatedRating = reviewsList.length > 0
-    ? reviewsList.reduce((acc, curr) => acc + (Number(curr.rating) || 5), 0) / reviewsList.length
+  const ratingCount = Math.max(reviews.length, baseRatingCount)
+
+  const calculatedRating = reviews.length > 0
+    ? reviews.reduce((acc, curr) => acc + (Number(curr.rating) || 5), 0) / reviews.length
     : (typeof product?.rating === 'number' ? product.rating : parseFloat(product?.rating || '0'))
 
   const rating = Number.isNaN(calculatedRating) ? 0 : calculatedRating
 
-  // Dynamic Price Calculation
   const basePrice = parseFloat(product?.price || '0')
   const fabricDelta = selectedFabric ? parseFloat(selectedFabric.priceDelta || '0') : 0
   const totalPrice = (basePrice + fabricDelta) * quantity
@@ -126,12 +118,9 @@ export function ProductDetail({ product }: { product: any }) {
     setTimeout(() => setAdded(false), 2000)
   }
 
-  const toggleWishlist = () => {
-    setIsWishlisted(!isWishlisted)
-  }
-
-  const handleNewReviewAdded = (newReview: any) => {
-    setReviewsList((prev) => [newReview, ...prev])
+  // Handler passed down to the SINGLE review form
+  const handleAddReview = (newReview: any) => {
+    setReviews((prev) => [newReview, ...prev])
   }
 
   return (
@@ -181,7 +170,7 @@ export function ProductDetail({ product }: { product: any }) {
             {product?.name || 'Untitled Product'}
           </h1>
 
-          {/* Dynamic Rating Overview */}
+          {/* Rating Overview */}
           <div className="flex items-center gap-3 mb-6">
             <div className="flex items-center text-amber-500 gap-0.5">
               {[...Array(5)].map((_, i) => (
@@ -346,7 +335,7 @@ export function ProductDetail({ product }: { product: any }) {
             )}
           </div>
 
-          {/* Quantity and Cart Actions */}
+          {/* Actions */}
           <div className="flex gap-4 mb-8">
             <div className="flex items-center border border-border">
               <button
@@ -373,7 +362,7 @@ export function ProductDetail({ product }: { product: any }) {
             </button>
 
             <button
-              onClick={toggleWishlist}
+              onClick={() => setIsWishlisted(!isWishlisted)}
               className={`p-3 border transition-colors ${
                 isWishlisted ? 'border-red-500 text-red-500 bg-red-500/10' : 'border-border text-foreground hover:border-gold'
               }`}
@@ -396,36 +385,31 @@ export function ProductDetail({ product }: { product: any }) {
         </div>
       </div>
 
-      {/* REVIEWS SECTION INTEGRATED DIRECTLY */}
+      {/* SINGLE REVIEWS COMPONENT */}
       <ProductReviews 
-        product={product} 
-        reviews={reviewsList} 
-        onReviewAdded={handleNewReviewAdded} 
+        productId={product?.id} 
+        reviews={reviews} 
+        onAddReview={handleAddReview} 
       />
     </div>
   )
 }
 
+/* --- SINGLE REVIEWS COMPONENT (Only 1 Form + 1 List) --- */
 export function ProductReviews({ 
-  product, 
-  reviews: externalReviews, 
-  onReviewAdded 
+  productId, 
+  reviews = [], 
+  onAddReview 
 }: { 
-  product: any
-  reviews?: any[]
-  onReviewAdded?: (review: any) => void 
+  productId: string
+  reviews: any[]
+  onAddReview: (review: any) => void 
 }) {
-  const [reviews, setReviews] = useState<any[]>(
-    Array.isArray(externalReviews) ? externalReviews : Array.isArray(product?.reviews) ? product.reviews : []
-  )
   const [author, setAuthor] = useState('')
   const [rating, setRating] = useState(5)
   const [hoverRating, setHoverRating] = useState(0)
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
-
-  // Sync internal state when external props update
-  const displayReviews = externalReviews || reviews
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -436,9 +420,9 @@ export function ProductReviews({
 
     setSubmitting(true)
 
-    const newReviewObj = {
+    const newReview = {
       id: Date.now().toString(),
-      productId: product?.id,
+      productId,
       author,
       rating,
       comment,
@@ -449,43 +433,24 @@ export function ProductReviews({
       const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: product?.id,
-          author,
-          rating,
-          comment,
-        }),
+        body: JSON.stringify({ productId, author, rating, comment }),
       })
 
       if (res.ok) {
-        const responseData = await res.json()
-        const savedReview = responseData.data || responseData.review || newReviewObj
-        
-        // Update state
-        setReviews((prev) => [savedReview, ...prev])
-        if (onReviewAdded) onReviewAdded(savedReview)
-
-        setAuthor('')
-        setComment('')
-        setRating(5)
-        alert('Thank you! Your review has been submitted.')
+        const data = await res.json()
+        onAddReview(data?.data || data?.review || newReview)
       } else {
-        // Fallback update on status error
-        setReviews((prev) => [newReviewObj, ...prev])
-        if (onReviewAdded) onReviewAdded(newReviewObj)
-        setAuthor('')
-        setComment('')
-        setRating(5)
+        // Fallback update if API status isn't 200
+        onAddReview(newReview)
       }
     } catch (err) {
-      // Local state fallback if API endpoint is missing/offline
-      setReviews((prev) => [newReviewObj, ...prev])
-      if (onReviewAdded) onReviewAdded(newReviewObj)
+      // Local fallback if API fails
+      onAddReview(newReview)
+    } finally {
+      setSubmitting(false)
       setAuthor('')
       setComment('')
       setRating(5)
-    } finally {
-      setSubmitting(false)
     }
   }
 
@@ -494,7 +459,7 @@ export function ProductReviews({
       <div>
         <h3 className="font-serif text-2xl font-light mb-6">Customer Reviews</h3>
 
-        {/* Add Review Form */}
+        {/* THE ONLY REVIEW FORM */}
         <form onSubmit={handleReviewSubmit} className="border border-border p-6 bg-muted/20 space-y-4 mb-10">
           <h4 className="font-serif text-lg font-light">Write a Review</h4>
 
@@ -513,7 +478,6 @@ export function ProductReviews({
               />
             </div>
 
-            {/* Star Rating Selection */}
             <div>
               <label className="block text-xs uppercase tracking-wider font-medium text-foreground mb-1">
                 Rating Assessment ({rating} / 5 Stars) *
@@ -565,12 +529,12 @@ export function ProductReviews({
           </button>
         </form>
 
-        {/* Dynamic Reviews List Display */}
-        {displayReviews.length === 0 ? (
+        {/* LIST OF REVIEWS */}
+        {reviews.length === 0 ? (
           <p className="text-sm text-muted-foreground">No reviews yet for this product. Be the first to leave a review!</p>
         ) : (
           <div className="space-y-6">
-            {displayReviews.map((rev: any, idx: number) => (
+            {reviews.map((rev: any, idx: number) => (
               <div key={rev?.id || idx} className="border-b border-border pb-6">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
@@ -588,7 +552,7 @@ export function ProductReviews({
                     </div>
                   </div>
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                    Verified Buyer
+                    
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">

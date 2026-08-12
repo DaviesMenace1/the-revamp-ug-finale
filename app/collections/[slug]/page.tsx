@@ -202,12 +202,7 @@ export default async function ProductPage({
           </div>
         </section>
 
-        {/* Reviews Section */}
-        <section className="border-t border-border/20 py-16 md:py-20">
-          <div className="mx-auto max-w-7xl px-6 md:px-8">
-            <ProductReviews product={safeProduct as any} />
-          </div>
-        </section>
+        
 
         {/* Related Products Grid */}
         {related.length > 0 && (

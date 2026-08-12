@@ -1,4 +1,3 @@
-'use class'
 'use client'
 
 import { useState } from 'react'
@@ -82,3 +81,4 @@ export function ImageUpload({ value = [], onChange, maxImages = 5 }: ImageUpload
     </div>
   )
 }
+

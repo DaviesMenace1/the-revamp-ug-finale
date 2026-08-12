@@ -1,4 +1,4 @@
- 'use client';
+'use client';
 
 import React, { createContext, useContext, useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -25,6 +25,7 @@ interface CartContextType {
   cartCount: number;
   cartTotal: number;
   subtotal: number;
+  isLoaded: boolean;
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -86,32 +87,44 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [customerName, setCustomerName] = useState<string>('');
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Storage keys scoped by Clerk user or guest
   const cartStorageKey = userId ? `revamp-cart-${userId}` : 'revamp-cart-guest';
   const nameStorageKey = userId ? `revamp-name-${userId}` : 'revamp-customer-name';
 
-  // 1. Initial Load & Database Sync
+  // 1. Instant Local Read & Safe DB Sync
   useEffect(() => {
     if (!isAuthLoaded) return;
 
-    async function syncAndLoadCart() {
-      setIsLoaded(false);
+    // Immediately read local storage so the cart UI doesn't flash empty
+    let initialItems: CartItem[] = [];
+    const savedCart = localStorage.getItem(cartStorageKey) || localStorage.getItem('revamp-cart');
+    const savedName = localStorage.getItem(nameStorageKey) || localStorage.getItem('revamp-customer-name');
 
-      if (userId) {
-        // Retrieve local guest items to merge if user just signed in
-        const guestCart = localStorage.getItem('revamp-cart-guest') || localStorage.getItem('revamp-cart');
-        const guestItems: CartItem[] = guestCart ? JSON.parse(guestCart) : [];
+    if (savedCart) {
+      try {
+        initialItems = JSON.parse(savedCart);
+      } catch (e) {
+        initialItems = [];
+      }
+    }
 
+    setItems(initialItems);
+    if (savedName) setCustomerName(savedName);
+    setIsLoaded(true);
+
+    // If logged in, sync with API in the background without clearing current state
+    if (userId) {
+      async function syncWithDb() {
         try {
+          const guestCart = localStorage.getItem('revamp-cart-guest') || localStorage.getItem('revamp-cart');
+          const guestItems: CartItem[] = guestCart ? JSON.parse(guestCart) : [];
+
           const res = await fetch('/api/cart');
           if (res.ok) {
             const data = await res.json();
             let serverItems: CartItem[] = data.items || [];
 
-            // Merge guest cart items into database items
             if (guestItems.length > 0) {
               const mergedMap = new Map<string, CartItem>();
-
               serverItems.forEach((item) => mergedMap.set(item.productId, item));
               guestItems.forEach((item) => {
                 if (mergedMap.has(item.productId)) {
@@ -126,12 +139,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               });
 
               serverItems = Array.from(mergedMap.values());
-
-              // Clean local guest storage so items don't re-merge later
               localStorage.removeItem('revamp-cart-guest');
               localStorage.removeItem('revamp-cart');
 
-              // Persist merged cart back to the database
               await fetch('/api/cart', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -140,46 +150,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             }
 
             setItems(serverItems);
-            const savedName = localStorage.getItem(nameStorageKey);
-            if (savedName) setCustomerName(savedName);
-            setIsLoaded(true);
-            return;
           }
         } catch (error) {
           console.error('Failed to sync database cart:', error);
         }
       }
 
-      // Guest mode fallback
-      const savedCart = localStorage.getItem(cartStorageKey) || localStorage.getItem('revamp-cart');
-      const savedName = localStorage.getItem(nameStorageKey) || localStorage.getItem('revamp-customer-name');
-
-      if (savedCart) {
-        try {
-          setItems(JSON.parse(savedCart));
-        } catch (e) {
-          setItems([]);
-        }
-      } else {
-        setItems([]);
-      }
-
-      if (savedName) setCustomerName(savedName);
-      setIsLoaded(true);
+      syncWithDb();
     }
-
-    syncAndLoadCart();
   }, [userId, isAuthLoaded, cartStorageKey, nameStorageKey]);
 
-  // 2. Persist state edits to LocalStorage + Database
+  // 2. Persist State Edits Safely
   useEffect(() => {
     if (!isLoaded || !isAuthLoaded) return;
 
-    // Save locally
     localStorage.setItem(cartStorageKey, JSON.stringify(items));
     localStorage.setItem(nameStorageKey, customerName);
 
-    // Save to Database via API if logged in
     if (userId) {
       const syncTimeout = setTimeout(() => {
         fetch('/api/cart', {
@@ -193,10 +180,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [items, customerName, isLoaded, isAuthLoaded, userId, cartStorageKey, nameStorageKey]);
 
+  // 3. Defensive Totals Calculation (Guards against NaN crashes)
   const calculateTotals = (cartItems: CartItem[]) => {
     const subtotal = cartItems.reduce((total, item) => {
-      const itemPrice = item.product.salePrice || item.product.price;
-      return total + itemPrice * item.quantity;
+      if (!item?.product) return total;
+
+      const rawPrice = item.product.salePrice ?? item.product.price ?? 0;
+      const itemPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice) : Number(rawPrice);
+
+      const safePrice = isNaN(itemPrice) ? 0 : itemPrice;
+      const safeQuantity = Number(item.quantity) || 1;
+
+      return total + safePrice * safeQuantity;
     }, 0);
 
     const tax = subtotal * 0.1;
@@ -268,9 +263,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         removeItem: removeFromCart,
         updateQuantity,
         clearCart,
-        cartCount: items.reduce((count, item) => count + item.quantity, 0),
+        cartCount: items.reduce((count, item) => count + (Number(item.quantity) || 0), 0),
         cartTotal: totals.total,
         subtotal: totals.subtotal,
+        isLoaded,
       }}
     >
       <Suspense fallback={null}>

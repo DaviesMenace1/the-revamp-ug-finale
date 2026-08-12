@@ -104,8 +104,7 @@ export default async function ProductPage({
 
   if (!product) notFound()
 
-  // --- CRASH FIX SANITIZATION ---
-  // Ensure array properties exist before ProductDetail accesses [0]
+  // --- COMPREHENSIVE CRASH FIX SANITIZATION ---
   const rawImages = (product.images as string[] ?? []).filter(Boolean)
   const safeImages = rawImages.length > 0 ? rawImages : [DEFAULT_IMAGE]
 
@@ -127,6 +126,7 @@ export default async function ProductPage({
   const safeColors = safeVariants.filter((v: any) => v.type === 'COLOR')
   const safeFabrics = safeVariants.filter((v: any) => v.type === 'FABRIC')
 
+  // Numeric fields parsing
   const safeRating = typeof product.rating === 'number' 
     ? product.rating 
     : parseFloat(product.rating || '0')
@@ -135,19 +135,26 @@ export default async function ProductPage({
     ? product.ratingCount
     : parseInt(product.ratingCount || '0', 10)
 
+  // Ensure ALL array properties expected by UI component have fallback empty arrays
   const safeProduct = {
     ...product,
-    rating: Number.isNaN(safeRating) ? 0 : safeRating, // 👈 Ensures rating is a real Number with .toFixed()!
+    rating: Number.isNaN(safeRating) ? 0 : safeRating,
     ratingCount: Number.isNaN(safeRatingCount) ? 0 : safeRatingCount,
     images: safeImages,
     productImages: safeProductImages,
     variants: safeVariants,
     colors: safeColors.length > 0 ? safeColors : [{ id: 'default-col', label: 'Standard', value: '#1C1C1C' }],
     fabrics: safeFabrics,
+    reviews: Array.isArray((product as any).reviews) ? (product as any).reviews : [],
+    tags: Array.isArray(product.tags) ? product.tags : [],
+    relatedProducts: Array.isArray(product.relatedProducts) ? product.relatedProducts : [],
+    options: Array.isArray((product as any).options) ? (product as any).options : [],
+    specifications: Array.isArray((product as any).specifications) ? (product as any).specifications : [],
+    dimensions: (product as any).dimensions || {},
     tagline: product.description ?? '',
     currency: 'USD',
   }
-  // -----------------------------
+  // --------------------------------------------
 
   const related = await getRelatedProductsFromDB(product.category, product.id)
   const pageUrl = `https://therevampug.com/collections/${product.slug}`
@@ -241,6 +248,7 @@ export default async function ProductPage({
     </>
   )
 }
+
 
 
 

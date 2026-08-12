@@ -58,53 +58,33 @@ function ImageUpload({ value = [], onChange, maxImages = 5 }: { value: string[];
   )
 }
 
-interface Project {
-  id: string
-  slug: string
-  name: string
-  client: string
-  description: string
-  shortDescription: string
-  location: string
-  status: 'draft' | 'in-progress' | 'completed' | 'on-hold'
-  progress: number
-  year: string
-  features: string[]
-  images: string[]
-  dueDate: string
-  createdAt: string
-}
-
 export default function AdminProjects() {
-  const [projects, setProjects] = useState<Project[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
     slug: '',
-    client: '',
+    clientName: '',
     description: '',
-    shortDescription: '',
+    longDescription: '',
     location: '',
-    status: 'draft' as 'draft' | 'in-progress' | 'completed' | 'on-hold',
-    progress: 0,
-    year: '2026',
-    features: [] as string[],
+    category: '',
+    thumbnailImage: '',
     images: [] as string[],
-    dueDate: '',
+    featured: false,
   })
 
-  const handleNameChange = (name: string) => {
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-    setFormData({ ...formData, name, slug })
+  const handleTitleChange = (title: string) => {
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    setFormData({ ...formData, title, slug })
   }
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.client || !formData.dueDate) {
-      alert('Please fill in required fields (Name, Client, Due Date)')
+    if (!formData.title || !formData.clientName) {
+      alert('Please fill in required fields (Title, Client Name)')
       return
     }
 
@@ -122,18 +102,16 @@ export default function AdminProjects() {
         }
       }
       setFormData({
-        name: '',
+        title: '',
         slug: '',
-        client: '',
+        clientName: '',
         description: '',
-        shortDescription: '',
+        longDescription: '',
         location: '',
-        status: 'draft',
-        progress: 0,
-        year: '2026',
-        features: [],
+        category: '',
+        thumbnailImage: '',
         images: [],
-        dueDate: '',
+        featured: false,
       })
     })
   }
@@ -142,7 +120,7 @@ export default function AdminProjects() {
     <div className="space-y-8">
       <div>
         <h1 className="font-serif text-4xl font-light text-foreground">Projects Management</h1>
-        <p className="text-muted-foreground mt-2">Create, update media via CldUploadWidget, and manage design projects</p>
+        <p className="text-muted-foreground mt-2">Create, update media via Cloudinary, and manage design projects</p>
       </div>
 
       {isFormOpen && (
@@ -164,10 +142,10 @@ export default function AdminProjects() {
 
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Project Name *</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Project Title *</label>
               <Input
-                value={formData.name}
-                onChange={(e) => handleNameChange(e.target.value)}
+                value={formData.title}
+                onChange={(e) => handleTitleChange(e.target.value)}
                 placeholder="e.g., Nakasero Residence"
                 className="rounded-none border-muted"
               />
@@ -184,8 +162,8 @@ export default function AdminProjects() {
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">Client Name *</label>
               <Input
-                value={formData.client}
-                onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+                value={formData.clientName}
+                onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
                 placeholder="e.g., Sarah Kiwanuka"
                 className="rounded-none border-muted"
               />
@@ -200,67 +178,43 @@ export default function AdminProjects() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                className="w-full px-4 py-2 border border-muted rounded-none bg-background text-foreground"
-              >
-                <option value="draft">Draft</option>
-                <option value="in-progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="on-hold">On Hold</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Progress (%)</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Category</label>
               <Input
-                type="number"
-                min="0"
-                max="100"
-                value={formData.progress}
-                onChange={(e) => setFormData({ ...formData, progress: Number(e.target.value) })}
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="e.g., Residential Interior"
                 className="rounded-none border-muted"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Due Date *</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Thumbnail Image URL</label>
               <Input
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                className="rounded-none border-muted"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Year</label>
-              <Input
-                value={formData.year}
-                onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                placeholder="2025-2026"
+                value={formData.thumbnailImage}
+                onChange={(e) => setFormData({ ...formData, thumbnailImage: e.target.value })}
+                placeholder="Cloudinary thumbnail URL..."
                 className="rounded-none border-muted"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-foreground mb-2">Short Summary</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Short Description</label>
               <Input
-                value={formData.shortDescription}
-                onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Brief tagline for card previews..."
                 className="rounded-none border-muted"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-foreground mb-2">Full Description</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Long Description</label>
               <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                value={formData.longDescription}
+                onChange={(e) => setFormData({ ...formData, longDescription: e.target.value })}
                 rows={4}
                 className="w-full px-4 py-2 border border-muted rounded-none bg-background text-foreground font-light resize-none"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-foreground mb-2">Project Gallery Images (CldUploadWidget)</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Project Gallery Images</label>
               <ImageUpload
                 value={formData.images}
                 onChange={(images) => setFormData({ ...formData, images })}
@@ -297,7 +251,7 @@ export default function AdminProjects() {
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search projects by name or client..."
+            placeholder="Search projects by title or client..."
             className="pl-10 rounded-none border-muted"
           />
         </div>
@@ -314,6 +268,7 @@ export default function AdminProjects() {
     </div>
   )
 }
+
 
 
 

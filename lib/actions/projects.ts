@@ -6,23 +6,22 @@ import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 
 export async function createProject(data: {
+  title: string
   slug: string
-  name: string
-  client: string
-  description: string
-  shortDescription: string
-  location: string
-  status: 'draft' | 'in-progress' | 'completed' | 'on-hold'
-  progress: number
-  year: string
-  features: string[]
-  images: string[]
-  dueDate: string
+  description?: string
+  longDescription?: string
+  category?: string
+  clientName?: string
+  location?: string
+  images?: string[]
+  thumbnailImage?: string
+  featured?: boolean
 }) {
   try {
     await db.insert(projects).values({
       ...data,
       createdAt: new Date(),
+      updatedAt: new Date(),
     })
     revalidatePath('/admin/projects')
     revalidatePath('/portfolio')
@@ -35,10 +34,9 @@ export async function createProject(data: {
 
 export async function updateProject(id: string, data: Partial<typeof projects.$inferSelect>) {
   try {
-    await db.update(projects).set(data).where(eq(projects.id, id))
+    await db.update(projects).set({ ...data, updatedAt: new Date() }).where(eq(projects.id, id))
     revalidatePath('/admin/projects')
     revalidatePath('/portfolio')
-    revalidatePath(`/portfolio/${data.slug}`)
     return { success: true }
   } catch (error) {
     console.error('Failed to update project:', error)

@@ -92,7 +92,7 @@ export const products = pgTable(
     name: varchar('name', { length: 255 }).notNull(),
     slug: varchar('slug', { length: 255 }).notNull().unique(),
     description: text('description'),
-    longDescription: text('long_description'),
+    //longDescription: text('long_description'),
     category: varchar('category', { length: 100 }).notNull(),
     subCategory: varchar('sub_category', { length: 100 }),
     price: decimal('price', { precision: 10, scale: 2 }).notNull(),

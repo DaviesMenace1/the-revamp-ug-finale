@@ -11,62 +11,81 @@ type ProjectStatus = NonNullable<InferSelectModel<typeof projects>['status']>;
 // ============================================================================
 
 export async function getProducts(limit = 10, offset = 0) {
-  return await db.query.products.findMany({
-    limit,
-    offset,
-    orderBy: desc(products.createdAt),
-  });
+  try {
+    return await db.query.products.findMany({
+      limit,
+      offset,
+      orderBy: desc(products.createdAt),
+    });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return [];
+  }
 }
 
-// Fetch single product by slug with relational images and variants
 export async function getProductBySlug(slug: string) {
-  return await db.query.products.findFirst({
-    where: eq(products.slug, slug),
-    with: {
-      variants: true,
-      productImages: {
-        with: {
-          colorVariant: true,
+  try {
+    return await db.query.products.findFirst({
+      where: eq(products.slug, slug),
+      with: {
+        variants: true,
+        productImages: {
+          with: {
+            colorVariant: true,
+          },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    return null;
+  }
 }
 
-// Fetch single product by ID with full variant relations
 export async function getProductWithDetails(id: string) {
-  return await db.query.products.findFirst({
-    where: eq(products.id, id),
-    with: {
-      variants: true,
-      productImages: true,
-    },
-  });
+  try {
+    return await db.query.products.findFirst({
+      where: eq(products.id, id),
+      with: {
+        variants: true,
+        productImages: true,
+      },
+    });
+  } catch (error) {
+    return null;
+  }
 }
 
 export async function getProductById(id: string) {
-  return await db.query.products.findFirst({
-    where: eq(products.id, id),
-  });
+  try {
+    return await db.query.products.findFirst({
+      where: eq(products.id, id),
+    });
+  } catch (error) {
+    return null;
+  }
 }
 
 export async function getProductsByCategory(category: string) {
-  return await db.query.products.findMany({
-    where: eq(products.category, category),
-    orderBy: desc(products.createdAt),
-  });
+  try {
+    return await db.query.products.findMany({
+      where: eq(products.category, category),
+      orderBy: desc(products.createdAt),
+    });
+  } catch (error) {
+    return [];
+  }
 }
 
 export async function searchProducts(searchTerm: string) {
-  return await db.query.products.findMany({
-    where: ilike(products.name, `%${searchTerm}%`),
-    orderBy: desc(products.createdAt),
-  });
+  try {
+    return await db.query.products.findMany({
+      where: ilike(products.name, `%${searchTerm}%`),
+      orderBy: desc(products.createdAt),
+    });
+  } catch (error) {
+    return [];
+  }
 }
-
-// ============================================================================
-// PROJECTS
-// ============================================================================
 
 // ============================================================================
 // PROJECTS
@@ -80,7 +99,7 @@ export async function getProjects(limit = 10, offset = 0) {
       orderBy: desc(projects.createdAt),
     });
   } catch (error) {
-    console.error('Database column mismatch or connection error in getProjects:', error);
+    console.error('Error fetching projects:', error);
     return [];
   }
 }
@@ -105,6 +124,17 @@ export async function getProjectBySlug(slug: string) {
   }
 }
 
+export async function getProjectsByStatus(status: ProjectStatus) {
+  try {
+    return await db.query.projects.findMany({
+      where: eq(projects.status, status),
+      orderBy: desc(projects.createdAt),
+    });
+  } catch (error) {
+    return [];
+  }
+}
+
 export async function getProjectsByCategory(category: string) {
   try {
     return await db.query.projects.findMany({
@@ -116,43 +146,40 @@ export async function getProjectsByCategory(category: string) {
   }
 }
 
-
-export async function getProjectsByStatus(status: ProjectStatus) {
-  return await db.query.projects.findMany({
-    where: eq(projects.status, status),
-    orderBy: desc(projects.createdAt),
-  });
-}
-
-export async function getProjectsByCategory(category: string) {
-  return await db.query.projects.findMany({
-    where: eq(projects.category, category),
-    orderBy: desc(projects.createdAt),
-  });
-}
-
 // ============================================================================
 // ORDERS
 // ============================================================================
 
 export async function getOrderById(id: string) {
-  return await db.query.orders.findFirst({
-    where: eq(orders.id, id),
-  });
+  try {
+    return await db.query.orders.findFirst({
+      where: eq(orders.id, id),
+    });
+  } catch (error) {
+    return null;
+  }
 }
 
 export async function getUserOrders(userId: string) {
-  return await db.query.orders.findMany({
-    where: eq(orders.userId, userId),
-    orderBy: desc(orders.createdAt),
-  });
+  try {
+    return await db.query.orders.findMany({
+      where: eq(orders.userId, userId),
+      orderBy: desc(orders.createdAt),
+    });
+  } catch (error) {
+    return [];
+  }
 }
 
 export async function getOrdersByStatus(status: OrderStatus) {
-  return await db.query.orders.findMany({
-    where: eq(orders.status, status),
-    orderBy: desc(orders.createdAt),
-  });
+  try {
+    return await db.query.orders.findMany({
+      where: eq(orders.status, status),
+      orderBy: desc(orders.createdAt),
+    });
+  } catch (error) {
+    return [];
+  }
 }
 
 // ============================================================================
@@ -160,16 +187,24 @@ export async function getOrdersByStatus(status: OrderStatus) {
 // ============================================================================
 
 export async function getConsultationById(id: string) {
-  return await db.query.consultations.findFirst({
-    where: eq(consultations.id, id),
-  });
+  try {
+    return await db.query.consultations.findFirst({
+      where: eq(consultations.id, id),
+    });
+  } catch (error) {
+    return null;
+  }
 }
 
 export async function getUserConsultations(userId: string) {
-  return await db.query.consultations.findMany({
-    where: eq(consultations.userId, userId),
-    orderBy: desc(consultations.createdAt),
-  });
+  try {
+    return await db.query.consultations.findMany({
+      where: eq(consultations.userId, userId),
+      orderBy: desc(consultations.createdAt),
+    });
+  } catch (error) {
+    return [];
+  }
 }
 
 // ============================================================================
@@ -177,22 +212,35 @@ export async function getUserConsultations(userId: string) {
 // ============================================================================
 
 export async function getArticles(limit = 10, offset = 0) {
-  return await db.query.articles.findMany({
-    limit,
-    offset,
-    orderBy: desc(articles.publishedAt),
-  });
+  try {
+    return await db.query.articles.findMany({
+      limit,
+      offset,
+      orderBy: desc(articles.publishedAt),
+    });
+  } catch (error) {
+    return [];
+  }
 }
 
 export async function getArticleById(id: string) {
-  return await db.query.articles.findFirst({
-    where: eq(articles.id, id),
-  });
+  try {
+    return await db.query.articles.findFirst({
+      where: eq(articles.id, id),
+    });
+  } catch (error) {
+    return null;
+  }
 }
 
 export async function getArticlesByCategory(category: string) {
-  return await db.query.articles.findMany({
-    where: eq(articles.category, category),
-    orderBy: desc(articles.publishedAt),
-  });
+  try {
+    return await db.query.articles.findMany({
+      where: eq(articles.category, category),
+      orderBy: desc(articles.publishedAt),
+    });
+  } catch (error) {
+    return [];
+  }
 }
+

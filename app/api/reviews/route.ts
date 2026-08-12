@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { products } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { revalidatePath } from 'next/cache' // ✅ 1. Import Next.js cache clearer
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Product ID and comment are required' }, { status: 400 })
     }
 
-    // 1. Fetch current product
+    // Fetch current product
     const product = await db.query.products.findFirst({
       where: eq(products.id, productId),
     })
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 })
     }
 
-    // 2. Append review to product reviews JSON column
+    // Append review
     const existingReviews = Array.isArray((product as any).reviews) ? (product as any).reviews : []
     
     const newReview = {
@@ -35,21 +36,29 @@ export async function POST(req: NextRequest) {
 
     // Recalculate average rating
     const totalScore = updatedReviews.reduce((acc: number, r: any) => acc + (Number(r.rating) || 5), 0)
-    const newAvgRating = (totalScore / updatedReviews.length).toFixed(1)
+    
+    // ✅ 2. Safely parse this as a float so the database doesn't reject a string
+    const newAvgRating = parseFloat((totalScore / updatedReviews.length).toFixed(1))
 
-    // 3. Update PostgreSQL row
+    // Update Database
     await db
       .update(products)
       .set({
-        rating: newAvgRating,
+        rating: String(newAvgRating), // Try removing String() if your schema expects a real number instead of varchar
         ratingCount: updatedReviews.length,
-        // ✅ ADD THIS LINE: This actually saves the text/author to your database!
         reviews: updatedReviews, 
-      })
+      } as any)
       .where(eq(products.id, productId))
+
+    // ✅ 3. THE MAGIC BULLET: Force Next.js to instantly delete the old cached page
+    if (product.slug) {
+      revalidatePath(`/collections/${product.slug}`)
+    }
 
     return NextResponse.json({ success: true, data: newReview }, { status: 201 })
   } catch (error: any) {
+    // ✅ 4. Log the actual database error to your terminal so we can see it!
+    console.error("❌ DATABASE UPDATE ERROR:", error) 
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }

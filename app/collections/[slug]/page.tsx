@@ -1,5 +1,3 @@
-// app/collections/[slug]/page.tsx
-
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
@@ -16,19 +14,16 @@ import { db } from '@/lib/db/client'
 import { products as productsTable } from '@/lib/db/schema'
 import { eq, ne, and } from 'drizzle-orm'
 
-// Enable dynamic on-demand rendering for database slugs
 export const dynamicParams = true
-export const revalidate = 60 // Cache for 60 seconds
+export const revalidate = 60
 
 const DEFAULT_IMAGE = 'https://therevampug.com/default-thumb.png'
 
-// Helper for price formatting
 const formatPrice = (price: string | number, currency = 'USD') => {
   const num = typeof price === 'string' ? parseFloat(price) : price
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(num || 0)
 }
 
-// Database query for single product
 async function getProductBySlugFromDB(slug: string) {
   try {
     return await db.query.products.findFirst({
@@ -44,7 +39,6 @@ async function getProductBySlugFromDB(slug: string) {
   }
 }
 
-// Database query for related products
 async function getRelatedProductsFromDB(category: string, currentId: string) {
   try {
     return await db.query.products.findMany({
@@ -59,7 +53,6 @@ async function getRelatedProductsFromDB(category: string, currentId: string) {
   }
 }
 
-// Prevent build-time prerendering failures; generate pages dynamically on request instead
 export async function generateStaticParams() {
   return []
 }
@@ -111,33 +104,40 @@ export default async function ProductPage({
 
   if (!product) notFound()
 
-  // 1. Sanitize image data to prevent undefined [0] index access in UI components
+  // --- CRASH FIX SANITIZATION ---
+  // Ensure array properties exist before ProductDetail accesses [0]
   const rawImages = (product.images as string[] ?? []).filter(Boolean)
   const safeImages = rawImages.length > 0 ? rawImages : [DEFAULT_IMAGE]
 
   const safeProductImages =
-    product.productImages && product.productImages.length > 0
+    Array.isArray(product.productImages) && product.productImages.length > 0
       ? product.productImages
       : [
           {
-            id: 'default-img-1',
+            id: 'default-img-0',
             productId: product.id,
             colorId: null,
-            url: DEFAULT_IMAGE,
+            url: safeImages[0],
             isPrimary: true,
             order: 0,
           },
         ]
 
-  // 2. Wrap product object with total array safety
+  const safeVariants = Array.isArray(product.variants) ? product.variants : []
+  const safeColors = safeVariants.filter((v: any) => v.type === 'COLOR')
+  const safeFabrics = safeVariants.filter((v: any) => v.type === 'FABRIC')
+
   const safeProduct = {
     ...product,
     images: safeImages,
     productImages: safeProductImages,
-    variants: product.variants ?? [],
+    variants: safeVariants,
+    colors: safeColors.length > 0 ? safeColors : [{ id: 'default-col', label: 'Standard', value: '#1C1C1C' }],
+    fabrics: safeFabrics,
     tagline: product.description ?? '',
     currency: 'USD',
   }
+  // -----------------------------
 
   const related = await getRelatedProductsFromDB(product.category, product.id)
   const pageUrl = `https://therevampug.com/collections/${product.slug}`

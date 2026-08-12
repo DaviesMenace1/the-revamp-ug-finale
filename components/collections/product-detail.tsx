@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { Star, Heart, ShoppingBag, Truck, ShieldCheck, Loader2 } from 'lucide-react'
+import { Star, Heart, ShoppingBag, Truck, ShieldCheck, Loader2, Sparkles } from 'lucide-react'
 
 const DEFAULT_IMAGE = 'https://therevampug.com/default-thumb.png'
 
@@ -71,14 +71,13 @@ export function ProductDetail({ product }: { product: any }) {
       image: selectedImage,
     }
 
-    // Save to localStorage or Context
     const existingCart = JSON.parse(localStorage.getItem('cart') || '[]')
     existingCart.push(cartItem)
     localStorage.setItem('cart', JSON.stringify(existingCart))
 
     setTimeout(() => {
       setAddingToCart(false)
-      alert(`Added ${quantity} x "${product.name}" to your cart!`)
+      alert(`Added ${quantity} x "${product.name}" to cart.`)
     }, 400)
   }
 
@@ -100,25 +99,30 @@ export function ProductDetail({ product }: { product: any }) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
       {/* LEFT: Image Gallery */}
       <div className="flex flex-col gap-4">
-        <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted border border-border">
+        <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted border border-border/40 shadow-2xl rounded-sm group">
           <Image
             src={selectedImage}
             alt={product?.name || 'Product Image'}
             fill
             priority
             sizes="(max-width: 1024px) 100vw, 50vw"
-            className="object-cover object-center"
+            className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
           />
+          <div className="absolute top-4 left-4 bg-background/80 backdrop-blur-md px-3 py-1 border border-amber-500/30 text-[10px] tracking-widest uppercase font-mono text-gold flex items-center gap-1.5 shadow-lg">
+            <Sparkles size={12} className="animate-pulse" /> REVAMP • 20026
+          </div>
         </div>
 
         {rawImages.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto pb-2">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
             {rawImages.map((img: string, idx: number) => (
               <button
                 key={idx}
                 onClick={() => setSelectedImage(img)}
-                className={`relative aspect-square w-20 flex-shrink-0 overflow-hidden border-2 transition-all ${
-                  selectedImage === img ? 'border-gold' : 'border-transparent opacity-70 hover:opacity-100'
+                className={`relative aspect-square w-20 flex-shrink-0 overflow-hidden border transition-all ${
+                  selectedImage === img
+                    ? 'border-gold ring-1 ring-gold/50 scale-105'
+                    : 'border-border/40 opacity-60 hover:opacity-100'
                 }`}
               >
                 <Image src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
@@ -131,65 +135,66 @@ export function ProductDetail({ product }: { product: any }) {
       {/* RIGHT: Product Info & Actions */}
       <div className="flex flex-col">
         {product?.category && (
-          <span className="text-xs uppercase tracking-widest font-semibold text-gold mb-2">
+          <span className="text-[11px] font-mono tracking-widest uppercase text-gold mb-2 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-gold rounded-full animate-ping" />
             {product.category}
           </span>
         )}
 
-        <h1 className="font-serif text-3xl sm:text-4xl font-light text-foreground mb-3">
-          {product?.name || 'Untitled Product'}
+        <h1 className="font-serif text-3xl sm:text-4xl font-light tracking-tight text-foreground mb-3">
+          {product?.name || 'Untitled Item'}
         </h1>
 
         {/* Rating Counter */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex items-center text-amber-500">
+          <div className="flex items-center text-amber-400 gap-0.5">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
                 size={16}
-                className={i < Math.floor(rating) ? 'fill-current' : 'text-muted'}
+                className={i < Math.floor(rating) ? 'fill-current text-amber-400' : 'text-zinc-700'}
               />
             ))}
           </div>
-          <span className="text-sm text-muted-foreground">
-            {rating.toFixed(1)} ({ratingCount} {ratingCount === 1 ? 'review' : 'reviews'})
+          <span className="text-xs font-mono text-muted-foreground">
+            {rating.toFixed(1)} <span className="text-zinc-600">/</span> {ratingCount} VERIFIED
           </span>
         </div>
 
         {/* Dynamic Pricing */}
-        <div className="text-2xl font-medium text-foreground mb-6">
+        <div className="text-3xl font-light tracking-tight text-foreground mb-6 font-mono">
           {formatPrice(totalPrice, product?.currency || 'USD')}
           {fabricDelta > 0 && (
-            <span className="text-xs text-muted-foreground ml-2 font-normal">
+            <span className="text-xs text-gold/80 block mt-1 font-sans">
               (Includes +{formatPrice(fabricDelta)} for {selectedFabric?.label})
             </span>
           )}
         </div>
 
         {/* Description */}
-        <div className="prose prose-sm text-muted-foreground mb-8">
-          <p>{product?.description || product?.tagline || 'No description available for this item.'}</p>
+        <div className="prose prose-sm text-muted-foreground mb-8 leading-relaxed">
+          <p>{product?.description || product?.tagline || 'Crafted with precision engineering.'}</p>
         </div>
 
-        {/* COLOR PICKER (Switches Swatch Images) */}
+        {/* COLOR PICKER */}
         {colors.length > 0 && (
           <div className="mb-6">
-            <label className="block text-xs uppercase tracking-wider font-medium text-foreground mb-3">
-              Color Finish: <span className="text-gold font-semibold">{selectedColor?.label || 'Select'}</span>
+            <label className="block text-xs font-mono uppercase tracking-widest text-foreground/80 mb-3">
+              Finish: <span className="text-gold">{selectedColor?.label || 'Select'}</span>
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {colors.map((color: any, idx: number) => (
                 <button
                   key={color?.id || idx}
                   onClick={() => handleColorSelect(color)}
-                  className={`flex items-center gap-2 h-9 px-4 border text-xs font-medium transition-all ${
+                  className={`flex items-center gap-2.5 h-10 px-4 border text-xs font-medium transition-all ${
                     selectedColor?.id === color?.id
-                      ? 'border-gold bg-gold/10 text-gold'
-                      : 'border-border text-foreground hover:border-muted-foreground'
+                      ? 'border-gold bg-gold/10 text-gold shadow-[0_0_15px_rgba(212,175,55,0.15)]'
+                      : 'border-border/50 text-foreground hover:border-foreground/50'
                   }`}
                 >
                   <span
-                    className="w-3 h-3 rounded-full border border-black/20"
+                    className="w-3.5 h-3.5 rounded-full border border-black/30 shadow-inner"
                     style={{ backgroundColor: color?.value || '#1C1C1C' }}
                   />
                   {color?.label}
@@ -199,27 +204,26 @@ export function ProductDetail({ product }: { product: any }) {
           </div>
         )}
 
-        {/* MATERIAL / FABRIC PICKER (Updates Extra Cost) */}
+        {/* MATERIAL / FABRIC PICKER */}
         {fabrics.length > 0 && (
           <div className="mb-6">
-            <label className="block text-xs uppercase tracking-wider font-medium text-foreground mb-3">
-              Material Option:{' '}
-              <span className="text-gold font-semibold">{selectedFabric?.label || 'Standard'}</span>
+            <label className="block text-xs font-mono uppercase tracking-widest text-foreground/80 mb-3">
+              Specification: <span className="text-gold">{selectedFabric?.label || 'Standard'}</span>
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {fabrics.map((fabric: any, idx: number) => {
                 const delta = parseFloat(fabric?.priceDelta || '0')
                 return (
                   <button
                     key={fabric?.id || idx}
                     onClick={() => setSelectedFabric(fabric)}
-                    className={`h-9 px-4 border text-xs font-medium transition-all ${
+                    className={`h-10 px-4 border text-xs font-medium transition-all ${
                       selectedFabric?.id === fabric?.id
-                        ? 'border-gold bg-gold/10 text-gold'
-                        : 'border-border text-foreground hover:border-muted-foreground'
+                        ? 'border-gold bg-gold/10 text-gold shadow-[0_0_15px_rgba(212,175,55,0.15)]'
+                        : 'border-border/50 text-foreground hover:border-foreground/50'
                     }`}
                   >
-                    {fabric?.label} {delta > 0 ? `(+$${delta})` : ''}
+                    {fabric?.label} {delta > 0 ? `(+${formatPrice(delta)})` : ''}
                   </button>
                 )
               })}
@@ -229,17 +233,17 @@ export function ProductDetail({ product }: { product: any }) {
 
         {/* Quantity and Actions */}
         <div className="flex gap-4 mb-8">
-          <div className="flex items-center border border-border">
+          <div className="flex items-center border border-border/60 bg-muted/20">
             <button
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="px-3 py-2 text-foreground hover:bg-muted transition-colors"
+              className="px-4 py-3 text-foreground hover:bg-muted/50 transition-colors font-mono text-sm"
             >
               -
             </button>
-            <span className="px-4 py-2 text-sm font-medium">{quantity}</span>
+            <span className="px-4 py-3 text-sm font-mono text-foreground font-semibold">{quantity}</span>
             <button
               onClick={() => setQuantity((q) => q + 1)}
-              className="px-3 py-2 text-foreground hover:bg-muted transition-colors"
+              className="px-4 py-3 text-foreground hover:bg-muted/50 transition-colors font-mono text-sm"
             >
               +
             </button>
@@ -248,16 +252,18 @@ export function ProductDetail({ product }: { product: any }) {
           <button
             onClick={handleAddToCart}
             disabled={addingToCart}
-            className="flex-1 bg-gold hover:bg-gold/90 text-obsidian font-medium py-3 px-6 transition-colors text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+            className="flex-1 bg-gold hover:bg-gold/90 text-zinc-950 font-semibold py-3 px-6 transition-all text-xs font-mono uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg hover:shadow-gold/20"
           >
             {addingToCart ? <Loader2 size={16} className="animate-spin" /> : <ShoppingBag size={16} />}
-            Add To Cart
+            ACQUIRE NOW
           </button>
 
           <button
             onClick={toggleWishlist}
-            className={`p-3 border transition-colors ${
-              isWishlisted ? 'border-red-500 text-red-500 bg-red-500/10' : 'border-border text-foreground hover:border-gold'
+            className={`p-3.5 border transition-all ${
+              isWishlisted
+                ? 'border-red-500 text-red-500 bg-red-500/10'
+                : 'border-border/60 text-foreground hover:border-gold'
             }`}
           >
             <Heart size={18} className={isWishlisted ? 'fill-current' : ''} />
@@ -265,14 +271,14 @@ export function ProductDetail({ product }: { product: any }) {
         </div>
 
         {/* Guarantees */}
-        <div className="border-t border-border pt-6 space-y-3 text-xs text-muted-foreground">
+        <div className="border-t border-border/30 pt-6 space-y-3 text-xs text-muted-foreground font-mono">
           <div className="flex items-center gap-3">
             <Truck size={16} className="text-gold" />
-            <span>Complimentary nationwide delivery on luxury orders.</span>
+            <span>EXPRESS GLOBAL DISPATCH AVAILABLE</span>
           </div>
           <div className="flex items-center gap-3">
             <ShieldCheck size={16} className="text-gold" />
-            <span>Authenticity guarantee & 2-year craftsmanship warranty.</span>
+            <span>20026 CERTIFIED CRAFTSMANSHIP GUARANTEE</span>
           </div>
         </div>
       </div>
@@ -284,13 +290,14 @@ export function ProductReviews({ product }: { product: any }) {
   const [reviews, setReviews] = useState<any[]>(Array.isArray(product?.reviews) ? product.reviews : [])
   const [author, setAuthor] = useState('')
   const [rating, setRating] = useState(5)
+  const [hoverRating, setHoverRating] = useState(0)
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!author || !comment) {
-      alert('Please provide your name and review comment.')
+      alert('Please fill out your identity and experience details.')
       return
     }
 
@@ -314,12 +321,12 @@ export function ProductReviews({ product }: { product: any }) {
         setAuthor('')
         setComment('')
         setRating(5)
-        alert('Thank you! Your review has been submitted.')
+        alert('Review logged to network!')
       } else {
-        alert('Failed to submit review.')
+        alert('Failed to transmit review.')
       }
     } catch (err) {
-      // Local fallback preview if endpoint isn't set up yet
+      // Local fallback
       setReviews([{ author, rating, comment, createdAt: new Date() }, ...reviews])
       setAuthor('')
       setComment('')
@@ -331,49 +338,77 @@ export function ProductReviews({ product }: { product: any }) {
   return (
     <div className="max-w-4xl mx-auto space-y-12">
       <div>
-        <h3 className="font-serif text-2xl font-light mb-6">Customer Reviews</h3>
+        <div className="flex items-center justify-between border-b border-border/30 pb-4 mb-8">
+          <h3 className="font-serif text-2xl font-light tracking-tight text-foreground">
+            Client Transmissions <span className="font-mono text-xs text-gold ml-2">[{reviews.length}]</span>
+          </h3>
+          <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+            SECURE REVIEW FEED 20026
+          </span>
+        </div>
 
-        {/* Add Review Form */}
-        <form onSubmit={handleReviewSubmit} className="border p-6 bg-muted/30 space-y-4 mb-10">
-          <h4 className="font-serif text-lg font-light">Leave a Review</h4>
+        {/* 20026 INTERACTIVE RATING REVIEW FORM */}
+        <form onSubmit={handleReviewSubmit} className="border border-border/50 p-6 md:p-8 bg-muted/10 space-y-6 mb-12 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 blur-3xl rounded-full pointer-events-none" />
 
-          <div className="grid md:grid-cols-2 gap-4">
+          <h4 className="font-serif text-lg font-light text-foreground flex items-center gap-2">
+            Submit Rating Transmission
+          </h4>
+
+          <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-xs uppercase tracking-wider mb-1">Your Name *</label>
+              <label className="block text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
+                Identity / Name *
+              </label>
               <input
                 type="text"
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
-                placeholder="e.g. Jane Doe"
-                className="w-full p-2 border text-xs bg-background rounded-none"
+                placeholder="e.g. Alex Mercer"
+                className="w-full p-3 border border-border/60 text-xs bg-background focus:outline-none focus:border-gold transition-colors font-mono"
                 required
               />
             </div>
 
+            {/* TAP TO RATE STAR SELECTOR */}
             <div>
-              <label className="block text-xs uppercase tracking-wider mb-1">Rating *</label>
-              <select
-                value={rating}
-                onChange={(e) => setRating(Number(e.target.value))}
-                className="w-full p-2 border text-xs bg-background rounded-none"
-              >
-                <option value={5}>5 Stars - Excellent</option>
-                <option value={4}>4 Stars - Very Good</option>
-                <option value={3}>3 Stars - Average</option>
-                <option value={2}>2 Stars - Poor</option>
-                <option value={1}>1 Star - Terrible</option>
-              </select>
+              <label className="block text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
+                Rating Assessment ({rating} / 5) *
+              </label>
+              <div className="flex items-center gap-1.5 pt-1.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    className="p-1 text-zinc-700 hover:scale-125 transition-transform duration-200 focus:outline-none"
+                  >
+                    <Star
+                      size={22}
+                      className={
+                        star <= (hoverRating || rating)
+                          ? 'fill-amber-400 text-amber-400 filter drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+                          : 'text-zinc-700'
+                      }
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-wider mb-1">Review Comment *</label>
+            <label className="block text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
+              Transmission Log / Comment *
+            </label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              rows={3}
-              placeholder="Share your experience with this product..."
-              className="w-full p-2 border text-xs bg-background rounded-none"
+              rows={4}
+              placeholder="Describe product quality, texture, and overall aesthetic..."
+              className="w-full p-3 border border-border/60 text-xs bg-background focus:outline-none focus:border-gold transition-colors"
               required
             />
           </div>
@@ -381,32 +416,41 @@ export function ProductReviews({ product }: { product: any }) {
           <button
             type="submit"
             disabled={submitting}
-            className="bg-gold text-obsidian px-6 py-2 text-xs uppercase tracking-wider font-semibold"
+            className="bg-gold hover:bg-gold/90 text-zinc-950 px-8 py-3 text-xs font-mono uppercase tracking-widest font-semibold transition-all shadow-lg hover:shadow-gold/20"
           >
-            {submitting ? 'Submitting...' : 'Submit Review'}
+            {submitting ? 'Transmitting...' : 'Send Transmission'}
           </button>
         </form>
 
-        {/* Existing Reviews List */}
+        {/* REVIEWS LIST */}
         {reviews.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No reviews yet for this product. Be the first to review!</p>
+          <div className="text-center py-12 border border-dashed border-border/40 font-mono text-xs text-muted-foreground">
+            NO TRANSMISSIONS LOGGED YET. BE THE FIRST CLIENT TO TRANSMIT A REVIEW.
+          </div>
         ) : (
           <div className="space-y-6">
             {reviews.map((rev: any, idx: number) => (
-              <div key={rev?.id || idx} className="border-b border-border pb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex text-amber-500">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        size={14}
-                        className={i < (rev?.rating || 5) ? 'fill-current' : 'text-muted'}
-                      />
-                    ))}
+              <div key={rev?.id || idx} className="border-b border-border/30 pb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono font-semibold text-foreground">
+                      {rev?.author || 'Anonymous Client'}
+                    </span>
+                    <div className="flex text-amber-400">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          size={12}
+                          className={i < (rev?.rating || 5) ? 'fill-current' : 'text-zinc-800'}
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <span className="text-xs font-semibold">{rev?.author || 'Verified Buyer'}</span>
+                  <span className="text-[10px] font-mono text-muted-foreground uppercase">
+                    VERIFIED BUYER
+                  </span>
                 </div>
-                <p className="text-sm text-muted-foreground">{rev?.comment || rev?.text}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{rev?.comment || rev?.text}</p>
               </div>
             ))}
           </div>
@@ -415,6 +459,7 @@ export function ProductReviews({ product }: { product: any }) {
     </div>
   )
 }
+
 
 
 

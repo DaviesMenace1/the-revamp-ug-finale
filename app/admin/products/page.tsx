@@ -15,7 +15,7 @@ const CATEGORIES = [
   'Art & Mirrors',
   'Rugs & Textiles',
   'Outdoor',
-  'Wall Covering',
+  'Wall Art',
 ]
 
 const STATUS_OPTIONS = [

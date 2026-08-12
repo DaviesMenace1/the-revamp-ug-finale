@@ -68,26 +68,54 @@ export async function searchProducts(searchTerm: string) {
 // PROJECTS
 // ============================================================================
 
+// ============================================================================
+// PROJECTS
+// ============================================================================
+
 export async function getProjects(limit = 10, offset = 0) {
-  return await db.query.projects.findMany({
-    limit,
-    offset,
-    orderBy: desc(projects.createdAt),
-  });
+  try {
+    return await db.query.projects.findMany({
+      limit,
+      offset,
+      orderBy: desc(projects.createdAt),
+    });
+  } catch (error) {
+    console.error('Database column mismatch or connection error in getProjects:', error);
+    return [];
+  }
 }
 
 export async function getProjectById(id: string) {
-  return await db.query.projects.findFirst({
-    where: eq(projects.id, id),
-  });
+  try {
+    return await db.query.projects.findFirst({
+      where: eq(projects.id, id),
+    });
+  } catch (error) {
+    return null;
+  }
 }
 
-// Added missing slug query for dynamic portfolio pages
 export async function getProjectBySlug(slug: string) {
-  return await db.query.projects.findFirst({
-    where: eq(projects.slug, slug),
-  });
+  try {
+    return await db.query.projects.findFirst({
+      where: eq(projects.slug, slug),
+    });
+  } catch (error) {
+    return null;
+  }
 }
+
+export async function getProjectsByCategory(category: string) {
+  try {
+    return await db.query.projects.findMany({
+      where: eq(projects.category, category),
+      orderBy: desc(projects.createdAt),
+    });
+  } catch (error) {
+    return [];
+  }
+}
+
 
 export async function getProjectsByStatus(status: ProjectStatus) {
   return await db.query.projects.findMany({

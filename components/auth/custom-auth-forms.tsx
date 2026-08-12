@@ -33,7 +33,7 @@ function clerkErrorMessage(err: unknown, fallback: string): string {
     case 'form_identifier_not_found':
       return 'The email or password is incorrect. Check your details and try again.'
     case 'user_locked':
-      return 'Too many attempts. Your account is temporarily locked — try again in a few minutes.'
+      return 'Too many attempts. Your account is temporarily locked , try again in a few minutes.'
     case 'too_many_requests':
       return 'Too many requests. Wait a moment and try again.'
     case 'session_exists':
@@ -158,7 +158,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
     const { error: finalizeError } = await signIn.finalize({
       navigate: async ({ session, decorateUrl }) => {
         if (session?.currentTask) {
-          console.error('[v0] Pending Clerk session task after sign-in:', session.currentTask)
+          console.error(' Pending Clerk session task after sign-in:', session.currentTask)
           setError('Your account requires an additional setup step. Contact support if this persists.')
           return
         }
@@ -166,7 +166,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       },
     })
     if (finalizeError) {
-      console.error('[v0] Session finalize error:', finalizeError)
+      console.error(' Session finalize error:', finalizeError)
       setError(clerkErrorMessage(finalizeError, 'Your session could not be activated. Try signing in again.'))
     }
   }
@@ -228,7 +228,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       if (passwordError) throw passwordError
       await advance()
     } catch (err) {
-      console.error('[v0] Sign-in error:', err)
+      console.error(' Sign-in error:', err)
       setError(clerkErrorMessage(err, 'Unable to sign in. Check your details and try again.'))
     } finally {
       setLoading(false)
@@ -249,7 +249,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       if (verifyError) throw verifyError
       await advance()
     } catch (err) {
-      console.error('[v0] Verification error:', err)
+      console.error(' Verification error:', err)
       setError(clerkErrorMessage(err, 'That verification code was not accepted. Try again.'))
     } finally {
       setLoading(false)
@@ -266,7 +266,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       if (sendError) throw sendError
       setInfo('A new verification code has been sent to your email.')
     } catch (err) {
-      console.error('[v0] Resend error:', err)
+      console.error('Resend error:', err)
       setError(clerkErrorMessage(err, 'Unable to resend the code. Wait a moment and try again.'))
     } finally {
       setLoading(false)
@@ -383,13 +383,20 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   )
 }
 
+// import { useState, type FormEvent } from 'react'
+// import Link from 'next/link'
+// import { ArrowRight, Check } from 'lucide-react'
+// ... imports for AuthCard, Field, AuthButton, OAuthButtons, Divider, ErrorText, InfoText, clerkErrorMessage, etc.
+
 export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
   const { signUp } = useSignUp()
   const [step, setStep] = useState<'form' | 'verify'>('form')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -423,12 +430,26 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
+
+    if (!agreedToTerms) {
+      setError('You must accept the Terms of Use and Privacy Policy to continue.')
+      return
+    }
+
     setLoading(true)
     setError(null)
     setInfo(null)
     try {
-      const { error: createError } = await signUp.password({ emailAddress: email, password, firstName, lastName })
+      const { error: createError } = await signUp.password({
+        emailAddress: email,
+        password,
+        firstName,
+        lastName,
+        username, // Pass username to Clerk
+      })
+
       if (createError) throw createError
+
       if (signUp.status === 'complete') {
         await finalize()
       } else if (signUp.unverifiedFields.includes('email_address')) {
@@ -438,7 +459,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
         setStep('verify')
       } else {
         console.error('[v0] Sign-up missing requirements:', signUp.missingFields, signUp.unverifiedFields)
-        setError('Your account still needs more information. Check the form and try again, or contact support.')
+        setError(`Additional information required: ${signUp.missingFields.join(', ')}`)
       }
     } catch (err) {
       console.error('[v0] Sign-up error:', err)
@@ -457,11 +478,12 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     try {
       const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code })
       if (verifyError) throw verifyError
+
       if (signUp.status === 'complete') {
         await finalize()
       } else {
         console.error('[v0] Sign-up incomplete after verification:', signUp.status, signUp.missingFields)
-        setError('Your account still needs more information. Contact support if this persists.')
+        setError(`Your account is missing required fields: ${signUp.missingFields.join(', ')}`)
       }
     } catch (err) {
       console.error('[v0] Sign-up verification error:', err)
@@ -517,11 +539,20 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     >
       {step === 'verify' ? (
         <form onSubmit={verify} className="grid gap-5">
-          <Field label="Verification code" value={code} onChange={setCode} inputMode="numeric" autoComplete="one-time-code" />
+          <Field
+            label="Verification code"
+            value={code}
+            onChange={setCode}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            required
+          />
           <InfoText message={info} />
           <ErrorText message={error} />
           <AuthButton disabled={!isLoaded || loading}>
-            {loading ? 'Verifying…' : (
+            {loading ? (
+              'Verifying…'
+            ) : (
               <>
                 Verify email <Check className="size-4" />
               </>
@@ -541,14 +572,41 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
           <OAuthButtons onOAuth={oauth} loading={oauthLoading} />
           <Divider />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="First name" value={firstName} onChange={setFirstName} autoComplete="given-name" />
-            <Field label="Last name" value={lastName} onChange={setLastName} autoComplete="family-name" />
+            <Field label="First name" value={firstName} onChange={setFirstName} autoComplete="given-name" required />
+            <Field label="Last name" value={lastName} onChange={setLastName} autoComplete="family-name" required />
           </div>
-          <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" />
-          <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="new-password" />
+          <Field label="Username" value={username} onChange={setUsername} autoComplete="username" required />
+          <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" required />
+          <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="new-password" required />
+
+          {/* Terms & Privacy Policy Checkbox */}
+          <div className="flex items-start gap-3 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              id="terms"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              className="mt-0.5 size-4 rounded border-gray-300 text-foreground focus:ring-foreground"
+              required
+            />
+            <label htmlFor="terms" className="leading-snug">
+              I agree to the{' '}
+              <Link href="/terms" className="underline underline-offset-2 hover:text-foreground">
+                Terms of Use
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+                Privacy Policy
+              </Link>
+              .
+            </label>
+          </div>
+
           <ErrorText message={error} />
-          <AuthButton disabled={!isLoaded || loading}>
-            {loading ? 'Creating account…' : (
+          <AuthButton disabled={!isLoaded || loading || !agreedToTerms}>
+            {loading ? (
+              'Creating account…'
+            ) : (
               <>
                 Create account <ArrowRight className="size-4" />
               </>
@@ -568,6 +626,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     </AuthCard>
   )
 }
+
 
 export function CustomResetPassword() {
   const { signIn } = useSignIn()

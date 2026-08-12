@@ -383,10 +383,6 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   )
 }
 
-// import { useState, type FormEvent } from 'react'
-// import Link from 'next/link'
-// import { ArrowRight, Check } from 'lucide-react'
-// ... imports for AuthCard, Field, AuthButton, OAuthButtons, Divider, ErrorText, InfoText, clerkErrorMessage, etc.
 
 export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
   const { signUp } = useSignUp()

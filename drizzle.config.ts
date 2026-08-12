@@ -6,7 +6,7 @@ export default {
   dialect: 'postgresql',
   dbCredentials: {
     // DIRECT_URL = direct connection (no pooler) — required for migrations
-    url: process.env.DIRECT_URL!,
+    url: process.env.DATABASE_URL!,
     ssl: true,
   },
   verbose: true,

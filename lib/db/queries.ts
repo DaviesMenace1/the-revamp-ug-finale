@@ -1,6 +1,6 @@
 import { db } from './client';
-import { users, products, projects, orders, consultations, articles } from './schema';
-import { eq, desc, ilike } from 'drizzle-orm';
+import { users, products, projects, orders, consultations, articles, productVariants, productImages } from './schema';
+import { eq, desc, ilike, and, ne } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 
 type OrderStatus = NonNullable<InferSelectModel<typeof orders>['status']>;
@@ -18,9 +18,47 @@ export async function getProducts(limit = 10, offset = 0) {
   });
 }
 
+// Fetch single product by slug with relational images and variants
+export async function getProductBySlug(slug: string) {
+  return await db.query.products.findFirst({
+    where: eq(products.slug, slug),
+    with: {
+      variants: true,
+      productImages: {
+        with: {
+          colorVariant: true,
+        },
+      },
+    },
+  });
+}
+
+// Fetch single product by ID with full variant relations
+export async function getProductWithDetails(id: string) {
+  return await db.query.products.findFirst({
+    where: eq(products.id, id),
+    with: {
+      variants: true,
+      productImages: true,
+    },
+  });
+}
+
+
 export async function getProductById(id: string) {
   return await db.query.products.findFirst({
     where: eq(products.id, id),
+  });
+}
+
+// Fetch lookbook collections with tagged relational products
+export async function getCollectionsWithProducts() {
+  return await db.query.projects.findMany({
+    with: {
+      // Assuming your schema bridges collections/projects to products
+      comments: true,
+      likes: true,
+    },
   });
 }
 

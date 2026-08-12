@@ -5,7 +5,12 @@ const nextConfig = {
   },
   serverExternalPackages: ['@getbrevo/brevo'],
   images: {
-    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+    ],
   },
   async redirects() {
     return [

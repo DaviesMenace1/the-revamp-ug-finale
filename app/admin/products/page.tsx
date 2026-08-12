@@ -1,172 +1,233 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { CldUploadWidget } from 'next-cloudinary'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Plus, Edit, Trash2, Search, X } from 'lucide-react'
-import { products as seedProducts, Product as SeedProduct } from '@/lib/data/products'
+import { Plus, Edit, Trash2, Search, X, Loader2, UploadCloud, Image as ImageIcon } from 'lucide-react'
+
+interface ColorVariant {
+  label: string
+  value: string
+  images: string[]
+}
+
+interface FabricVariant {
+  label: string
+  priceDelta: string
+}
 
 interface Product {
   id: string
   name: string
+  slug: string
+  category: string
   price: string
-  collection: string
   description: string
-  status: 'draft' | 'published'
   createdAt: string
+  variants?: any[]
+  productImages?: any[]
 }
-
-const SEED_PRODUCTS: Product[] = [
-  {
-    id: '1',
-    name: 'Savannah Modular Sofa',
-    price: '3200',
-    collection: 'Living Room',
-    description: 'Contemporary modular sofa with premium upholstery. Features adjustable configuration for flexible living spaces.',
-    status: 'published',
-    createdAt: new Date().toLocaleDateString(),
-  },
-  {
-    id: '2',
-    name: 'Aria Lounge Chair',
-    price: '1800',
-    collection: 'Seating',
-    description: 'Elegant lounge chair with ergonomic design. Perfect for reading nooks and accent spaces.',
-    status: 'published',
-    createdAt: new Date().toLocaleDateString(),
-  },
-  {
-    id: '3',
-    name: 'Horizon Coffee Table',
-    price: '890',
-    collection: 'Tables',
-    description: 'Minimalist coffee table with natural wood finish. Features clean lines and sustainable materials.',
-    status: 'published',
-    createdAt: new Date().toLocaleDateString(),
-  },
-  {
-    id: '4',
-    name: 'Eclipse Floor Lamp',
-    price: '450',
-    collection: 'Lighting',
-    description: 'Statement floor lamp with adjustable head. Creates ambient lighting for any room.',
-    status: 'draft',
-    createdAt: new Date().toLocaleDateString(),
-  },
-  {
-    id: '5',
-    name: 'Luxe Area Rug',
-    price: '2100',
-    collection: 'Textiles',
-    description: 'Handwoven area rug with traditional African patterns. Adds warmth and character to living spaces.',
-    status: 'published',
-    createdAt: new Date().toLocaleDateString(),
-  },
-]
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+
+  // Core Form State
   const [formData, setFormData] = useState({
     name: '',
+    slug: '',
+    category: 'Furniture',
     price: '',
-    collection: '',
     description: '',
-    status: 'published',
   })
 
+  // Dynamic Color Swatches State
+  const [colors, setColors] = useState<ColorVariant[]>([
+    { label: 'Standard', value: '#1C1C1C', images: [] }
+  ])
+
+  // Dynamic Fabric State
+  const [fabrics, setFabrics] = useState<FabricVariant[]>([])
+
   useEffect(() => {
-    // Seed products from data file on initial load
-    const initialProducts: Product[] = seedProducts.map((p: SeedProduct) => ({
-      id: p.id,
-      name: p.name,
-      price: p.price.toString(),
-      collection: p.space,
-      description: p.description,
-      status: 'published' as const,
-      createdAt: p.createdAt,
-    }))
-    setProducts(initialProducts)
+    fetchProducts()
   }, [])
 
-  const handleAddProduct = () => {
-    if (!formData.name || !formData.price) {
-      alert('Please fill in required fields')
-      return
-    }
-
-    if (editingId) {
-      setProducts(products.map(p =>
-        p.id === editingId
-          ? { ...p, ...formData, status: formData.status as 'draft' | 'published' }
-          : p
-      ))
-      setEditingId(null)
-    } else {
-      const newProduct: Product = {
-        id: Date.now().toString(),
-        name: formData.name,
-        price: formData.price,
-        collection: formData.collection,
-        description: formData.description,
-        status: formData.status as 'draft' | 'published',
-        createdAt: new Date().toLocaleDateString(),
+  const fetchProducts = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch('/api/admin/products')
+      if (res.ok) {
+        const data = await res.json()
+        setProducts(data.data || [])
       }
-      setProducts([newProduct, ...products])
+    } catch (err) {
+      console.error('Failed to fetch products:', err)
+    } finally {
+      setLoading(false)
     }
-
-    setFormData({ name: '', price: '', collection: '', description: '', status: 'published' })
-    setIsFormOpen(false)
   }
 
+  const handleNameChange = (name: string) => {
+    if (!editingId) {
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+      setFormData((prev) => ({ ...prev, name, slug }))
+    } else {
+      setFormData((prev) => ({ ...prev, name }))
+    }
+  }
+
+  // --- Populate Form for Editing ---
   const handleEdit = (product: Product) => {
+    setEditingId(product.id)
     setFormData({
       name: product.name,
+      slug: product.slug,
+      category: product.category || 'Furniture',
       price: product.price,
-      collection: product.collection,
-      description: product.description,
-      status: product.status,
+      description: product.description || '',
     })
-    setEditingId(product.id)
+
+    // Reconstruct Color Swatches & mapped images
+    const rawColors = product.variants?.filter((v) => v.type === 'COLOR') || []
+    if (rawColors.length > 0) {
+      const parsedColors = rawColors.map((c) => {
+        const cImages = product.productImages
+          ?.filter((img) => img.colorId === c.id)
+          .map((img) => img.url) || []
+        return {
+          label: c.label,
+          value: c.value || '#000000',
+          images: cImages,
+        }
+      })
+      setColors(parsedColors)
+    } else {
+      setColors([{ label: 'Standard', value: '#1C1C1C', images: [] }])
+    }
+
+    // Reconstruct Fabric Options
+    const rawFabrics = product.variants?.filter((v) => v.type === 'FABRIC') || []
+    setFabrics(
+      rawFabrics.map((f) => ({
+        label: f.label,
+        priceDelta: f.priceDelta ? f.priceDelta.toString() : '0',
+      }))
+    )
+
     setIsFormOpen(true)
   }
 
-  const handleDelete = (id: string) => {
-    if (confirm('Delete this product?')) {
-      setProducts(products.filter(p => p.id !== id))
+  // --- Swatch Handlers ---
+  const addColorVariant = () => {
+    setColors([...colors, { label: '', value: '#000000', images: [] }])
+  }
+
+  const updateColor = (index: number, field: keyof ColorVariant, val: any) => {
+    const updated = [...colors]
+    updated[index] = { ...updated[index], [field]: val }
+    setColors(updated)
+  }
+
+  const handleCloudinarySuccess = (colorIdx: number, result: any) => {
+    if (result?.info?.secure_url) {
+      const url = result.info.secure_url
+      const updated = [...colors]
+      updated[colorIdx].images.push(url)
+      setColors(updated)
     }
   }
 
-  const filteredProducts = products.filter(p =>
+  const removeColorImage = (colorIdx: number, imgIdx: number) => {
+    const updated = [...colors]
+    updated[colorIdx].images.splice(imgIdx, 1)
+    setColors(updated)
+  }
+
+  // --- Fabric Handlers ---
+  const addFabricVariant = () => {
+    setFabrics([...fabrics, { label: '', priceDelta: '0' }])
+  }
+
+  const updateFabric = (index: number, field: keyof FabricVariant, val: string) => {
+    const updated = [...fabrics]
+    updated[index] = { ...updated[index], [field]: val }
+    setFabrics(updated)
+  }
+
+  // --- Create / Update Action ---
+  const handleSaveProduct = async () => {
+    if (!formData.name || !formData.price) {
+      alert('Please fill in required fields (Name & Price)')
+      return
+    }
+
+    setSubmitting(true)
+
+    const payload = {
+      ...(editingId ? { id: editingId } : {}),
+      ...formData,
+      colors: colors.filter((c) => c.label.trim() !== ''),
+      fabrics: fabrics.filter((f) => f.label.trim() !== ''),
+    }
+
+    try {
+      const res = await fetch('/api/admin/products', {
+        method: editingId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (res.ok) {
+        await fetchProducts()
+        resetForm()
+      } else {
+        const err = await res.json()
+        alert(`Error: ${err.error || 'Failed to save product'}`)
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Network error while saving product')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({ name: '', slug: '', category: 'Furniture', price: '', description: '' })
+    setColors([{ label: 'Standard', value: '#1C1C1C', images: [] }])
+    setFabrics([])
+    setEditingId(null)
+    setIsFormOpen(false)
+  }
+
+  const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.collection.toLowerCase().includes(searchTerm.toLowerCase())
+    (p.category && p.category.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-6xl mx-auto p-4 md:p-8">
       <div>
-        <h1 className="font-serif text-4xl font-light text-foreground">Products</h1>
-        <p className="text-muted-foreground mt-2">Create, edit, and manage your product catalog</p>
+        <h1 className="font-serif text-4xl font-light text-foreground">Products Dashboard</h1>
+        <p className="text-muted-foreground mt-2">Create, edit, and upload reactive Cloudinary media for product swatches</p>
       </div>
 
-      {/* Add/Edit Form */}
+      {/* Product Form Modal */}
       {isFormOpen && (
-        <Card className="p-8 border-border/20">
-          <div className="flex items-center justify-between mb-6">
+        <Card className="p-8 border-border/20 shadow-sm">
+          <div className="flex items-center justify-between mb-6 border-b pb-4">
             <h2 className="font-serif text-2xl font-light text-foreground">
               {editingId ? 'Edit Product' : 'Add New Product'}
             </h2>
-            <button
-              onClick={() => {
-                setIsFormOpen(false)
-                setEditingId(null)
-                setFormData({ name: '', price: '', collection: '', description: '', status: 'published' })
-              }}
-              className="text-muted-foreground hover:text-foreground"
-            >
+            <button onClick={resetForm} className="text-muted-foreground hover:text-foreground">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -176,76 +237,184 @@ export default function AdminProducts() {
               <label className="block text-sm font-medium text-foreground mb-2">Product Name *</label>
               <Input
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="e.g., Savannah Modular Sofa"
-                className="rounded-none border-muted"
+                className="rounded-none"
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Price (USD) *</label>
+              <label className="block text-sm font-medium text-foreground mb-2">URL Slug *</label>
+              <Input
+                value={formData.slug}
+                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                placeholder="savannah-modular-sofa"
+                className="rounded-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Base Price (USD) *</label>
               <Input
                 type="number"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 placeholder="0.00"
-                className="rounded-none border-muted"
+                className="rounded-none"
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Collection</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Category</label>
               <Input
-                value={formData.collection}
-                onChange={(e) => setFormData({ ...formData, collection: e.target.value })}
-                placeholder="e.g., Living Room"
-                className="rounded-none border-muted"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="e.g., Furniture"
+                className="rounded-none"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
-                className="w-full px-4 py-2 border border-muted rounded-none bg-background text-foreground"
-              >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-              </select>
-            </div>
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-foreground mb-2">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Product description..."
-                rows={4}
-                className="w-full px-4 py-2 border border-muted rounded-none bg-background text-foreground font-light resize-none"
+                rows={3}
+                className="w-full px-4 py-2 border rounded-none bg-background text-foreground font-light resize-none"
+                placeholder="Detailed description..."
               />
             </div>
           </div>
 
-          <div className="flex gap-3">
+          {/* Color & Cloudinary Drag/Drop Uploader */}
+          <div className="space-y-6 pt-6 border-t">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-serif text-lg text-foreground">Color Swatches & Image Gallery</h3>
+                <p className="text-xs text-muted-foreground">Upload images via Cloudinary directly for each color option.</p>
+              </div>
+              <Button type="button" onClick={addColorVariant} variant="outline" size="sm" className="rounded-none">
+                + Add Color Swatch
+              </Button>
+            </div>
+
+            {colors.map((c, cIdx) => (
+              <Card key={cIdx} className="p-4 border bg-muted/10 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    placeholder="Color Label (e.g. Emerald)"
+                    value={c.label}
+                    onChange={(e) => updateColor(cIdx, 'label', e.target.value)}
+                    className="rounded-none bg-background"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="color"
+                      value={c.value}
+                      onChange={(e) => updateColor(cIdx, 'value', e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer rounded-none"
+                    />
+                    <Input
+                      placeholder="#HEX Code"
+                      value={c.value}
+                      onChange={(e) => updateColor(cIdx, 'value', e.target.value)}
+                      className="rounded-none bg-background font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Cloudinary Drag and Drop Area */}
+                <div>
+                  <label className="block text-xs font-medium uppercase text-muted-foreground mb-2">
+                    Images for {c.label || 'this color'}
+                  </label>
+
+                  {/* Thumbnail Preview Grid */}
+                  <div className="flex flex-wrap gap-3 mb-3">
+                    {c.images.map((url, imgIdx) => (
+                      <div key={imgIdx} className="relative size-20 border rounded overflow-hidden group">
+                        <Image src={url} alt="" fill className="object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeColorImage(cIdx, imgIdx)}
+                          className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Cloudinary Widget */}
+                  <CldUploadWidget
+                    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                    onSuccess={(result) => handleCloudinarySuccess(cIdx, result)}
+                  >
+                    {({ open }) => (
+                      <button
+                        type="button"
+                        onClick={() => open()}
+                        className="w-full border-2 border-dashed border-muted-foreground/30 hover:border-amber-600 p-4 rounded-none flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-amber-600 transition-colors"
+                      >
+                        <UploadCloud className="w-4 h-4" />
+                        Drag & Drop or Upload Photos to Cloudinary for {c.label || 'Swatch'}
+                      </button>
+                    )}
+                  </CldUploadWidget>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Fabric Variant Builder */}
+          <div className="space-y-4 pt-6 border-t mt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-serif text-lg text-foreground">Fabric & Material Options</h3>
+                <p className="text-xs text-muted-foreground">Add materials and extra charges (+USD).</p>
+              </div>
+              <Button type="button" onClick={addFabricVariant} variant="outline" size="sm" className="rounded-none">
+                + Add Material
+              </Button>
+            </div>
+
+            {fabrics.map((f, fIdx) => (
+              <div key={fIdx} className="grid grid-cols-2 gap-4">
+                <Input
+                  placeholder="Material (e.g. Performance Velvet)"
+                  value={f.label}
+                  onChange={(e) => updateFabric(fIdx, 'label', e.target.value)}
+                  className="rounded-none"
+                />
+                <Input
+                  type="number"
+                  placeholder="Extra Cost ($)"
+                  value={f.priceDelta}
+                  onChange={(e) => updateFabric(fIdx, 'priceDelta', e.target.value)}
+                  className="rounded-none"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Submit Actions */}
+          <div className="flex gap-3 pt-8 mt-6 border-t">
             <Button
-              onClick={handleAddProduct}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none"
+              onClick={handleSaveProduct}
+              disabled={submitting}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none px-8"
             >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {editingId ? 'Update Product' : 'Create Product'}
             </Button>
-            <Button
-              onClick={() => {
-                setIsFormOpen(false)
-                setEditingId(null)
-                setFormData({ name: '', price: '', collection: '', description: '', status: 'published' })
-              }}
-              variant="outline"
-              className="rounded-none"
-            >
+            <Button onClick={resetForm} variant="outline" className="rounded-none">
               Cancel
             </Button>
           </div>
         </Card>
       )}
 
-      {/* Search & Add Button */}
+      {/* Search Toolbar */}
       <div className="flex items-center gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -253,14 +422,11 @@ export default function AdminProducts() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search products..."
-            className="pl-10 rounded-none border-muted"
+            className="pl-10 rounded-none"
           />
         </div>
         {!isFormOpen && (
-          <Button
-            onClick={() => setIsFormOpen(true)}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none"
-          >
+          <Button onClick={() => setIsFormOpen(true)} className="rounded-none">
             <Plus className="w-4 h-4 mr-2" />
             Add Product
           </Button>
@@ -269,86 +435,62 @@ export default function AdminProducts() {
 
       {/* Products List */}
       <div className="space-y-3">
-        {filteredProducts.length === 0 ? (
-          <Card className="p-12 border-border/20 border-dashed text-center">
-            <p className="text-muted-foreground mb-2">No products yet</p>
-            <p className="text-sm text-muted-foreground/70">Click "Add Product" to create your first item.</p>
+        {loading ? (
+          <Card className="p-12 border border-dashed text-center">
+            <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">Loading products from PostgreSQL...</p>
+          </Card>
+        ) : filteredProducts.length === 0 ? (
+          <Card className="p-12 border-dashed text-center">
+            <p className="text-muted-foreground mb-2">No products found</p>
           </Card>
         ) : (
-          filteredProducts.map(product => (
+          filteredProducts.map((product) => (
             <Card key={product.id} className="p-6 border-border/20 hover:border-primary/20 transition-colors">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-3 mb-2">
                     <h3 className="font-medium text-foreground text-lg">{product.name}</h3>
-                    <span className={`text-xs px-2 py-1 rounded uppercase font-medium ${
-                      product.status === 'published'
-                        ? 'bg-green-100/20 text-green-700'
-                        : 'bg-yellow-100/20 text-yellow-700'
-                    }`}>
-                      {product.status}
+                    <span className="text-xs px-2 py-0.5 rounded bg-amber-100/20 text-amber-700 uppercase font-medium">
+                      {product.category || 'Furniture'}
                     </span>
                   </div>
                   <div className="grid grid-cols-4 gap-6 text-sm">
                     <div>
-                      <p className="text-muted-foreground text-xs uppercase tracking-wider">Price</p>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wider">Base Price</p>
                       <p className="text-foreground font-medium">${product.price}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground text-xs uppercase tracking-wider">Collection</p>
-                      <p className="text-foreground">{product.collection || '-'}</p>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wider">Slug</p>
+                      <p className="text-foreground font-mono text-xs">{product.slug}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground text-xs uppercase tracking-wider">Created</p>
-                      <p className="text-foreground">{product.createdAt}</p>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wider">Variants</p>
+                      <p className="text-foreground font-medium">{product.variants?.length || 0} Swatches/Fabrics</p>
                     </div>
-                    {product.description && (
-                      <div>
-                        <p className="text-muted-foreground text-xs uppercase tracking-wider">Description</p>
-                        <p className="text-foreground truncate">{product.description}</p>
-                      </div>
-                    )}
+                    <div>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wider">Gallery Media</p>
+                      <p className="text-foreground font-medium">{product.productImages?.length || 0} Cloudinary Photos</p>
+                    </div>
                   </div>
                 </div>
+
                 <div className="flex gap-2 ml-4">
-                  <button
+                  <Button
                     onClick={() => handleEdit(product)}
-                    className="p-2 text-primary hover:bg-primary/10 rounded transition-colors"
-                    title="Edit"
+                    variant="ghost"
+                    size="icon"
+                    className="hover:bg-primary/10 text-primary"
+                    title="Edit Product"
                   >
                     <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product.id)}
-                    className="p-2 text-destructive hover:bg-destructive/10 rounded transition-colors"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             </Card>
           ))
         )}
       </div>
-
-      {/* Stats */}
-      {products.length > 0 && (
-        <div className="grid md:grid-cols-3 gap-6 pt-8 border-t border-border/20">
-          <Card className="p-6 border-border/20">
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Total Products</p>
-            <p className="font-serif text-4xl font-light text-foreground">{products.length}</p>
-          </Card>
-          <Card className="p-6 border-border/20">
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Published</p>
-            <p className="font-serif text-4xl font-light text-foreground">{products.filter(p => p.status === 'published').length}</p>
-          </Card>
-          <Card className="p-6 border-border/20">
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Drafts</p>
-            <p className="font-serif text-4xl font-light text-foreground">{products.filter(p => p.status === 'draft').length}</p>
-          </Card>
-        </div>
-      )}
     </div>
   )
 }

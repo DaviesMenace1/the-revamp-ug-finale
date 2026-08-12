@@ -51,6 +51,8 @@ export const paymentStatusEnum = pgEnum('payment_status', [
   'refunded',
 ]);
 
+export const variantTypeEnum = pgEnum('variant_type', ['COLOR', 'FABRIC']);
+
 // Users Table — synced from Clerk via webhook
 // clerkId is the Clerk user_id (e.g. "user_2abc123")
 // All FK references use this table's id (uuid), not the clerkId
@@ -125,6 +127,45 @@ export const products = pgTable(
     statusIdx: index('status_idx').on(table.status),
     slugIdx: uniqueIndex('slug_idx').on(table.slug),
     featuredIdx: index('product_featured_idx').on(table.featured),
+  })
+);
+
+// --- Add below your products table ---
+export const productVariants = pgTable(
+  'product_variants',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    type: variantTypeEnum('type').notNull(),
+    label: varchar('label', { length: 100 }).notNull(), // e.g. "Charcoal", "Bouclé"
+    value: varchar('value', { length: 100 }),            // Hex code or swatch value (e.g. "#1C1C1C")
+    priceDelta: decimal('price_delta', { precision: 10, scale: 2 }).default('0.00'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    productIdIdx: index('variant_product_idx').on(table.productId),
+    typeIdx: index('variant_type_idx').on(table.type),
+  })
+);
+
+export const productImages = pgTable(
+  'product_images',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    colorId: uuid('color_id').references(() => productVariants.id, { onDelete: 'set null' }),
+    url: text('url').notNull(), // Cloudinary URL
+    isPrimary: boolean('is_primary').default(false),
+    order: integer('order').default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    productIdIdx: index('image_product_idx').on(table.productId),
+    colorIdIdx: index('image_color_idx').on(table.colorId),
   })
 );
 
@@ -526,10 +567,34 @@ export const usersRelations = relations(users, ({ many }) => ({
   cart: many(carts),
 }));
 
+// Replace existing productsRelations
 export const productsRelations = relations(products, ({ many }) => ({
+  variants: many(productVariants),
+  productImages: many(productImages),
   comments: many(comments),
   likes: many(likes),
 }));
+
+// New relations for variants and images
+export const productVariantsRelations = relations(productVariants, ({ one, many }) => ({
+  product: one(products, {
+    fields: [productVariants.productId],
+    references: [products.id],
+  }),
+  images: many(productImages),
+}));
+
+export const productImagesRelations = relations(productImages, ({ one }) => ({
+  product: one(products, {
+    fields: [productImages.productId],
+    references: [products.id],
+  }),
+  colorVariant: one(productVariants, {
+    fields: [productImages.colorId],
+    references: [productVariants.id],
+  }),
+}));
+
 
 export const projectsRelations = relations(projects, ({ many }) => ({
   comments: many(comments),

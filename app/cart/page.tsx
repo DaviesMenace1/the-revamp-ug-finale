@@ -5,20 +5,53 @@ import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/context/cart-context'
-import { X, Plus, Minus, MessageCircle, Trash2 } from 'lucide-react'
+import { X, Plus, Minus, MessageCircle, Trash2, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
+// Helper to safely format numbers without crashing on strings or NaN
+const safeFormatNumber = (num: any): string => {
+  const val = typeof num === 'string' ? parseFloat(num) : Number(num)
+  if (isNaN(val) || val === null || val === undefined) return '0.00'
+  return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+// Helper to safely extract image URL
+const getProductImage = (product: any): string => {
+  if (!product) return '/placeholder.jpg'
+  if (product.thumbnailImage) return product.thumbnailImage
+  if (Array.isArray(product.images) && product.images.length > 0) return product.images[0]
+  if (typeof product.images === 'string' && product.images.startsWith('http')) return product.images
+  return '/placeholder.jpg'
+}
+
 export default function CartPage() {
   const { 
-    items, 
+    items = [], 
     cart, 
     customerName, 
     setCustomerName, 
     removeFromCart, 
     updateQuantity, 
-    clearCart 
+    clearCart,
+    isLoaded 
   } = useCart()
+
+  // 1. Show smooth loader until CartContext finishes reading local storage/DB
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <SiteHeader />
+        <main className="flex-grow pt-24 pb-16 flex items-center justify-center">
+          <div className="text-center py-16">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground mb-4" />
+            <p className="text-sm text-muted-foreground">Loading your shopping cart...</p>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    )
+  }
 
   const shareToWhatsApp = () => {
     let name = customerName
@@ -38,18 +71,19 @@ export default function CartPage() {
       v: item.selectedVariant?.name || item.selectedVariant,
       a: item.selectedAccessories?.map((acc: any) => acc.name || acc),
       d: item.customDimensions,
-      n: item.product.name,
-      pr: item.product.salePrice || item.product.price,
-      cur: item.product.currency || '$',
-      img: item.product.images?.[0] || '',
-      s: item.product.slug || ''
+      n: item.product?.name || 'Product',
+      pr: item.product?.salePrice || item.product?.price || 0,
+      cur: item.product?.currency || '$',
+      img: getProductImage(item.product),
+      s: item.product?.slug || ''
     }))
 
     const encodedCart = encodeURIComponent(btoa(JSON.stringify(compactPayload)))
     const cartShareLink = `${baseUrl}/cart?c=${encodedCart}&name=${encodeURIComponent(name)}`
 
     const formattedItems = items.map((item, idx) => {
-      const price = (item.product.salePrice || item.product.price) * item.quantity
+      const unitPrice = parseFloat(String(item.product?.salePrice || item.product?.price || 0)) || 0
+      const price = unitPrice * item.quantity
       const details: string[] = []
 
       if (item.selectedColor) details.push(`Color: ${item.selectedColor.name || item.selectedColor}`)
@@ -62,16 +96,17 @@ export default function CartPage() {
         if (width || depth) details.push(`Dims: ${width ? `${width}″W` : ''}${depth ? `×${depth}″D` : ''}`)
       }
 
-      const detailText = details.length > 0 ? `\n   (${details.join(' | ')})` : ''
-      return `${idx + 1}. *${item.product.name}* × ${item.quantity}${detailText}\n   *Subtotal:* ${item.product.currency || '$'} ${price.toLocaleString()}`
+      const detailText = details.length > 0 ? `\n (${details.join(' | ')})` : ''
+      return `${idx + 1}. *${item.product?.name || 'Product'}* × ${item.quantity}${detailText}\n *Subtotal:* ${item.product?.currency || '$'} ${safeFormatNumber(price)}`
     }).join('\n\n')
 
-    const message = `🛍️ *NEW CART ENQUIRY*\n👤 *Customer:* ${name}\n\n${formattedItems}\n\n------------------------------\n💰 *TOTAL:* ${items[0]?.product.currency || '$'} ${cart?.total.toLocaleString() ?? '0'}\n------------------------------\n\n🔗 *View Cart & Images:* \n${cartShareLink}`
+    const message = `🛍️ *NEW CART ENQUIRY*\n👤 *Customer:* ${name}\n\n${formattedItems}\n\n------------------------------\n💰 *TOTAL:* ${items[0]?.product?.currency || '$'} ${safeFormatNumber(cart?.total)}\n------------------------------\n\n🔗 *View Cart & Images:* \n${cartShareLink}`
 
     const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '')
     window.open(`https://wa.me/${phone || ''}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
   }
 
+  // 2. Empty Cart View
   if (items.length === 0) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -81,7 +116,7 @@ export default function CartPage() {
             <h1 className="font-serif text-4xl font-bold text-foreground mb-8">Shopping Cart</h1>
             <div className="text-center py-16">
               <p className="text-xl text-muted-foreground mb-6">Your cart is empty</p>
-              <Button className="bg-primary text-primary-foreground">
+              <Button asChild className="bg-primary text-primary-foreground">
                 <Link href="/collections">Continue Shopping</Link>
               </Button>
             </div>
@@ -111,16 +146,17 @@ export default function CartPage() {
 
               <div className="space-y-6">
                 {items.map((item) => {
-                  const price = item.product.salePrice || item.product.price
-                  const itemTotal = price * item.quantity
+                  const unitPrice = parseFloat(String(item.product?.salePrice || item.product?.price || 0)) || 0
+                  const itemTotal = unitPrice * item.quantity
+                  const imageSrc = getProductImage(item.product)
 
                   return (
                     <div key={item.productId} className="flex gap-6 pb-6 border-b border-border">
                       {/* Image */}
                       <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 rounded flex-shrink-0 overflow-hidden">
                         <Image
-                          src={item.product.images[0]}
-                          alt={item.product.name}
+                          src={imageSrc}
+                          alt={item.product?.name || 'Product'}
                           fill
                           className="object-cover"
                           sizes="150px"
@@ -130,9 +166,9 @@ export default function CartPage() {
                       {/* Product Details */}
                       <div className="flex-grow flex flex-col justify-between">
                         <div>
-                          <Link href={`/products/${item.product.slug}`}>
+                          <Link href={`/collections/${item.product?.slug || ''}`}>
                             <h3 className="font-serif text-lg font-semibold text-foreground hover:text-accent transition-colors">
-                              {item.product.name}
+                              {item.product?.name || 'Product'}
                             </h3>
                           </Link>
 
@@ -158,7 +194,7 @@ export default function CartPage() {
                         </div>
 
                         <p className="font-serif text-lg font-bold text-foreground">
-                          ${price.toLocaleString()}
+                          ${safeFormatNumber(unitPrice)}
                         </p>
                       </div>
 
@@ -193,7 +229,7 @@ export default function CartPage() {
                         <div className="text-right">
                           <p className="text-xs text-muted-foreground">Subtotal</p>
                           <p className="font-serif text-lg font-bold text-foreground">
-                            ${itemTotal.toLocaleString()}
+                            ${safeFormatNumber(itemTotal)}
                           </p>
                         </div>
                       </div>
@@ -214,22 +250,22 @@ export default function CartPage() {
                   <div className="space-y-4 mb-8 pb-8 border-b border-border">
                     <div className="flex justify-between text-foreground">
                       <span>Subtotal</span>
-                      <span>${cart.subtotal.toLocaleString()}</span>
+                      <span>${safeFormatNumber(cart.subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-foreground">
                       <span>Tax (10%)</span>
-                      <span>${cart.tax.toLocaleString()}</span>
+                      <span>${safeFormatNumber(cart.tax)}</span>
                     </div>
                     <div className="flex justify-between text-foreground">
                       <span>Shipping</span>
-                      <span>${cart.shipping.toLocaleString()}</span>
+                      <span>${safeFormatNumber(cart.shipping)}</span>
                     </div>
                   </div>
 
                   <div className="flex justify-between mb-8">
                     <span className="font-serif text-xl font-bold text-foreground">Total</span>
                     <span className="font-serif text-2xl font-bold text-accent">
-                      ${cart.total.toLocaleString()}
+                      ${safeFormatNumber(cart.total)}
                     </span>
                   </div>
 
@@ -248,7 +284,7 @@ export default function CartPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <Button className="w-full bg-primary text-primary-foreground hover:bg-opacity-90 py-6">
+                    <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-opacity-90 py-6">
                       <Link href="/checkout">Proceed to Checkout</Link>
                     </Button>
 
@@ -260,8 +296,8 @@ export default function CartPage() {
                       <Trash2 className="mr-2 h-4 w-4" /> Clear Cart
                     </Button>
 
-                    <Button variant="outline" className="w-full border-border">
-                      <Link href="/products">Continue Shopping</Link>
+                    <Button asChild variant="outline" className="w-full border-border">
+                      <Link href="/collections">Continue Shopping</Link>
                     </Button>
                   </div>
                 </div>

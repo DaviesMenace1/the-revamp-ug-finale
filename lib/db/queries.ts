@@ -44,21 +44,9 @@ export async function getProductWithDetails(id: string) {
   });
 }
 
-
 export async function getProductById(id: string) {
   return await db.query.products.findFirst({
     where: eq(products.id, id),
-  });
-}
-
-// Fetch lookbook collections with tagged relational products
-export async function getCollectionsWithProducts() {
-  return await db.query.projects.findMany({
-    with: {
-      // Assuming your schema bridges collections/projects to products
-      comments: true,
-      likes: true,
-    },
   });
 }
 
@@ -91,6 +79,13 @@ export async function getProjects(limit = 10, offset = 0) {
 export async function getProjectById(id: string) {
   return await db.query.projects.findFirst({
     where: eq(projects.id, id),
+  });
+}
+
+// Added missing slug query for dynamic portfolio pages
+export async function getProjectBySlug(slug: string) {
+  return await db.query.projects.findFirst({
+    where: eq(projects.slug, slug),
   });
 }
 

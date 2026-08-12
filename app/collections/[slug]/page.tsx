@@ -127,8 +127,18 @@ export default async function ProductPage({
   const safeColors = safeVariants.filter((v: any) => v.type === 'COLOR')
   const safeFabrics = safeVariants.filter((v: any) => v.type === 'FABRIC')
 
+  const safeRating = typeof product.rating === 'number' 
+    ? product.rating 
+    : parseFloat(product.rating || '0')
+
+  const safeRatingCount = typeof product.ratingCount === 'number'
+    ? product.ratingCount
+    : parseInt(product.ratingCount || '0', 10)
+
   const safeProduct = {
     ...product,
+    rating: Number.isNaN(safeRating) ? 0 : safeRating, // 👈 Ensures rating is a real Number with .toFixed()!
+    ratingCount: Number.isNaN(safeRatingCount) ? 0 : safeRatingCount,
     images: safeImages,
     productImages: safeProductImages,
     variants: safeVariants,

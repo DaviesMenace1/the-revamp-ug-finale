@@ -3,12 +3,27 @@ import { db } from '@/lib/db/client'
 import { products, productVariants, productImages } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 
+export async function GET() {
+  try {
+    const data = await db.query.products.findMany({
+      orderBy: [desc(products.createdAt)],
+      with: {
+        variants: true,
+        productImages: true,
+      },
+    })
+    return NextResponse.json({ success: true, data })
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { name, slug, description, category, price, colors, fabrics } = body
+    const { name, slug, description, category, price, colors, fabrics, quantity, status } = body
 
-    if (!name || !slug || price === undefined) {
+    if (!name || !slug || !price) {
       return NextResponse.json(
         { success: false, error: 'Name, slug, and price are required.' },
         { status: 400 }
@@ -16,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await db.transaction(async (tx) => {
-      // 1. Extract Cloudinary image URLs
+      // 1. Gather images across swatches
       const allCloudinaryImages: string[] = []
       if (colors?.length) {
         colors.forEach((c: any) => {
@@ -27,24 +42,26 @@ export async function POST(req: NextRequest) {
       }
 
       // 2. Insert Base Product
-      // Note: Passing jsonb fields explicitly or omitting them cleanly prevents broken SQL parameter alignment
       const [newProduct] = await tx
         .insert(products)
         .values({
           name: String(name).trim(),
           slug: String(slug).trim(),
-          description: description ? String(description) : null,
-          category: category ? String(category) : 'Furniture',
+          description: description ? String(description) : '',
+          category: category || 'Furniture',
           price: String(price),
-          images: allCloudinaryImages, // Drizzle handles jsonb arrays automatically when valid
+          images: allCloudinaryImages,
+          gallery: allCloudinaryImages,
           thumbnailImage: allCloudinaryImages[0] || null,
           inStock: true,
-          quantity: 10,
-          status: 'published',
+          quantity: Number(quantity) || 10,
+          status: status || 'published',
           rating: '0',
           ratingCount: 0,
           likes: 0,
           views: 0,
+          tags: [],
+          relatedProducts: [],
           featured: false,
         })
         .returning()

@@ -1,3 +1,5 @@
+// app/collections/[slug]/page.tsx
+
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
@@ -14,17 +16,19 @@ import { db } from '@/lib/db/client'
 import { products as productsTable } from '@/lib/db/schema'
 import { eq, ne, and } from 'drizzle-orm'
 
-// Allow new slugs created in DB to dynamically resolve without returning 404
+// Enable dynamic on-demand rendering for database slugs
 export const dynamicParams = true
-export const revalidate = 60 // Revalidate every minute or on demand
+export const revalidate = 60 // Cache for 60 seconds
 
-// Utility helper for prices
+const DEFAULT_IMAGE = 'https://therevampug.com/default-thumb.png'
+
+// Helper for price formatting
 const formatPrice = (price: string | number, currency = 'USD') => {
   const num = typeof price === 'string' ? parseFloat(price) : price
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(num || 0)
 }
 
-// Fetch single product from DB
+// Database query for single product
 async function getProductBySlugFromDB(slug: string) {
   try {
     return await db.query.products.findFirst({
@@ -40,7 +44,7 @@ async function getProductBySlugFromDB(slug: string) {
   }
 }
 
-// Fetch related products from DB
+// Database query for related products
 async function getRelatedProductsFromDB(category: string, currentId: string) {
   try {
     return await db.query.products.findMany({
@@ -55,13 +59,9 @@ async function getRelatedProductsFromDB(category: string, currentId: string) {
   }
 }
 
+// Prevent build-time prerendering failures; generate pages dynamically on request instead
 export async function generateStaticParams() {
-  try {
-    const allProducts = await db.select({ slug: productsTable.slug }).from(productsTable)
-    return allProducts.map((p) => ({ slug: p.slug }))
-  } catch {
-    return []
-  }
+  return []
 }
 
 export async function generateMetadata({
@@ -79,26 +79,24 @@ export async function generateMetadata({
     }
   }
 
-  const images = (product.images as string[] ?? []).filter(Boolean)
-  const openGraphImages = images.length
-    ? images.map((img: string) => ({ url: String(img), width: 1200, height: 1200 }))
-    : [{ url: 'https://therevampug.com/default-og.png', width: 1200, height: 1200 }]
+  const rawImages = (product.images as string[] ?? []).filter(Boolean)
+  const images = rawImages.length > 0 ? rawImages : [DEFAULT_IMAGE]
 
   return {
     title: `${product.name} | The Revamp UG`,
-    description: product.description || '',
+    description: product.description || product.name,
     keywords: [product.name, product.category].filter(Boolean) as string[],
     openGraph: {
       title: product.name,
-      description: product.description || '',
+      description: product.description || product.name,
       type: 'website',
-      images: openGraphImages,
+      images: images.map((url) => ({ url, width: 1200, height: 1200 })),
     },
     twitter: {
       card: 'summary_large_image',
       title: product.name,
-      description: product.description || '',
-      images: images.length ? [images[0]] : ['https://therevampug.com/default-twitter.png'],
+      description: product.description || product.name,
+      images: [images[0]],
     },
   }
 }
@@ -113,17 +111,44 @@ export default async function ProductPage({
 
   if (!product) notFound()
 
+  // 1. Sanitize image data to prevent undefined [0] index access in UI components
+  const rawImages = (product.images as string[] ?? []).filter(Boolean)
+  const safeImages = rawImages.length > 0 ? rawImages : [DEFAULT_IMAGE]
+
+  const safeProductImages =
+    product.productImages && product.productImages.length > 0
+      ? product.productImages
+      : [
+          {
+            id: 'default-img-1',
+            productId: product.id,
+            colorId: null,
+            url: DEFAULT_IMAGE,
+            isPrimary: true,
+            order: 0,
+          },
+        ]
+
+  // 2. Wrap product object with total array safety
+  const safeProduct = {
+    ...product,
+    images: safeImages,
+    productImages: safeProductImages,
+    variants: product.variants ?? [],
+    tagline: product.description ?? '',
+    currency: 'USD',
+  }
+
   const related = await getRelatedProductsFromDB(product.category, product.id)
-  const images = (product.images as string[] ?? []).filter(Boolean)
   const pageUrl = `https://therevampug.com/collections/${product.slug}`
 
   const productSchema = generateProductSchema({
     name: product.name,
     description: product.description || '',
-    price: parseFloat(product.price),
+    price: parseFloat(product.price || '0'),
     currency: 'USD',
-    images,
-    options: { url: pageUrl, image: images[0] },
+    images: safeImages,
+    options: { url: pageUrl, image: safeImages[0] },
   })
 
   return (
@@ -131,7 +156,7 @@ export default async function ProductPage({
       <SchemaScript schema={productSchema} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
-        {/* Breadcrumb */}
+        {/* Breadcrumb Navigation */}
         <div className="border-b border-border/20 pt-28 md:pt-32 pb-6">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
             <Link
@@ -144,21 +169,21 @@ export default async function ProductPage({
           </div>
         </div>
 
-        {/* Product Details */}
+        {/* Product Detail Section */}
         <section className="py-12 md:py-16">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
-            <ProductDetail product={product as any} />
+            <ProductDetail product={safeProduct as any} />
           </div>
         </section>
 
-        {/* Reviews */}
+        {/* Reviews Section */}
         <section className="border-t border-border/20 py-16 md:py-20">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
-            <ProductReviews product={product as any} />
+            <ProductReviews product={safeProduct as any} />
           </div>
         </section>
 
-        {/* Related Products */}
+        {/* Related Products Grid */}
         {related.length > 0 && (
           <section className="border-t border-border/20 py-16 md:py-20">
             <div className="mx-auto max-w-7xl px-6 md:px-8">
@@ -167,7 +192,9 @@ export default async function ProductPage({
               </h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border">
                 {related.map((p) => {
-                  const pImages = (p.images as string[]) || []
+                  const relImages = (p.images as string[] ?? []).filter(Boolean)
+                  const thumb = relImages[0] || DEFAULT_IMAGE
+
                   return (
                     <Link
                       key={p.id}
@@ -176,7 +203,7 @@ export default async function ProductPage({
                     >
                       <div className="relative aspect-[3/4] overflow-hidden bg-muted">
                         <Image
-                          src={pImages[0] ?? 'https://therevampug.com/default-thumb.png'}
+                          src={thumb}
                           alt={p.name}
                           fill
                           sizes="(max-width: 1024px) 50vw, 25vw"
@@ -204,6 +231,7 @@ export default async function ProductPage({
     </>
   )
 }
+
 
 
 

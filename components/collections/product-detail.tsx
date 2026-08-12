@@ -1,10 +1,8 @@
-// components/collections/product-detail.tsx
-
 'use client'
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { Star, Check, ShieldCheck, Truck, RefreshCw } from 'lucide-react'
+import { Star, Heart, ShoppingBag, Truck, ShieldCheck, Loader2 } from 'lucide-react'
 
 const DEFAULT_IMAGE = 'https://therevampug.com/default-thumb.png'
 
@@ -14,23 +12,28 @@ const formatPrice = (price: string | number, currency = 'USD') => {
 }
 
 export function ProductDetail({ product }: { product: any }) {
-  // Safe extraction with default empty arrays/objects
-  const images: string[] = Array.isArray(product?.images) && product.images.length > 0
+  // Extract images safely
+  const rawImages: string[] = Array.isArray(product?.images) && product.images.length > 0
     ? product.images.filter(Boolean)
     : [DEFAULT_IMAGE]
 
-  const productImages = Array.isArray(product?.productImages) ? product.productImages : []
+  // Safe extraction of variants
   const variants = Array.isArray(product?.variants) ? product.variants : []
-  const colors = Array.isArray(product?.colors) ? product.colors : []
-  const fabrics = Array.isArray(product?.fabrics) ? product.fabrics : []
-  const reviews = Array.isArray(product?.reviews) ? product.reviews : []
-  const tags = Array.isArray(product?.tags) ? product.tags : []
-  const options = Array.isArray(product?.options) ? product.options : []
-  const specifications = Array.isArray(product?.specifications) ? product.specifications : []
+  const colors = variants.filter((v: any) => v?.type === 'COLOR')
+  const fabrics = variants.filter((v: any) => v?.type === 'FABRIC')
+  const productImages = Array.isArray(product?.productImages) ? product.productImages : []
 
-  // Safe rating handling
-  const rawRating = typeof product?.rating === 'number' 
-    ? product.rating 
+  // Component state
+  const [selectedImage, setSelectedImage] = useState<string>(rawImages[0] || DEFAULT_IMAGE)
+  const [selectedColor, setSelectedColor] = useState(colors[0] || null)
+  const [selectedFabric, setSelectedFabric] = useState(fabrics[0] || null)
+  const [quantity, setQuantity] = useState<number>(1)
+  const [isWishlisted, setIsWishlisted] = useState<boolean>(false)
+  const [addingToCart, setAddingToCart] = useState<boolean>(false)
+
+  // Safe Rating Extraction
+  const rawRating = typeof product?.rating === 'number'
+    ? product.rating
     : parseFloat(product?.rating || '0')
   const rating = Number.isNaN(rawRating) ? 0 : rawRating
 
@@ -39,17 +42,65 @@ export function ProductDetail({ product }: { product: any }) {
     : parseInt(product?.ratingCount || '0', 10)
   const ratingCount = Number.isNaN(rawRatingCount) ? 0 : rawRatingCount
 
-  // Component state using safe array fallbacks
-  const [selectedImage, setSelectedImage] = useState<string>(images[0] || DEFAULT_IMAGE)
-  const [selectedColor, setSelectedColor] = useState(colors[0] || null)
-  const [selectedFabric, setSelectedFabric] = useState(fabrics[0] || null)
-  const [quantity, setQuantity] = useState<number>(1)
+  // Dynamic Price Calculation (Base Price + Fabric Delta)
+  const basePrice = parseFloat(product?.price || '0')
+  const fabricDelta = selectedFabric ? parseFloat(selectedFabric.priceDelta || '0') : 0
+  const totalPrice = (basePrice + fabricDelta) * quantity
+
+  // Switch image based on color selection
+  const handleColorSelect = (color: any) => {
+    setSelectedColor(color)
+    const matchingImage = productImages.find((img: any) => img?.colorId === color?.id)
+    if (matchingImage?.url) {
+      setSelectedImage(matchingImage.url)
+    }
+  }
+
+  // Add to Cart handler
+  const handleAddToCart = () => {
+    setAddingToCart(true)
+
+    const cartItem = {
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      price: basePrice + fabricDelta,
+      quantity,
+      color: selectedColor?.label || null,
+      fabric: selectedFabric?.label || null,
+      image: selectedImage,
+    }
+
+    // Save to localStorage or Context
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]')
+    existingCart.push(cartItem)
+    localStorage.setItem('cart', JSON.stringify(existingCart))
+
+    setTimeout(() => {
+      setAddingToCart(false)
+      alert(`Added ${quantity} x "${product.name}" to your cart!`)
+    }, 400)
+  }
+
+  // Wishlist handler
+  const toggleWishlist = () => {
+    const existingWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]')
+    if (isWishlisted) {
+      const updated = existingWishlist.filter((item: any) => item.id !== product.id)
+      localStorage.setItem('wishlist', JSON.stringify(updated))
+      setIsWishlisted(false)
+    } else {
+      existingWishlist.push({ id: product.id, name: product.name, slug: product.slug, image: selectedImage })
+      localStorage.setItem('wishlist', JSON.stringify(existingWishlist))
+      setIsWishlisted(true)
+    }
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-      {/* Product Image Gallery */}
+      {/* LEFT: Image Gallery */}
       <div className="flex flex-col gap-4">
-        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-muted border border-border">
+        <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted border border-border">
           <Image
             src={selectedImage}
             alt={product?.name || 'Product Image'}
@@ -60,30 +111,24 @@ export function ProductDetail({ product }: { product: any }) {
           />
         </div>
 
-        {/* Thumbnail Selector */}
-        {images.length > 1 && (
+        {rawImages.length > 1 && (
           <div className="flex gap-3 overflow-x-auto pb-2">
-            {images.map((img: string, idx: number) => (
+            {rawImages.map((img: string, idx: number) => (
               <button
                 key={idx}
                 onClick={() => setSelectedImage(img)}
-                className={`relative aspect-square w-20 flex-shrink-0 overflow-hidden rounded-md border-2 transition-all ${
+                className={`relative aspect-square w-20 flex-shrink-0 overflow-hidden border-2 transition-all ${
                   selectedImage === img ? 'border-gold' : 'border-transparent opacity-70 hover:opacity-100'
                 }`}
               >
-                <Image
-                  src={img}
-                  alt={`${product?.name || 'Thumbnail'} ${idx + 1}`}
-                  fill
-                  className="object-cover"
-                />
+                <Image src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
               </button>
             ))}
           </div>
         )}
       </div>
 
-      {/* Product Details Sidebar */}
+      {/* RIGHT: Product Info & Actions */}
       <div className="flex flex-col">
         {product?.category && (
           <span className="text-xs uppercase tracking-widest font-semibold text-gold mb-2">
@@ -95,7 +140,7 @@ export function ProductDetail({ product }: { product: any }) {
           {product?.name || 'Untitled Product'}
         </h1>
 
-        {/* Ratings & Reviews Counter */}
+        {/* Rating Counter */}
         <div className="flex items-center gap-3 mb-6">
           <div className="flex items-center text-amber-500">
             {[...Array(5)].map((_, i) => (
@@ -111,9 +156,14 @@ export function ProductDetail({ product }: { product: any }) {
           </span>
         </div>
 
-        {/* Price */}
+        {/* Dynamic Pricing */}
         <div className="text-2xl font-medium text-foreground mb-6">
-          {formatPrice(product?.price || 0, product?.currency || 'USD')}
+          {formatPrice(totalPrice, product?.currency || 'USD')}
+          {fabricDelta > 0 && (
+            <span className="text-xs text-muted-foreground ml-2 font-normal">
+              (Includes +{formatPrice(fabricDelta)} for {selectedFabric?.label})
+            </span>
+          )}
         </div>
 
         {/* Description */}
@@ -121,33 +171,65 @@ export function ProductDetail({ product }: { product: any }) {
           <p>{product?.description || product?.tagline || 'No description available for this item.'}</p>
         </div>
 
-        {/* Colors Option Selection */}
+        {/* COLOR PICKER (Switches Swatch Images) */}
         {colors.length > 0 && (
           <div className="mb-6">
             <label className="block text-xs uppercase tracking-wider font-medium text-foreground mb-3">
-              Color: <span className="text-muted-foreground font-normal">{selectedColor?.label || 'Select'}</span>
+              Color Finish: <span className="text-gold font-semibold">{selectedColor?.label || 'Select'}</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {colors.map((color: any, idx: number) => (
                 <button
                   key={color?.id || idx}
-                  onClick={() => setSelectedColor(color)}
-                  className={`h-9 px-4 rounded-md border text-xs font-medium transition-all ${
+                  onClick={() => handleColorSelect(color)}
+                  className={`flex items-center gap-2 h-9 px-4 border text-xs font-medium transition-all ${
                     selectedColor?.id === color?.id
                       ? 'border-gold bg-gold/10 text-gold'
                       : 'border-border text-foreground hover:border-muted-foreground'
                   }`}
                 >
-                  {color?.label || `Option ${idx + 1}`}
+                  <span
+                    className="w-3 h-3 rounded-full border border-black/20"
+                    style={{ backgroundColor: color?.value || '#1C1C1C' }}
+                  />
+                  {color?.label}
                 </button>
               ))}
             </div>
           </div>
         )}
 
+        {/* MATERIAL / FABRIC PICKER (Updates Extra Cost) */}
+        {fabrics.length > 0 && (
+          <div className="mb-6">
+            <label className="block text-xs uppercase tracking-wider font-medium text-foreground mb-3">
+              Material Option:{' '}
+              <span className="text-gold font-semibold">{selectedFabric?.label || 'Standard'}</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {fabrics.map((fabric: any, idx: number) => {
+                const delta = parseFloat(fabric?.priceDelta || '0')
+                return (
+                  <button
+                    key={fabric?.id || idx}
+                    onClick={() => setSelectedFabric(fabric)}
+                    className={`h-9 px-4 border text-xs font-medium transition-all ${
+                      selectedFabric?.id === fabric?.id
+                        ? 'border-gold bg-gold/10 text-gold'
+                        : 'border-border text-foreground hover:border-muted-foreground'
+                    }`}
+                  >
+                    {fabric?.label} {delta > 0 ? `(+$${delta})` : ''}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Quantity and Actions */}
         <div className="flex gap-4 mb-8">
-          <div className="flex items-center border border-border rounded-md">
+          <div className="flex items-center border border-border">
             <button
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               className="px-3 py-2 text-foreground hover:bg-muted transition-colors"
@@ -163,8 +245,22 @@ export function ProductDetail({ product }: { product: any }) {
             </button>
           </div>
 
-          <button className="flex-1 bg-gold hover:bg-gold/90 text-obsidian font-medium py-3 px-6 rounded-md transition-colors text-sm uppercase tracking-wider">
+          <button
+            onClick={handleAddToCart}
+            disabled={addingToCart}
+            className="flex-1 bg-gold hover:bg-gold/90 text-obsidian font-medium py-3 px-6 transition-colors text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+          >
+            {addingToCart ? <Loader2 size={16} className="animate-spin" /> : <ShoppingBag size={16} />}
             Add To Cart
+          </button>
+
+          <button
+            onClick={toggleWishlist}
+            className={`p-3 border transition-colors ${
+              isWishlisted ? 'border-red-500 text-red-500 bg-red-500/10' : 'border-border text-foreground hover:border-gold'
+            }`}
+          >
+            <Heart size={18} className={isWishlisted ? 'fill-current' : ''} />
           </button>
         </div>
 
@@ -172,7 +268,7 @@ export function ProductDetail({ product }: { product: any }) {
         <div className="border-t border-border pt-6 space-y-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
             <Truck size={16} className="text-gold" />
-            <span>Complimentary worldwide shipping on luxury collection orders.</span>
+            <span>Complimentary nationwide delivery on luxury orders.</span>
           </div>
           <div className="flex items-center gap-3">
             <ShieldCheck size={16} className="text-gold" />
@@ -185,42 +281,141 @@ export function ProductDetail({ product }: { product: any }) {
 }
 
 export function ProductReviews({ product }: { product: any }) {
-  const reviews = Array.isArray(product?.reviews) ? product.reviews : []
+  const [reviews, setReviews] = useState<any[]>(Array.isArray(product?.reviews) ? product.reviews : [])
+  const [author, setAuthor] = useState('')
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  if (reviews.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <h3 className="font-serif text-xl font-light mb-2">Customer Reviews</h3>
-        <p className="text-sm text-muted-foreground">No reviews yet for this product.</p>
-      </div>
-    )
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!author || !comment) {
+      alert('Please provide your name and review comment.')
+      return
+    }
+
+    setSubmitting(true)
+
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          author,
+          rating,
+          comment,
+        }),
+      })
+
+      if (res.ok) {
+        const newReview = await res.json()
+        setReviews([newReview.data || { author, rating, comment, createdAt: new Date() }, ...reviews])
+        setAuthor('')
+        setComment('')
+        setRating(5)
+        alert('Thank you! Your review has been submitted.')
+      } else {
+        alert('Failed to submit review.')
+      }
+    } catch (err) {
+      // Local fallback preview if endpoint isn't set up yet
+      setReviews([{ author, rating, comment, createdAt: new Date() }, ...reviews])
+      setAuthor('')
+      setComment('')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
-    <div>
-      <h3 className="font-serif text-2xl font-light mb-6">Customer Reviews</h3>
-      <div className="space-y-6">
-        {reviews.map((rev: any, idx: number) => (
-          <div key={rev?.id || idx} className="border-b border-border pb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="flex text-amber-500">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={14}
-                    className={i < (rev?.rating || 5) ? 'fill-current' : 'text-muted'}
-                  />
-                ))}
-              </div>
-              <span className="text-xs font-semibold">{rev?.author || 'Verified Customer'}</span>
+    <div className="max-w-4xl mx-auto space-y-12">
+      <div>
+        <h3 className="font-serif text-2xl font-light mb-6">Customer Reviews</h3>
+
+        {/* Add Review Form */}
+        <form onSubmit={handleReviewSubmit} className="border p-6 bg-muted/30 space-y-4 mb-10">
+          <h4 className="font-serif text-lg font-light">Leave a Review</h4>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs uppercase tracking-wider mb-1">Your Name *</label>
+              <input
+                type="text"
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                placeholder="e.g. Jane Doe"
+                className="w-full p-2 border text-xs bg-background rounded-none"
+                required
+              />
             </div>
-            <p className="text-sm text-muted-foreground">{rev?.comment || rev?.text}</p>
+
+            <div>
+              <label className="block text-xs uppercase tracking-wider mb-1">Rating *</label>
+              <select
+                value={rating}
+                onChange={(e) => setRating(Number(e.target.value))}
+                className="w-full p-2 border text-xs bg-background rounded-none"
+              >
+                <option value={5}>5 Stars - Excellent</option>
+                <option value={4}>4 Stars - Very Good</option>
+                <option value={3}>3 Stars - Average</option>
+                <option value={2}>2 Stars - Poor</option>
+                <option value={1}>1 Star - Terrible</option>
+              </select>
+            </div>
           </div>
-        ))}
+
+          <div>
+            <label className="block text-xs uppercase tracking-wider mb-1">Review Comment *</label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={3}
+              placeholder="Share your experience with this product..."
+              className="w-full p-2 border text-xs bg-background rounded-none"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="bg-gold text-obsidian px-6 py-2 text-xs uppercase tracking-wider font-semibold"
+          >
+            {submitting ? 'Submitting...' : 'Submit Review'}
+          </button>
+        </form>
+
+        {/* Existing Reviews List */}
+        {reviews.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No reviews yet for this product. Be the first to review!</p>
+        ) : (
+          <div className="space-y-6">
+            {reviews.map((rev: any, idx: number) => (
+              <div key={rev?.id || idx} className="border-b border-border pb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex text-amber-500">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        size={14}
+                        className={i < (rev?.rating || 5) ? 'fill-current' : 'text-muted'}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs font-semibold">{rev?.author || 'Verified Buyer'}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">{rev?.comment || rev?.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
 }
+
 
 
 

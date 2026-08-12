@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Star, Heart, ShoppingBag, Truck, ShieldCheck, Check } from 'lucide-react'
 
 // Import your existing Cart Context hook (adjust path if your cart hook is located elsewhere, e.g., '@/context/cart-context')
-import { useCart } from '@/components/cart-provider'
+import { useCart } from '@/lib/context/cart-context'
 
 const DEFAULT_IMAGE = 'https://therevampug.com/default-thumb.png'
 

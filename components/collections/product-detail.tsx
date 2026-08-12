@@ -13,7 +13,7 @@ const formatPrice = (price: string | number, currency = 'USD') => {
 }
 
 // -------------------------------------------------------------
-// COMPONENT 1: PRODUCT DETAIL (No Review Forms in here anymore!)
+// COMPONENT 1: PRODUCT DETAIL (Updated with Crossed-Out Original Price)
 // -------------------------------------------------------------
 export function ProductDetail({ product }: { product: any }) {
   const cart = useCart() as any
@@ -52,6 +52,10 @@ export function ProductDetail({ product }: { product: any }) {
   const basePrice = parseFloat(product?.price || '0')
   const fabricDelta = selectedFabric ? parseFloat(selectedFabric.priceDelta || '0') : 0
   const totalPrice = (basePrice + fabricDelta) * quantity
+
+  // Original / Compare-at Price Calculations
+  const baseComparePrice = product?.compareAtPrice ? parseFloat(product.compareAtPrice) : product?.originalPrice ? parseFloat(product.originalPrice) : null
+  const totalComparePrice = baseComparePrice ? (baseComparePrice + fabricDelta) * quantity : null
 
   const handleColorSelect = (color: any) => {
     setSelectedColor(color)
@@ -168,11 +172,20 @@ export function ProductDetail({ product }: { product: any }) {
           </span>
         </div>
 
-        {/* Price Display */}
-        <div className="text-2xl font-medium text-foreground mb-6">
-          {formatPrice(totalPrice, product?.currency || 'USD')}
+        {/* Price Display with Compare-At Price */}
+        <div className="flex items-baseline gap-3 mb-6">
+          <span className="text-2xl font-medium text-foreground">
+            {formatPrice(totalPrice, product?.currency || 'USD')}
+          </span>
+
+          {totalComparePrice && totalComparePrice > totalPrice && (
+            <span className="text-sm text-muted-foreground line-through font-normal">
+              {formatPrice(totalComparePrice, product?.currency || 'USD')}
+            </span>
+          )}
+
           {fabricDelta > 0 && (
-            <span className="text-xs text-muted-foreground ml-2 font-normal">
+            <span className="text-xs text-muted-foreground font-normal">
               (Includes +{formatPrice(fabricDelta)} for {selectedFabric?.label})
             </span>
           )}
@@ -370,7 +383,7 @@ export function ProductDetail({ product }: { product: any }) {
 }
 
 // -------------------------------------------------------------
-// COMPONENT 2: PRODUCT REVIEWS (Completely separated!)
+// COMPONENT 2: PRODUCT REVIEWS
 // -------------------------------------------------------------
 export function ProductReviews({ product }: { product: any }) {
   const initialReviews = Array.isArray(product?.reviews) ? product.reviews : []
@@ -545,6 +558,7 @@ export function ProductReviews({ product }: { product: any }) {
     </div>
   )
 }
+
 
 
 

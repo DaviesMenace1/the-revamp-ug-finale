@@ -61,6 +61,14 @@ export default async function CollectionsPage() {
                 const images = (p.images as string[] ?? []).filter(Boolean)
                 const mainImage = images[0] || DEFAULT_IMAGE
 
+                // Price & Compare-At Price calculations for product card
+                const currentPrice = parseFloat(p.price || '0')
+                const comparePrice = (p as any).compareAtPrice 
+                  ? parseFloat((p as any).compareAtPrice) 
+                  : (p as any).originalPrice 
+                  ? parseFloat((p as any).originalPrice) 
+                  : null
+
                 return (
                   <Link
                     key={p.id}
@@ -77,11 +85,12 @@ export default async function CollectionsPage() {
                       />
                       <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/30 transition-colors duration-500 z-10" />
                       {p.featured && (
-                        <span className="absolute top-3 left-3 bg-gold text-obsidian font-sans text-[10px] tracking-widest uppercase px-2.5 py-1 z-20">
+                        <span className="absolute top-3 left-3 bg-gold text-obsidian font-sans text-[10px] tracking-widest uppercase px-2.5 py-1 z-25">
                           Featured
                         </span>
                       )}
                     </div>
+
                     <div className="p-4 border-t border-border">
                       <span className="text-[10px] uppercase font-semibold text-amber-700 block mb-1">
                         {p.category}
@@ -89,9 +98,19 @@ export default async function CollectionsPage() {
                       <h3 className="font-serif text-base font-light text-foreground group-hover:text-gold transition-colors leading-tight mb-1">
                         {p.name}
                       </h3>
-                      <span className="font-sans text-sm text-foreground font-medium">
-                        {formatPrice(p.price)}
-                      </span>
+
+                      {/* Pricing Container with Crossed-Out Discount Display */}
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-sans text-sm text-foreground font-medium">
+                          {formatPrice(currentPrice, (p as any).currency || 'USD')}
+                        </span>
+
+                        {comparePrice && comparePrice > currentPrice && (
+                          <span className="font-sans text-xs text-muted-foreground line-through">
+                            {formatPrice(comparePrice, (p as any).currency || 'USD')}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </Link>
                 )
@@ -104,6 +123,7 @@ export default async function CollectionsPage() {
     </>
   )
 }
+
 
 
 // import Link from 'next/link'

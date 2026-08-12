@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Plus, Edit, Search, X, Loader2, UploadCloud, RefreshCw } from 'lucide-react'
+import { Plus, Edit, X, Loader2, UploadCloud, Trash2 } from 'lucide-react'
 
 const CATEGORIES = [
   'Furniture',
@@ -61,7 +61,6 @@ export default function AdminProducts() {
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
@@ -96,10 +95,11 @@ export default function AdminProducts() {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)+/g, '')
-      const generatedSku = name
-        .toUpperCase()
-        .replace(/[^A-Z0-9]/g, '')
-        .slice(0, 8) + '-01'
+      const generatedSku =
+        name
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, '')
+          .slice(0, 8) + '-01'
 
       setFormData((prev) => ({
         ...prev,
@@ -137,6 +137,7 @@ export default function AdminProducts() {
       seoDescription: product.seoDescription || product.description || '',
     })
 
+    // Populate Color Variants & Images
     const rawColors = product.variants?.filter((v: any) => v.type === 'COLOR') || []
     if (rawColors.length > 0) {
       setColors(
@@ -153,6 +154,7 @@ export default function AdminProducts() {
       setColors([{ label: 'Standard', value: '#1C1C1C', images: [] }])
     }
 
+    // Populate Fabric Variants
     const rawFabrics = product.variants?.filter((v: any) => v.type === 'FABRIC') || []
     setFabrics(
       rawFabrics.map((f: any) => ({
@@ -164,9 +166,10 @@ export default function AdminProducts() {
     setIsFormOpen(true)
   }
 
+  // Save (Create or Edit using POST)
   const handleSaveProduct = async () => {
     if (!formData.name || !formData.price || !formData.category) {
-      alert('Please fill in standard fields (Name, Price & Category)')
+      alert('Please fill in required fields (Name, Price & Category)')
       return
     }
 
@@ -184,7 +187,7 @@ export default function AdminProducts() {
 
     try {
       const res = await fetch('/api/admin/products', {
-        method: editingId ? 'PUT' : 'POST',
+        method: 'POST', // Switched to POST for both creation and editing
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
@@ -201,6 +204,50 @@ export default function AdminProducts() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // Color Helper Functions
+  const addColorVariant = () => {
+    setColors([...colors, { label: '', value: '#000000', images: [] }])
+  }
+
+  const removeColorVariant = (index: number) => {
+    setColors(colors.filter((_, i) => i !== index))
+  }
+
+  const updateColorVariant = (index: number, field: keyof ColorVariant, value: any) => {
+    const updated = [...colors]
+    updated[index] = { ...updated[index], [field]: value }
+    setColors(updated)
+  }
+
+  const handleImageUpload = (colorIndex: number, result: any) => {
+    if (result?.info?.secure_url) {
+      const updated = [...colors]
+      updated[colorIndex].images.push(result.info.secure_url)
+      setColors(updated)
+    }
+  }
+
+  const removeImage = (colorIndex: number, imgIndex: number) => {
+    const updated = [...colors]
+    updated[colorIndex].images = updated[colorIndex].images.filter((_, i) => i !== imgIndex)
+    setColors(updated)
+  }
+
+  // Fabric Helper Functions
+  const addFabricVariant = () => {
+    setFabrics([...fabrics, { label: '', priceDelta: '0' }])
+  }
+
+  const removeFabricVariant = (index: number) => {
+    setFabrics(fabrics.filter((_, i) => i !== index))
+  }
+
+  const updateFabricVariant = (index: number, field: keyof FabricVariant, value: string) => {
+    const updated = [...fabrics]
+    updated[index] = { ...updated[index], [field]: value }
+    setFabrics(updated)
   }
 
   const resetForm = () => {
@@ -401,10 +448,129 @@ export default function AdminProducts() {
             </div>
           </div>
 
-          {/* SECTION 3: Descriptions */}
+          {/* SECTION 3: Colors & Cloudinary Image Uploads */}
+          <div className="space-y-4 pt-4 border-t">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs uppercase font-semibold text-amber-700 tracking-wider">
+                3. Color Variants & Images (Cloudinary)
+              </h3>
+              <Button onClick={addColorVariant} variant="outline" size="sm" className="rounded-none text-xs">
+                <Plus className="w-3 h-3 mr-1" /> Add Color Option
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {colors.map((color, colorIdx) => (
+                <div key={colorIdx} className="p-4 border bg-muted/20 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Input
+                      placeholder="Color Name (e.g. Matte Black)"
+                      value={color.label}
+                      onChange={(e) => updateColorVariant(colorIdx, 'label', e.target.value)}
+                      className="rounded-none text-xs"
+                    />
+                    <input
+                      type="color"
+                      value={color.value}
+                      onChange={(e) => updateColorVariant(colorIdx, 'value', e.target.value)}
+                      className="w-10 h-10 border p-1 bg-background cursor-pointer"
+                    />
+                    {colors.length > 1 && (
+                      <button
+                        onClick={() => removeColorVariant(colorIdx)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Cloudinary Image Upload Widget */}
+                  <div>
+                    <label className="block text-[11px] font-medium text-muted-foreground mb-2">
+                      Variant Images ({color.images.length})
+                    </label>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {color.images.map((imgUrl, imgIdx) => (
+                        <div key={imgIdx} className="relative w-16 h-16 border bg-background">
+                          <Image src={imgUrl} alt="Variant" fill className="object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(colorIdx, imgIdx)}
+                            className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+
+                      <CldUploadWidget
+                        uploadPreset="ml_default" // Replace with your Cloudinary upload preset if different
+                        onSuccess={(result) => handleImageUpload(colorIdx, result)}
+                      >
+                        {({ open }) => (
+                          <button
+                            type="button"
+                            onClick={() => open()}
+                            className="w-16 h-16 border border-dashed flex flex-col items-center justify-center text-xs text-muted-foreground hover:border-amber-600 hover:text-amber-600 transition-colors"
+                          >
+                            <UploadCloud className="w-4 h-4 mb-1" />
+                            Upload
+                          </button>
+                        )}
+                      </CldUploadWidget>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SECTION 4: Fabrics / Materials Options */}
+          <div className="space-y-4 pt-4 border-t">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs uppercase font-semibold text-amber-700 tracking-wider">
+                4. Fabric & Material Variants
+              </h3>
+              <Button onClick={addFabricVariant} variant="outline" size="sm" className="rounded-none text-xs">
+                <Plus className="w-3 h-3 mr-1" /> Add Fabric Option
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              {fabrics.map((fabric, fabricIdx) => (
+                <div key={fabricIdx} className="flex items-center gap-3">
+                  <Input
+                    placeholder="Fabric Label (e.g. Italian Leather)"
+                    value={fabric.label}
+                    onChange={(e) => updateFabricVariant(fabricIdx, 'label', e.target.value)}
+                    className="rounded-none text-xs flex-1"
+                  />
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs">$ +</span>
+                    <Input
+                      type="number"
+                      placeholder="Price Delta (e.g. 50)"
+                      value={fabric.priceDelta}
+                      onChange={(e) => updateFabricVariant(fabricIdx, 'priceDelta', e.target.value)}
+                      className="rounded-none text-xs w-28"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeFabricVariant(fabricIdx)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SECTION 5: Descriptions */}
           <div className="space-y-4 pt-4 border-t">
             <h3 className="text-xs uppercase font-semibold text-amber-700 tracking-wider">
-              3. Detailed Content
+              5. Detailed Content
             </h3>
             <div className="grid md:grid-cols-2 gap-4">
               <div>

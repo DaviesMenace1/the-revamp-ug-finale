@@ -1,17 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
-/**
- * Single request-authentication path for the app.
- *
- * - `/account` and `/admin` require a Clerk session. Unauthenticated visitors
- *   are redirected to the local `/sign-in` page (NEXT_PUBLIC_CLERK_SIGN_IN_URL)
- *   with `redirect_url` preserved by Clerk automatically.
- * - Role-based authorization (admin vs customer, etc.) is enforced
- *   server-side in layouts/pages via lib/auth — never in the client.
- * - Webhooks (`/api/webhooks`) stay public; Svix signature verification
- *   protects them in the route handler.
- */
-const isProtectedRoute = createRouteMatcher(['/account(.*)', '/admin(.*)'])
+
+const isProtectedRoute = createRouteMatcher(['/account(.*)', '/admin(.*)', '/api/admin(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {

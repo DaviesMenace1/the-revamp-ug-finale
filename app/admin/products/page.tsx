@@ -505,7 +505,7 @@ export default function AdminProducts() {
                       ))}
 
                       <CldUploadWidget
-                        uploadPreset="ml_default" // Replace with your Cloudinary upload preset if different
+                        uploadPreset="upload" // Replace with your Cloudinary upload preset if different
                         onSuccess={(result) => handleImageUpload(colorIdx, result)}
                       >
                         {({ open }) => (

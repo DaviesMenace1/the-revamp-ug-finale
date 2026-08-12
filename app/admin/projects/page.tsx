@@ -1,12 +1,62 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Plus, Edit, Trash2, Search, X } from 'lucide-react'
+import { Plus, Search, X, Upload } from 'lucide-react'
+import Image from 'next/image'
+import { CldUploadWidget } from 'next-cloudinary'
 import { createProject, updateProject, deleteProject } from '@/lib/actions/projects'
-import { ImageUpload } from '@/components/admin/image-upload'
+
+function ImageUpload({ value = [], onChange, maxImages = 5 }: { value: string[]; onChange: (val: string[]) => void; maxImages?: number }) {
+  const handleRemove = (urlToRemove: string) => {
+    onChange(value.filter((url) => url !== urlToRemove))
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {value.map((url, idx) => (
+          <div key={idx} className="relative h-32 rounded-lg overflow-hidden border border-border/20 group">
+            <Image src={url} alt="Uploaded project asset" fill className="object-cover" />
+            <button
+              type="button"
+              onClick={() => handleRemove(url)}
+              className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+
+        {value.length < maxImages && (
+          <CldUploadWidget
+            uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'revamp_preset'}
+            onSuccess={(result: any) => {
+              if (result?.info?.secure_url) {
+                onChange([...value, result.info.secure_url])
+              }
+            }}
+          >
+            {({ open }) => {
+              return (
+                <button
+                  type="button"
+                  onClick={() => open()}
+                  className="border-2 border-dashed border-border/40 hover:border-primary/50 rounded-lg h-32 flex flex-col items-center justify-center cursor-pointer bg-muted/5 transition-colors w-full"
+                >
+                  <Upload className="w-6 h-6 text-muted-foreground mb-1" />
+                  <span className="text-xs text-muted-foreground font-light">Upload Image</span>
+                </button>
+              )
+            }}
+          </CldUploadWidget>
+        )}
+      </div>
+    </div>
+  )
+}
 
 interface Project {
   id: string
@@ -47,7 +97,6 @@ export default function AdminProjects() {
     dueDate: '',
   })
 
-  // Auto-generate slug from name
   const handleNameChange = (name: string) => {
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
     setFormData({ ...formData, name, slug })
@@ -72,7 +121,6 @@ export default function AdminProjects() {
           setIsFormOpen(false)
         }
       }
-      // Reset form
       setFormData({
         name: '',
         slug: '',
@@ -90,30 +138,13 @@ export default function AdminProjects() {
     })
   }
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this project?')) {
-      startTransition(async () => {
-        await deleteProject(id)
-        setProjects(projects.filter(p => p.id !== id))
-      })
-    }
-  }
-
-  const statusColors = {
-    'draft': 'bg-gray-100/20 text-gray-700',
-    'in-progress': 'bg-blue-100/20 text-blue-700',
-    'completed': 'bg-green-100/20 text-green-700',
-    'on-hold': 'bg-orange-100/20 text-orange-700',
-  }
-
   return (
     <div className="space-y-8">
       <div>
         <h1 className="font-serif text-4xl font-light text-foreground">Projects Management</h1>
-        <p className="text-muted-foreground mt-2">Create, update media via Cloudinary, and manage design projects</p>
+        <p className="text-muted-foreground mt-2">Create, update media via CldUploadWidget, and manage design projects</p>
       </div>
 
-      {/* Add/Edit Form Modal */}
       {isFormOpen && (
         <Card className="p-8 border-border/20">
           <div className="flex items-center justify-between mb-6">
@@ -229,7 +260,7 @@ export default function AdminProjects() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-foreground mb-2">Project Gallery Images (Cloudinary)</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Project Gallery Images (CldUploadWidget)</label>
               <ImageUpload
                 value={formData.images}
                 onChange={(images) => setFormData({ ...formData, images })}
@@ -260,7 +291,6 @@ export default function AdminProjects() {
         </Card>
       )}
 
-      {/* Search & Add Header */}
       <div className="flex items-center gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -284,6 +314,296 @@ export default function AdminProjects() {
     </div>
   )
 }
+
+
+
+
+// 'use client'
+
+// import { useState, useEffect, useTransition } from 'react'
+// import { Button } from '@/components/ui/button'
+// import { Card } from '@/components/ui/card'
+// import { Input } from '@/components/ui/input'
+// import { Plus, Edit, Trash2, Search, X } from 'lucide-react'
+// import { createProject, updateProject, deleteProject } from '@/lib/actions/projects'
+// import { ImageUpload } from '@/components/admin/image-upload'
+
+// interface Project {
+//   id: string
+//   slug: string
+//   name: string
+//   client: string
+//   description: string
+//   shortDescription: string
+//   location: string
+//   status: 'draft' | 'in-progress' | 'completed' | 'on-hold'
+//   progress: number
+//   year: string
+//   features: string[]
+//   images: string[]
+//   dueDate: string
+//   createdAt: string
+// }
+
+// export default function AdminProjects() {
+//   const [projects, setProjects] = useState<Project[]>([])
+//   const [searchTerm, setSearchTerm] = useState('')
+//   const [isFormOpen, setIsFormOpen] = useState(false)
+//   const [editingId, setEditingId] = useState<string | null>(null)
+//   const [isPending, startTransition] = useTransition()
+
+//   const [formData, setFormData] = useState({
+//     name: '',
+//     slug: '',
+//     client: '',
+//     description: '',
+//     shortDescription: '',
+//     location: '',
+//     status: 'draft' as 'draft' | 'in-progress' | 'completed' | 'on-hold',
+//     progress: 0,
+//     year: '2026',
+//     features: [] as string[],
+//     images: [] as string[],
+//     dueDate: '',
+//   })
+
+//   // Auto-generate slug from name
+//   const handleNameChange = (name: string) => {
+//     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+//     setFormData({ ...formData, name, slug })
+//   }
+
+//   const handleSubmit = async () => {
+//     if (!formData.name || !formData.client || !formData.dueDate) {
+//       alert('Please fill in required fields (Name, Client, Due Date)')
+//       return
+//     }
+
+//     startTransition(async () => {
+//       if (editingId) {
+//         const res = await updateProject(editingId, formData)
+//         if (res.success) {
+//           setEditingId(null)
+//           setIsFormOpen(false)
+//         }
+//       } else {
+//         const res = await createProject(formData)
+//         if (res.success) {
+//           setIsFormOpen(false)
+//         }
+//       }
+//       // Reset form
+//       setFormData({
+//         name: '',
+//         slug: '',
+//         client: '',
+//         description: '',
+//         shortDescription: '',
+//         location: '',
+//         status: 'draft',
+//         progress: 0,
+//         year: '2026',
+//         features: [],
+//         images: [],
+//         dueDate: '',
+//       })
+//     })
+//   }
+
+//   const handleDelete = async (id: string) => {
+//     if (confirm('Are you sure you want to delete this project?')) {
+//       startTransition(async () => {
+//         await deleteProject(id)
+//         setProjects(projects.filter(p => p.id !== id))
+//       })
+//     }
+//   }
+
+//   const statusColors = {
+//     'draft': 'bg-gray-100/20 text-gray-700',
+//     'in-progress': 'bg-blue-100/20 text-blue-700',
+//     'completed': 'bg-green-100/20 text-green-700',
+//     'on-hold': 'bg-orange-100/20 text-orange-700',
+//   }
+
+//   return (
+//     <div className="space-y-8">
+//       <div>
+//         <h1 className="font-serif text-4xl font-light text-foreground">Projects Management</h1>
+//         <p className="text-muted-foreground mt-2">Create, update media via Cloudinary, and manage design projects</p>
+//       </div>
+
+//       {/* Add/Edit Form Modal */}
+//       {isFormOpen && (
+//         <Card className="p-8 border-border/20">
+//           <div className="flex items-center justify-between mb-6">
+//             <h2 className="font-serif text-2xl font-light text-foreground">
+//               {editingId ? 'Edit Project' : 'New Project'}
+//             </h2>
+//             <button
+//               onClick={() => {
+//                 setIsFormOpen(false)
+//                 setEditingId(null)
+//               }}
+//               className="text-muted-foreground hover:text-foreground"
+//             >
+//               <X className="w-5 h-5" />
+//             </button>
+//           </div>
+
+//           <div className="grid md:grid-cols-2 gap-6 mb-6">
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">Project Name *</label>
+//               <Input
+//                 value={formData.name}
+//                 onChange={(e) => handleNameChange(e.target.value)}
+//                 placeholder="e.g., Nakasero Residence"
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">URL Slug *</label>
+//               <Input
+//                 value={formData.slug}
+//                 onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+//                 placeholder="nakasero-residence"
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">Client Name *</label>
+//               <Input
+//                 value={formData.client}
+//                 onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+//                 placeholder="e.g., Sarah Kiwanuka"
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">Location</label>
+//               <Input
+//                 value={formData.location}
+//                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+//                 placeholder="e.g., Nakasero, Kampala"
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">Status</label>
+//               <select
+//                 value={formData.status}
+//                 onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+//                 className="w-full px-4 py-2 border border-muted rounded-none bg-background text-foreground"
+//               >
+//                 <option value="draft">Draft</option>
+//                 <option value="in-progress">In Progress</option>
+//                 <option value="completed">Completed</option>
+//                 <option value="on-hold">On Hold</option>
+//               </select>
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">Progress (%)</label>
+//               <Input
+//                 type="number"
+//                 min="0"
+//                 max="100"
+//                 value={formData.progress}
+//                 onChange={(e) => setFormData({ ...formData, progress: Number(e.target.value) })}
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">Due Date *</label>
+//               <Input
+//                 type="date"
+//                 value={formData.dueDate}
+//                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">Year</label>
+//               <Input
+//                 value={formData.year}
+//                 onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+//                 placeholder="2025-2026"
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div className="md:col-span-2">
+//               <label className="block text-sm font-medium text-foreground mb-2">Short Summary</label>
+//               <Input
+//                 value={formData.shortDescription}
+//                 onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
+//                 placeholder="Brief tagline for card previews..."
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div className="md:col-span-2">
+//               <label className="block text-sm font-medium text-foreground mb-2">Full Description</label>
+//               <textarea
+//                 value={formData.description}
+//                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+//                 rows={4}
+//                 className="w-full px-4 py-2 border border-muted rounded-none bg-background text-foreground font-light resize-none"
+//               />
+//             </div>
+//             <div className="md:col-span-2">
+//               <label className="block text-sm font-medium text-foreground mb-2">Project Gallery Images (Cloudinary)</label>
+//               <ImageUpload
+//                 value={formData.images}
+//                 onChange={(images) => setFormData({ ...formData, images })}
+//                 maxImages={6}
+//               />
+//             </div>
+//           </div>
+
+//           <div className="flex gap-3">
+//             <Button
+//               onClick={handleSubmit}
+//               disabled={isPending}
+//               className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none"
+//             >
+//               {isPending ? 'Saving...' : editingId ? 'Update Project' : 'Create Project'}
+//             </Button>
+//             <Button
+//               onClick={() => {
+//                 setIsFormOpen(false)
+//                 setEditingId(null)
+//               }}
+//               variant="outline"
+//               className="rounded-none"
+//             >
+//               Cancel
+//             </Button>
+//           </div>
+//         </Card>
+//       )}
+
+//       {/* Search & Add Header */}
+//       <div className="flex items-center gap-4">
+//         <div className="flex-1 relative">
+//           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+//           <Input
+//             value={searchTerm}
+//             onChange={(e) => setSearchTerm(e.target.value)}
+//             placeholder="Search projects by name or client..."
+//             className="pl-10 rounded-none border-muted"
+//           />
+//         </div>
+//         {!isFormOpen && (
+//           <Button
+//             onClick={() => setIsFormOpen(true)}
+//             className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none"
+//           >
+//             <Plus className="w-4 h-4 mr-2" />
+//             New Project
+//           </Button>
+//         )}
+//       </div>
+//     </div>
+//   )
+// }
 
 
 // 'use client'

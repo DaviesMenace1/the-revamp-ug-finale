@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { ArrowLeft } from 'lucide-react'
+
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { ProductDetail, ProductReviews } from '@/components/collections/product-detail'
@@ -127,8 +128,8 @@ export default async function ProductPage({
   const safeFabrics = safeVariants.filter((v: any) => v.type === 'FABRIC')
 
   // Numeric fields parsing
-  const safeRating = typeof product.rating === 'number' 
-    ? product.rating 
+  const safeRating = typeof product.rating === 'number'
+    ? product.rating
     : parseFloat(product.rating || '0')
 
   const safeRatingCount = typeof product.ratingCount === 'number'
@@ -182,6 +183,7 @@ export default async function ProductPage({
       <SchemaScript schema={productSchema} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
+        
         {/* Breadcrumb Navigation */}
         <div className="border-b border-border/20 pt-28 md:pt-32 pb-6">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
@@ -195,14 +197,20 @@ export default async function ProductPage({
           </div>
         </div>
 
-        {/* Product Detail Section */}
+        {/* Product Detail & Reviews Section */}
         <section className="py-12 md:py-16">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
+            
+            {/* The Main Product Details */}
             <ProductDetail product={safeProduct as any} />
+            
+            {/* The standalone Reviews component placed securely right underneath */}
+            <div className="mt-20">
+              <ProductReviews product={safeProduct as any} />
+            </div>
+
           </div>
         </section>
-
-        
 
         {/* Related Products Grid */}
         {related.length > 0 && (
@@ -252,6 +260,7 @@ export default async function ProductPage({
     </>
   )
 }
+
 
 
 

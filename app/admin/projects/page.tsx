@@ -1,273 +1,287 @@
-'use client'
+import { getProjects } from '@/lib/db/queries'
+import ProjectsClient from './projects-client'
 
-import { useState, useTransition } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Plus, Search, X, Upload } from 'lucide-react'
-import Image from 'next/image'
-import { CldUploadWidget } from 'next-cloudinary'
-import { createProject, updateProject, deleteProject } from '@/lib/actions/projects'
+export const dynamic = 'force-dynamic'
 
-function ImageUpload({ value = [], onChange, maxImages = 5 }: { value: string[]; onChange: (val: string[]) => void; maxImages?: number }) {
-  const handleRemove = (urlToRemove: string) => {
-    onChange(value.filter((url) => url !== urlToRemove))
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {value.map((url, idx) => (
-          <div key={idx} className="relative h-32 rounded-lg overflow-hidden border border-border/20 group">
-            <Image src={url} alt="Uploaded project asset" fill className="object-cover" />
-            <button
-              type="button"
-              onClick={() => handleRemove(url)}
-              className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
-
-        {value.length < maxImages && (
-          <CldUploadWidget
-            uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'revamp_preset'}
-            onSuccess={(result: any) => {
-              if (result?.info?.secure_url) {
-                onChange([...value, result.info.secure_url])
-              }
-            }}
-          >
-            {({ open }) => {
-              return (
-                <button
-                  type="button"
-                  onClick={() => open()}
-                  className="border-2 border-dashed border-border/40 hover:border-primary/50 rounded-lg h-32 flex flex-col items-center justify-center cursor-pointer bg-muted/5 transition-colors w-full"
-                >
-                  <Upload className="w-6 h-6 text-muted-foreground mb-1" />
-                  <span className="text-xs text-muted-foreground font-light">Upload Image</span>
-                </button>
-              )
-            }}
-          </CldUploadWidget>
-        )}
-      </div>
-    </div>
-  )
+export default async function AdminProjectsPage() {
+  // Fetch all projects to display in the admin dashboard
+  const projects = await getProjects(100, 0)
+  
+  return <ProjectsClient initialProjects={projects} />
 }
 
-export default function AdminProjects() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
 
-  const [formData, setFormData] = useState({
-    title: '',
-    slug: '',
-    clientName: '',
-    description: '',
-    longDescription: '',
-    location: '',
-    category: '',
-    thumbnailImage: '',
-    images: [] as string[],
-    featured: false,
-  })
 
-  const handleTitleChange = (title: string) => {
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-    setFormData({ ...formData, title, slug })
-  }
+// 'use client'
 
-  const handleSubmit = async () => {
-    if (!formData.title || !formData.clientName) {
-      alert('Please fill in required fields (Title, Client Name)')
-      return
-    }
+// import { useState, useTransition } from 'react'
+// import { Button } from '@/components/ui/button'
+// import { Card } from '@/components/ui/card'
+// import { Input } from '@/components/ui/input'
+// import { Plus, Search, X, Upload } from 'lucide-react'
+// import Image from 'next/image'
+// import { CldUploadWidget } from 'next-cloudinary'
+// import { createProject, updateProject, deleteProject } from '@/lib/actions/projects'
 
-    startTransition(async () => {
-      if (editingId) {
-        const res = await updateProject(editingId, formData)
-        if (res.success) {
-          setEditingId(null)
-          setIsFormOpen(false)
-        }
-      } else {
-        const res = await createProject(formData)
-        if (res.success) {
-          setIsFormOpen(false)
-        }
-      }
-      setFormData({
-        title: '',
-        slug: '',
-        clientName: '',
-        description: '',
-        longDescription: '',
-        location: '',
-        category: '',
-        thumbnailImage: '',
-        images: [],
-        featured: false,
-      })
-    })
-  }
+// function ImageUpload({ value = [], onChange, maxImages = 5 }: { value: string[]; onChange: (val: string[]) => void; maxImages?: number }) {
+//   const handleRemove = (urlToRemove: string) => {
+//     onChange(value.filter((url) => url !== urlToRemove))
+//   }
 
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-serif text-4xl font-light text-foreground">Projects Management</h1>
-        <p className="text-muted-foreground mt-2">Create, update media via Cloudinary, and manage design projects</p>
-      </div>
+//   return (
+//     <div className="space-y-4">
+//       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+//         {value.map((url, idx) => (
+//           <div key={idx} className="relative h-32 rounded-lg overflow-hidden border border-border/20 group">
+//             <Image src={url} alt="Uploaded project asset" fill className="object-cover" />
+//             <button
+//               type="button"
+//               onClick={() => handleRemove(url)}
+//               className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+//             >
+//               <X className="w-4 h-4" />
+//             </button>
+//           </div>
+//         ))}
 
-      {isFormOpen && (
-        <Card className="p-8 border-border/20">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-serif text-2xl font-light text-foreground">
-              {editingId ? 'Edit Project' : 'New Project'}
-            </h2>
-            <button
-              onClick={() => {
-                setIsFormOpen(false)
-                setEditingId(null)
-              }}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+//         {value.length < maxImages && (
+//           <CldUploadWidget
+//             uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'revamp_preset'}
+//             onSuccess={(result: any) => {
+//               if (result?.info?.secure_url) {
+//                 onChange([...value, result.info.secure_url])
+//               }
+//             }}
+//           >
+//             {({ open }) => {
+//               return (
+//                 <button
+//                   type="button"
+//                   onClick={() => open()}
+//                   className="border-2 border-dashed border-border/40 hover:border-primary/50 rounded-lg h-32 flex flex-col items-center justify-center cursor-pointer bg-muted/5 transition-colors w-full"
+//                 >
+//                   <Upload className="w-6 h-6 text-muted-foreground mb-1" />
+//                   <span className="text-xs text-muted-foreground font-light">Upload Image</span>
+//                 </button>
+//               )
+//             }}
+//           </CldUploadWidget>
+//         )}
+//       </div>
+//     </div>
+//   )
+// }
 
-          <div className="grid md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Project Title *</label>
-              <Input
-                value={formData.title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="e.g., Nakasero Residence"
-                className="rounded-none border-muted"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">URL Slug *</label>
-              <Input
-                value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                placeholder="nakasero-residence"
-                className="rounded-none border-muted"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Client Name *</label>
-              <Input
-                value={formData.clientName}
-                onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                placeholder="e.g., Sarah Kiwanuka"
-                className="rounded-none border-muted"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Location</label>
-              <Input
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="e.g., Nakasero, Kampala"
-                className="rounded-none border-muted"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Category</label>
-              <Input
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                placeholder="e.g., Residential Interior"
-                className="rounded-none border-muted"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Thumbnail Image URL</label>
-              <Input
-                value={formData.thumbnailImage}
-                onChange={(e) => setFormData({ ...formData, thumbnailImage: e.target.value })}
-                placeholder="Cloudinary thumbnail URL..."
-                className="rounded-none border-muted"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-foreground mb-2">Short Description</label>
-              <Input
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Brief tagline for card previews..."
-                className="rounded-none border-muted"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-foreground mb-2">Long Description</label>
-              <textarea
-                value={formData.longDescription}
-                onChange={(e) => setFormData({ ...formData, longDescription: e.target.value })}
-                rows={4}
-                className="w-full px-4 py-2 border border-muted rounded-none bg-background text-foreground font-light resize-none"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-foreground mb-2">Project Gallery Images</label>
-              <ImageUpload
-                value={formData.images}
-                onChange={(images) => setFormData({ ...formData, images })}
-                maxImages={6}
-              />
-            </div>
-          </div>
+// export default function AdminProjects() {
+//   const [searchTerm, setSearchTerm] = useState('')
+//   const [isFormOpen, setIsFormOpen] = useState(false)
+//   const [editingId, setEditingId] = useState<string | null>(null)
+//   const [isPending, startTransition] = useTransition()
 
-          <div className="flex gap-3">
-            <Button
-              onClick={handleSubmit}
-              disabled={isPending}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none"
-            >
-              {isPending ? 'Saving...' : editingId ? 'Update Project' : 'Create Project'}
-            </Button>
-            <Button
-              onClick={() => {
-                setIsFormOpen(false)
-                setEditingId(null)
-              }}
-              variant="outline"
-              className="rounded-none"
-            >
-              Cancel
-            </Button>
-          </div>
-        </Card>
-      )}
+//   const [formData, setFormData] = useState({
+//     title: '',
+//     slug: '',
+//     clientName: '',
+//     description: '',
+//     longDescription: '',
+//     location: '',
+//     category: '',
+//     thumbnailImage: '',
+//     images: [] as string[],
+//     featured: false,
+//   })
 
-      <div className="flex items-center gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search projects by title or client..."
-            className="pl-10 rounded-none border-muted"
-          />
-        </div>
-        {!isFormOpen && (
-          <Button
-            onClick={() => setIsFormOpen(true)}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Project
-          </Button>
-        )}
-      </div>
-    </div>
-  )
-}
+//   const handleTitleChange = (title: string) => {
+//     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+//     setFormData({ ...formData, title, slug })
+//   }
+
+//   const handleSubmit = async () => {
+//     if (!formData.title || !formData.clientName) {
+//       alert('Please fill in required fields (Title, Client Name)')
+//       return
+//     }
+
+//     startTransition(async () => {
+//       if (editingId) {
+//         const res = await updateProject(editingId, formData)
+//         if (res.success) {
+//           setEditingId(null)
+//           setIsFormOpen(false)
+//         }
+//       } else {
+//         const res = await createProject(formData)
+//         if (res.success) {
+//           setIsFormOpen(false)
+//         }
+//       }
+//       setFormData({
+//         title: '',
+//         slug: '',
+//         clientName: '',
+//         description: '',
+//         longDescription: '',
+//         location: '',
+//         category: '',
+//         thumbnailImage: '',
+//         images: [],
+//         featured: false,
+//       })
+//     })
+//   }
+
+//   return (
+//     <div className="space-y-8">
+//       <div>
+//         <h1 className="font-serif text-4xl font-light text-foreground">Projects Management</h1>
+//         <p className="text-muted-foreground mt-2">Create, update media via Cloudinary, and manage design projects</p>
+//       </div>
+
+//       {isFormOpen && (
+//         <Card className="p-8 border-border/20">
+//           <div className="flex items-center justify-between mb-6">
+//             <h2 className="font-serif text-2xl font-light text-foreground">
+//               {editingId ? 'Edit Project' : 'New Project'}
+//             </h2>
+//             <button
+//               onClick={() => {
+//                 setIsFormOpen(false)
+//                 setEditingId(null)
+//               }}
+//               className="text-muted-foreground hover:text-foreground"
+//             >
+//               <X className="w-5 h-5" />
+//             </button>
+//           </div>
+
+//           <div className="grid md:grid-cols-2 gap-6 mb-6">
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">Project Title *</label>
+//               <Input
+//                 value={formData.title}
+//                 onChange={(e) => handleTitleChange(e.target.value)}
+//                 placeholder="e.g., Nakasero Residence"
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">URL Slug *</label>
+//               <Input
+//                 value={formData.slug}
+//                 onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+//                 placeholder="nakasero-residence"
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">Client Name *</label>
+//               <Input
+//                 value={formData.clientName}
+//                 onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+//                 placeholder="e.g., Sarah Kiwanuka"
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">Location</label>
+//               <Input
+//                 value={formData.location}
+//                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+//                 placeholder="e.g., Nakasero, Kampala"
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">Category</label>
+//               <Input
+//                 value={formData.category}
+//                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+//                 placeholder="e.g., Residential Interior"
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-foreground mb-2">Thumbnail Image URL</label>
+//               <Input
+//                 value={formData.thumbnailImage}
+//                 onChange={(e) => setFormData({ ...formData, thumbnailImage: e.target.value })}
+//                 placeholder="Cloudinary thumbnail URL..."
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div className="md:col-span-2">
+//               <label className="block text-sm font-medium text-foreground mb-2">Short Description</label>
+//               <Input
+//                 value={formData.description}
+//                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+//                 placeholder="Brief tagline for card previews..."
+//                 className="rounded-none border-muted"
+//               />
+//             </div>
+//             <div className="md:col-span-2">
+//               <label className="block text-sm font-medium text-foreground mb-2">Long Description</label>
+//               <textarea
+//                 value={formData.longDescription}
+//                 onChange={(e) => setFormData({ ...formData, longDescription: e.target.value })}
+//                 rows={4}
+//                 className="w-full px-4 py-2 border border-muted rounded-none bg-background text-foreground font-light resize-none"
+//               />
+//             </div>
+//             <div className="md:col-span-2">
+//               <label className="block text-sm font-medium text-foreground mb-2">Project Gallery Images</label>
+//               <ImageUpload
+//                 value={formData.images}
+//                 onChange={(images) => setFormData({ ...formData, images })}
+//                 maxImages={6}
+//               />
+//             </div>
+//           </div>
+
+//           <div className="flex gap-3">
+//             <Button
+//               onClick={handleSubmit}
+//               disabled={isPending}
+//               className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none"
+//             >
+//               {isPending ? 'Saving...' : editingId ? 'Update Project' : 'Create Project'}
+//             </Button>
+//             <Button
+//               onClick={() => {
+//                 setIsFormOpen(false)
+//                 setEditingId(null)
+//               }}
+//               variant="outline"
+//               className="rounded-none"
+//             >
+//               Cancel
+//             </Button>
+//           </div>
+//         </Card>
+//       )}
+
+//       <div className="flex items-center gap-4">
+//         <div className="flex-1 relative">
+//           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+//           <Input
+//             value={searchTerm}
+//             onChange={(e) => setSearchTerm(e.target.value)}
+//             placeholder="Search projects by title or client..."
+//             className="pl-10 rounded-none border-muted"
+//           />
+//         </div>
+//         {!isFormOpen && (
+//           <Button
+//             onClick={() => setIsFormOpen(true)}
+//             className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none"
+//           >
+//             <Plus className="w-4 h-4 mr-2" />
+//             New Project
+//           </Button>
+//         )}
+//       </div>
+//     </div>
+//   )
+// }
 
 
 

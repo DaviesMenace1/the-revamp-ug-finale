@@ -109,6 +109,7 @@ export const products = pgTable(
     color: varchar('color', { length: 100 }),
     rating: decimal('rating', { precision: 3, scale: 2 }).default('0'),
     ratingCount: integer('rating_count').default(0),
+    reviews: jsonb('reviews').default([]),
     likes: integer('likes').default(0),
     views: integer('views').default(0),
     seoTitle: varchar('seo_title', { length: 255 }),

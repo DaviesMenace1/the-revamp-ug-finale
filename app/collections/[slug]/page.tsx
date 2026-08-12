@@ -8,16 +8,60 @@ import { SiteFooter } from '@/components/site-footer'
 import { ProductDetail, ProductReviews } from '@/components/collections/product-detail'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateProductSchema } from '@/lib/seo/schema-generator'
-import {
-  products,
-  getProductBySlug,
-  getRelatedProducts,
-  isNewArrival,
-  formatPrice,
-} from '@/lib/data/products'
 
-export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }))
+// Database & Drizzle Imports
+import { db } from '@/lib/db/client'
+import { products as productsTable } from '@/lib/db/schema'
+import { eq, ne, and } from 'drizzle-orm'
+
+// Allow new slugs created in DB to dynamically resolve without returning 404
+export const dynamicParams = true
+export const revalidate = 60 // Revalidate every minute or on demand
+
+// Utility helper for prices
+const formatPrice = (price: string | number, currency = 'USD') => {
+  const num = typeof price === 'string' ? parseFloat(price) : price
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(num || 0)
+}
+
+// Fetch single product from DB
+async function getProductBySlugFromDB(slug: string) {
+  try {
+    return await db.query.products.findFirst({
+      where: eq(productsTable.slug, slug),
+      with: {
+        variants: true,
+        productImages: true,
+      },
+    })
+  } catch (error) {
+    console.error('Failed to fetch product by slug:', error)
+    return null
+  }
+}
+
+// Fetch related products from DB
+async function getRelatedProductsFromDB(category: string, currentId: string) {
+  try {
+    return await db.query.products.findMany({
+      where: and(
+        eq(productsTable.category, category),
+        ne(productsTable.id, currentId)
+      ),
+      limit: 4,
+    })
+  } catch (error) {
+    return []
+  }
+}
+
+export async function generateStaticParams() {
+  try {
+    const allProducts = await db.select({ slug: productsTable.slug }).from(productsTable)
+    return allProducts.map((p) => ({ slug: p.slug }))
+  } catch {
+    return []
+  }
 }
 
 export async function generateMetadata({
@@ -26,7 +70,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const product = getProductBySlug(slug)
+  const product = await getProductBySlugFromDB(slug)
 
   if (!product) {
     return {
@@ -35,25 +79,25 @@ export async function generateMetadata({
     }
   }
 
-  const images = (product.images ?? []).filter(Boolean)
+  const images = (product.images as string[] ?? []).filter(Boolean)
   const openGraphImages = images.length
     ? images.map((img: string) => ({ url: String(img), width: 1200, height: 1200 }))
     : [{ url: 'https://therevampug.com/default-og.png', width: 1200, height: 1200 }]
 
   return {
     title: `${product.name} | The Revamp UG`,
-    description: product.tagline || product.description,
-    keywords: [product.name, product.space, product.itemType].filter(Boolean) as string[],
+    description: product.description || '',
+    keywords: [product.name, product.category].filter(Boolean) as string[],
     openGraph: {
       title: product.name,
-      description: product.tagline || product.description,
+      description: product.description || '',
       type: 'website',
       images: openGraphImages,
     },
     twitter: {
       card: 'summary_large_image',
       title: product.name,
-      description: product.tagline || product.description,
+      description: product.description || '',
       images: images.length ? [images[0]] : ['https://therevampug.com/default-twitter.png'],
     },
   }
@@ -65,18 +109,19 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const product = getProductBySlug(slug)
+  const product = await getProductBySlugFromDB(slug)
+
   if (!product) notFound()
 
-  const related = getRelatedProducts(product)
-  const images = (product.images ?? []).filter(Boolean)
+  const related = await getRelatedProductsFromDB(product.category, product.id)
+  const images = (product.images as string[] ?? []).filter(Boolean)
   const pageUrl = `https://therevampug.com/collections/${product.slug}`
 
   const productSchema = generateProductSchema({
     name: product.name,
-    description: product.description,
-    price: product.price,
-    currency: product.currency || 'USD',
+    description: product.description || '',
+    price: parseFloat(product.price),
+    currency: 'USD',
     images,
     options: { url: pageUrl, image: images[0] },
   })
@@ -102,14 +147,14 @@ export default async function ProductPage({
         {/* Product Details */}
         <section className="py-12 md:py-16">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
-            <ProductDetail product={product} />
+            <ProductDetail product={product as any} />
           </div>
         </section>
 
         {/* Reviews */}
         <section className="border-t border-border/20 py-16 md:py-20">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
-            <ProductReviews product={product} />
+            <ProductReviews product={product as any} />
           </div>
         </section>
 
@@ -121,37 +166,35 @@ export default async function ProductPage({
                 You may also like
               </h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border">
-                {related.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/collections/${p.slug}`}
-                    className="group relative bg-background overflow-hidden"
-                  >
-                    <div className="relative aspect-[3/4] overflow-hidden bg-muted">
-                      <Image
-                        src={p.images?.[0] ?? 'https://therevampug.com/default-thumb.png'}
-                        alt={p.name}
-                        fill
-                        sizes="(max-width: 1024px) 50vw, 25vw"
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/30 transition-colors duration-500 z-10" />
-                      {isNewArrival(p) && (
-                        <span className="absolute top-3 left-3 bg-gold text-obsidian font-sans text-[10px] tracking-widest uppercase px-2.5 py-1 z-20">
-                          New Arrivals
+                {related.map((p) => {
+                  const pImages = (p.images as string[]) || []
+                  return (
+                    <Link
+                      key={p.id}
+                      href={`/collections/${p.slug}`}
+                      className="group relative bg-background overflow-hidden"
+                    >
+                      <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+                        <Image
+                          src={pImages[0] ?? 'https://therevampug.com/default-thumb.png'}
+                          alt={p.name}
+                          fill
+                          sizes="(max-width: 1024px) 50vw, 25vw"
+                          className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/30 transition-colors duration-500 z-10" />
+                      </div>
+                      <div className="p-4 border-t border-border">
+                        <h3 className="font-serif text-base font-light text-foreground group-hover:text-gold transition-colors leading-tight mb-1">
+                          {p.name}
+                        </h3>
+                        <span className="font-sans text-sm text-foreground font-medium">
+                          {formatPrice(p.price)}
                         </span>
-                      )}
-                    </div>
-                    <div className="p-4 border-t border-border">
-                      <h3 className="font-serif text-base font-light text-foreground group-hover:text-gold transition-colors leading-tight mb-1">
-                        {p.name}
-                      </h3>
-                      <span className="font-sans text-sm text-foreground font-medium">
-                        {formatPrice(p.price, p.currency)}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
+                      </div>
+                    </Link>
+                  )
+                })}
               </div>
             </div>
           </section>

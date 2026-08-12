@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { projects } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-
+// this will help guide the uploads and up dates
 export async function createProject(data: {
   slug: string
   name: string
@@ -45,6 +45,7 @@ export async function updateProject(id: string, data: Partial<typeof projects.$i
     return { success: false, error: 'Failed to update project' }
   }
 }
+
 
 export async function deleteProject(id: string) {
   try {

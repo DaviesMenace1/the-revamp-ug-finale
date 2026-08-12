@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { Star, Heart, ShoppingBag, Truck, ShieldCheck, Check } from 'lucide-react'
+import { Star, Heart, ShoppingBag, Truck, ShieldCheck, Check, Ruler, Sparkles } from 'lucide-react'
 
 // Import your existing Cart Context hook (adjust path if your cart hook is located elsewhere, e.g., '@/context/cart-context')
 import { useCart } from '@/lib/context/cart-context'
@@ -28,6 +28,12 @@ export function ProductDetail({ product }: { product: any }) {
   const fabrics = variants.filter((v: any) => v?.type === 'FABRIC')
   const productImages = Array.isArray(product?.productImages) ? product.productImages : []
 
+  // Safe default dimension extraction from product prop
+  const rawDims = product?.dimensions || {}
+  const initialWidth = typeof rawDims === 'object' ? (rawDims.width || '') : ''
+  const initialHeight = typeof rawDims === 'object' ? (rawDims.height || '') : ''
+  const initialDepth = typeof rawDims === 'object' ? (rawDims.depth || '') : ''
+
   // State
   const [selectedImage, setSelectedImage] = useState<string>(rawImages[0] || DEFAULT_IMAGE)
   const [selectedColor, setSelectedColor] = useState(colors[0] || null)
@@ -35,6 +41,14 @@ export function ProductDetail({ product }: { product: any }) {
   const [quantity, setQuantity] = useState<number>(1)
   const [isWishlisted, setIsWishlisted] = useState<boolean>(false)
   const [added, setAdded] = useState<boolean>(false)
+
+  // Custom Dimensions Toggle & Input States
+  const [useCustomDims, setUseCustomDims] = useState<boolean>(false)
+  const [dimensions, setDimensions] = useState({
+    width: initialWidth,
+    height: initialHeight,
+    depth: initialDepth,
+  })
 
   // Safe Rating Extraction
   const rawRating = typeof product?.rating === 'number'
@@ -63,6 +77,14 @@ export function ProductDetail({ product }: { product: any }) {
 
   // Add to User Cart Handler
   const handleAddToCart = () => {
+    const customDimensionsToPass = useCustomDims
+      ? {
+          width: dimensions.width ? parseFloat(String(dimensions.width)) : undefined,
+          height: dimensions.height ? parseFloat(String(dimensions.height)) : undefined,
+          depth: dimensions.depth ? parseFloat(String(dimensions.depth)) : undefined,
+        }
+      : undefined
+
     const itemToAdd = {
       id: product.id,
       productId: product.id,
@@ -71,15 +93,25 @@ export function ProductDetail({ product }: { product: any }) {
       price: basePrice + fabricDelta,
       quantity,
       color: selectedColor?.label || null,
+      selectedColor,
       fabric: selectedFabric?.label || null,
+      selectedFabric,
+      selectedMaterial: selectedFabric,
       image: selectedImage,
+      customDimensions: customDimensionsToPass,
+      product: {
+        ...product,
+        salePrice: basePrice + fabricDelta,
+        price: basePrice + fabricDelta,
+        thumbnailImage: selectedImage,
+      }
     }
 
-    // Call existing user cart function
+    // Call existing user cart function with customDimensions included
     if (cart && typeof cart.addItem === 'function') {
-      cart.addItem(itemToAdd, quantity)
+      cart.addItem(itemToAdd, quantity, selectedColor, null, [], customDimensionsToPass)
     } else if (cart && typeof cart.addToCart === 'function') {
-      cart.addToCart(itemToAdd, quantity)
+      cart.addToCart(product, quantity, selectedColor, null, [], customDimensionsToPass)
     } else {
       // Fallback local storage sync if hook name differs
       const existing = JSON.parse(localStorage.getItem('cart') || '[]')
@@ -228,6 +260,89 @@ export function ProductDetail({ product }: { product: any }) {
             </div>
           </div>
         )}
+
+        {/* --- CUSTOM DIMENSIONS SELECTOR --- */}
+        <div className="mb-8 border border-border p-4 bg-muted/20 space-y-4">
+          <div className="flex items-center justify-between border-b border-border/60 pb-2">
+            <div className="flex items-center gap-2">
+              <Ruler className="w-4 h-4 text-gold" />
+              <span className="text-xs uppercase tracking-wider font-medium text-foreground">
+                Sizing & Dimensions
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setUseCustomDims(!useCustomDims)}
+              className="text-xs text-gold hover:underline flex items-center gap-1 font-medium"
+            >
+              {useCustomDims ? 'Use Standard Sizing' : '+ Tailor Custom Dimensions'}
+            </button>
+          </div>
+
+          {useCustomDims ? (
+            <div className="space-y-3 pt-1">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-gold" />
+                Specify exact dimensions in inches (″) for a bespoke fit:
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {/* Width */}
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
+                    Width (″)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g. 64"
+                    value={dimensions.width}
+                    onChange={(e) => setDimensions({ ...dimensions, width: e.target.value })}
+                    className="w-full p-2 text-xs border border-border bg-background text-foreground focus:outline-none focus:border-gold"
+                  />
+                </div>
+
+                {/* Height */}
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
+                    Height (″)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g. 32"
+                    value={dimensions.height}
+                    onChange={(e) => setDimensions({ ...dimensions, height: e.target.value })}
+                    className="w-full p-2 text-xs border border-border bg-background text-foreground focus:outline-none focus:border-gold"
+                  />
+                </div>
+
+                {/* Depth */}
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
+                    Depth (″)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g. 28"
+                    value={dimensions.depth}
+                    onChange={(e) => setDimensions({ ...dimensions, depth: e.target.value })}
+                    className="w-full p-2 text-xs border border-border bg-background text-foreground focus:outline-none focus:border-gold"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Standard Specifications: </span>
+              {typeof product?.dimensions === 'string'
+                ? product.dimensions
+                : product?.dimensions?.width
+                ? `${product.dimensions.width}″W ${product.dimensions.height ? `× ${product.dimensions.height}″H` : ''} ${product.dimensions.depth ? `× ${product.dimensions.depth}″D` : ''}`
+                : 'Standard Factory Dimensioning'}
+            </div>
+          )}
+        </div>
 
         {/* Quantity and Cart Actions */}
         <div className="flex gap-4 mb-8">

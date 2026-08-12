@@ -104,7 +104,7 @@ export default async function ProductPage({
 
   if (!product) notFound()
 
-  // --- COMPREHENSIVE CRASH FIX SANITIZATION ---
+  // --- COMPREHENSIVE SANITIZATION & DIMENSION NORMALIZATION ---
   const rawImages = (product.images as string[] ?? []).filter(Boolean)
   const safeImages = rawImages.length > 0 ? rawImages : [DEFAULT_IMAGE]
 
@@ -135,7 +135,16 @@ export default async function ProductPage({
     ? product.ratingCount
     : parseInt(product.ratingCount || '0', 10)
 
-  // Ensure ALL array properties expected by UI component have fallback empty arrays
+  // Safe Dimension Normalization
+  const rawDims = (product as any).dimensions
+  const safeDimensions = typeof rawDims === 'object' && rawDims !== null
+    ? rawDims
+    : {
+        width: (product as any).width || (product as any).defaultWidth || '',
+        height: (product as any).height || (product as any).defaultHeight || '',
+        depth: (product as any).depth || (product as any).defaultDepth || '',
+      }
+
   const safeProduct = {
     ...product,
     rating: Number.isNaN(safeRating) ? 0 : safeRating,
@@ -150,11 +159,11 @@ export default async function ProductPage({
     relatedProducts: Array.isArray(product.relatedProducts) ? product.relatedProducts : [],
     options: Array.isArray((product as any).options) ? (product as any).options : [],
     specifications: Array.isArray((product as any).specifications) ? (product as any).specifications : [],
-    dimensions: (product as any).dimensions || {},
+    dimensions: safeDimensions,
     tagline: product.description ?? '',
     currency: 'USD',
   }
-  // --------------------------------------------
+  // -------------------------------------------------------------
 
   const related = await getRelatedProductsFromDB(product.category, product.id)
   const pageUrl = `https://therevampug.com/collections/${product.slug}`

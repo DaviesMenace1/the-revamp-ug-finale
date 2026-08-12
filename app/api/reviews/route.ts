@@ -20,8 +20,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 })
     }
 
-    // 2. Append review to product tags/reviews or JSON column
+    // 2. Append review to product reviews JSON column
     const existingReviews = Array.isArray((product as any).reviews) ? (product as any).reviews : []
+    
     const newReview = {
       id: `rev-${Date.now()}`,
       author: author || 'Verified Customer',
@@ -42,6 +43,8 @@ export async function POST(req: NextRequest) {
       .set({
         rating: newAvgRating,
         ratingCount: updatedReviews.length,
+        // ✅ ADD THIS LINE: This actually saves the text/author to your database!
+        reviews: updatedReviews, 
       })
       .where(eq(products.id, productId))
 

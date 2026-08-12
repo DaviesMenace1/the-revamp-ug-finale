@@ -25,32 +25,54 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { name, slug, description, category, price, colors, fabrics } = body
 
+    if (!name || !slug || !price) {
+      return NextResponse.json(
+        { success: false, error: 'Name, Slug, and Price are required.' },
+        { status: 400 }
+      )
+    }
+
     const result = await db.transaction(async (tx) => {
-      // 1. Insert Base Product
+      // 1. Collect all images across color swatches for the main product array
+      const allCloudinaryImages: string[] = []
+      if (colors?.length) {
+        colors.forEach((c: any) => {
+          if (c.images?.length) {
+            allCloudinaryImages.push(...c.images)
+          }
+        })
+      }
+
+      // 2. Insert Base Product with explicit fallbacks for optional/default fields
       const [newProduct] = await tx
         .insert(products)
         .values({
-          name,
-          slug,
-          description,
-          category,
-          price: price.toString(),
+          name: name.trim(),
+          slug: slug.trim(),
+          description: description || '',
+          category: category || 'Furniture',
+          price: String(price),
+          images: allCloudinaryImages,
+          thumbnailImage: allCloudinaryImages[0] || null,
+          inStock: true,
+          quantity: 10,
+          status: 'published',
         })
         .returning()
 
-      // 2. Insert Fabrics
+      // 3. Insert Fabrics
       if (fabrics?.length) {
         await tx.insert(productVariants).values(
           fabrics.map((f: any) => ({
             productId: newProduct.id,
             type: 'FABRIC' as const,
             label: f.label,
-            priceDelta: (f.priceDelta || 0).toString(),
+            priceDelta: String(f.priceDelta || 0),
           }))
         )
       }
 
-      // 3. Insert Colors & Images
+      // 4. Insert Colors & Images
       if (colors?.length) {
         for (const c of colors) {
           const [colorVariant] = await tx
@@ -58,8 +80,8 @@ export async function POST(req: NextRequest) {
             .values({
               productId: newProduct.id,
               type: 'COLOR' as const,
-              label: c.label,
-              value: c.value,
+              label: c.label || 'Standard',
+              value: c.value || '#1C1C1C',
             })
             .returning()
 
@@ -82,6 +104,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: result }, { status: 201 })
   } catch (error: any) {
+    console.error('Error in product POST route:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }

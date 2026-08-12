@@ -164,41 +164,46 @@ export default function AdminProducts() {
 
   // --- Create / Update Action ---
   const handleSaveProduct = async () => {
-    if (!formData.name || !formData.price) {
-      alert('Please fill in required fields (Name & Price)')
-      return
-    }
-
-    setSubmitting(true)
-
-    const payload = {
-      ...(editingId ? { id: editingId } : {}),
-      ...formData,
-      colors: colors.filter((c) => c.label.trim() !== ''),
-      fabrics: fabrics.filter((f) => f.label.trim() !== ''),
-    }
-
-    try {
-      const res = await fetch('/api/admin/products', {
-        method: editingId ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      if (res.ok) {
-        await fetchProducts()
-        resetForm()
-      } else {
-        const err = await res.json()
-        alert(`Error: ${err.error || 'Failed to save product'}`)
-      }
-    } catch (err) {
-      console.error(err)
-      alert('Network error while saving product')
-    } finally {
-      setSubmitting(false)
-    }
+  if (!formData.name || !formData.price) {
+    alert('Please fill in required fields (Name & Price)')
+    return
   }
+
+  setSubmitting(true)
+
+  const payload = {
+    ...(editingId ? { id: editingId } : {}),
+    name: formData.name.trim(),
+    slug: formData.slug.trim(),
+    price: formData.price,
+    category: formData.category || 'Furniture',
+    description: formData.description || '',
+    colors: colors.filter((c) => c.label.trim() !== ''),
+    fabrics: fabrics.filter((f) => f.label.trim() !== ''),
+  }
+
+  try {
+    const res = await fetch('/api/admin/products', {
+      method: editingId ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    if (res.ok) {
+      await fetchProducts()
+      resetForm()
+    } else {
+      const err = await res.json()
+      alert(`Error: ${err.error || 'Failed to save product'}`)
+    }
+  } catch (err) {
+    console.error(err)
+    alert('Network error while saving product')
+  } finally {
+    setSubmitting(false)
+  }
+}
+
 
   const resetForm = () => {
     setFormData({ name: '', slug: '', category: 'Furniture', price: '', description: '' })

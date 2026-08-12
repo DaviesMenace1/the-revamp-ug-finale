@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { Star, Heart, ShoppingBag, Truck, ShieldCheck, Loader2, Sparkles } from 'lucide-react'
+import { Star, Heart, ShoppingBag, Truck, ShieldCheck, Check } from 'lucide-react'
+
+// Import your existing Cart Context hook (adjust path if your cart hook is located elsewhere, e.g., '@/context/cart-context')
+import { useCart } from '@/components/cart-provider'
 
 const DEFAULT_IMAGE = 'https://therevampug.com/default-thumb.png'
 
@@ -12,24 +15,26 @@ const formatPrice = (price: string | number, currency = 'USD') => {
 }
 
 export function ProductDetail({ product }: { product: any }) {
+  const cart = useCart() as any // Safe access to existing cart store
+
   // Extract images safely
   const rawImages: string[] = Array.isArray(product?.images) && product.images.length > 0
     ? product.images.filter(Boolean)
     : [DEFAULT_IMAGE]
 
-  // Safe extraction of variants
+  // Safe extraction of variants & images
   const variants = Array.isArray(product?.variants) ? product.variants : []
   const colors = variants.filter((v: any) => v?.type === 'COLOR')
   const fabrics = variants.filter((v: any) => v?.type === 'FABRIC')
   const productImages = Array.isArray(product?.productImages) ? product.productImages : []
 
-  // Component state
+  // State
   const [selectedImage, setSelectedImage] = useState<string>(rawImages[0] || DEFAULT_IMAGE)
   const [selectedColor, setSelectedColor] = useState(colors[0] || null)
   const [selectedFabric, setSelectedFabric] = useState(fabrics[0] || null)
   const [quantity, setQuantity] = useState<number>(1)
   const [isWishlisted, setIsWishlisted] = useState<boolean>(false)
-  const [addingToCart, setAddingToCart] = useState<boolean>(false)
+  const [added, setAdded] = useState<boolean>(false)
 
   // Safe Rating Extraction
   const rawRating = typeof product?.rating === 'number'
@@ -42,12 +47,12 @@ export function ProductDetail({ product }: { product: any }) {
     : parseInt(product?.ratingCount || '0', 10)
   const ratingCount = Number.isNaN(rawRatingCount) ? 0 : rawRatingCount
 
-  // Dynamic Price Calculation (Base Price + Fabric Delta)
+  // Dynamic Price Calculation
   const basePrice = parseFloat(product?.price || '0')
   const fabricDelta = selectedFabric ? parseFloat(selectedFabric.priceDelta || '0') : 0
   const totalPrice = (basePrice + fabricDelta) * quantity
 
-  // Switch image based on color selection
+  // Color Swatch Selection Handler (Switches Main Image)
   const handleColorSelect = (color: any) => {
     setSelectedColor(color)
     const matchingImage = productImages.find((img: any) => img?.colorId === color?.id)
@@ -56,11 +61,10 @@ export function ProductDetail({ product }: { product: any }) {
     }
   }
 
-  // Add to Cart handler
+  // Add to User Cart Handler
   const handleAddToCart = () => {
-    setAddingToCart(true)
-
-    const cartItem = {
+    const itemToAdd = {
+      id: product.id,
       productId: product.id,
       name: product.name,
       slug: product.slug,
@@ -71,58 +75,52 @@ export function ProductDetail({ product }: { product: any }) {
       image: selectedImage,
     }
 
-    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]')
-    existingCart.push(cartItem)
-    localStorage.setItem('cart', JSON.stringify(existingCart))
+    // Call existing user cart function
+    if (cart && typeof cart.addItem === 'function') {
+      cart.addItem(itemToAdd, quantity)
+    } else if (cart && typeof cart.addToCart === 'function') {
+      cart.addToCart(itemToAdd, quantity)
+    } else {
+      // Fallback local storage sync if hook name differs
+      const existing = JSON.parse(localStorage.getItem('cart') || '[]')
+      existing.push(itemToAdd)
+      localStorage.setItem('cart', JSON.stringify(existing))
+    }
 
-    setTimeout(() => {
-      setAddingToCart(false)
-      alert(`Added ${quantity} x "${product.name}" to cart.`)
-    }, 400)
+    setAdded(true)
+    setTimeout(() => setAdded(false), 2000)
   }
 
-  // Wishlist handler
+  // Wishlist Handler
   const toggleWishlist = () => {
-    const existingWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]')
-    if (isWishlisted) {
-      const updated = existingWishlist.filter((item: any) => item.id !== product.id)
-      localStorage.setItem('wishlist', JSON.stringify(updated))
-      setIsWishlisted(false)
-    } else {
-      existingWishlist.push({ id: product.id, name: product.name, slug: product.slug, image: selectedImage })
-      localStorage.setItem('wishlist', JSON.stringify(existingWishlist))
-      setIsWishlisted(true)
-    }
+    setIsWishlisted(!isWishlisted)
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
       {/* LEFT: Image Gallery */}
       <div className="flex flex-col gap-4">
-        <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted border border-border/40 shadow-2xl rounded-sm group">
+        <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted border border-border">
           <Image
             src={selectedImage}
             alt={product?.name || 'Product Image'}
             fill
             priority
             sizes="(max-width: 1024px) 100vw, 50vw"
-            className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
+            className="object-cover object-center"
           />
-          <div className="absolute top-4 left-4 bg-background/80 backdrop-blur-md px-3 py-1 border border-amber-500/30 text-[10px] tracking-widest uppercase font-mono text-gold flex items-center gap-1.5 shadow-lg">
-            <Sparkles size={12} className="animate-pulse" /> REVAMP • 20026
-          </div>
         </div>
 
         {rawImages.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+          <div className="flex gap-3 overflow-x-auto pb-2">
             {rawImages.map((img: string, idx: number) => (
               <button
                 key={idx}
                 onClick={() => setSelectedImage(img)}
                 className={`relative aspect-square w-20 flex-shrink-0 overflow-hidden border transition-all ${
                   selectedImage === img
-                    ? 'border-gold ring-1 ring-gold/50 scale-105'
-                    : 'border-border/40 opacity-60 hover:opacity-100'
+                    ? 'border-gold'
+                    : 'border-border/60 opacity-60 hover:opacity-100'
                 }`}
               >
                 <Image src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
@@ -132,69 +130,68 @@ export function ProductDetail({ product }: { product: any }) {
         )}
       </div>
 
-      {/* RIGHT: Product Info & Actions */}
+      {/* RIGHT: Product Info */}
       <div className="flex flex-col">
         {product?.category && (
-          <span className="text-[11px] font-mono tracking-widest uppercase text-gold mb-2 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-gold rounded-full animate-ping" />
+          <span className="text-xs uppercase tracking-widest font-semibold text-gold mb-2">
             {product.category}
           </span>
         )}
 
-        <h1 className="font-serif text-3xl sm:text-4xl font-light tracking-tight text-foreground mb-3">
-          {product?.name || 'Untitled Item'}
+        <h1 className="font-serif text-3xl sm:text-4xl font-light text-foreground mb-3">
+          {product?.name || 'Untitled Product'}
         </h1>
 
-        {/* Rating Counter */}
+        {/* Rating Overview */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex items-center text-amber-400 gap-0.5">
+          <div className="flex items-center text-amber-500 gap-0.5">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
                 size={16}
-                className={i < Math.floor(rating) ? 'fill-current text-amber-400' : 'text-zinc-700'}
+                className={i < Math.floor(rating) ? 'fill-current' : 'text-muted'}
               />
             ))}
           </div>
-          <span className="text-xs font-mono text-muted-foreground">
-            {rating.toFixed(1)} <span className="text-zinc-600">/</span> {ratingCount} VERIFIED
+          <span className="text-xs text-muted-foreground">
+            {rating.toFixed(1)} ({ratingCount} {ratingCount === 1 ? 'review' : 'reviews'})
           </span>
         </div>
 
-        {/* Dynamic Pricing */}
-        <div className="text-3xl font-light tracking-tight text-foreground mb-6 font-mono">
+        {/* Price Display */}
+        <div className="text-2xl font-medium text-foreground mb-6">
           {formatPrice(totalPrice, product?.currency || 'USD')}
           {fabricDelta > 0 && (
-            <span className="text-xs text-gold/80 block mt-1 font-sans">
+            <span className="text-xs text-muted-foreground ml-2 font-normal">
               (Includes +{formatPrice(fabricDelta)} for {selectedFabric?.label})
             </span>
           )}
         </div>
 
         {/* Description */}
-        <div className="prose prose-sm text-muted-foreground mb-8 leading-relaxed">
-          <p>{product?.description || product?.tagline || 'Crafted with precision engineering.'}</p>
+        <div className="prose prose-sm text-muted-foreground mb-8">
+          <p>{product?.description || product?.tagline || 'Crafted with premium materials and precision.'}</p>
         </div>
 
-        {/* COLOR PICKER */}
+        {/* COLOR OPTION PICKER */}
         {colors.length > 0 && (
           <div className="mb-6">
-            <label className="block text-xs font-mono uppercase tracking-widest text-foreground/80 mb-3">
-              Finish: <span className="text-gold">{selectedColor?.label || 'Select'}</span>
+            <label className="block text-xs uppercase tracking-wider font-medium text-foreground mb-3">
+              Color Finish: <span className="text-gold font-semibold">{selectedColor?.label || 'Select'}</span>
             </label>
-            <div className="flex flex-wrap gap-2.5">
+            <div className="flex flex-wrap gap-2">
               {colors.map((color: any, idx: number) => (
                 <button
                   key={color?.id || idx}
                   onClick={() => handleColorSelect(color)}
-                  className={`flex items-center gap-2.5 h-10 px-4 border text-xs font-medium transition-all ${
+                  className={`flex items-center gap-2 h-9 px-4 border text-xs font-medium transition-all ${
                     selectedColor?.id === color?.id
-                      ? 'border-gold bg-gold/10 text-gold shadow-[0_0_15px_rgba(212,175,55,0.15)]'
-                      : 'border-border/50 text-foreground hover:border-foreground/50'
+                      ? 'border-gold bg-gold/10 text-gold'
+                      : 'border-border text-foreground hover:border-muted-foreground'
                   }`}
                 >
                   <span
-                    className="w-3.5 h-3.5 rounded-full border border-black/30 shadow-inner"
+                    className="w-3.5 h-3.5 rounded-full border border-black/20"
                     style={{ backgroundColor: color?.value || '#1C1C1C' }}
                   />
                   {color?.label}
@@ -204,23 +201,24 @@ export function ProductDetail({ product }: { product: any }) {
           </div>
         )}
 
-        {/* MATERIAL / FABRIC PICKER */}
+        {/* MATERIAL / FABRIC OPTION PICKER */}
         {fabrics.length > 0 && (
           <div className="mb-6">
-            <label className="block text-xs font-mono uppercase tracking-widest text-foreground/80 mb-3">
-              Specification: <span className="text-gold">{selectedFabric?.label || 'Standard'}</span>
+            <label className="block text-xs uppercase tracking-wider font-medium text-foreground mb-3">
+              Material Option:{' '}
+              <span className="text-gold font-semibold">{selectedFabric?.label || 'Standard'}</span>
             </label>
-            <div className="flex flex-wrap gap-2.5">
+            <div className="flex flex-wrap gap-2">
               {fabrics.map((fabric: any, idx: number) => {
                 const delta = parseFloat(fabric?.priceDelta || '0')
                 return (
                   <button
                     key={fabric?.id || idx}
                     onClick={() => setSelectedFabric(fabric)}
-                    className={`h-10 px-4 border text-xs font-medium transition-all ${
+                    className={`h-9 px-4 border text-xs font-medium transition-all ${
                       selectedFabric?.id === fabric?.id
-                        ? 'border-gold bg-gold/10 text-gold shadow-[0_0_15px_rgba(212,175,55,0.15)]'
-                        : 'border-border/50 text-foreground hover:border-foreground/50'
+                        ? 'border-gold bg-gold/10 text-gold'
+                        : 'border-border text-foreground hover:border-muted-foreground'
                     }`}
                   >
                     {fabric?.label} {delta > 0 ? `(+${formatPrice(delta)})` : ''}
@@ -231,19 +229,19 @@ export function ProductDetail({ product }: { product: any }) {
           </div>
         )}
 
-        {/* Quantity and Actions */}
+        {/* Quantity and Cart Actions */}
         <div className="flex gap-4 mb-8">
-          <div className="flex items-center border border-border/60 bg-muted/20">
+          <div className="flex items-center border border-border">
             <button
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="px-4 py-3 text-foreground hover:bg-muted/50 transition-colors font-mono text-sm"
+              className="px-3 py-2 text-foreground hover:bg-muted transition-colors"
             >
               -
             </button>
-            <span className="px-4 py-3 text-sm font-mono text-foreground font-semibold">{quantity}</span>
+            <span className="px-4 py-2 text-sm font-medium">{quantity}</span>
             <button
               onClick={() => setQuantity((q) => q + 1)}
-              className="px-4 py-3 text-foreground hover:bg-muted/50 transition-colors font-mono text-sm"
+              className="px-3 py-2 text-foreground hover:bg-muted transition-colors"
             >
               +
             </button>
@@ -251,19 +249,16 @@ export function ProductDetail({ product }: { product: any }) {
 
           <button
             onClick={handleAddToCart}
-            disabled={addingToCart}
-            className="flex-1 bg-gold hover:bg-gold/90 text-zinc-950 font-semibold py-3 px-6 transition-all text-xs font-mono uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg hover:shadow-gold/20"
+            className="flex-1 bg-gold hover:bg-gold/90 text-obsidian font-medium py-3 px-6 transition-colors text-xs uppercase tracking-wider flex items-center justify-center gap-2"
           >
-            {addingToCart ? <Loader2 size={16} className="animate-spin" /> : <ShoppingBag size={16} />}
-            ACQUIRE NOW
+            {added ? <Check size={16} /> : <ShoppingBag size={16} />}
+            {added ? 'Added To Cart' : 'Add To Cart'}
           </button>
 
           <button
             onClick={toggleWishlist}
-            className={`p-3.5 border transition-all ${
-              isWishlisted
-                ? 'border-red-500 text-red-500 bg-red-500/10'
-                : 'border-border/60 text-foreground hover:border-gold'
+            className={`p-3 border transition-colors ${
+              isWishlisted ? 'border-red-500 text-red-500 bg-red-500/10' : 'border-border text-foreground hover:border-gold'
             }`}
           >
             <Heart size={18} className={isWishlisted ? 'fill-current' : ''} />
@@ -271,14 +266,14 @@ export function ProductDetail({ product }: { product: any }) {
         </div>
 
         {/* Guarantees */}
-        <div className="border-t border-border/30 pt-6 space-y-3 text-xs text-muted-foreground font-mono">
+        <div className="border-t border-border pt-6 space-y-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
             <Truck size={16} className="text-gold" />
-            <span>EXPRESS GLOBAL DISPATCH AVAILABLE</span>
+            <span>Complimentary delivery on luxury collection orders.</span>
           </div>
           <div className="flex items-center gap-3">
             <ShieldCheck size={16} className="text-gold" />
-            <span>20026 CERTIFIED CRAFTSMANSHIP GUARANTEE</span>
+            <span>Authenticity guarantee & 2-year warranty included.</span>
           </div>
         </div>
       </div>
@@ -297,7 +292,7 @@ export function ProductReviews({ product }: { product: any }) {
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!author || !comment) {
-      alert('Please fill out your identity and experience details.')
+      alert('Please provide your name and review comment.')
       return
     }
 
@@ -321,9 +316,9 @@ export function ProductReviews({ product }: { product: any }) {
         setAuthor('')
         setComment('')
         setRating(5)
-        alert('Review logged to network!')
+        alert('Thank you! Your review has been submitted.')
       } else {
-        alert('Failed to transmit review.')
+        alert('Failed to submit review.')
       }
     } catch (err) {
       // Local fallback
@@ -336,46 +331,35 @@ export function ProductReviews({ product }: { product: any }) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12">
+    <div className="max-w-4xl mx-auto space-y-10">
       <div>
-        <div className="flex items-center justify-between border-b border-border/30 pb-4 mb-8">
-          <h3 className="font-serif text-2xl font-light tracking-tight text-foreground">
-            Client Transmissions <span className="font-mono text-xs text-gold ml-2">[{reviews.length}]</span>
-          </h3>
-          <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
-            SECURE REVIEW FEED 20026
-          </span>
-        </div>
+        <h3 className="font-serif text-2xl font-light mb-6">Customer Reviews</h3>
 
-        {/* 20026 INTERACTIVE RATING REVIEW FORM */}
-        <form onSubmit={handleReviewSubmit} className="border border-border/50 p-6 md:p-8 bg-muted/10 space-y-6 mb-12 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 blur-3xl rounded-full pointer-events-none" />
+        {/* Add Review Form */}
+        <form onSubmit={handleReviewSubmit} className="border border-border p-6 bg-muted/20 space-y-4 mb-10">
+          <h4 className="font-serif text-lg font-light">Write a Review</h4>
 
-          <h4 className="font-serif text-lg font-light text-foreground flex items-center gap-2">
-            Submit Rating Transmission
-          </h4>
-
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
-                Identity / Name *
+              <label className="block text-xs uppercase tracking-wider font-medium text-foreground mb-1">
+                Your Name *
               </label>
               <input
                 type="text"
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
-                placeholder="e.g. Alex Mercer"
-                className="w-full p-3 border border-border/60 text-xs bg-background focus:outline-none focus:border-gold transition-colors font-mono"
+                placeholder="e.g. Jane Doe"
+                className="w-full p-2.5 border border-border text-xs bg-background focus:outline-none focus:border-gold"
                 required
               />
             </div>
 
             {/* TAP TO RATE STAR SELECTOR */}
             <div>
-              <label className="block text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
-                Rating Assessment ({rating} / 5) *
+              <label className="block text-xs uppercase tracking-wider font-medium text-foreground mb-1">
+                Rating Assessment ({rating} / 5 Stars) *
               </label>
-              <div className="flex items-center gap-1.5 pt-1.5">
+              <div className="flex items-center gap-1.5 pt-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
@@ -383,14 +367,14 @@ export function ProductReviews({ product }: { product: any }) {
                     onClick={() => setRating(star)}
                     onMouseEnter={() => setHoverRating(star)}
                     onMouseLeave={() => setHoverRating(0)}
-                    className="p-1 text-zinc-700 hover:scale-125 transition-transform duration-200 focus:outline-none"
+                    className="p-1 hover:scale-110 transition-transform focus:outline-none"
                   >
                     <Star
-                      size={22}
+                      size={20}
                       className={
                         star <= (hoverRating || rating)
-                          ? 'fill-amber-400 text-amber-400 filter drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]'
-                          : 'text-zinc-700'
+                          ? 'fill-amber-400 text-amber-400'
+                          : 'text-zinc-300'
                       }
                     />
                   </button>
@@ -400,15 +384,15 @@ export function ProductReviews({ product }: { product: any }) {
           </div>
 
           <div>
-            <label className="block text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
-              Transmission Log / Comment *
+            <label className="block text-xs uppercase tracking-wider font-medium text-foreground mb-1">
+              Your Review *
             </label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={4}
-              placeholder="Describe product quality, texture, and overall aesthetic..."
-              className="w-full p-3 border border-border/60 text-xs bg-background focus:outline-none focus:border-gold transition-colors"
+              placeholder="Share your experience regarding craftsmanship, texture, or quality..."
+              className="w-full p-2.5 border border-border text-xs bg-background focus:outline-none focus:border-gold"
               required
             />
           </div>
@@ -416,38 +400,36 @@ export function ProductReviews({ product }: { product: any }) {
           <button
             type="submit"
             disabled={submitting}
-            className="bg-gold hover:bg-gold/90 text-zinc-950 px-8 py-3 text-xs font-mono uppercase tracking-widest font-semibold transition-all shadow-lg hover:shadow-gold/20"
+            className="bg-gold text-obsidian px-6 py-2.5 text-xs uppercase tracking-wider font-semibold hover:bg-gold/90 transition-colors"
           >
-            {submitting ? 'Transmitting...' : 'Send Transmission'}
+            {submitting ? 'Submitting...' : 'Submit Review'}
           </button>
         </form>
 
-        {/* REVIEWS LIST */}
+        {/* Existing Reviews List */}
         {reviews.length === 0 ? (
-          <div className="text-center py-12 border border-dashed border-border/40 font-mono text-xs text-muted-foreground">
-            NO TRANSMISSIONS LOGGED YET. BE THE FIRST CLIENT TO TRANSMIT A REVIEW.
-          </div>
+          <p className="text-sm text-muted-foreground">No reviews yet for this product. Be the first to leave a review!</p>
         ) : (
           <div className="space-y-6">
             {reviews.map((rev: any, idx: number) => (
-              <div key={rev?.id || idx} className="border-b border-border/30 pb-6">
+              <div key={rev?.id || idx} className="border-b border-border pb-6">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono font-semibold text-foreground">
-                      {rev?.author || 'Anonymous Client'}
+                    <span className="text-xs font-semibold text-foreground">
+                      {rev?.author || 'Verified Customer'}
                     </span>
                     <div className="flex text-amber-400">
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          size={12}
-                          className={i < (rev?.rating || 5) ? 'fill-current' : 'text-zinc-800'}
+                          size={13}
+                          className={i < (rev?.rating || 5) ? 'fill-current' : 'text-zinc-300'}
                         />
                       ))}
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono text-muted-foreground uppercase">
-                    VERIFIED BUYER
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    Verified Buyer
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">{rev?.comment || rev?.text}</p>

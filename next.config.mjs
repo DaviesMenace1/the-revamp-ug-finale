@@ -3,7 +3,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  serverExternalPackages: ['@getbrevo/brevo'],
+  serverExternalPackages: ['@getbrevo/brevo','postgres', 'pg', 'drizzle-orm'],
   images: {
     remotePatterns: [
       {

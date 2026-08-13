@@ -28,13 +28,9 @@ export async function getProductBySlug(slug: string) {
     return await db.query.products.findFirst({
       where: eq(products.slug, slug),
       with: {
-        variants: true,
-        productImages: {
-          with: {
-            colorVariant: true,
-          },
-        },
-      },
+  productVariants: true,
+  productImages: true,
+},
     });
   } catch (error) {
     return null;
@@ -46,9 +42,9 @@ export async function getProductWithDetails(id: string) {
     return await db.query.products.findFirst({
       where: eq(products.id, id),
       with: {
-        variants: true,
-        productImages: true,
-      },
+  productVariants: true,
+  productImages: true,
+},
     });
   } catch (error) {
     return null;

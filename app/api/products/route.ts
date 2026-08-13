@@ -13,9 +13,9 @@ export async function GET() {
       where: eq(products.status, 'published'),
       orderBy: [desc(products.createdAt)],
       with: {
-        variants: true,
-        productImages: true,
-      },
+  productVariants: true,
+  productImages: true,
+},,
     })
     return NextResponse.json({ success: true, data })
   } catch (error: any) {

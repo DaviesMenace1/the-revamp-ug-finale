@@ -1,12 +1,7 @@
+// lib/db/client.ts
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import { products, productsRelations, productImages } from './schema' // Adjust to your actual imports
-
-console.log('--- DRIZZLE INIT DEBUG ---')
-console.log('products table:', typeof products)
-console.log('productImages table:', typeof productImages)
-console.log('productsRelations:', typeof productsRelations)
-console.log('--------------------------')
+import * as schema from './schema'   // import everything
 
 const connectionString = process.env.DATABASE_URL!
 
@@ -20,11 +15,7 @@ const conn = globalForDb.conn ?? postgres(connectionString, {
 
 if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn
 
-export const db = drizzle(conn, { 
-  schema: { products, productsRelations, productImages } 
-})
-
-
+export const db = drizzle(conn, { schema })  // pass the whole schema
 
 
 // import { drizzle } from 'drizzle-orm/postgres-js'

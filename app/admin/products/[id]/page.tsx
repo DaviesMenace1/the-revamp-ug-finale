@@ -24,9 +24,9 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   const product = await db.query.products.findFirst({
     where: eq(products.id, id),
     with: {
-      variants: true,
-      productImages: true,
-    },
+  productVariants: true,
+  productImages: true,
+},
   })
 
   if (!product) {

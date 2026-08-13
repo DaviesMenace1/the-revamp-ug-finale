@@ -1,5 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/lib/theme-provider'

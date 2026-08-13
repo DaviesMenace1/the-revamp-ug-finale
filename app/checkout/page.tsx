@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs' // <-- Added Clerk hook import
+
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
@@ -46,7 +48,8 @@ const getProductImage = (item: any): string => {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { items = [], cart, customerName, setCustomerName, isLoaded } = useCart()
+  const { isLoaded: isClerkLoaded, user } = useUser() // <-- Destructured Clerk user state
+  const { items = [], cart, customerName, setCustomerName, isLoaded: isCartLoaded } = useCart()
 
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -62,30 +65,23 @@ export default function CheckoutPage() {
     notes: '',
   })
 
+  // Auto-fill user details from Clerk when loaded
   useEffect(() => {
-    if (user) {
+    if (isClerkLoaded && user) {
       setFormData((prev) => ({
         ...prev,
         name: user.fullName || user.firstName || prev.name,
         email: user.primaryEmailAddress?.emailAddress || prev.email,
       }))
     }
-  }, [user])
+  }, [user, isClerkLoaded])
 
-  if (!isClerkLoaded || !isCartLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-  
   // Sync customerName if changed from context
-  // useEffect(() => {
-  //   if (customerName && !formData.name) {
-  //     setFormData((prev) => ({ ...prev, name: customerName }))
-  //   }
-  // }, [customerName])
+  useEffect(() => {
+    if (customerName && !formData.name) {
+      setFormData((prev) => ({ ...prev, name: customerName }))
+    }
+  }, [customerName, formData.name])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -152,7 +148,8 @@ export default function CheckoutPage() {
     }
   }
 
-  if (!isLoaded) {
+  // Loading indicator while Clerk / Cart loads
+  if (!isClerkLoaded || !isCartLoaded) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <SiteHeader />
@@ -164,6 +161,7 @@ export default function CheckoutPage() {
     )
   }
 
+  // Empty Cart State
   if (items.length === 0) {
     return (
       <div className="min-h-screen flex flex-col bg-background">

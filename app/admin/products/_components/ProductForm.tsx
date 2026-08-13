@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Package,
   DollarSign,
-  Truck,
   Layers,
   Search,
   FileText,
@@ -23,7 +22,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react'
 
-// Google Furniture & Home Taxonomy Data Structure
+// Cascading Google Taxonomy Categories Data Structure
 const GOOGLE_TAXONOMY_TREE: Record<string, Record<string, string[]>> = {
   "Furniture": {
     "Chairs": [
@@ -75,13 +74,45 @@ interface ProductFormProps {
 export default function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [activeTab, setActiveTab] = useState<'general' | 'media' | 'pricing' | 'logistics' | 'specs' | 'variants' | 'google' | 'seo'>('general')
+  const [activeTab, setActiveTab] = useState<'general' | 'media' | 'pricing' | 'specs' | 'variants' | 'google' | 'seo'>('general')
 
-  // Cascading Google Category Dropdown State
+  // Safely Extract Primary Cover Image from DB
+  const initialPrimaryImage = 
+    initialData?.productImages?.find((img: any) => img.isPrimary)?.url ||
+    initialData?.productImages?.[0]?.url ||
+    initialData?.thumbnailImage ||
+    ''
+
+  // Safely Extract Gallery Array from DB
+  const initialGalleryImages = initialData?.productImages
+    ? initialData.productImages
+        .filter((img: any) => !img.isPrimary && img.url !== initialPrimaryImage)
+        .map((img: any) => img.url)
+    : (initialData?.images || initialData?.gallery || [])
+
+  // Safely Extract Color Variants from DB
+  const initialColors = initialData?.productVariants
+    ? initialData.productVariants.filter((v: any) => v.type === 'COLOR').map((v: any) => ({
+        label: v.label,
+        value: v.value || '#000000',
+        imageUrl: v.imageUrl || ''
+      }))
+    : (initialData?.colors || [{ label: 'Standard Mahogany', value: '#5C4033', imageUrl: '' }])
+
+  // Safely Extract Fabric Variants from DB
+  const initialFabrics = initialData?.productVariants
+    ? initialData.productVariants.filter((v: any) => v.type === 'FABRIC').map((v: any) => ({
+        label: v.label,
+        priceDelta: Number(v.priceDelta || 0),
+        imageUrl: v.imageUrl || ''
+      }))
+    : (initialData?.fabrics || [])
+
+  // Google Cascading Dropdowns State
   const [gLevel1, setGLevel1] = useState<string>(initialData?.googleProductCategory ? 'Furniture' : '')
   const [gLevel2, setGLevel2] = useState<string>('')
 
-  // Form State
+  // Consolidated Form State
   const [formData, setFormData] = useState({
     id: initialData?.id || undefined,
     name: initialData?.name || '',
@@ -95,9 +126,9 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     subCategory: initialData?.subCategory || '',
     googleProductCategory: initialData?.googleProductCategory || 'Furniture > Chairs > Armchairs, Recliners & Tilt Chairs',
     
-    // Images
-    thumbnailImage: initialData?.thumbnailImage || '',
-    gallery: (initialData?.images || initialData?.gallery || []) as string[],
+    // Media State
+    thumbnailImage: initialPrimaryImage,
+    gallery: initialGalleryImages as string[],
     
     price: initialData?.price || '',
     originalPrice: initialData?.originalPrice || '',
@@ -116,28 +147,20 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     materialSwatchUrl: initialData?.materialSwatchUrl || '',
     finish: initialData?.finish || '',
     careInstructions: initialData?.careInstructions || '',
-    whatsIncluded: initialData?.whatsIncluded?.join(', ') || '',
+    whatsIncluded: Array.isArray(initialData?.whatsIncluded) 
+      ? initialData.whatsIncluded.join(', ') 
+      : (initialData?.whatsIncluded || ''),
     
     seoTitle: initialData?.seoTitle || '',
     seoDescription: initialData?.seoDescription || '',
     featured: initialData?.featured ?? false,
     status: initialData?.status || 'draft',
 
-    // Variants
-    colors: initialData?.variants?.filter((v: any) => v.type === 'COLOR').map((v: any) => ({
-      label: v.label,
-      value: v.value,
-      imageUrl: v.imageUrl || ''
-    })) || [{ label: 'Standard Walnut', value: '#5C4033', imageUrl: '' }],
-
-    fabrics: initialData?.variants?.filter((v: any) => v.type === 'FABRIC').map((v: any) => ({
-      label: v.label,
-      priceDelta: v.priceDelta || 0,
-      imageUrl: v.imageUrl || ''
-    })) || []
+    colors: initialColors,
+    fabrics: initialFabrics,
   })
 
-  // Auto-generate Slug & SKU
+  // Auto-generate Slug & SKU on Name Change
   const handleNameChange = (name: string) => {
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
     const generatedSku = slug ? `REV-${slug.slice(0, 10).toUpperCase()}-001` : ''
@@ -150,15 +173,14 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     }))
   }
 
-  // Calculate Google Readiness Score
+  // Calculate Google Merchant Compliance Score
   const calculateGoogleScore = () => {
     let score = 0
     if (formData.name) score += 15
     if (formData.description) score += 15
     if (formData.price) score += 15
-    if (formData.thumbnailImage) score += 15
-    if (formData.sku) score += 10
-    if (formData.brand) score += 10
+    if (formData.thumbnailImage) score += 20
+    if (formData.sku) score += 15
     if (formData.googleProductCategory) score += 20
     return score
   }
@@ -171,8 +193,9 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
       try {
         const payload = {
           ...formData,
-          whatsIncluded: formData.whatsIncluded.split(',').map((s: string) => s.trim()).filter(Boolean),
-          price: String(formData.price),
+          whatsIncluded: typeof formData.whatsIncluded === 'string'
+            ? formData.whatsIncluded.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : formData.whatsIncluded,
         }
 
         const res = await fetch('/api/admin/products', {
@@ -196,7 +219,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
   return (
     <form onSubmit={handleSubmit} className="min-h-screen bg-stone-50 pb-24 text-stone-800">
-      {/* Sticky Header */}
+      {/* Top Bar */}
       <div className="sticky top-0 z-30 border-b border-stone-200 bg-white/95 px-6 py-4 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-4">
@@ -237,10 +260,9 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
       <div className="mx-auto mt-8 max-w-7xl px-6">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
           
-          {/* Main Form Body */}
           <div className="space-y-6 lg:col-span-8">
             
-            {/* Navigation Tabs */}
+            {/* Tab Navigation */}
             <div className="flex flex-wrap border-b border-stone-200 bg-white px-4 pt-2 shadow-sm rounded-t-xl">
               {[
                 { id: 'general', label: 'General', icon: Package },
@@ -319,11 +341,11 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
               </div>
             )}
 
-            {/* TAB 2: MEDIA (CLOUDINARY WIDGET INTEGRATION) */}
+            {/* TAB 2: MEDIA (CLOUDINARY) */}
             {activeTab === 'media' && (
               <div className="space-y-6 rounded-b-xl border border-t-0 border-stone-200 bg-white p-6 shadow-sm">
                 
-                {/* Primary Cover Image Cloudinary Widget */}
+                {/* Primary Cover Upload */}
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-2">Primary Cover / Thumbnail Image *</label>
                   {formData.thumbnailImage ? (
@@ -352,8 +374,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                           className="flex h-40 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 hover:bg-stone-100 transition-colors"
                         >
                           <Upload className="h-6 w-6 text-stone-400" />
-                          <span className="mt-2 text-xs font-semibold text-stone-600">Upload Main Image via Cloudinary</span>
-                          <span className="text-[10px] text-stone-400 mt-1">High Resolution WebP/JPG</span>
+                          <span className="mt-2 text-xs font-semibold text-stone-600">Upload Cover Image via Cloudinary</span>
                         </button>
                       )}
                     </CldUploadWidget>
@@ -362,7 +383,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
                 <hr className="border-stone-200" />
 
-                {/* Gallery Images Cloudinary Widget */}
+                {/* Gallery Upload */}
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-2">Product Gallery Images</label>
                   <div className="grid grid-cols-4 gap-4">
@@ -421,7 +442,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700">Original Price</label>
+                    <label className="block text-xs font-semibold text-stone-700">Original Price (Strike-through)</label>
                     <input
                       type="number"
                       value={formData.originalPrice}
@@ -433,7 +454,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
               </div>
             )}
 
-            {/* TAB 4: SPECS & MATERIAL SWATCH */}
+            {/* TAB 4: SPECS & MATERIAL */}
             {activeTab === 'specs' && (
               <div className="space-y-5 rounded-b-xl border border-t-0 border-stone-200 bg-white p-6 shadow-sm">
                 <div className="grid grid-cols-2 gap-4">
@@ -443,12 +464,11 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                       type="text"
                       value={formData.material}
                       onChange={(e) => setFormData({ ...formData, material: e.target.value })}
-                      placeholder="e.g. Solid Mahogany Wood"
+                      placeholder="e.g. Solid Ugandan Mahogany Wood"
                       className="mt-1.5 w-full rounded-lg border border-stone-300 p-2.5 text-sm"
                     />
                   </div>
 
-                  {/* Material Texture Swatch Cloudinary Widget */}
                   <div>
                     <label className="block text-xs font-semibold text-stone-700">Material Texture Swatch</label>
                     <div className="mt-1.5 flex items-center gap-3">
@@ -486,17 +506,28 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     </div>
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-stone-700">What's Included (Comma separated)</label>
+                  <input
+                    type="text"
+                    value={formData.whatsIncluded}
+                    onChange={(e) => setFormData({ ...formData, whatsIncluded: e.target.value })}
+                    placeholder="e.g. 1 x Dining Table, 6 x Cushioned Chairs"
+                    className="mt-1.5 w-full rounded-lg border border-stone-300 p-2.5 text-sm"
+                  />
+                </div>
               </div>
             )}
 
-            {/* TAB 5: VARIANTS (COLOR & FABRIC SWATCHES WITH CLOUDINARY) */}
+            {/* TAB 5: VARIANTS & SWATCHES */}
             {activeTab === 'variants' && (
               <div className="space-y-6 rounded-b-xl border border-t-0 border-stone-200 bg-white p-6 shadow-sm">
                 
-                {/* COLOR VARIANTS */}
+                {/* COLOR SWATCHES */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-700">Color Swatch Variants</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-700">Color Swatch Options</h3>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, colors: [...formData.colors, { label: '', value: '#000000', imageUrl: '' }] })}
@@ -531,7 +562,6 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                         className="h-9 w-12 cursor-pointer rounded border border-stone-300 p-0"
                       />
 
-                      {/* Color Specific Variant Image Widget */}
                       <div className="flex items-center gap-2">
                         {color.imageUrl ? (
                           <div className="relative h-9 w-9 rounded border border-stone-300 overflow-hidden">
@@ -589,10 +619,10 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
                 <hr className="border-stone-200" />
 
-                {/* FABRIC VARIANTS */}
+                {/* FABRIC SWATCHES */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-700">Fabric Swatches</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-700">Fabric & Upholstery Options</h3>
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, fabrics: [...formData.fabrics, { label: '', priceDelta: 0, imageUrl: '' }] })}
@@ -606,7 +636,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     <div key={idx} className="mt-3 flex items-center gap-3 rounded-lg border border-stone-200 p-3 bg-stone-50">
                       <input
                         type="text"
-                        placeholder="Fabric Name (e.g. Emerald Velvet)"
+                        placeholder="Fabric Name (e.g. Royal Emerald Velvet)"
                         value={fabric.label}
                         onChange={(e) => {
                           const updated = [...formData.fabrics]
@@ -628,7 +658,6 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                         className="w-32 rounded border border-stone-300 p-2 text-xs font-mono"
                       />
 
-                      {/* Fabric Swatch Image Widget */}
                       <div className="flex items-center gap-2">
                         {fabric.imageUrl ? (
                           <div className="relative h-9 w-9 rounded border border-stone-300 overflow-hidden">
@@ -687,15 +716,19 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
               </div>
             )}
 
-            {/* TAB 6: GOOGLE MERCHANT (CASCADING DROPDOWNS) */}
+            {/* TAB 6: CASCADING GOOGLE MERCHANT CATEGORIES */}
             {activeTab === 'google' && (
               <div className="space-y-5 rounded-b-xl border border-t-0 border-stone-200 bg-white p-6 shadow-sm">
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-1">
-                    Google Merchant Taxonomy Selector
+                    Google Merchant Taxonomy Cascading Selector
                   </label>
+                  <p className="text-xs text-stone-500 mb-4">
+                    Select department and group to populate compliant canonical category strings.
+                  </p>
 
                   <div className="grid grid-cols-3 gap-3">
+                    {/* Tier 1 Dropdown */}
                     <div>
                       <label className="block text-[11px] font-medium text-stone-500 mb-1">1. Department</label>
                       <select
@@ -713,8 +746,9 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                       </select>
                     </div>
 
+                    {/* Tier 2 Dropdown */}
                     <div>
-                      <label className="block text-[11px] font-medium text-stone-500 mb-1">2. Group</label>
+                      <label className="block text-[11px] font-medium text-stone-500 mb-1">2. Furniture Group</label>
                       <select
                         disabled={!gLevel1}
                         value={gLevel2}
@@ -728,8 +762,9 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                       </select>
                     </div>
 
+                    {/* Tier 3 Dropdown */}
                     <div>
-                      <label className="block text-[11px] font-medium text-stone-500 mb-1">3. Category Target</label>
+                      <label className="block text-[11px] font-medium text-stone-500 mb-1">3. Canonical Google Category</label>
                       <select
                         disabled={!gLevel2}
                         value={formData.googleProductCategory}
@@ -742,6 +777,13 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  <div className="mt-4 rounded-lg bg-stone-100 p-3 border border-stone-200">
+                    <p className="text-[11px] text-stone-500">Active Selected Taxonomy String:</p>
+                    <p className="text-xs font-mono font-semibold text-stone-800 mt-0.5">
+                      {formData.googleProductCategory || 'None Selected'}
+                    </p>
                   </div>
                 </div>
 
@@ -757,7 +799,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700">MPN / Model</label>
+                    <label className="block text-xs font-semibold text-stone-700">MPN / Model Number</label>
                     <input
                       type="text"
                       value={formData.mpn}
@@ -795,9 +837,8 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
           </div>
 
-          {/* Right Sidebar Widgets */}
+          {/* Right Sidebar Widget */}
           <div className="space-y-6 lg:col-span-4">
-            
             <div className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-500">
@@ -827,11 +868,10 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                 </div>
                 <div className="flex items-center gap-2">
                   {formData.googleProductCategory ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertCircle className="h-4 w-4 text-amber-600" />}
-                  <span className={formData.googleProductCategory ? 'text-stone-700' : 'text-stone-400'}>Google Category</span>
+                  <span className={formData.googleProductCategory ? 'text-stone-700' : 'text-stone-400'}>Google Taxonomy Category</span>
                 </div>
               </div>
             </div>
-
           </div>
 
         </div>

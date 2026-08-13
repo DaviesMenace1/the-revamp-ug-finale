@@ -114,129 +114,66 @@ export const users = pgTable(
   })
 );
 
-// --- PRODUCTS TABLE ---
-export const products = pgTable(
-  'products',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    name: varchar('name', { length: 255 }).notNull(),
-    slug: varchar('slug', { length: 255 }).notNull().unique(),
-    sku: varchar('sku', { length: 100 }).notNull().unique(),
-    mpn: varchar('mpn', { length: 100 }),
-    gtin: varchar('gtin', { length: 100 }),
-    brand: varchar('brand', { length: 255 }).default('The Revamp UG'),
-    description: text('description'),
-    longDescription: text('long_description'),
+export const products = pgTable('products', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  slug: varchar('slug', { length: 255 }).notNull().unique(),
+  sku: varchar('sku', { length: 100 }).notNull().unique(),
+  mpn: varchar('mpn', { length: 100 }),
+  gtin: varchar('gtin', { length: 100 }),
+  brand: varchar('brand', { length: 100 }).default('The Revamp UG'),
+  department: varchar('department', { length: 100 }).default('01 — Furniture'),
+  category: varchar('category', { length: 100 }).default('Living Room'),
+  subCategory: varchar('sub_category', { length: 100 }),
+  googleProductCategory: text('google_product_category').default('Furniture > Chairs > Armchairs, Recliners & Tilt Chairs'),
+  
+  price: numeric('price', { precision: 12, scale: 2 }).notNull(),
+  originalPrice: numeric('original_price', { precision: 12, scale: 2 }),
+  currency: varchar('currency', { length: 10 }).default('UGX'),
+  
+  condition: varchar('condition', { length: 50 }).default('new'),
+  availability: varchar('availability', { length: 50 }).default('in_stock'),
+  inStock: boolean('in_stock').default(true),
+  quantity: integer('quantity').default(0),
+  leadTime: varchar('lead_time', { length: 100 }),
 
-    // Taxonomy
-    department: varchar('department', { length: 100 }),
-    category: varchar('category', { length: 100 }).notNull(),
-    subCategory: varchar('sub_category', { length: 100 }),
-    googleProductCategory: text('google_product_category'),
+  description: text('description'),
+  longDescription: text('long_description'),
+  
+  material: varchar('material', { length: 255 }),
+  materialSwatchUrl: text('material_swatch_url'),
+  finish: varchar('finish', { length: 255 }),
+  careInstructions: text('care_instructions'),
+  whatsIncluded: text('whats_included').array(),
+  
+  seoTitle: varchar('seo_title', { length: 255 }),
+  seoDescription: text('seo_description'),
+  featured: boolean('featured').default(false),
+  status: varchar('status', { length: 50 }).default('draft'),
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+})
 
-    // Pricing & Currency
-    currency: varchar('currency', { length: 10 }).default('UGX'),
-    price: decimal('price', { precision: 12, scale: 2 }).notNull(),
-    originalPrice: decimal('original_price', { precision: 12, scale: 2 }),
+export const productImages = pgTable('product_images', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  url: text('url').notNull(),
+  isPrimary: boolean('is_primary').default(false),
+  displayOrder: integer('display_order').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+})
 
-    // Availability & Inventory
-    condition: productConditionEnum('condition').default('new'),
-    availability: productAvailabilityEnum('availability').default('in_stock'),
-    inStock: boolean('in_stock').default(true),
-    quantity: integer('quantity').default(0),
-    leadTime: varchar('lead_time', { length: 100 }),
-
-    // Specifications & Dimensions
-    dimensions: jsonb('dimensions'),
-    weight: decimal('weight', { precision: 8, scale: 2 }),
-    weightUnit: varchar('weight_unit', { length: 10 }).default('kg'),
-    material: varchar('material', { length: 255 }),
-    finish: varchar('finish', { length: 255 }),
-    careInstructions: text('care_instructions'),
-    whatsIncluded: jsonb('whats_included').default([]),
-
-    // Media & Assets
-    thumbnailImage: text('thumbnail_image'),
-    images: jsonb('images').default([]),
-    gallery: jsonb('gallery').default([]),
-
-    // Google Merchant API Sync State
-    googleSyncStatus: googleSyncStatusEnum('google_sync_status').default('draft'),
-    googleSyncError: text('google_sync_error'),
-    lastGoogleSyncAt: timestamp('last_google_sync_at'),
-
-    // Metadata & Social
-    rating: decimal('rating', { precision: 3, scale: 2 }).default('0'),
-    ratingCount: integer('rating_count').default(0),
-    likes: integer('likes').default(0),
-    views: integer('views').default(0),
-    seoTitle: varchar('seo_title', { length: 255 }),
-    seoDescription: varchar('seo_description', { length: 255 }),
-    ogImage: text('og_image'),
-    tags: jsonb('tags').default([]),
-    relatedProducts: jsonb('related_products').default([]),
-    featured: boolean('featured').default(false),
-    status: varchar('status', { length: 50 }).default('draft'),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
-    publishedAt: timestamp('published_at'),
-  },
-  (table) => ({
-    categoryIdx: index('category_idx').on(table.category),
-    statusIdx: index('status_idx').on(table.status),
-    slugIdx: uniqueIndex('slug_idx').on(table.slug),
-    skuIdx: uniqueIndex('sku_idx').on(table.sku),
-    googleSyncIdx: index('google_sync_status_idx').on(table.googleSyncStatus),
-    featuredIdx: index('product_featured_idx').on(table.featured),
-  })
-);
-
-// --- PRODUCT VARIANTS TABLE ---
-export const productVariants = pgTable(
-  'product_variants',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    productId: uuid('product_id')
-      .notNull()
-      .references(() => products.id, { onDelete: 'cascade' }),
-    sku: varchar('sku', { length: 100 }),
-    type: variantTypeEnum('type').notNull(),
-    label: varchar('label', { length: 100 }).notNull(),
-    value: varchar('value', { length: 100 }),
-    priceDelta: decimal('price_delta', { precision: 10, scale: 2 }).default('0.00'),
-    quantity: integer('quantity').default(0),
-    gtin: varchar('gtin', { length: 100 }),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-  },
-  (table) => ({
-    productIdIdx: index('variant_product_idx').on(table.productId),
-    typeIdx: index('variant_type_idx').on(table.type),
-    variantSkuIdx: index('variant_sku_idx').on(table.sku),
-  })
-);
-
-// --- PRODUCT IMAGES TABLE ---
-export const productImages = pgTable(
-  'product_images',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    productId: uuid('product_id')
-      .notNull()
-      .references(() => products.id, { onDelete: 'cascade' }),
-    colorId: uuid('color_id').references(() => productVariants.id, {
-      onDelete: 'set null',
-    }),
-    url: text('url').notNull(),
-    altText: text('alt_text'),
-    isPrimary: boolean('is_primary').default(false),
-    order: integer('order').default(0),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-  },
-  (table) => ({
-    productIdIdx: index('image_product_idx').on(table.productId),
-    colorIdIdx: index('image_color_idx').on(table.colorId),
-  })
-);
+export const productVariants = pgTable('product_variants', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  type: varchar('type', { length: 50 }).notNull(), // 'COLOR' or 'FABRIC'
+  label: varchar('label', { length: 100 }).notNull(),
+  value: varchar('value', { length: 100 }), // Hex value
+  priceDelta: numeric('price_delta', { precision: 12, scale: 2 }).default('0'),
+  imageUrl: text('image_url'),
+  createdAt: timestamp('created_at').defaultNow(),
+})
 
 // --- PROJECTS TABLE ---
 export const projects = pgTable(
@@ -656,31 +593,51 @@ export const usersRelations = relations(users, ({ many }) => ({
   cart: many(carts),
 }));
 
-export const productsRelations = relations(products, ({ many }) => ({
-  variants: many(productVariants),
-  productImages: many(productImages),
-  comments: many(comments),
-  likes: many(likes),
-}));
 
-export const productVariantsRelations = relations(productVariants, ({ one, many }) => ({
-  product: one(products, {
-    fields: [productVariants.productId],
-    references: [products.id],
-  }),
-  images: many(productImages),
-}));
+export const productsRelations = relations(products, ({ many }) => ({
+  productImages: many(productImages),
+  productVariants: many(productVariants),
+}))
 
 export const productImagesRelations = relations(productImages, ({ one }) => ({
   product: one(products, {
     fields: [productImages.productId],
     references: [products.id],
   }),
-  colorVariant: one(productVariants, {
-    fields: [productImages.colorId],
-    references: [productVariants.id],
+}))
+
+export const productVariantsRelations = relations(productVariants, ({ one }) => ({
+  product: one(products, {
+    fields: [productVariants.productId],
+    references: [products.id],
   }),
-}));
+}))
+
+// export const productsRelations = relations(products, ({ many }) => ({
+//   variants: many(productVariants),
+//   productImages: many(productImages),
+//   comments: many(comments),
+//   likes: many(likes),
+// }));
+
+// export const productVariantsRelations = relations(productVariants, ({ one, many }) => ({
+//   product: one(products, {
+//     fields: [productVariants.productId],
+//     references: [products.id],
+//   }),
+//   images: many(productImages),
+// }));
+
+// export const productImagesRelations = relations(productImages, ({ one }) => ({
+//   product: one(products, {
+//     fields: [productImages.productId],
+//     references: [products.id],
+//   }),
+//   colorVariant: one(productVariants, {
+//     fields: [productImages.colorId],
+//     references: [productVariants.id],
+//   }),
+// }));
 
 export const projectsRelations = relations(projects, ({ many }) => ({
   comments: many(comments),

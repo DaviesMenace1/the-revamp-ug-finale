@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useUser } from '@clerk/nextjs' // <-- Added Clerk hook import
+import { useUser } from '@clerk/nextjs'
 
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -48,7 +48,7 @@ const getProductImage = (item: any): string => {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { isLoaded: isClerkLoaded, user } = useUser() // <-- Destructured Clerk user state
+  const { isLoaded: isClerkLoaded, user } = useUser()
   const { items = [], cart, customerName, setCustomerName, isLoaded: isCartLoaded } = useCart()
 
   const [loading, setLoading] = useState(false)
@@ -133,13 +133,25 @@ export default function CheckoutPage() {
         }),
       })
 
-      const data = await response.json()
+      // 2. Safe response handling (prevents Unexpected token '<' crashes)
+      const contentType = response.headers.get('content-type')
+      let data: any = {}
+
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json()
+      } else {
+        const rawText = await response.text()
+        console.error('Server returned non-JSON response:', rawText)
+        throw new Error(
+          `Server returned an invalid error (${response.status}). Check server/terminal logs.`
+        )
+      }
 
       if (!response.ok || !data.paymentUrl) {
         throw new Error(data.error || 'Failed to initialize payment. Please try again.')
       }
 
-      // 2. Redirect user directly to Flutterwave hosted payment gateway
+      // 3. Redirect user directly to Flutterwave hosted payment gateway
       window.location.href = data.paymentUrl
     } catch (err: any) {
       console.error('Checkout error:', err)
@@ -202,9 +214,13 @@ export default function CheckoutPage() {
           <h1 className="font-serif text-4xl font-light text-foreground mb-8">Checkout</h1>
 
           {errorMessage && (
+
             <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-none">
+
               {errorMessage}
+
             </div>
+
           )}
 
           <form onSubmit={handlePayWithFlutterwave} className="grid grid-cols-1 lg:grid-cols-12 gap-12">

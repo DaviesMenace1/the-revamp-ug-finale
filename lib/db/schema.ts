@@ -84,91 +84,317 @@ export const users = pgTable(
   })
 );
 
-// Products Table
+import {
+  pgTable,
+  text,
+  varchar,
+  integer,
+  decimal,
+  boolean,
+  timestamp,
+  uuid,
+  jsonb,
+  index,
+  uniqueIndex,
+  pgEnum,
+} from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
+
+// --- NEW GOOGLE & PRODUCT ENUMS ---
+
+export const productAvailabilityEnum = pgEnum('product_availability', [
+  'in_stock',
+  'out_of_stock',
+  'made_to_order',
+  'pre_order',
+  'available_on_request',
+]);
+
+export const productConditionEnum = pgEnum('product_condition', [
+  'new',
+  'refurbished',
+  'used',
+]);
+
+export const googleSyncStatusEnum = pgEnum('google_sync_status', [
+  'draft',
+  'pending',
+  'synced',
+  'error',
+  'rejected',
+]);
+
+export const variantTypeEnum = pgEnum('variant_type', ['COLOR', 'FABRIC', 'MATERIAL', 'SIZE']);
+
+// --- UPGRADED PRODUCTS TABLE ---
+
 export const products = pgTable(
+
   'products',
+
   {
+
     id: uuid('id').primaryKey().defaultRandom(),
+
     name: varchar('name', { length: 255 }).notNull(),
+
     slug: varchar('slug', { length: 255 }).notNull().unique(),
+
+    sku: varchar('sku', { length: 100 }).notNull().unique(), // Auto-generated string e.g. REV-LCH-LUNA-001
+
+    mpn: varchar('mpn', { length: 100 }), // Auto-synced or manufacturer part number
+
+    gtin: varchar('gtin', { length: 100 }), // Global Trade Item Number / Barcode
+
+    brand: varchar('brand', { length: 255 }).default('The Revamp UG'),
+
     description: text('description'),
+
     longDescription: text('long_description'),
-    category: varchar('category', { length: 100 }).notNull(),
-    subCategory: varchar('sub_category', { length: 100 }),
-    price: decimal('price', { precision: 10, scale: 2 }).notNull(),
-    originalPrice: decimal('original_price', { precision: 10, scale: 2 }),
-    images: jsonb('images').default([]), // Array of Cloudinary URLs
-    gallery: jsonb('gallery').default([]), // Additional product gallery images
-    thumbnailImage: text('thumbnail_image'), // Cloudinary URL
+
+    // Taxonomy
+
+    department: varchar('department', { length: 100 }), // e.g. "01 — Furniture"
+
+    category: varchar('category', { length: 100 }).notNull(), // e.g. "Living Room"
+
+    subCategory: varchar('sub_category', { length: 100 }), // e.g. "Lounge Chairs"
+
+    googleProductCategory: text('google_product_category'), // e.g. "Furniture > Chairs > Armchairs"
+
+    // Pricing & Currency
+
+    currency: varchar('currency', { length: 10 }).default('UGX'),
+
+    price: decimal('price', { precision: 12, scale: 2 }).notNull(), // UGX Base price
+
+    originalPrice: decimal('original_price', { precision: 12, scale: 2 }), // Compare-at price
+
+    // Availability & Inventory
+
+    condition: productConditionEnum('condition').default('new'),
+
+    availability: productAvailabilityEnum('availability').default('in_stock'),
+
     inStock: boolean('in_stock').default(true),
+
     quantity: integer('quantity').default(0),
-    sku: varchar('sku', { length: 100 }).unique(),
-    dimensions: jsonb('dimensions'), // { length, width, height, unit }
+
+    leadTime: varchar('lead_time', { length: 100 }), // Mandatory when made_to_order (e.g. "4–6 weeks")
+
+    // Specifications & Dimensions
+
+    dimensions: jsonb('dimensions'), // { length, width, depth, height, seatHeight, seatDepth, unit }
+
     weight: decimal('weight', { precision: 8, scale: 2 }),
+
+    weightUnit: varchar('weight_unit', { length: 10 }).default('kg'),
+
     material: varchar('material', { length: 255 }),
-    color: varchar('color', { length: 100 }),
+
+    finish: varchar('finish', { length: 255 }),
+
+    careInstructions: text('care_instructions'),
+
+    whatsIncluded: jsonb('whats_included').default([]), // Array of string items included
+
+    // Media & Assets
+
+    thumbnailImage: text('thumbnail_image'), // Primary thumbnail for card & Google Shopping
+
+    images: jsonb('images').default([]), // Array of Cloudinary URLs with alt texts
+
+    gallery: jsonb('gallery').default([]),
+
+    // Google Merchant API Sync State
+
+    googleSyncStatus: googleSyncStatusEnum('google_sync_status').default('draft'),
+
+    googleSyncError: text('google_sync_error'), // Real-time error feedback from Google Content/Merchant API
+
+    lastGoogleSyncAt: timestamp('last_google_sync_at'),
+
+    // Metadata & Social
+
     rating: decimal('rating', { precision: 3, scale: 2 }).default('0'),
+
     ratingCount: integer('rating_count').default(0),
-    reviews: jsonb('reviews').default([]),
+
     likes: integer('likes').default(0),
+
     views: integer('views').default(0),
+
     seoTitle: varchar('seo_title', { length: 255 }),
+
     seoDescription: varchar('seo_description', { length: 255 }),
-    ogImage: text('og_image'), // Cloudinary URL for social sharing
-    tags: jsonb('tags').default([]), // Array of tags for filtering/search
-    relatedProducts: jsonb('related_products').default([]), // Array of product IDs
+
+    ogImage: text('og_image'),
+
+    tags: jsonb('tags').default([]), // Pill tags: ['featured', 'new-arrival', 'best-seller']
+
+    relatedProducts: jsonb('related_products').default([]),
+
     featured: boolean('featured').default(false),
-    status: varchar('status', { length: 50 }).default('published'), // published, draft, archived
+
+    status: varchar('status', { length: 50 }).default('draft'), // published, draft, archived
+
     createdAt: timestamp('created_at').notNull().defaultNow(),
+
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
+
     publishedAt: timestamp('published_at'),
+
   },
+
   (table) => ({
+
     categoryIdx: index('category_idx').on(table.category),
+
     statusIdx: index('status_idx').on(table.status),
+
     slugIdx: uniqueIndex('slug_idx').on(table.slug),
+
+    skuIdx: uniqueIndex('sku_idx').on(table.sku),
+
+    googleSyncIdx: index('google_sync_status_idx').on(table.googleSyncStatus),
+
     featuredIdx: index('product_featured_idx').on(table.featured),
+
   })
+
 );
 
-// --- Add below your products table ---
+// --- UPGRADED PRODUCT VARIANTS ---
+
 export const productVariants = pgTable(
+
   'product_variants',
+
   {
+
     id: uuid('id').primaryKey().defaultRandom(),
+
     productId: uuid('product_id')
+
       .notNull()
+
       .references(() => products.id, { onDelete: 'cascade' }),
+
+    sku: varchar('sku', { length: 100 }), // Unique variant SKU (e.g., REV-LCH-LUNA-CHR-001)
+
     type: variantTypeEnum('type').notNull(),
-    label: varchar('label', { length: 100 }).notNull(), // e.g. "Charcoal", "Bouclé"
-    value: varchar('value', { length: 100 }),            // Hex code or swatch value (e.g. "#1C1C1C")
+
+    label: varchar('label', { length: 100 }).notNull(), // e.g. "Charcoal", "Italian Bouclé"
+
+    value: varchar('value', { length: 100 }), // Hex code (#1C1C1C) or fabric grade
+
     priceDelta: decimal('price_delta', { precision: 10, scale: 2 }).default('0.00'),
+
+    quantity: integer('quantity').default(0),
+
+    gtin: varchar('gtin', { length: 100 }),
+
     createdAt: timestamp('created_at').notNull().defaultNow(),
+
   },
+
   (table) => ({
+
     productIdIdx: index('variant_product_idx').on(table.productId),
+
     typeIdx: index('variant_type_idx').on(table.type),
+
+    variantSkuIdx: index('variant_sku_idx').on(table.sku),
+
   })
+
 );
 
-export const productImages = pgTable(
-  'product_images',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    productId: uuid('product_id')
-      .notNull()
-      .references(() => products.id, { onDelete: 'cascade' }),
-    colorId: uuid('color_id').references(() => productVariants.id, { onDelete: 'set null' }),
-    url: text('url').notNull(), // Cloudinary URL
-    isPrimary: boolean('is_primary').default(false),
-    order: integer('order').default(0),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-  },
-  (table) => ({
-    productIdIdx: index('image_product_idx').on(table.productId),
-    colorIdIdx: index('image_color_idx').on(table.colorId),
-  })
-);
+// Products Table
+// export const products = pgTable(
+//   'products',
+//   {
+//     id: uuid('id').primaryKey().defaultRandom(),
+//     name: varchar('name', { length: 255 }).notNull(),
+//     slug: varchar('slug', { length: 255 }).notNull().unique(),
+//     description: text('description'),
+//     longDescription: text('long_description'),
+//     category: varchar('category', { length: 100 }).notNull(),
+//     subCategory: varchar('sub_category', { length: 100 }),
+//     price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+//     originalPrice: decimal('original_price', { precision: 10, scale: 2 }),
+//     images: jsonb('images').default([]), // Array of Cloudinary URLs
+//     gallery: jsonb('gallery').default([]), // Additional product gallery images
+//     thumbnailImage: text('thumbnail_image'), // Cloudinary URL
+//     inStock: boolean('in_stock').default(true),
+//     quantity: integer('quantity').default(0),
+//     sku: varchar('sku', { length: 100 }).unique(),
+//     dimensions: jsonb('dimensions'), // { length, width, height, unit }
+//     weight: decimal('weight', { precision: 8, scale: 2 }),
+//     material: varchar('material', { length: 255 }),
+//     color: varchar('color', { length: 100 }),
+//     rating: decimal('rating', { precision: 3, scale: 2 }).default('0'),
+//     ratingCount: integer('rating_count').default(0),
+//     reviews: jsonb('reviews').default([]),
+//     likes: integer('likes').default(0),
+//     views: integer('views').default(0),
+//     seoTitle: varchar('seo_title', { length: 255 }),
+//     seoDescription: varchar('seo_description', { length: 255 }),
+//     ogImage: text('og_image'), // Cloudinary URL for social sharing
+//     tags: jsonb('tags').default([]), // Array of tags for filtering/search
+//     relatedProducts: jsonb('related_products').default([]), // Array of product IDs
+//     featured: boolean('featured').default(false),
+//     status: varchar('status', { length: 50 }).default('published'), // published, draft, archived
+//     createdAt: timestamp('created_at').notNull().defaultNow(),
+//     updatedAt: timestamp('updated_at').notNull().defaultNow(),
+//     publishedAt: timestamp('published_at'),
+//   },
+//   (table) => ({
+//     categoryIdx: index('category_idx').on(table.category),
+//     statusIdx: index('status_idx').on(table.status),
+//     slugIdx: uniqueIndex('slug_idx').on(table.slug),
+//     featuredIdx: index('product_featured_idx').on(table.featured),
+//   })
+// );
+
+// // --- Add below your products table ---
+// export const productVariants = pgTable(
+//   'product_variants',
+//   {
+//     id: uuid('id').primaryKey().defaultRandom(),
+//     productId: uuid('product_id')
+//       .notNull()
+//       .references(() => products.id, { onDelete: 'cascade' }),
+//     type: variantTypeEnum('type').notNull(),
+//     label: varchar('label', { length: 100 }).notNull(), // e.g. "Charcoal", "Bouclé"
+//     value: varchar('value', { length: 100 }),            // Hex code or swatch value (e.g. "#1C1C1C")
+//     priceDelta: decimal('price_delta', { precision: 10, scale: 2 }).default('0.00'),
+//     createdAt: timestamp('created_at').notNull().defaultNow(),
+//   },
+//   (table) => ({
+//     productIdIdx: index('variant_product_idx').on(table.productId),
+//     typeIdx: index('variant_type_idx').on(table.type),
+//   })
+// );
+
+// export const productImages = pgTable(
+//   'product_images',
+//   {
+//     id: uuid('id').primaryKey().defaultRandom(),
+//     productId: uuid('product_id')
+//       .notNull()
+//       .references(() => products.id, { onDelete: 'cascade' }),
+//     colorId: uuid('color_id').references(() => productVariants.id, { onDelete: 'set null' }),
+//     url: text('url').notNull(), // Cloudinary URL
+//     isPrimary: boolean('is_primary').default(false),
+//     order: integer('order').default(0),
+//     createdAt: timestamp('created_at').notNull().defaultNow(),
+//   },
+//   (table) => ({
+//     productIdIdx: index('image_product_idx').on(table.productId),
+//     colorIdIdx: index('image_color_idx').on(table.colorId),
+//   })
+// );
 
 // Projects Table
 export const projects = pgTable(

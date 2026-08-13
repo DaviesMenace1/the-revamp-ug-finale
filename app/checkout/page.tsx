@@ -156,11 +156,25 @@ export default function CheckoutPage() {
 
       setLoading(false)
 
-      // 2. Launch Client-Side Flutterwave Modal
-      const publicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY
+            // 2. Launch Client-Side Flutterwave Modal
+      const rawPublicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY
 
-      if (!publicKey) {
-        throw new Error('NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY is missing in client environment variables.')
+      if (!rawPublicKey) {
+        throw new Error(
+          'NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY is missing. Please verify your environment variables.'
+        )
+      }
+
+      // Sanitize key: Strip leading/trailing spaces or quotes
+      const publicKey = rawPublicKey.trim().replace(/^["']|["']$/g, '')
+
+      console.log('[Flutterwave Client Debug] Key exists:', !!publicKey)
+      console.log('[Flutterwave Client Debug] Key prefix:', publicKey.substring(0, 10))
+
+      if (!publicKey.startsWith('FLWPUBK')) {
+        throw new Error(
+          `Invalid Public Key format (${publicKey.substring(0, 8)}...). Flutterwave Public Key must start with 'FLWPUBK_'.`
+        )
       }
 
       window.FlutterwaveCheckout({
@@ -186,6 +200,7 @@ export default function CheckoutPage() {
           console.log('Payment modal closed')
         },
       })
+
     } catch (err: any) {
       console.error('Checkout error:', err)
       setErrorMessage(err.message || 'An unexpected error occurred.')

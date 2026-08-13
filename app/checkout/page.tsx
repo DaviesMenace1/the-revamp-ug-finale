@@ -115,7 +115,7 @@ export default function CheckoutPage() {
                                 console.log('[Flutterwave Client] Key detected:', publicKey.substring(0, 12) + '...')
                                   
                                     // Rest of your checkout logic...
-                                    
+
   
   // const handlePayWithFlutterwave = async (e: React.FormEvent) => {
   //   e.preventDefault()
@@ -226,7 +226,7 @@ export default function CheckoutPage() {
   //     setErrorMessage(err.message || 'An unexpected error occurred.')
   //     setLoading(false)
   //   }
-  // }
+  }
 
   // Loading indicator while Clerk / Cart loads
   if (!isClerkLoaded || !isCartLoaded) {

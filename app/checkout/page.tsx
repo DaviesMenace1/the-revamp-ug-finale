@@ -97,116 +97,136 @@ export default function CheckoutPage() {
     if (name === 'name') setCustomerName(value)
   }
 
+  // Replace the start of handlePayWithFlutterwave with this:
   const handlePayWithFlutterwave = async (e: React.FormEvent) => {
     e.preventDefault()
-    setErrorMessage(null)
+      setErrorMessage(null)
 
-    if (!formData.name || !formData.email || !formData.phone || !formData.address) {
-      setErrorMessage('Please fill in all required shipping details.')
-      return
-    }
+        const publicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY
 
-    if (typeof window.FlutterwaveCheckout !== 'function') {
-      setErrorMessage(
-        'Flutterwave payment system is loading. Please check your internet connection and try again.'
-      )
-      return
-    }
+          // Diagnostic check
+            if (!publicKey) {
+                const msg = 'ERROR: NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY is undefined on the client.'
+                    console.error(msg)
+                        setErrorMessage('Payment configuration error: Public Key is missing on the client. Please re-deploy Vercel.')
+                            return
+                              }
 
-    setLoading(true)
+                                console.log('[Flutterwave Client] Key detected:', publicKey.substring(0, 12) + '...')
+                                  
+                                    // Rest of your checkout logic...
+                                    
+  
+  // const handlePayWithFlutterwave = async (e: React.FormEvent) => {
+  //   e.preventDefault()
+  //   setErrorMessage(null)
 
-    try {
-      // 1. Create Pending Order Record via server
-      const response = await fetch('/api/checkout/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: cart?.total || 0,
-          currency: items[0]?.product?.currency || 'USD',
-          email: formData.email,
-          customerName: formData.name,
-          phoneNumber: formData.phone,
-          shippingAddress: {
-            name: formData.name,
-            address: formData.address,
-            city: formData.city,
-            country: formData.country,
-            phone: formData.phone,
-            notes: formData.notes,
-          },
-          items: items.map((item) => ({
-            productId: item.productId,
-            name: item.product?.name || 'Product',
-            quantity: item.quantity,
-            unitPrice: item.product?.salePrice || item.product?.price || 0,
-            color: typeof item.selectedColor === 'object' ? item.selectedColor?.name : item.selectedColor,
-            material: typeof (item as any).selectedMaterial === 'object' ? (item as any).selectedMaterial?.name : (item as any).selectedMaterial,
-            variant: typeof item.selectedVariant === 'object' ? item.selectedVariant?.name : item.selectedVariant,
-            dimensions: item.customDimensions,
-            image: getProductImage(item),
-          })),
-        }),
-      })
+  //   if (!formData.name || !formData.email || !formData.phone || !formData.address) {
+  //     setErrorMessage('Please fill in all required shipping details.')
+  //     return
+  //   }
 
-      const data = await response.json()
+  //   if (typeof window.FlutterwaveCheckout !== 'function') {
+  //     setErrorMessage(
+  //       'Flutterwave payment system is loading. Please check your internet connection and try again.'
+  //     )
+  //     return
+  //   }
 
-      if (!response.ok || !data.txRef) {
-        throw new Error(data.error || 'Failed to initialize order in system.')
-      }
+  //   setLoading(true)
 
-      setLoading(false)
+  //   try {
+  //     // 1. Create Pending Order Record via server
+  //     const response = await fetch('/api/checkout/create-order', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({
+  //         amount: cart?.total || 0,
+  //         currency: items[0]?.product?.currency || 'USD',
+  //         email: formData.email,
+  //         customerName: formData.name,
+  //         phoneNumber: formData.phone,
+  //         shippingAddress: {
+  //           name: formData.name,
+  //           address: formData.address,
+  //           city: formData.city,
+  //           country: formData.country,
+  //           phone: formData.phone,
+  //           notes: formData.notes,
+  //         },
+  //         items: items.map((item) => ({
+  //           productId: item.productId,
+  //           name: item.product?.name || 'Product',
+  //           quantity: item.quantity,
+  //           unitPrice: item.product?.salePrice || item.product?.price || 0,
+  //           color: typeof item.selectedColor === 'object' ? item.selectedColor?.name : item.selectedColor,
+  //           material: typeof (item as any).selectedMaterial === 'object' ? (item as any).selectedMaterial?.name : (item as any).selectedMaterial,
+  //           variant: typeof item.selectedVariant === 'object' ? item.selectedVariant?.name : item.selectedVariant,
+  //           dimensions: item.customDimensions,
+  //           image: getProductImage(item),
+  //         })),
+  //       }),
+  //     })
 
-            // 2. Launch Client-Side Flutterwave Modal
-      const rawPublicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY
+  //     const data = await response.json()
 
-      if (!rawPublicKey) {
-        throw new Error(
-          'NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY is missing. Please verify your environment variables.'
-        )
-      }
+  //     if (!response.ok || !data.txRef) {
+  //       throw new Error(data.error || 'Failed to initialize order in system.')
+  //     }
 
-      // Sanitize key: Strip leading/trailing spaces or quotes
-      const publicKey = rawPublicKey.trim().replace(/^["']|["']$/g, '')
+  //     setLoading(false)
 
-      console.log('[Flutterwave Client Debug] Key exists:', !!publicKey)
-      console.log('[Flutterwave Client Debug] Key prefix:', publicKey.substring(0, 10))
+  //           // 2. Launch Client-Side Flutterwave Modal
+  //     const rawPublicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY
 
-      if (!publicKey.startsWith('FLWPUBK')) {
-        throw new Error(
-          `Invalid Public Key format (${publicKey.substring(0, 8)}...). Flutterwave Public Key must start with 'FLWPUBK_'.`
-        )
-      }
+  //     if (!rawPublicKey) {
+  //       throw new Error(
+  //         'NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY is missing. Please verify your environment variables.'
+  //       )
+  //     }
 
-      window.FlutterwaveCheckout({
-        public_key: publicKey,
-        tx_ref: data.txRef,
-        amount: Number(cart?.total) || 0,
-        currency: (items[0]?.product?.currency || 'USD').toUpperCase(),
-        payment_options: 'card,mobilemoneyuganda,banktransfer',
-        customer: {
-          email: formData.email,
-          phone_number: formData.phone,
-          name: formData.name,
-        },
-        customizations: {
-          title: 'The Revamp UG',
-          description: `Order #${data.txRef}`,
-        },
-        callback: function (res: any) {
-          console.log('Payment completed:', res)
-          router.push(`/checkout/success?tx_ref=${res.tx_ref}&transaction_id=${res.transaction_id}`)
-        },
-        onclose: function () {
-          console.log('Payment modal closed')
-        },
-      })
+  //     // Sanitize key: Strip leading/trailing spaces or quotes
+  //     const publicKey = rawPublicKey.trim().replace(/^["']|["']$/g, '')
 
-    } catch (err: any) {
-      console.error('Checkout error:', err)
-      setErrorMessage(err.message || 'An unexpected error occurred.')
-      setLoading(false)
-    }
-  }
+  //     console.log('[Flutterwave Client Debug] Key exists:', !!publicKey)
+  //     console.log('[Flutterwave Client Debug] Key prefix:', publicKey.substring(0, 10))
+
+  //     if (!publicKey.startsWith('FLWPUBK')) {
+  //       throw new Error(
+  //         `Invalid Public Key format (${publicKey.substring(0, 8)}...). Flutterwave Public Key must start with 'FLWPUBK_'.`
+  //       )
+  //     }
+
+  //     window.FlutterwaveCheckout({
+  //       public_key: publicKey,
+  //       tx_ref: data.txRef,
+  //       amount: Number(cart?.total) || 0,
+  //       currency: (items[0]?.product?.currency || 'USD').toUpperCase(),
+  //       payment_options: 'card,mobilemoneyuganda,banktransfer',
+  //       customer: {
+  //         email: formData.email,
+  //         phone_number: formData.phone,
+  //         name: formData.name,
+  //       },
+  //       customizations: {
+  //         title: 'The Revamp UG',
+  //         description: `Order #${data.txRef}`,
+  //       },
+  //       callback: function (res: any) {
+  //         console.log('Payment completed:', res)
+  //         router.push(`/checkout/success?tx_ref=${res.tx_ref}&transaction_id=${res.transaction_id}`)
+  //       },
+  //       onclose: function () {
+  //         console.log('Payment modal closed')
+  //       },
+  //     })
+
+  //   } catch (err: any) {
+  //     console.error('Checkout error:', err)
+  //     setErrorMessage(err.message || 'An unexpected error occurred.')
+  //     setLoading(false)
+  //   }
+  // }
 
   // Loading indicator while Clerk / Cart loads
   if (!isClerkLoaded || !isCartLoaded) {

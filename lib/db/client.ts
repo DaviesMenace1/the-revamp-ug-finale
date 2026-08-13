@@ -1,19 +1,12 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
+import { products, productsRelations, productImages } from './schema' // Adjust to your actual imports
 
-// ❌ REMOVE THIS:
-// import * as schema from './schema'
-
-// ✅ ADD THIS: Explicitly import every single table and relation you have
-import { 
-  products, 
-  productImages, 
-  productVariants, 
-  productsRelations, 
-  productImagesRelations, 
-  productVariantsRelations,
-  users // add any other tables/relations you have
-} from './schema'
+console.log('--- DRIZZLE INIT DEBUG ---')
+console.log('products table:', typeof products)
+console.log('productImages table:', typeof productImages)
+console.log('productsRelations:', typeof productsRelations)
+console.log('--------------------------')
 
 const connectionString = process.env.DATABASE_URL!
 
@@ -22,27 +15,15 @@ const globalForDb = globalThis as unknown as {
 }
 
 const conn = globalForDb.conn ?? postgres(connectionString, {
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: { rejectUnauthorized: false }
 })
 
 if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn
 
-// ✅ ADD THIS: Manually construct the schema object
-const exactSchema = {
-  products,
-  productImages,
-  productVariants,
-  productsRelations,
-  productImagesRelations,
-  productVariantsRelations,
-  users
-  // make sure ALL tables and ALL relations are listed here
-}
+export const db = drizzle(conn, { 
+  schema: { products, productsRelations, productImages } 
+})
 
-// Pass the exactSchema object
-export const db = drizzle(conn, { schema: exactSchema })
 
 
 

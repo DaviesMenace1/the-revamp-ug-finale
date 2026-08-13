@@ -1,4 +1,5 @@
 // app/api/checkout/flutterwave/route.ts
+
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { db } from '@/lib/db/client'
@@ -23,8 +24,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required order details' }, { status: 400 })
     }
 
-    const secretKey = process.env.FLUTTERWAVE_SECRET_KEY
-    if (!secretKey) {
+    // 2. Validate and sanitize Flutterwave Secret Key
+    const rawSecretKey = process.env.FLUTTERWAVE_SECRET_KEY
+    if (!rawSecretKey) {
       console.error('Missing FLUTTERWAVE_SECRET_KEY in environment variables.')
       return NextResponse.json(
         { error: 'Server configuration error: FLUTTERWAVE_SECRET_KEY missing' },
@@ -32,14 +34,17 @@ export async function POST(req: Request) {
       )
     }
 
+    // Trim whitespace and strip any accidental wrapping quotes from .env
+    const secretKey = rawSecretKey.trim().replace(/^["']|["']$/g, '')
+
     const txRef = `REV-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://therevampug.com/checkout/success'
 
     const numericAmount = Number(amount) || 0
     const subtotal = (numericAmount * 0.9).toFixed(2)
     const tax = (numericAmount * 0.1).toFixed(2)
 
-    // 2. Insert into DB
+    // 3. Insert into DB
     await db.insert(orders).values({
       orderNumber: txRef,
       userId: userId,
@@ -55,22 +60,26 @@ export async function POST(req: Request) {
       notes: shippingAddress?.notes || null,
     })
 
-    // 3. Initiate Flutterwave Payment
+    // 4. Initiate Flutterwave Payment with anti-Cloudflare bypass headers
     const flwResponse = await fetch('https://api.flutterwave.com/v3/payments', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${secretKey}`,
         'Content-Type': 'application/json',
+        Accept: 'application/json',
+        // Bypasses Cloudflare automated/bot request blocking:
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       },
       body: JSON.stringify({
         tx_ref: txRef,
         amount: numericAmount,
-        currency: currency || 'USD',
+        currency: (currency || 'USD').toUpperCase().trim(),
         redirect_url: `${baseUrl}/api/checkout/callback`,
         customer: {
-          email: email,
-          phonenumber: phoneNumber,
-          name: customerName,
+          email: String(email).trim(),
+          phonenumber: phoneNumber ? String(phoneNumber).trim() : '',
+          name: customerName ? String(customerName).trim() : 'Customer',
         },
         customizations: {
           title: 'Store Order',
@@ -79,11 +88,14 @@ export async function POST(req: Request) {
       }),
     })
 
-    // Safely check content type before parsing JSON
+    // 5. Safely check response content type
     const contentType = flwResponse.headers.get('content-type')
     if (!contentType || !contentType.includes('application/json')) {
       const errorText = await flwResponse.text()
-      console.error('Flutterwave returned non-JSON response:', errorText)
+      console.error(
+        `Flutterwave returned non-JSON [${flwResponse.status} ${flwResponse.statusText}]:`,
+        errorText
+      )
       return NextResponse.json(
         { error: 'Flutterwave gateway service error. Please try again later.' },
         { status: 502 }
@@ -108,4 +120,3 @@ export async function POST(req: Request) {
     )
   }
 }
-

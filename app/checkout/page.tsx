@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import Script from 'next/script'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 
@@ -21,6 +22,13 @@ import {
   ShoppingBag,
   CreditCard,
 } from 'lucide-react'
+
+// Declare window object for Flutterwave SDK
+declare global {
+  interface Window {
+    FlutterwaveCheckout: any
+  }
+}
 
 // Safe number helper matching cart
 const safeFormatNumber = (num: any): string => {
@@ -98,11 +106,18 @@ export default function CheckoutPage() {
       return
     }
 
+    if (typeof window.FlutterwaveCheckout !== 'function') {
+      setErrorMessage(
+        'Flutterwave payment system is loading. Please check your internet connection and try again.'
+      )
+      return
+    }
+
     setLoading(true)
 
     try {
-      // 1. Prepare payment payload matching your Flutterwave backend endpoint
-      const response = await fetch('/api/checkout/flutterwave', {
+      // 1. Create Pending Order Record via server
+      const response = await fetch('/api/checkout/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -133,26 +148,44 @@ export default function CheckoutPage() {
         }),
       })
 
-      // 2. Safe response handling (prevents Unexpected token '<' crashes)
-      const contentType = response.headers.get('content-type')
-      let data: any = {}
+      const data = await response.json()
 
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json()
-      } else {
-        const rawText = await response.text()
-        console.error('Server returned non-JSON response:', rawText)
-        throw new Error(
-          `Server returned an invalid error (${response.status}). Check server/terminal logs.`
-        )
+      if (!response.ok || !data.txRef) {
+        throw new Error(data.error || 'Failed to initialize order in system.')
       }
 
-      if (!response.ok || !data.paymentUrl) {
-        throw new Error(data.error || 'Failed to initialize payment. Please try again.')
+      setLoading(false)
+
+      // 2. Launch Client-Side Flutterwave Modal
+      const publicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY
+
+      if (!publicKey) {
+        throw new Error('NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY is missing in client environment variables.')
       }
 
-      // 3. Redirect user directly to Flutterwave hosted payment gateway
-      window.location.href = data.paymentUrl
+      window.FlutterwaveCheckout({
+        public_key: publicKey,
+        tx_ref: data.txRef,
+        amount: Number(cart?.total) || 0,
+        currency: (items[0]?.product?.currency || 'USD').toUpperCase(),
+        payment_options: 'card,mobilemoneyuganda,banktransfer',
+        customer: {
+          email: formData.email,
+          phone_number: formData.phone,
+          name: formData.name,
+        },
+        customizations: {
+          title: 'The Revamp UG',
+          description: `Order #${data.txRef}`,
+        },
+        callback: function (res: any) {
+          console.log('Payment completed:', res)
+          router.push(`/checkout/success?tx_ref=${res.tx_ref}&transaction_id=${res.transaction_id}`)
+        },
+        onclose: function () {
+          console.log('Payment modal closed')
+        },
+      })
     } catch (err: any) {
       console.error('Checkout error:', err)
       setErrorMessage(err.message || 'An unexpected error occurred.')
@@ -197,6 +230,9 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {/* Script to inject Flutterwave Popup Library directly into the browser */}
+      <Script src="https://checkout.flutterwave.com/v3.js" strategy="lazyOnload" />
+
       <SiteHeader />
 
       <main className="flex-grow pt-24 pb-16">
@@ -214,13 +250,9 @@ export default function CheckoutPage() {
           <h1 className="font-serif text-4xl font-light text-foreground mb-8">Checkout</h1>
 
           {errorMessage && (
-
             <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-none">
-
               {errorMessage}
-
             </div>
-
           )}
 
           <form onSubmit={handlePayWithFlutterwave} className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -336,7 +368,7 @@ export default function CheckoutPage() {
                   <div className="space-y-1">
                     <p className="text-sm font-medium">Flutterwave Gateway</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Supports Visa, Mastercard, Mobile Money (MTN, Airtel), and Bank Transfer. You will be redirected to Flutterwave's secure portal to complete your order.
+                      Supports Visa, Mastercard, Mobile Money (MTN, Airtel), and Bank Transfer via a secure overlay popup.
                     </p>
                   </div>
                 </div>
@@ -350,7 +382,7 @@ export default function CheckoutPage() {
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Preparing Payment Portal...
+                    <Loader2 className="w-4 h-4 animate-spin" /> Preparing Payment...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">

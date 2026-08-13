@@ -146,11 +146,19 @@ export default function RootLayout({
           signUpUrl="/sign-up"
         >
           <CartProvider>
+            <head>
+        {/* Load Flutterwave Inline V3 Script */}
+        <Script
+          src="https://checkout.flutterwave.com/v3.js"
+          strategy="lazyOnload"
+        />
+      </head>
             <ThemeProvider>{children}</ThemeProvider>
             <NewsletterPopup />
           </CartProvider>
           {process.env.NODE_ENV === 'production' && <Analytics />}
         </ClerkProvider>
+
       </body>
     </html>
   )

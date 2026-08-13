@@ -5,11 +5,14 @@ import { auth } from '@clerk/nextjs/server'
 import { db } from '@/lib/db/client'
 import { orders } from '@/lib/db/schema'
 
+// Import official Flutterwave SDK
+// @ts-ignore
+import Flutterwave from 'flutterwave-node-v3'
+
 export async function POST(req: Request) {
   try {
-    // 1. Get authenticated Clerk userId
+    // 1. Authenticate Clerk User
     const { userId } = await auth()
-
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized: You must be logged in to checkout.' },
@@ -18,23 +21,26 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { amount, currency, email, customerName, phoneNumber, shippingAddress, items } = body
+    const { amount, currency, email, customerName, phoneNumber, shippingAddress, items, paymentOption } = body
 
     if (!amount || !email || !items) {
       return NextResponse.json({ error: 'Missing required order details' }, { status: 400 })
     }
 
-    // 2. Validate Flutterwave Secret Key
-    const rawSecretKey = process.env.FLUTTERWAVE_SECRET_KEY
-    if (!rawSecretKey) {
-      console.error('Missing FLUTTERWAVE_SECRET_KEY in environment variables.')
+    // 2. Read and verify API Keys
+    const publicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY?.trim()
+    const secretKey = process.env.FLUTTERWAVE_SECRET_KEY?.trim()
+
+    if (!secretKey || !publicKey) {
+      console.error('CRITICAL: Flutterwave environment keys are missing or undefined.')
       return NextResponse.json(
-        { error: 'Server configuration error: FLUTTERWAVE_SECRET_KEY missing' },
+        { error: 'Server configuration error: Flutterwave API keys missing.' },
         { status: 500 }
       )
     }
 
-    const secretKey = rawSecretKey.trim().replace(/^["']|["']$/g, '')
+    // Initialize Flutterwave SDK
+    const flw = new Flutterwave(publicKey, secretKey)
 
     const txRef = `REV-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://therevampug.com'
@@ -43,7 +49,7 @@ export async function POST(req: Request) {
     const subtotal = (numericAmount * 0.9).toFixed(2)
     const tax = (numericAmount * 0.1).toFixed(2)
 
-    // 3. Insert into Database
+    // 3. Save Order to Database
     await db.insert(orders).values({
       orderNumber: txRef,
       userId: userId,
@@ -59,53 +65,33 @@ export async function POST(req: Request) {
       notes: shippingAddress?.notes || null,
     })
 
-    // 4. Initiate Flutterwave Payment with Clean Server Headers
-    const flwResponse = await fetch('https://api.flutterwave.com/v3/payments', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${secretKey}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'TheRevampUG-Checkout/1.0', // Valid Server User-Agent
+    // 4. Initialize Payment via Flutterwave SDK
+    const payload = {
+      tx_ref: txRef,
+      amount: numericAmount,
+      currency: (currency || 'USD').toUpperCase().trim(),
+      redirect_url: `${baseUrl}/api/checkout/callback`,
+      payment_options: paymentOption || 'card,mobilemoneyuganda,banktransfer',
+      customer: {
+        email: String(email).trim(),
+        phonenumber: phoneNumber ? String(phoneNumber).trim() : '',
+        name: customerName ? String(customerName).trim() : 'Customer',
       },
-      body: JSON.stringify({
-        tx_ref: txRef,
-        amount: numericAmount,
-        currency: (currency || 'USD').toUpperCase().trim(),
-        redirect_url: `${baseUrl}/api/checkout/callback`,
-        customer: {
-          email: String(email).trim(),
-          phonenumber: phoneNumber ? String(phoneNumber).trim() : '',
-          name: customerName ? String(customerName).trim() : 'Customer',
-        },
-        customizations: {
-          title: 'Store Order',
-          description: `Order #${txRef}`,
-        },
-      }),
-    })
-
-    // 5. Check Content Type & Status
-    const contentType = flwResponse.headers.get('content-type')
-    if (!contentType || !contentType.includes('application/json')) {
-      const errorText = await flwResponse.text()
-      console.error(
-        `Flutterwave API returned non-JSON [${flwResponse.status} ${flwResponse.statusText}]:`,
-        errorText
-      )
-      return NextResponse.json(
-        { error: `Flutterwave gateway error (${flwResponse.status}). Check server logs.` },
-        { status: flwResponse.status === 403 ? 403 : 502 }
-      )
+      customizations: {
+        title: 'Store Order',
+        description: `Order #${txRef}`,
+      },
     }
 
-    const flwData = await flwResponse.json()
+    // Official SDK method call (Bypasses Cloudflare Raw Fetch blocks)
+    const response = await flw.Payment.create(payload)
 
-    if (flwData.status === 'success' && flwData.data?.link) {
-      return NextResponse.json({ paymentUrl: flwData.data.link, txRef })
+    if (response.status === 'success' && response.data?.link) {
+      return NextResponse.json({ paymentUrl: response.data.link, txRef })
     } else {
+      console.error('Flutterwave SDK Error:', response)
       return NextResponse.json(
-        { error: flwData.message || 'Flutterwave payment initialization failed' },
+        { error: response.message || 'Flutterwave payment initialization failed' },
         { status: 400 }
       )
     }

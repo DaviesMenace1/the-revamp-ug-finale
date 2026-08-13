@@ -271,7 +271,7 @@ export const orders = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     orderNumber: varchar('order_number', { length: 50 }).notNull().unique(),
-    userId: uuid('user_id').notNull(),
+    userId: text('user_id').notNull(),
     items: jsonb('items').default([]), // Array of { productId, quantity, price }
     subtotal: decimal('subtotal', { precision: 12, scale: 2 }).notNull(),
     tax: decimal('tax', { precision: 12, scale: 2 }).default('0'),

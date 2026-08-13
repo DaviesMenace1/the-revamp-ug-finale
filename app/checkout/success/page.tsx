@@ -1,0 +1,280 @@
+'use client'
+
+import React, { useEffect, useState, Suspense } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { useSearchParams } from 'next/navigation'
+import { SiteHeader } from '@/components/site-header'
+import { SiteFooter } from '@/components/site-footer'
+import { Button } from '@/components/ui/button'
+import { useCart } from '@/lib/context/cart-context'
+import {
+  CheckCircle2,
+  Package,
+  MapPin,
+  Mail,
+  Printer,
+  ShoppingBag,
+  ArrowRight,
+  Loader2,
+  Sparkles,
+} from 'lucide-react'
+
+// Helper for formatting currency safely
+const safeFormatNumber = (num: any): string => {
+  const val = typeof num === 'string' ? parseFloat(num) : Number(num)
+  if (isNaN(val) || val === null || val === undefined) return '0.00'
+  return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function SuccessContent() {
+  const searchParams = useSearchParams()
+  const orderRef = searchParams.get('orderRef')
+  const { clearCart } = useCart()
+
+  const [order, setOrder] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  // 1. Clear shopping cart state immediately upon landing on success page
+  useEffect(() => {
+    clearCart()
+  }, [clearCart])
+
+  // 2. Fetch completed order details from DB via orderRef
+  useEffect(() => {
+    if (!orderRef) {
+      setLoading(false)
+      return
+    }
+
+    async function fetchOrderDetails() {
+      try {
+        const res = await fetch(`/api/orders/details?ref=${orderRef}`)
+        if (res.ok) {
+          const data = await res.json()
+          setOrder(data.order)
+        }
+      } catch (error) {
+        console.error('Failed to load order details:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchOrderDetails()
+  }, [orderRef])
+
+  if (loading) {
+    return (
+      <div className="text-center py-24">
+        <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground mb-4" />
+        <p className="text-sm text-muted-foreground font-sans">
+          Confirming payment & retrieving receipt...
+        </p>
+      </div>
+    )
+  }
+
+  const shippingAddress = order?.shippingAddress
+    ? typeof order.shippingAddress === 'string'
+      ? JSON.parse(order.shippingAddress)
+      : order.shippingAddress
+    : null
+
+  const items = order?.items
+    ? typeof order.items === 'string'
+      ? JSON.parse(order.items)
+      : order.items
+    : []
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      {/* Header Banner */}
+      <div className="text-center mb-10">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/10 text-emerald-600 rounded-full mb-4">
+          <CheckCircle2 className="w-10 h-10 stroke-[1.5]" />
+        </div>
+        <h1 className="font-serif text-3xl sm:text-4xl font-light text-foreground mb-2">
+          Thank You For Your Order!
+        </h1>
+        <p className="text-muted-foreground text-sm max-w-md mx-auto">
+          We’ve received your payment and sent a receipt confirmation email to{' '}
+          <span className="text-foreground font-medium">{order?.userEmail || 'your email'}</span>.
+        </p>
+      </div>
+
+      {/* Printable Order Card */}
+      <div className="bg-card border border-border p-6 sm:p-10 shadow-sm space-y-8 print:shadow-none print:border-none">
+        {/* Order Meta Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border">
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Order Reference</p>
+            <p className="font-mono text-lg font-bold text-foreground mt-0.5">
+              {orderRef || order?.orderNumber || 'N/A'}
+            </p>
+          </div>
+          <div className="sm:text-right">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Date Paid</p>
+            <p className="text-sm font-medium text-foreground mt-0.5">
+              {order?.createdAt
+                ? new Date(order.createdAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })
+                : new Date().toLocaleDateString('en-US')}
+            </p>
+          </div>
+        </div>
+
+        {/* Shipping & Payment Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+          {/* Shipping Address */}
+          <div className="space-y-2 p-4 bg-muted/30 border border-border">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-primary" /> Delivery Address
+            </p>
+            {shippingAddress ? (
+              <div className="space-y-0.5 text-foreground text-xs leading-relaxed">
+                <p className="font-semibold text-sm">{shippingAddress.name}</p>
+                <p>{shippingAddress.address}</p>
+                <p>
+                  {shippingAddress.city}, {shippingAddress.country}
+                </p>
+                <p className="text-muted-foreground pt-1">{shippingAddress.phone}</p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Standard Delivery</p>
+            )}
+          </div>
+
+          {/* Payment Method */}
+          <div className="space-y-2 p-4 bg-muted/30 border border-border">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 text-primary" /> Payment Summary
+            </p>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Method:</span>
+                <span className="font-medium text-foreground">Flutterwave</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Status:</span>
+                <span className="text-emerald-600 font-semibold uppercase tracking-wider text-[10px] bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/20">
+                  Paid / Confirmed
+                </span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-border/50 text-sm font-semibold">
+                <span>Total Amount:</span>
+                <span className="font-mono text-primary">
+                  {order?.currency || 'USD'} ${safeFormatNumber(order?.totalAmount || 0)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Purchased Items List */}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-1.5">
+            <Package className="w-3.5 h-3.5 text-primary" /> Purchased Items ({items.length})
+          </p>
+          <div className="border border-border divide-y divide-border">
+            {items.length === 0 ? (
+              <p className="p-4 text-xs text-muted-foreground text-center">
+                Order details confirmed. Check email for line item specifics.
+              </p>
+            ) : (
+              items.map((item: any, idx: number) => (
+                <div key={idx} className="p-4 flex items-center justify-between gap-4 text-sm">
+                  <div className="flex items-center gap-3">
+                    {item.image && (
+                      <div className="relative w-12 h-12 bg-muted border border-border shrink-0 overflow-hidden">
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          className="object-cover"
+                          unoptimized={item.image.startsWith('http')}
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium text-foreground">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+
+                      {/* Customization Details */}
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.color && (
+                          <span className="text-[10px] bg-muted px-1.5 py-0.5 border text-muted-foreground">
+                            Color: {item.color}
+                          </span>
+                        )}
+                        {item.material && (
+                          <span className="text-[10px] bg-muted px-1.5 py-0.5 border text-muted-foreground">
+                            Material: {item.material}
+                          </span>
+                        )}
+                        {item.dimensions && (
+                          <span className="text-[10px] bg-gold/10 text-gold px-1.5 py-0.5 border border-gold/20 flex items-center gap-1">
+                            <Sparkles className="w-2.5 h-2.5" />
+                            {item.dimensions.width}″W × {item.dimensions.height}″H
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right font-mono font-medium">
+                    ${safeFormatNumber(item.unitPrice * item.quantity)}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Print & Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border print:hidden">
+          <Button
+            variant="outline"
+            onClick={() => window.print()}
+            className="w-full sm:w-auto rounded-none uppercase tracking-widest text-xs h-11 px-6 border-border"
+          >
+            <Printer className="w-4 h-4 mr-2" /> Print Receipt
+          </Button>
+
+          <Button
+            asChild
+            className="w-full sm:w-auto rounded-none uppercase tracking-widest text-xs h-11 px-6 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Link href="/collections">
+              Continue Shopping <ArrowRight className="w-4 h-4 ml-2" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <SiteHeader />
+      <main className="flex-grow pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+        <Suspense
+          fallback={
+            <div className="text-center py-24">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground font-sans">Loading receipt...</p>
+            </div>
+          }
+        >
+          <SuccessContent />
+        </Suspense>
+      </main>
+      <SiteFooter />
+    </div>
+  )
+}

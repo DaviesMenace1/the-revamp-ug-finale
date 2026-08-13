@@ -3,6 +3,7 @@ import {
   text,
   varchar,
   integer,
+  numeric,
   decimal,
   boolean,
   timestamp,

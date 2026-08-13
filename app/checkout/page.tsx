@@ -62,12 +62,30 @@ export default function CheckoutPage() {
     notes: '',
   })
 
-  // Sync customerName if changed from context
   useEffect(() => {
-    if (customerName && !formData.name) {
-      setFormData((prev) => ({ ...prev, name: customerName }))
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: user.fullName || user.firstName || prev.name,
+        email: user.primaryEmailAddress?.emailAddress || prev.email,
+      }))
     }
-  }, [customerName])
+  }, [user])
+
+  if (!isClerkLoaded || !isCartLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+  
+  // Sync customerName if changed from context
+  // useEffect(() => {
+  //   if (customerName && !formData.name) {
+  //     setFormData((prev) => ({ ...prev, name: customerName }))
+  //   }
+  // }, [customerName])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db } from '@/lib/db/client'
 import { products } from '@/lib/db/schema'
 import { desc, eq } from 'drizzle-orm'
 import { POST as adminPOST } from '../admin/products/route'

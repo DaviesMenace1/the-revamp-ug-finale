@@ -7,20 +7,22 @@ import ProductForm from '../_components/ProductForm'
 export const dynamic = 'force-dynamic'
 
 interface EditProductPageProps {
-  params: {
-    id: string
-  }
+  params: Promise<{ id: string }> // 👈 Updated to Promise for Next.js 15
 }
 
 export async function generateMetadata({ params }: EditProductPageProps) {
+  const { id } = await params
   return {
-    title: `Edit Product ${params.id} | Admin Portal`,
+    title: `Edit Product ${id} | Admin Portal`,
   }
 }
 
 export default async function EditProductPage({ params }: EditProductPageProps) {
+  // 🔑 Crucial fix: await params before accessing id
+  const { id } = await params
+
   const product = await db.query.products.findFirst({
-    where: eq(products.id, params.id),
+    where: eq(products.id, id),
     with: {
       variants: true,
       productImages: true,

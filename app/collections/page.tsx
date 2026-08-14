@@ -58,13 +58,13 @@ export default async function CollectionsPage() {
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border">
               {products.map((p) => {
-  // Prefer productImages relation, fall back to legacy images field
-  const imagesFromRelation = Array.isArray(p.productImages)
-    ? p.productImages.map((img: any) => img.url).filter(Boolean)
+  // Safe image extraction
+  const imagesFromRelation = Array.isArray((p as any).productImages)
+    ? (p as any).productImages.map((img: any) => img?.url).filter(Boolean)
     : []
 
-  const imagesFromField = Array.isArray(p.images)
-    ? p.images.filter(Boolean)
+  const imagesFromField = Array.isArray((p as any).images)
+    ? (p as any).images.filter(Boolean)
     : []
 
   const images = imagesFromRelation.length > 0 ? imagesFromRelation : imagesFromField
@@ -88,43 +88,40 @@ export default async function CollectionsPage() {
           src={mainImage}
           alt={p.name}
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="(max-width: 768px) 50vw, 25vw"
+          sizes="(max-width: 1024px) 50vw, 25vw"
+          className="object-cover transition-transform duration-700 group-hover:scale-110"
         />
+        <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/30 transition-colors duration-500 z-10" />
+        {p.featured && (
+          <span className="absolute top-3 left-3 bg-gold text-obsidian font-sans text-[10px] tracking-widest uppercase px-2.5 py-1 z-25">
+            Featured
+          </span>
+        )}
       </div>
-   
-                      <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/30 transition-colors duration-500 z-10" />
-                      {p.featured && (
-                        <span className="absolute top-3 left-3 bg-gold text-obsidian font-sans text-[10px] tracking-widest uppercase px-2.5 py-1 z-25">
-                          Featured
-                        </span>
-                      )}
-                    </div>
 
-                    <div className="p-4 border-t border-border">
-                      <span className="text-[10px] uppercase font-semibold text-amber-700 block mb-1">
-                        {p.category}
-                      </span>
-                      <h3 className="font-serif text-base font-light text-foreground group-hover:text-gold transition-colors leading-tight mb-1">
-                        {p.name}
-                      </h3>
+      <div className="p-4 border-t border-border">
+        <span className="text-[10px] uppercase font-semibold text-amber-700 block mb-1">
+          {p.category}
+        </span>
+        <h3 className="font-serif text-base font-light text-foreground group-hover:text-gold transition-colors leading-tight mb-1">
+          {p.name}
+        </h3>
 
-                      {/* Pricing Container with Crossed-Out Discount Display */}
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-sans text-sm text-foreground font-medium">
-                          {formatPrice(currentPrice, (p as any).currency || 'USD')}
-                        </span>
+        <div className="flex items-baseline gap-2">
+          <span className="font-sans text-sm text-foreground font-medium">
+            {formatPrice(currentPrice, (p as any).currency || 'USD')}
+          </span>
 
-                        {comparePrice && comparePrice > currentPrice && (
-                          <span className="font-sans text-xs text-muted-foreground line-through">
-                            {formatPrice(comparePrice, (p as any).currency || 'USD')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
+          {comparePrice && comparePrice > currentPrice && (
+            <span className="font-sans text-xs text-muted-foreground line-through">
+              {formatPrice(comparePrice, (p as any).currency || 'USD')}
+            </span>
+          )}
+        </div>
+      </div>
+    </Link>
+  )
+})}
             </div>
           )}
         </div>

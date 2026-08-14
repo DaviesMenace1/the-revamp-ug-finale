@@ -73,7 +73,8 @@ export async function generateMetadata({
     }
   }
 
-  const rawImages = (product.images as string[] ?? []).filter(Boolean)
+  const rawImages = Array.isArray(product.images) ? product.images.filter(Boolean) : []
+// or better: derive from product.productImages
   const images = rawImages.length > 0 ? rawImages : [DEFAULT_IMAGE]
 
   return {
@@ -106,7 +107,8 @@ export default async function ProductPage({
   if (!product) notFound()
 
   // --- COMPREHENSIVE SANITIZATION & DIMENSION NORMALIZATION ---
-  const rawImages = (product.images as string[] ?? []).filter(Boolean)
+  const rawImages = Array.isArray(product.images) ? product.images.filter(Boolean) : []
+// or better: derive from product.productImages
   const safeImages = rawImages.length > 0 ? rawImages : [DEFAULT_IMAGE]
 
   const safeProductImages =

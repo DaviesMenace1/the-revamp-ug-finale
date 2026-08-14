@@ -76,48 +76,51 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
   const [isPending, startTransition] = useTransition()
   const [activeTab, setActiveTab] = useState<'general' | 'media' | 'pricing' | 'specs' | 'variants' | 'google' | 'seo'>('general')
 
-  // Primary image
-  const initialPrimaryImage =
-    initialData?.productImages?.find((img: any) => img.isPrimary)?.url ||
-    initialData?.productImages?.[0]?.url ||
-    initialData?.thumbnailImage ||
-    ''
+  // ---- SAFE EXTRACTION (never call .map on non-arrays) ----
 
-  // Gallery images – always treat as array
-  const productImagesArr = Array.isArray(initialData?.productImages)
+  const productImagesArr: any[] = Array.isArray(initialData?.productImages)
     ? initialData.productImages
     : []
 
-  const initialGalleryImages = productImagesArr
-    .filter((img: any) => !img.isPrimary && img.url !== initialPrimaryImage)
-    .map((img: any) => img.url)
-
-  // Variants – always treat as array
-  const productVariantsArr = Array.isArray(initialData?.productVariants)
+  const productVariantsArr: any[] = Array.isArray(initialData?.productVariants)
     ? initialData.productVariants
+    : Array.isArray(initialData?.variants)
+    ? initialData.variants
     : []
 
-  const initialColors = productVariantsArr
-    .filter((v: any) => v.type === 'COLOR')
-    .map((v: any) => ({
-      label: v.label,
-      value: v.value || '#000000',
-      imageUrl: v.imageUrl || '',
-    }))
+  const initialPrimaryImage =
+    productImagesArr.find((img) => img.isPrimary)?.url ||
+    productImagesArr[0]?.url ||
+    initialData?.thumbnailImage ||
+    ''
 
-  // Fallback if no colors came from DB
+  const initialGalleryImages: string[] = productImagesArr
+    .filter((img) => !img.isPrimary && img.url !== initialPrimaryImage)
+    .map((img) => img.url)
+    .filter(Boolean)
+
+  const initialColors =
+    productVariantsArr
+      .filter((v) => v.type === 'COLOR')
+      .map((v) => ({
+        label: v.label || '',
+        value: v.value || '#000000',
+        imageUrl: v.imageUrl || '',
+      }))
+
   const safeInitialColors =
     initialColors.length > 0
       ? initialColors
       : [{ label: 'Standard Mahogany', value: '#5C4033', imageUrl: '' }]
 
-  const initialFabrics = productVariantsArr
-    .filter((v: any) => v.type === 'FABRIC')
-    .map((v: any) => ({
-      label: v.label,
-      priceDelta: Number(v.priceDelta || 0),
-      imageUrl: v.imageUrl || '',
-    }))
+  const initialFabrics =
+    productVariantsArr
+      .filter((v) => v.type === 'FABRIC')
+      .map((v) => ({
+        label: v.label || '',
+        priceDelta: Number(v.priceDelta || 0),
+        imageUrl: v.imageUrl || '',
+      }))
 
   // Google Cascading Dropdowns State
   const [gLevel1, setGLevel1] = useState<string>(initialData?.googleProductCategory ? 'Furniture' : '')

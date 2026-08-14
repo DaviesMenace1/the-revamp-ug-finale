@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db/client'
 import { productReviews } from '@/lib/db/schema'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> | { slug: string } }
 ) {
   try {
+    const resolvedParams = await params
+    const slug = resolvedParams.slug
     const body = await req.json()
     const { productId, authorName, rating, comment } = body
 
@@ -26,6 +29,9 @@ export async function POST(
         comment,
       })
       .returning()
+
+    // ✅ Revalidate Next.js cache for this product page
+    revalidatePath(`/collections/${slug}`)
 
     return NextResponse.json({ success: true, data: newReview }, { status: 201 })
   } catch (error: any) {

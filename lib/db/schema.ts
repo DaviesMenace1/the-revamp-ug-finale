@@ -115,6 +115,7 @@ export const users = pgTable(
   })
 );
 
+// --- PRODUCTS TABLE ---
 export const products = pgTable('products', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
@@ -140,12 +141,14 @@ export const products = pgTable('products', {
 
   description: text('description'),
   longDescription: text('long_description'),
+  editorialHighlight: text('editorial_highlight'), // "Why We Love This" blurb
   
   material: varchar('material', { length: 255 }),
   materialSwatchUrl: text('material_swatch_url'),
   finish: varchar('finish', { length: 255 }),
   careInstructions: text('care_instructions'),
   whatsIncluded: jsonb('whats_included').$type<string[]>().default([]),
+  dimensions: jsonb('dimensions').default({}), // Dynamic WxHxD, Pile Height, etc.
 
   thumbnailImage: text('thumbnail_image'),
   googleSyncStatus: googleSyncStatusEnum('google_sync_status').default('draft'),
@@ -160,25 +163,53 @@ export const products = pgTable('products', {
   updatedAt: timestamp('updated_at').defaultNow(),
 })
 
+// --- PRODUCT IMAGES TABLE ---
 export const productImages = pgTable('product_images', {
   id: uuid('id').defaultRandom().primaryKey(),
   productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  colorId: uuid('color_id'),
   url: text('url').notNull(),
   isPrimary: boolean('is_primary').default(false),
   displayOrder: integer('display_order').default(0),
   createdAt: timestamp('created_at').defaultNow(),
 })
 
+// --- PRODUCT VARIANTS TABLE ---
 export const productVariants = pgTable('product_variants', {
   id: uuid('id').defaultRandom().primaryKey(),
   productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
   type: varchar('type', { length: 50 }).notNull(), // 'COLOR' or 'FABRIC'
   label: varchar('label', { length: 100 }).notNull(),
-  value: varchar('value', { length: 100 }), // Hex value
+  value: varchar('value', { length: 100 }), // Hex value or code
   priceDelta: numeric('price_delta', { precision: 12, scale: 2 }).default('0'),
   imageUrl: text('image_url'),
   createdAt: timestamp('created_at').defaultNow(),
 })
+
+// --- PRODUCT REVIEWS TABLE ---
+export const productReviews = pgTable(
+  'product_reviews',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id'),
+    authorName: varchar('author_name', { length: 255 }).notNull().default('Verified Buyer'),
+    authorEmail: varchar('author_email', { length: 255 }),
+    rating: integer('rating').notNull().default(5),
+    title: varchar('title', { length: 255 }),
+    comment: text('comment').notNull(),
+    verifiedPurchase: boolean('verified_purchase').default(true),
+    approved: boolean('approved').default(true),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    productIdIdx: index('product_reviews_product_idx').on(table.productId),
+    ratingIdx: index('product_reviews_rating_idx').on(table.rating),
+  })
+)
 
 // --- PROJECTS TABLE ---
 export const projects = pgTable(
@@ -598,32 +629,32 @@ export const usersRelations = relations(users, ({ many }) => ({
   cart: many(carts),
 }));
 
-
-export const productsRelations = relations(products, ({ one, many }) => ({
+export const productsRelations = relations(products, ({ many }) => ({
   productVariants: many(productVariants),
   productImages: many(productImages),
-  reviews: many(reviews),
-  category: one(categories, {
-    fields: [products.categoryId],
-    references: [categories.id],
-  }),
-}))
+  productReviews: many(productReviews), // ✅ Properly tied to productReviews
+}));
 
 export const productImagesRelations = relations(productImages, ({ one }) => ({
   product: one(products, {
     fields: [productImages.productId],
     references: [products.id],
   }),
-}))
+}));
 
 export const productVariantsRelations = relations(productVariants, ({ one }) => ({
   product: one(products, {
     fields: [productVariants.productId],
     references: [products.id],
   }),
-}))
+}));
 
-
+export const productReviewsRelations = relations(productReviews, ({ one }) => ({
+  product: one(products, {
+    fields: [productReviews.productId],
+    references: [products.id],
+  }),
+}));
 
 export const projectsRelations = relations(projects, ({ many }) => ({
   comments: many(comments),
@@ -653,6 +684,7 @@ export const serviceRequestsRelations = relations(serviceRequests, ({ one }) => 
     references: [services.id],
   }),
 }));
+
 
 
 

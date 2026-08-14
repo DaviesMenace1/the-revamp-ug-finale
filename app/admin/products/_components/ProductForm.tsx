@@ -76,37 +76,48 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
   const [isPending, startTransition] = useTransition()
   const [activeTab, setActiveTab] = useState<'general' | 'media' | 'pricing' | 'specs' | 'variants' | 'google' | 'seo'>('general')
 
-  // Safely Extract Primary Cover Image from DB
-  const initialPrimaryImage = 
+  // Primary image
+  const initialPrimaryImage =
     initialData?.productImages?.find((img: any) => img.isPrimary)?.url ||
     initialData?.productImages?.[0]?.url ||
     initialData?.thumbnailImage ||
     ''
 
-  // Safely Extract Gallery Array from DB
-  const initialGalleryImages = initialData?.productImages
+  // Gallery images – always treat as array
+  const productImagesArr = Array.isArray(initialData?.productImages)
     ? initialData.productImages
-        .filter((img: any) => !img.isPrimary && img.url !== initialPrimaryImage)
-        .map((img: any) => img.url)
-    : (initialData?.images || initialData?.gallery || [])
+    : []
 
-  // Safely Extract Color Variants from DB
-  const initialColors = initialData?.productVariants
-    ? initialData.productVariants.filter((v: any) => v.type === 'COLOR').map((v: any) => ({
-        label: v.label,
-        value: v.value || '#000000',
-        imageUrl: v.imageUrl || ''
-      }))
-    : (initialData?.colors || [{ label: 'Standard Mahogany', value: '#5C4033', imageUrl: '' }])
+  const initialGalleryImages = productImagesArr
+    .filter((img: any) => !img.isPrimary && img.url !== initialPrimaryImage)
+    .map((img: any) => img.url)
 
-  // Safely Extract Fabric Variants from DB
-  const initialFabrics = initialData?.productVariants
-    ? initialData.productVariants.filter((v: any) => v.type === 'FABRIC').map((v: any) => ({
-        label: v.label,
-        priceDelta: Number(v.priceDelta || 0),
-        imageUrl: v.imageUrl || ''
-      }))
-    : (initialData?.fabrics || [])
+  // Variants – always treat as array
+  const productVariantsArr = Array.isArray(initialData?.productVariants)
+    ? initialData.productVariants
+    : []
+
+  const initialColors = productVariantsArr
+    .filter((v: any) => v.type === 'COLOR')
+    .map((v: any) => ({
+      label: v.label,
+      value: v.value || '#000000',
+      imageUrl: v.imageUrl || '',
+    }))
+
+  // Fallback if no colors came from DB
+  const safeInitialColors =
+    initialColors.length > 0
+      ? initialColors
+      : [{ label: 'Standard Mahogany', value: '#5C4033', imageUrl: '' }]
+
+  const initialFabrics = productVariantsArr
+    .filter((v: any) => v.type === 'FABRIC')
+    .map((v: any) => ({
+      label: v.label,
+      priceDelta: Number(v.priceDelta || 0),
+      imageUrl: v.imageUrl || '',
+    }))
 
   // Google Cascading Dropdowns State
   const [gLevel1, setGLevel1] = useState<string>(initialData?.googleProductCategory ? 'Furniture' : '')
@@ -128,7 +139,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     
     // Media State
     thumbnailImage: initialPrimaryImage,
-    gallery: initialGalleryImages as string[],
+       gallery: initialGalleryImages.length > 0 ? initialGalleryImages : [],
     
     price: initialData?.price || '',
     originalPrice: initialData?.originalPrice || '',
@@ -156,7 +167,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     featured: initialData?.featured ?? false,
     status: initialData?.status || 'draft',
 
-    colors: initialColors,
+    colors: safeInitialColors,
     fabrics: initialFabrics,
   })
 

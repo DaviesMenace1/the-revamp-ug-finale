@@ -18,15 +18,14 @@ export async function generateMetadata({ params }: EditProductPageProps) {
 }
 
 export default async function EditProductPage({ params }: EditProductPageProps) {
-  // 🔑 Crucial fix: await params before accessing id
   const { id } = await params
 
   const product = await db.query.products.findFirst({
     where: eq(products.id, id),
     with: {
-  productVariants: true,
-  productImages: true,
-},
+      productVariants: true,   // ← was variants
+      productImages: true,
+    },
   })
 
   if (!product) {

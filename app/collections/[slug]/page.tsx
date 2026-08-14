@@ -123,7 +123,7 @@ export default async function ProductPage({
           },
         ]
 
-  const safeVariants = Array.isArray(product.variants) ? product.variants : []
+  const safeVariants = Array.isArray(product.productVariants) ? product.productVariants : []
   const safeColors = safeVariants.filter((v: any) => v.type === 'COLOR')
   const safeFabrics = safeVariants.filter((v: any) => v.type === 'FABRIC')
 
@@ -152,7 +152,7 @@ export default async function ProductPage({
     ratingCount: Number.isNaN(safeRatingCount) ? 0 : safeRatingCount,
     images: safeImages,
     productImages: safeProductImages,
-    variants: safeVariants,
+    productVariants: safeVariants,
     colors: safeColors.length > 0 ? safeColors : [{ id: 'default-col', label: 'Standard', value: '#1C1C1C' }],
     fabrics: safeFabrics,
     reviews: Array.isArray((product as any).reviews) ? (product as any).reviews : [],

@@ -141,16 +141,23 @@ export const products = pgTable('products', {
 
   description: text('description'),
   longDescription: text('long_description'),
-  editorialHighlight: text('editorial_highlight'), // "Why We Love This" blurb
+  editorialHighlight: text('editorial_highlight'),
   
   material: varchar('material', { length: 255 }),
   materialSwatchUrl: text('material_swatch_url'),
   finish: varchar('finish', { length: 255 }),
   careInstructions: text('care_instructions'),
   whatsIncluded: jsonb('whats_included').$type<string[]>().default([]),
-  dimensions: jsonb('dimensions').default({}), // Dynamic WxHxD, Pile Height, etc.
+  dimensions: jsonb('dimensions').default({}),
 
+  // --- IMAGES & MEDIA ---
   thumbnailImage: text('thumbnail_image'),
+  images: jsonb('images').$type<string[]>().default([]), // ✅ Direct image array fallback
+
+  // --- RATINGS & REVIEW METRICS ---
+  rating: numeric('rating', { precision: 3, scale: 2 }).default('5.00'), // ✅ Aggregate rating
+  ratingCount: integer('rating_count').default(0),                        // ✅ Total review count
+
   googleSyncStatus: googleSyncStatusEnum('google_sync_status').default('draft'),
   googleSyncError: text('google_sync_error'),
   
@@ -162,6 +169,7 @@ export const products = pgTable('products', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 })
+
 
 // --- PRODUCT IMAGES TABLE ---
 export const productImages = pgTable('product_images', {

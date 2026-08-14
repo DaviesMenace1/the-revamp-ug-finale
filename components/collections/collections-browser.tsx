@@ -125,17 +125,33 @@ export function CollectionsBrowser() {
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-px bg-border">
-            {filtered.map((p) => (
-              <div key={p.id} className="group relative bg-background overflow-hidden">
-                <Link href={`/collections/${p.slug}`} className="block">
-                  <div className="relative aspect-[3/4] overflow-hidden bg-muted">
-                    <Image
-                      src={p.images[0]}
-                      alt={p.name}
-                      fill
-                      sizes="(max-width: 1024px) 50vw, 33vw"
-                      className="object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
+            {filtered.map((p) => {
+  // Safe image extraction
+  const imagesFromRelation = Array.isArray(p.productImages)
+    ? p.productImages.map((img: any) => img?.url).filter(Boolean)
+    : []
+
+  const imagesFromField = Array.isArray(p.images)
+    ? p.images.filter(Boolean)
+    : []
+
+  const images = imagesFromRelation.length > 0 ? imagesFromRelation : imagesFromField
+  const mainImage = images[0] || 'https://therevampug.com/default-thumb.png'
+
+  return (
+    <Link
+      key={p.id}
+      href={`/collections/${p.slug}`}
+      className="group ..."
+    >
+      <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+        <Image
+          src={mainImage}
+          alt={p.name}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          sizes="(max-width: 768px) 50vw, 25vw"
+        />
                     <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/30 transition-colors duration-500 z-10" />
                     {isNewArrival(p) && (
                       <span className="absolute top-3 left-3 bg-gold text-obsidian font-sans text-[10px] tracking-widest uppercase px-2.5 py-1 z-20">

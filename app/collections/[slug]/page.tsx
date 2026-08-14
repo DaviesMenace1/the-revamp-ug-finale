@@ -152,6 +152,7 @@ export default async function ProductPage({
     ratingCount: Number.isNaN(safeRatingCount) ? 0 : safeRatingCount,
     images: safeImages,
     productImages: safeProductImages,
+    variants: safeVariants,
     productVariants: safeVariants,
     colors: safeColors.length > 0 ? safeColors : [{ id: 'default-col', label: 'Standard', value: '#1C1C1C' }],
     fabrics: safeFabrics,

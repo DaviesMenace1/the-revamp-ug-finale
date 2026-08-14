@@ -619,7 +619,10 @@ export function ProductReviews({ product }: { product: any }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const ratingCount = reviewsList.length
-  const avgRating = typeof product?.rating === 'number' ? product.rating : parseFloat(product?.rating || '5.0')
+  const avgRating =
+    ratingCount > 0
+      ? reviewsList.reduce((sum, rev) => sum + Number(rev.rating || 0), 0) / ratingCount
+      : 0
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

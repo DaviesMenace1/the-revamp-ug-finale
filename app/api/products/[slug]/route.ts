@@ -26,7 +26,7 @@ export async function GET(
         productVariants: true, // Color swatches & fabric deltas
         productImages: true,   // Full image gallery
         category: true,        // Parent category info
-        reviews: true,         // Customer ratings & comments
+        productReviews: true,         // Customer ratings & comments
       },
     })
 

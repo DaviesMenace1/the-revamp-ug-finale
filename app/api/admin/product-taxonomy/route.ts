@@ -1,136 +1,80 @@
-import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { NextResponse } from "next/server"
+import { db } from "@/lib/db"
 import {
   departments,
   categories,
   subCategories,
-  attributeTemplates,
-} from '@/lib/db/schema'
-import { asc, eq } from 'drizzle-orm'
+  productAttributeTemplates,
+} from "@/lib/db/schema"
+import { asc, eq } from "drizzle-orm"
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
 
-/**
- * Returns the complete product taxonomy used by the admin product creator.
- *
- * Structure:
- *
- * Department
- *   └── Category
- *         └── Subcategory
- *                └── Attribute Template
- *
- * IMPORTANT:
- * The frontend must NOT maintain its own hardcoded product taxonomy.
- * Supabase is the source of truth.
- */
 export async function GET() {
   try {
-    const rows = await db
-      .select({
-        departmentId: departments.id,
-        departmentName: departments.name,
-        departmentSlug: departments.slug,
+    const [departmentRows, categoryRows, subCategoryRows] =
+      await Promise.all([
+        db
+          .select({
+            id: departments.id,
+            name: departments.name,
+            slug: departments.slug,
+          })
+          .from(departments)
+          .orderBy(asc(departments.name)),
 
-        categoryId: categories.id,
-        categoryName: categories.name,
-        categorySlug: categories.slug,
+        db
+          .select({
+            id: categories.id,
+            name: categories.name,
+            slug: categories.slug,
+            departmentId: categories.departmentId,
+          })
+          .from(categories)
+          .orderBy(asc(categories.name)),
 
-        subCategoryId: subCategories.id,
-        subCategoryName: subCategories.name,
-        subCategorySlug: subCategories.slug,
+        db
+          .select({
+            id: subCategories.id,
+            name: subCategories.name,
+            slug: subCategories.slug,
+            categoryId: subCategories.categoryId,
 
-        templateId: attributeTemplates.id,
-        templateName: attributeTemplates.name,
-        templateVersion: attributeTemplates.version,
-        templateSchema: attributeTemplates.schemaDefinition,
+            templateId: productAttributeTemplates.id,
+            templateSchema: productAttributeTemplates.schema,
 
-        googleProductCategoryId: subCategories.googleProductCategoryId,
-      })
-      .from(subCategories)
-      .innerJoin(
-        categories,
-        eq(subCategories.categoryId, categories.id)
-      )
-      .innerJoin(
-        departments,
-        eq(categories.departmentId, departments.id)
-      )
-      .innerJoin(
-        attributeTemplates,
-        eq(subCategories.templateId, attributeTemplates.id)
-      )
-      .where(
-        eq(subCategories.active, true)
-      )
-      .orderBy(
-        asc(departments.order),
-        asc(categories.order),
-        asc(subCategories.order)
-      )
+            googleProductCategoryId:
+              subCategories.googleProductCategoryId,
 
-    const taxonomy = new Map<string, any>()
-
-    for (const row of rows) {
-      if (!taxonomy.has(row.departmentId)) {
-        taxonomy.set(row.departmentId, {
-          id: row.departmentId,
-          name: row.departmentName,
-          slug: row.departmentSlug,
-          categories: [],
-        })
-      }
-
-      const department = taxonomy.get(row.departmentId)
-
-      let category = department.categories.find(
-        (item: any) => item.id === row.categoryId
-      )
-
-      if (!category) {
-        category = {
-          id: row.categoryId,
-          name: row.categoryName,
-          slug: row.categorySlug,
-          subCategories: [],
-        }
-
-        department.categories.push(category)
-      }
-
-      category.subCategories.push({
-        id: row.subCategoryId,
-        name: row.subCategoryName,
-        slug: row.subCategorySlug,
-
-        googleProductCategoryId:
-          row.googleProductCategoryId ?? null,
-
-        template: {
-          id: row.templateId,
-          name: row.templateName,
-          version: row.templateVersion,
-          schemaDefinition: row.templateSchema,
-        },
-      })
-    }
+            googleProductCategoryPath:
+              subCategories.googleProductCategoryPath,
+          })
+          .from(subCategories)
+          .leftJoin(
+            productAttributeTemplates,
+            eq(
+              subCategories.attributeTemplateId,
+              productAttributeTemplates.id,
+            ),
+          )
+          .orderBy(asc(subCategories.name)),
+      ])
 
     return NextResponse.json({
-      success: true,
-      data: Array.from(taxonomy.values()),
+      departments: departmentRows,
+      categories: categoryRows,
+      subCategories: subCategoryRows,
     })
   } catch (error) {
-    console.error('Product taxonomy error:', error)
+    console.error("GET /api/admin/product-taxonomy:", error)
 
     return NextResponse.json(
       {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to load product taxonomy',
+        error: "Failed to load product taxonomy.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      },
     )
   }
 }

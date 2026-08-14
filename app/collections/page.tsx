@@ -26,8 +26,9 @@ async function getPublishedProducts() {
       where: eq(productsTable.status, 'published'),
       orderBy: [desc(productsTable.createdAt)],
       with: {
-    productImages: true,
-    productVariants: true,
+        productImages: true,
+        productVariants: true,
+      },
     })
   } catch (error) {
     console.error('Error fetching collection products:', error)

@@ -19,6 +19,7 @@ import {
   Send
 } from 'lucide-react'
 import { useCart } from '@/lib/context/cart-context'
+import { useRouter } from 'next/navigation' 
 
 const DEFAULT_IMAGE = '/images/placeholder.jpg'
 const WISHLIST_STORAGE_KEY = 'revamp:wishlist'
@@ -643,6 +644,9 @@ export function ProductReviews({ product }: { product: any }) {
         setComment('')
         setAuthorName('')
         setShowForm(false)
+        
+        // ✅ Refresh Server Components data
+        router.refresh()
       }
     } catch (err) {
       console.error('Failed to post review:', err)

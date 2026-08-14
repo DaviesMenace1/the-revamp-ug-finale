@@ -13,23 +13,38 @@ export async function PUT(
     const resolvedParams = await params
     const id = resolvedParams.id
     const body = await req.json()
-    const { category, question, answer, status, views, helpful, notHelpful } = body
+    const { category, question, answer, status, views, helpful, notHelpful, order } = body
 
-    const updateData: any = {}
+    // Build update object only with provided defined fields
+    const updateData: Record<string, any> = {
+      updatedAt: new Date(), // Automatically touch updatedAt timestamp
+    }
+
     if (category !== undefined) updateData.category = category
     if (question !== undefined) updateData.question = question
     if (answer !== undefined) updateData.answer = answer
     if (status !== undefined) updateData.status = status
-    if (views !== undefined) updateData.views = views
-    if (helpful !== undefined) updateData.helpful = helpful
-    if (notHelpful !== undefined) updateData.notHelpful = notHelpful
+    if (order !== undefined) updateData.order = Number(order)
+    if (views !== undefined) updateData.views = Number(views)
+    if (helpful !== undefined) updateData.helpful = Number(helpful)
+    if (notHelpful !== undefined) updateData.notHelpful = Number(notHelpful)
 
+    // Execute update in PostgreSQL
     const [updatedFaq] = await db
       .update(faqs)
       .set(updateData)
       .where(eq(faqs.id, id))
       .returning()
 
+    // 404 Guard: Check if the FAQ actually existed
+    if (!updatedFaq) {
+      return NextResponse.json(
+        { success: false, error: 'FAQ not found' },
+        { status: 404 }
+      )
+    }
+
+    // Purge Next.js cache for public and admin pages
     revalidatePath('/faqs')
     revalidatePath('/admin/faqs')
 
@@ -42,6 +57,7 @@ export async function PUT(
     )
   }
 }
+
 
 // DELETE /api/faqs/[id] - Delete an FAQ
 export async function DELETE(

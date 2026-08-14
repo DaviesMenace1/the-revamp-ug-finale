@@ -92,10 +92,7 @@ export default async function CollectionsPage() {
           sizes="(max-width: 768px) 50vw, 25vw"
         />
       </div>
-      {/* rest of your card JSX stays the same */}
-    </Link>
-  )
-})}
+   
                       <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/30 transition-colors duration-500 z-10" />
                       {p.featured && (
                         <span className="absolute top-3 left-3 bg-gold text-obsidian font-sans text-[10px] tracking-widest uppercase px-2.5 py-1 z-25">

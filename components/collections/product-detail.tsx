@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import {
   Star,
@@ -8,17 +8,22 @@ import {
   ShoppingBag,
   Check,
   Ruler,
-  Sparkles,
   ChevronDown,
   ShieldCheck,
   Truck,
-  Sparkle
+  Sparkle,
+  Share2,
+  Copy,
+  MessageCircle,
+  X,
+  Send
 } from 'lucide-react'
 import { useCart } from '@/lib/context/cart-context'
 
 const DEFAULT_IMAGE = '/images/placeholder.jpg'
+const WISHLIST_STORAGE_KEY = 'revamp:wishlist'
 
-// Localized Currency Formatter (Default: UGX primary, USD secondary)
+// Localized Currency Formatter
 const formatUGX = (amount: number) => {
   return new Intl.NumberFormat('en-UG', {
     style: 'currency',
@@ -97,6 +102,10 @@ export function ProductDetail({ product }: { product: any }) {
   const [isWishlisted, setIsWishlisted] = useState<boolean>(false)
   const [added, setAdded] = useState<boolean>(false)
 
+  // Share Modal State
+  const [isShareOpen, setIsShareOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+
   // Accordion State Management
   const [openAccordion, setOpenAccordion] = useState<string | null>('specs')
 
@@ -111,6 +120,36 @@ export function ProductDetail({ product }: { product: any }) {
     height: initialHeight,
     depth: initialDepth,
   })
+
+  // Synchronize Wishlist with localStorage
+  useEffect(() => {
+    if (!product?.id) return
+    try {
+      const stored = JSON.parse(localStorage.getItem(WISHLIST_STORAGE_KEY) || '[]')
+      setIsWishlisted(stored.includes(product.id))
+    } catch {
+      setIsWishlisted(false)
+    }
+  }, [product?.id])
+
+  const toggleWishlist = () => {
+    if (!product?.id) return
+    try {
+      const stored: string[] = JSON.parse(localStorage.getItem(WISHLIST_STORAGE_KEY) || '[]')
+      let updated: string[]
+      if (stored.includes(product.id)) {
+        updated = stored.filter((id) => id !== product.id)
+        setIsWishlisted(false)
+      } else {
+        updated = [...stored, product.id]
+        setIsWishlisted(true)
+      }
+      localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(updated))
+      window.dispatchEvent(new CustomEvent('revamp:wishlist-change'))
+    } catch (error) {
+      console.error('Failed to update wishlist:', error)
+    }
+  }
 
   const reviewsCount = Array.isArray(product?.reviews) ? product.reviews.length : product?.ratingCount || 0
   const rating = typeof product?.rating === 'number' ? product.rating : parseFloat(product?.rating || '5.0')
@@ -145,17 +184,21 @@ export function ProductDetail({ product }: { product: any }) {
       slug: product?.slug,
       price: unitPrice,
       quantity,
-      color: selectedColor?.label || null,
       selectedColor,
-      fabric: selectedFabric?.label || null,
       selectedFabric,
+      color: selectedColor?.label || null,
+      fabric: selectedFabric?.label || null,
       image: selectedImage,
       customDimensions: customDimensionsToPass,
       product,
     }
 
-    if (cart && typeof cart.addItem === 'function') {
-      cart.addItem(itemToAdd, quantity, selectedColor, null, [], customDimensionsToPass)
+    if (cart) {
+      if (typeof cart.addToCart === 'function') {
+        cart.addToCart(itemToAdd, quantity)
+      } else if (typeof cart.addItem === 'function') {
+        cart.addItem(itemToAdd, quantity, selectedColor, selectedFabric, [], customDimensionsToPass)
+      }
     } else {
       const existing = JSON.parse(localStorage.getItem('cart') || '[]')
       existing.push(itemToAdd)
@@ -164,6 +207,30 @@ export function ProductDetail({ product }: { product: any }) {
 
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
+  }
+
+  const handleCopyLink = () => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(window.location.href)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const shareToSocial = (platform: 'whatsapp' | 'twitter' | 'facebook') => {
+    const url = encodeURIComponent(window.location.href)
+    const text = encodeURIComponent(`Check out "${product?.name}" on The Revamp UG:`)
+
+    let shareUrl = ''
+    if (platform === 'whatsapp') {
+      shareUrl = `https://wa.me/?text=${text}%20${url}`
+    } else if (platform === 'twitter') {
+      shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`
+    } else if (platform === 'facebook') {
+      shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`
+    }
+
+    window.open(shareUrl, '_blank', 'noopener,noreferrer')
   }
 
   const categoryName = product?.category?.name || product?.category || 'Luxury Collection'
@@ -204,13 +271,64 @@ export function ProductDetail({ product }: { product: any }) {
 
       {/* RIGHT: BUY BOX & SPECS (5 columns) */}
       <div className="lg:col-span-5 flex flex-col">
-        <span className="text-[11px] uppercase tracking-widest font-semibold text-gold mb-2">
-          {categoryName}
-        </span>
+        <div className="flex justify-between items-start mb-2">
+          <span className="text-[11px] uppercase tracking-widest font-semibold text-gold">
+            {categoryName}
+          </span>
+          {/* Share Button Trigger */}
+          <button
+            onClick={() => setIsShareOpen(!isShareOpen)}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+            title="Share Product"
+          >
+            <Share2 size={14} />
+            <span className="uppercase text-[10px] tracking-wider font-medium">Share</span>
+          </button>
+        </div>
 
         <h1 className="font-serif text-3xl sm:text-4xl font-light text-foreground mb-3 leading-tight">
           {product?.name || 'Untitled Piece'}
         </h1>
+
+        {/* Share Popover Drawer */}
+        {isShareOpen && (
+          <div className="mb-6 p-4 border border-border bg-card rounded shadow-lg space-y-3 relative animate-in fade-in slide-in-from-top-2">
+            <button
+              onClick={() => setIsShareOpen(false)}
+              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
+            >
+              <X size={14} />
+            </button>
+            <p className="text-xs font-medium uppercase tracking-wider text-foreground">Share this piece</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => shareToSocial('whatsapp')}
+                className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-600 px-3 py-1.5 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
+              >
+                <MessageCircle size={14} /> WhatsApp
+              </button>
+              <button
+                onClick={() => shareToSocial('twitter')}
+                className="flex items-center gap-1.5 text-xs bg-sky-500/10 text-sky-600 px-3 py-1.5 border border-sky-500/20 hover:bg-sky-500/20 transition-colors"
+              >
+                X / Twitter
+              </button>
+              <button
+                onClick={() => shareToSocial('facebook')}
+                className="flex items-center gap-1.5 text-xs bg-blue-500/10 text-blue-600 px-3 py-1.5 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
+              >
+                Facebook
+              </button>
+              <button
+                onClick={handleCopyLink}
+                className="flex items-center gap-1.5 text-xs bg-muted text-foreground px-3 py-1.5 border border-border hover:bg-muted/80 transition-colors"
+              >
+                {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                {copied ? 'Copied Link' : 'Copy Link'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Rating Overview */}
         <div className="flex items-center gap-3 mb-5">
@@ -228,7 +346,7 @@ export function ProductDetail({ product }: { product: any }) {
           </span>
         </div>
 
-        {/* Price Display: UGX Primary, USD Secondary */}
+        {/* Price Display */}
         <div className="flex items-baseline gap-3 mb-6 pb-6 border-b border-border">
           <span className="text-2xl font-serif text-foreground font-medium">
             {formatUGX(totalPrice)}
@@ -238,7 +356,7 @@ export function ProductDetail({ product }: { product: any }) {
           </span>
         </div>
 
-        {/* "WHY WE LOVE THIS" Editorial Highlight */}
+        {/* Editorial Highlight */}
         {product?.editorialHighlight && (
           <div className="mb-6 p-4 border border-gold/30 bg-gold/5 space-y-1">
             <div className="flex items-center gap-1.5 text-xs font-serif text-gold font-medium">
@@ -376,7 +494,7 @@ export function ProductDetail({ product }: { product: any }) {
           )}
         </div>
 
-        {/* QUANTITY & ADD TO CART */}
+        {/* QUANTITY, ADD TO CART & WISHLIST */}
         <div className="flex gap-4 mb-8">
           <div className="flex items-center border border-border">
             <button
@@ -403,18 +521,19 @@ export function ProductDetail({ product }: { product: any }) {
           </button>
 
           <button
-            onClick={() => setIsWishlisted(!isWishlisted)}
+            onClick={toggleWishlist}
             className={`p-3 border transition-colors ${
               isWishlisted
                 ? 'border-red-500 text-red-500 bg-red-500/10'
                 : 'border-border text-foreground hover:border-gold'
             }`}
+            title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
           >
-            <Heart size={18} className={isWishlisted ? 'fill-current' : ''} />
+            <Heart size={18} className={isWishlisted ? 'fill-current text-red-500' : ''} />
           </button>
         </div>
 
-        {/* ACCORDION SPECIFICATIONS (MCGEE & CO STYLE) */}
+        {/* ACCORDIONS */}
         <div className="border-t border-border mt-2">
           <AccordionItem
             title="Overview & Description"
@@ -487,18 +606,120 @@ export function ProductDetail({ product }: { product: any }) {
   )
 }
 
-// Append this to the bottom of components/collections/product-detail.tsx
-
+// PRODUCT REVIEWS WITH INTERACTIVE FORM
 export function ProductReviews({ product }: { product: any }) {
-  const reviews = Array.isArray(product?.reviews) ? product.reviews : []
-  const ratingCount = reviews.length || product?.ratingCount || 0
+  const [reviewsList, setReviewsList] = useState<any[]>(
+    Array.isArray(product?.reviews) ? product.reviews : product?.productReviews || []
+  )
+  const [showForm, setShowForm] = useState(false)
+  const [authorName, setAuthorName] = useState('')
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const ratingCount = reviewsList.length
   const avgRating = typeof product?.rating === 'number' ? product.rating : parseFloat(product?.rating || '5.0')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!comment || !authorName) return
+
+    setIsSubmitting(true)
+    try {
+      const res = await fetch(`/api/products/${product.slug}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          authorName,
+          rating,
+          comment,
+        }),
+      })
+
+      if (res.ok) {
+        const newRev = await res.json()
+        setReviewsList([newRev.data || { authorName, rating, comment, createdAt: new Date() }, ...reviewsList])
+        setComment('')
+        setAuthorName('')
+        setShowForm(false)
+      }
+    } catch (err) {
+      console.error('Failed to post review:', err)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="border-t border-border pt-12 mt-12">
-      <h2 className="font-serif text-2xl font-light text-foreground mb-6">
-        Customer Reviews & Feedback ({ratingCount})
-      </h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h2 className="font-serif text-2xl font-light text-foreground">
+          Customer Reviews ({ratingCount})
+        </h2>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="bg-gold hover:bg-gold/90 text-black text-xs uppercase tracking-widest font-semibold px-4 py-2 transition-colors flex items-center gap-1.5"
+        >
+          {showForm ? 'Cancel' : 'Write a Review'}
+        </button>
+      </div>
+
+      {/* Review Submission Form Drawer */}
+      {showForm && (
+        <form onSubmit={handleSubmit} className="mb-8 p-6 bg-card border border-border space-y-4 rounded">
+          <h3 className="font-serif text-lg text-foreground">Share your feedback</h3>
+          
+          <div>
+            <label className="block text-xs uppercase text-muted-foreground mb-1">Rating</label>
+            <div className="flex gap-1 text-amber-500">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  type="button"
+                  key={star}
+                  onClick={() => setRating(star)}
+                  className="p-1 hover:scale-110 transition-transform"
+                >
+                  <Star size={20} className={star <= rating ? 'fill-current text-amber-500' : 'text-muted'} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs uppercase text-muted-foreground mb-1">Your Name</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Sarah K."
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              className="w-full p-2.5 text-xs bg-background border border-border focus:border-gold outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs uppercase text-muted-foreground mb-1">Your Review</label>
+            <textarea
+              required
+              rows={3}
+              placeholder="Describe your experience with this piece..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              className="w-full p-2.5 text-xs bg-background border border-border focus:border-gold outline-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-foreground text-background hover:bg-foreground/90 font-medium text-xs px-6 py-2.5 uppercase tracking-wider flex items-center gap-2"
+          >
+            <Send size={14} />
+            {isSubmitting ? 'Submitting...' : 'Post Review'}
+          </button>
+        </form>
+      )}
 
       {/* Summary Header */}
       <div className="flex items-center gap-4 mb-8 bg-muted/20 p-6 border border-border">
@@ -520,21 +741,16 @@ export function ProductReviews({ product }: { product: any }) {
       </div>
 
       {/* Reviews List */}
-      {reviews.length > 0 ? (
+      {reviewsList.length > 0 ? (
         <div className="space-y-6">
-          {reviews.map((rev: any, idx: number) => (
+          {reviewsList.map((rev: any, idx: number) => (
             <div key={rev?.id || idx} className="border-b border-border pb-6">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-xs text-foreground">{rev?.authorName || 'Verified Buyer'}</span>
-                  {rev?.verifiedPurchase && (
-                    <span className="text-[10px] bg-gold/10 text-gold px-2 py-0.5 border border-gold/20">
-                      Verified Purchase
-                    </span>
-                  )}
                 </div>
                 <span className="text-[10px] text-muted-foreground">
-                  {rev?.createdAt ? new Date(rev.createdAt).toLocaleDateString() : ''}
+                  {rev?.createdAt ? new Date(rev.createdAt).toLocaleDateString() : 'Recently'}
                 </span>
               </div>
               <div className="flex items-center text-amber-500 gap-0.5 mb-2">
@@ -546,7 +762,6 @@ export function ProductReviews({ product }: { product: any }) {
                   />
                 ))}
               </div>
-              {rev?.title && <h4 className="text-xs font-semibold text-foreground mb-1">{rev.title}</h4>}
               <p className="text-xs text-muted-foreground leading-relaxed">{rev?.comment}</p>
             </div>
           ))}
@@ -557,14 +772,3 @@ export function ProductReviews({ product }: { product: any }) {
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-
-

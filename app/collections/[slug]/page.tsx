@@ -55,7 +55,7 @@ async function getProductBySlugFromDB(slug: string) {
       with: {
         productVariants: true,
         productImages: true,
-        reviews: true, // ✅ Attached customer reviews
+        productReviews: true, // ✅ Attached customer reviews
       },
     })
   } catch (error) {

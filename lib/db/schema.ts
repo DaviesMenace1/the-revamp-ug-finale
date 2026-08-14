@@ -599,9 +599,14 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 
-export const productsRelations = relations(products, ({ many }) => ({
-  productImages: many(productImages),
+export const productsRelations = relations(products, ({ one, many }) => ({
   productVariants: many(productVariants),
+  productImages: many(productImages),
+  reviews: many(reviews),
+  category: one(categories, {
+    fields: [products.categoryId],
+    references: [categories.id],
+  }),
 }))
 
 export const productImagesRelations = relations(productImages, ({ one }) => ({

@@ -487,6 +487,77 @@ export function ProductDetail({ product }: { product: any }) {
   )
 }
 
+// Append this to the bottom of components/collections/product-detail.tsx
+
+export function ProductReviews({ product }: { product: any }) {
+  const reviews = Array.isArray(product?.reviews) ? product.reviews : []
+  const ratingCount = reviews.length || product?.ratingCount || 0
+  const avgRating = typeof product?.rating === 'number' ? product.rating : parseFloat(product?.rating || '5.0')
+
+  return (
+    <div className="border-t border-border pt-12 mt-12">
+      <h2 className="font-serif text-2xl font-light text-foreground mb-6">
+        Customer Reviews & Feedback ({ratingCount})
+      </h2>
+
+      {/* Summary Header */}
+      <div className="flex items-center gap-4 mb-8 bg-muted/20 p-6 border border-border">
+        <div className="text-4xl font-serif font-medium text-foreground">
+          {avgRating.toFixed(1)}
+        </div>
+        <div>
+          <div className="flex items-center text-amber-500 gap-0.5 mb-1">
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                size={16}
+                className={i < Math.floor(avgRating) ? 'fill-current text-amber-500' : 'text-muted'}
+              />
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">Based on {ratingCount} verified review{ratingCount === 1 ? '' : 's'}</p>
+        </div>
+      </div>
+
+      {/* Reviews List */}
+      {reviews.length > 0 ? (
+        <div className="space-y-6">
+          {reviews.map((rev: any, idx: number) => (
+            <div key={rev?.id || idx} className="border-b border-border pb-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-xs text-foreground">{rev?.authorName || 'Verified Buyer'}</span>
+                  {rev?.verifiedPurchase && (
+                    <span className="text-[10px] bg-gold/10 text-gold px-2 py-0.5 border border-gold/20">
+                      Verified Purchase
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-muted-foreground">
+                  {rev?.createdAt ? new Date(rev.createdAt).toLocaleDateString() : ''}
+                </span>
+              </div>
+              <div className="flex items-center text-amber-500 gap-0.5 mb-2">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    size={12}
+                    className={i < (rev?.rating || 5) ? 'fill-current text-amber-500' : 'text-muted'}
+                  />
+                ))}
+              </div>
+              {rev?.title && <h4 className="text-xs font-semibold text-foreground mb-1">{rev.title}</h4>}
+              <p className="text-xs text-muted-foreground leading-relaxed">{rev?.comment}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground italic">No customer reviews yet for this product.</p>
+      )}
+    </div>
+  )
+}
+
 
 
 

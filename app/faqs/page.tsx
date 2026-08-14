@@ -1,48 +1,35 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { cn } from '@/lib/utils'
-import { ReactNode, useState } from 'react'
+import { ReactNode } from 'react'
+import { Loader2 } from 'lucide-react'
 
 const questionCategories = [
-  { category: 'All' },
-  { category: 'General' },
-  { category: 'Interior Design' },
-  { category: 'Architecture' },
-  { category: 'Global Sourcing' },
-  { category: 'Products & Collections' },
-  { category: 'Orders & Payments' },
-  { category: 'Shipping & Installation' },
-  { category: 'Trade Program' },
-  { category: 'Membership & Loyalty' },
-  { category: 'Returns & Warranties' },
-  { category: 'Contact & Support' },
-  { category: 'Consulting' },
+  'All',
+  'General',
+  'Interior Design',
+  'Architecture',
+  'Global Sourcing',
+  'Products & Collections',
+  'Orders & Payments',
+  'Shipping & Installation',
+  'Trade Program',
+  'Membership & Loyalty',
+  'Returns & Warranties',
+  'Contact & Support',
+  'Consulting',
 ]
 
-const defaultFaqs = [
-  {
-    q: 'What is The Revamp UG?',
-    a: 'The Revamp UG is a luxury interior design and architecture studio specializing in thoughtfully designed spaces, globally sourced furnishings, bespoke solutions, and white-glove project delivery. We create timeless residential, commercial, hospitality, and lifestyle environments tailored to every client\'s vision.',
-    category: 'General',
-  },
-  {
-    q: 'What is the process for starting a design project with Revamp UG?',
-    a: 'The process begins with an initial consultation to understand your needs, followed by a proposal and design plan.',
-    category: 'General',
-  },
-  {
-    q: 'How does The Revamp UG source its products and materials?',
-    a: 'We have a global network of suppliers and artisans, ensuring high-quality and unique materials for our projects.',
-    category: 'Global Sourcing',
-  },
-  {
-    q: 'What are the real goals of a good project?',
-    a: 'A strong, secure and functional structure.',
-    category: 'Architecture',
-  },
-]
+interface FAQ {
+  id: string
+  category: string
+  question: string
+  answer: string
+  status: string
+}
 
 function FilterGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -57,7 +44,28 @@ function FilterGroup({ title, children }: { title: string; children: ReactNode }
 
 export default function Faqs() {
   const [category, setCategory] = useState<string>('All')
-  const filteredFaqs = category === 'All' ? defaultFaqs : defaultFaqs.filter((item) => item.category === category)
+  const [faqs, setFaqs] = useState<FAQ[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+
+  useEffect(() => {
+    async function loadFaqs() {
+      try {
+        const res = await fetch('/api/faqs?status=published')
+        const json = await res.json()
+        if (json.success && Array.isArray(json.data)) {
+          setFaqs(json.data)
+        }
+      } catch (err) {
+        console.error('Failed to load published FAQs:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadFaqs()
+  }, [])
+
+  const filteredFaqs =
+    category === 'All' ? faqs : faqs.filter((item) => item.category === category)
 
   return (
     <>
@@ -69,45 +77,63 @@ export default function Faqs() {
               Frequently Asked Questions
             </h1>
             <p className="max-w-2xl text-xl text-muted-foreground font-light">
-              Find answers to common questions about our design, development, and consulting services.
+              Find answers to common questions about our design, global sourcing, development, and studio services.
             </p>
           </div>
         </section>
 
-        <div className="mx-auto max-w-5xl px-6 md:px-8 py-12 lg:py-16">
-          <FilterGroup title="Filters">
-            <div className="flex flex-wrap gap-3">
-              {questionCategories.map((f) => (
+        <div className="mx-auto max-w-5xl px-6 md:px-8 py-12 lg:py-16 space-y-8">
+          <FilterGroup title="Filter by Category">
+            <div className="flex flex-wrap gap-2.5">
+              {questionCategories.map((cat) => (
                 <button
-                  key={f.category}
+                  key={cat}
                   type="button"
-                  onClick={() => setCategory(f.category)}
+                  onClick={() => setCategory(cat)}
                   className={cn(
-                    'inline-flex items-center gap-1.5 text-sm font-sans transition-colors px-3 py-1.5 rounded-full border focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    category === f.category ? 'bg-gold/10 text-gold border-gold/30'
-                      : 'bg-transparent text-foreground/70 hover:text-foreground hover:bg-muted/5 border-transparent',
+                    'inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-sans transition-colors px-4 py-2 rounded-full border focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    category === cat
+                      ? 'bg-gold/10 text-gold border-gold/30 font-medium'
+                      : 'bg-transparent text-foreground/70 hover:text-foreground hover:bg-muted/10 border-border/40'
                   )}
                 >
-                  {f.category}
+                  {cat}
                 </button>
               ))}
             </div>
           </FilterGroup>
 
-          <section className="py-6 md:py-8 border-b border-border/20 bg-muted/5 rounded-2xl">
-            <div className="mx-auto max-w-5xl px-4 md:px-6">
-              <div >
-                {filteredFaqs.map((member) => (
+          <section className="py-6 md:py-8 border border-border/20 bg-muted/5 rounded-2xl p-6">
+            {loading ? (
+              <div className="flex justify-center items-center py-16 text-muted-foreground">
+                <Loader2 className="animate-spin mr-2" size={20} /> Loading questions...
+              </div>
+            ) : filteredFaqs.length > 0 ? (
+              <div className="space-y-4">
+                {filteredFaqs.map((item) => (
                   <div
-                    key={member.q}
-                    className="space-y-4 p-6 rounded-lg border border-border/20 hover:border-primary/20 transition-colors"
+                    key={item.id || item.question}
+                    className="space-y-2 p-6 rounded-lg border border-border/20 bg-card hover:border-gold/30 transition-colors"
                   >
-                    <p className="text-primary/90 font-medium text-sm font-size/4">{member.q}</p>
-                    <p className="text-muted-foreground font-light leading-relaxed">{member.a}</p>
+                    <div className="flex justify-between items-start gap-4">
+                      <h3 className="text-foreground font-serif text-lg font-normal">
+                        {item.question}
+                      </h3>
+                      <span className="text-[10px] uppercase tracking-widest text-gold bg-gold/10 px-2 py-0.5 rounded border border-gold/20 flex-shrink-0">
+                        {item.category}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground text-sm font-light leading-relaxed pt-1">
+                      {item.answer}
+                    </p>
                   </div>
                 ))}
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground font-light text-sm">
+                No FAQs available under <span className="text-foreground font-medium">{category}</span>.
+              </div>
+            )}
           </section>
         </div>
       </main>
@@ -115,3 +141,4 @@ export default function Faqs() {
     </>
   )
 }
+

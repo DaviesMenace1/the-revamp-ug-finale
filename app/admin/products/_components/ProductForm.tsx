@@ -401,7 +401,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-2">Product Gallery Images</label>
                   <div className="grid grid-cols-4 gap-4">
-                    {formData.gallery.map((imgUrl, idx) => (
+                    {(Array.isArray(formData.gallery) ? formData.gallery : []).map((imgUrl, idx) => (
                       <div key={idx} className="relative h-28 w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-50">
                         <img src={imgUrl} alt={`Gallery ${idx}`} className="h-full w-full object-cover" />
                         <button
@@ -551,7 +551,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     </button>
                   </div>
 
-                  {formData.colors.map((color, idx) => (
+                  {(Array.isArray(formData.colors) ? formData.colors : []).map((color, idx) => ( 
                     <div key={idx} className="mt-3 flex items-center gap-3 rounded-lg border border-stone-200 p-3 bg-stone-50">
                       <input
                         type="text"
@@ -646,7 +646,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     </button>
                   </div>
 
-                  {formData.fabrics.map((fabric, idx) => (
+                  {(Array.isArray(formData.fabrics) ? formData.fabrics : []).map((fabric, idx) => ( 
                     <div key={idx} className="mt-3 flex items-center gap-3 rounded-lg border border-stone-200 p-3 bg-stone-50">
                       <input
                         type="text"

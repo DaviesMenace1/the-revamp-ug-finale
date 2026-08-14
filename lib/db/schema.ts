@@ -145,7 +145,11 @@ export const products = pgTable('products', {
   materialSwatchUrl: text('material_swatch_url'),
   finish: varchar('finish', { length: 255 }),
   careInstructions: text('care_instructions'),
-  whatsIncluded: text('whats_included').array(),
+  whatsIncluded: jsonb('whats_included').$type<string[]>().default([]),
+
+  thumbnailImage: text('thumbnail_image'),
+  googleSyncStatus: googleSyncStatusEnum('google_sync_status').default('draft'),
+  googleSyncError: text('google_sync_error'),
   
   seoTitle: varchar('seo_title', { length: 255 }),
   seoDescription: text('seo_description'),

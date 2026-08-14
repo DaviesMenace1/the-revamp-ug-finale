@@ -211,7 +211,7 @@ export default function CartPage() {
     if (needSiteVisit) extraServicesText += '\n• Requested On-Site Measurement Consultation'
     if (projectNotes.trim()) extraServicesText += `\n• *Project Notes:* ${projectNotes.trim()}`
 
-    const message = `🛍️ *NEW STUDIO CART ENQUIRY*\n👤 *Client:* ${name}\n\n${formattedItems}${extraServicesText ? `\n\n📋 *Studio Services & Notes:*${extraServicesText}` : ''}\n\n------------------------------\n💰 *ESTIMATED TOTAL:* ${formatPrice(cart?.total || 0, activeCurrency)}\n------------------------------\n\n🔗 *Review Cart Online:* \n${cartShareLink}`
+    const message = ` *NEW STUDIO CART ENQUIRY*\n *Client:* ${name}\n\n${formattedItems}${extraServicesText ? `\n\n *Studio Services & Notes:*${extraServicesText}` : ''}\n\n------------------------------\n *ESTIMATED TOTAL:* ${formatPrice(cart?.total || 0, activeCurrency)}\n------------------------------\n\n🔗 *Review Cart Online:* \n${cartShareLink}`
 
     const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace(/[^0-9]/g, '') || '256700000000'
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')

@@ -22,7 +22,7 @@ export function ProductDetail({ product }: { product: any }) {
     ? product.images.filter(Boolean)
     : [DEFAULT_IMAGE]
 
-  const variants = Array.isArray(product?.variants) ? product.variants : []
+  const variants = Array.isArray(product?.productVariants) ? product.productsVariants : []
   const colors = variants.filter((v: any) => v?.type === 'COLOR')
   const fabrics = variants.filter((v: any) => v?.type === 'FABRIC')
   const productImages = Array.isArray(product?.productImages) ? product.productImages : []

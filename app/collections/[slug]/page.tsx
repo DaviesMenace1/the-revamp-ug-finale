@@ -20,9 +20,32 @@ export const revalidate = 60
 
 const DEFAULT_IMAGE = 'https://therevampug.com/default-thumb.png'
 
-const formatPrice = (price: string | number, currency = 'USD') => {
+// Helper: Extract valid image URLs from both productImages relation and legacy images array
+function extractProductImages(product: any): string[] {
+  if (!product) return [DEFAULT_IMAGE]
+
+  // 1. Try relational productImages table first
+  if (Array.isArray(product.productImages) && product.productImages.length > 0) {
+    const urls = product.productImages.map((img: any) => img?.url || img).filter(Boolean)
+    if (urls.length > 0) return urls
+  }
+
+  // 2. Fall back to direct images array
+  if (Array.isArray(product.images) && product.images.length > 0) {
+    const urls = product.images.filter(Boolean)
+    if (urls.length > 0) return urls
+  }
+
+  return [DEFAULT_IMAGE]
+}
+
+const formatUGX = (price: string | number) => {
   const num = typeof price === 'string' ? parseFloat(price) : price
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(num || 0)
+  return new Intl.NumberFormat('en-UG', {
+    style: 'currency',
+    currency: 'UGX',
+    maximumFractionDigits: 0,
+  }).format(num || 0)
 }
 
 async function getProductBySlugFromDB(slug: string) {
@@ -30,9 +53,10 @@ async function getProductBySlugFromDB(slug: string) {
     return await db.query.products.findFirst({
       where: eq(productsTable.slug, slug),
       with: {
-  productVariants: true,
-  productImages: true,
-},
+        productVariants: true,
+        productImages: true,
+        reviews: true, // ✅ Attached customer reviews
+      },
     })
   } catch (error) {
     console.error('Failed to fetch product by slug:', error)
@@ -47,6 +71,9 @@ async function getRelatedProductsFromDB(category: string, currentId: string) {
         eq(productsTable.category, category),
         ne(productsTable.id, currentId)
       ),
+      with: {
+        productImages: true,
+      },
       limit: 4,
     })
   } catch (error) {
@@ -73,9 +100,7 @@ export async function generateMetadata({
     }
   }
 
-  const rawImages = Array.isArray(product.images) ? product.images.filter(Boolean) : []
-// or better: derive from product.productImages
-  const images = rawImages.length > 0 ? rawImages : [DEFAULT_IMAGE]
+  const images = extractProductImages(product)
 
   return {
     title: `${product.name} | The Revamp UG`,
@@ -106,24 +131,20 @@ export default async function ProductPage({
 
   if (!product) notFound()
 
-  // --- COMPREHENSIVE SANITIZATION & DIMENSION NORMALIZATION ---
-  const rawImages = Array.isArray(product.images) ? product.images.filter(Boolean) : []
-// or better: derive from product.productImages
-  const safeImages = rawImages.length > 0 ? rawImages : [DEFAULT_IMAGE]
+  // --- COMPREHENSIVE SANITIZATION & IMAGE RESOLUTION ---
+  const safeImages = extractProductImages(product)
 
   const safeProductImages =
     Array.isArray(product.productImages) && product.productImages.length > 0
       ? product.productImages
-      : [
-          {
-            id: 'default-img-0',
-            productId: product.id,
-            colorId: null,
-            url: safeImages[0],
-            isPrimary: true,
-            order: 0,
-          },
-        ]
+      : safeImages.map((url, idx) => ({
+          id: `default-img-${idx}`,
+          productId: product.id,
+          colorId: null,
+          url,
+          isPrimary: idx === 0,
+          order: idx,
+        }))
 
   const safeVariants = Array.isArray(product.productVariants) ? product.productVariants : []
   const safeColors = safeVariants.filter((v: any) => v.type === 'COLOR')
@@ -132,7 +153,7 @@ export default async function ProductPage({
   // Numeric fields parsing
   const safeRating = typeof product.rating === 'number'
     ? product.rating
-    : parseFloat(product.rating || '0')
+    : parseFloat(product.rating || '5.0')
 
   const safeRatingCount = typeof product.ratingCount === 'number'
     ? product.ratingCount
@@ -150,13 +171,13 @@ export default async function ProductPage({
 
   const safeProduct = {
     ...product,
-    rating: Number.isNaN(safeRating) ? 0 : safeRating,
+    rating: Number.isNaN(safeRating) ? 5 : safeRating,
     ratingCount: Number.isNaN(safeRatingCount) ? 0 : safeRatingCount,
     images: safeImages,
     productImages: safeProductImages,
     variants: safeVariants,
     productVariants: safeVariants,
-    colors: safeColors.length > 0 ? safeColors : [{ id: 'default-col', label: 'Standard', value: '#1C1C1C' }],
+    colors: safeColors,
     fabrics: safeFabrics,
     reviews: Array.isArray((product as any).reviews) ? (product as any).reviews : [],
     tags: Array.isArray(product.tags) ? product.tags : [],
@@ -165,7 +186,7 @@ export default async function ProductPage({
     specifications: Array.isArray((product as any).specifications) ? (product as any).specifications : [],
     dimensions: safeDimensions,
     tagline: product.description ?? '',
-    currency: 'USD',
+    currency: 'UGX',
   }
   // -------------------------------------------------------------
 
@@ -176,7 +197,7 @@ export default async function ProductPage({
     name: product.name,
     description: product.description || '',
     price: parseFloat(product.price || '0'),
-    currency: 'USD',
+    currency: 'UGX',
     images: safeImages,
     options: { url: pageUrl, image: safeImages[0] },
   })
@@ -224,7 +245,7 @@ export default async function ProductPage({
               </h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border">
                 {related.map((p) => {
-                  const relImages = (p.images as string[] ?? []).filter(Boolean)
+                  const relImages = extractProductImages(p)
                   const thumb = relImages[0] || DEFAULT_IMAGE
 
                   return (
@@ -248,7 +269,7 @@ export default async function ProductPage({
                           {p.name}
                         </h3>
                         <span className="font-sans text-sm text-foreground font-medium">
-                          {formatPrice(p.price)}
+                          {formatUGX(p.price)}
                         </span>
                       </div>
                     </Link>
@@ -263,10 +284,3 @@ export default async function ProductPage({
     </>
   )
 }
-
-
-
-
-
-
-

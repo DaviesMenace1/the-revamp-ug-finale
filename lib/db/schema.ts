@@ -82,6 +82,17 @@ export const googleSyncStatusEnum = pgEnum('google_sync_status', [
   'rejected',
 ]);
 
+export const productTypeEnum = pgEnum('product_type', [
+  'standard',
+  'made_to_order',
+  'custom_bespoke',
+  'sourced_on_request',
+  'pre_order',
+  'set',
+  'bundle',
+  'sample',
+]);
+
 // ==========================================
 // 2. TABLES
 // ==========================================
@@ -115,84 +126,240 @@ export const users = pgTable(
   })
 );
 
-// --- PRODUCTS TABLE ---
-export const products = pgTable('products', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  slug: varchar('slug', { length: 255 }).notNull().unique(),
-  sku: varchar('sku', { length: 100 }).notNull().unique(),
-  mpn: varchar('mpn', { length: 100 }),
-  gtin: varchar('gtin', { length: 100 }),
-  brand: varchar('brand', { length: 100 }).default('The Revamp UG'),
-  department: varchar('department', { length: 100 }).default('01 — Furniture'),
-  category: varchar('category', { length: 100 }).default('Living Room'),
-  subCategory: varchar('sub_category', { length: 100 }),
-  googleProductCategory: text('google_product_category').default('Furniture > Chairs > Armchairs, Recliners & Tilt Chairs'),
-  
-  price: numeric('price', { precision: 12, scale: 2 }).notNull(),
-  originalPrice: numeric('original_price', { precision: 12, scale: 2 }),
-  currency: varchar('currency', { length: 10 }).default('UGX'),
-  
-  condition: varchar('condition', { length: 50 }).default('new'),
-  availability: varchar('availability', { length: 50 }).default('in_stock'),
-  inStock: boolean('in_stock').default(true),
-  quantity: integer('quantity').default(0),
-  leadTime: varchar('lead_time', { length: 100 }),
+// ==========================================
+// TAXONOMY, LIBRARIES & TEMPLATES
+// ==========================================
 
-  description: text('description'),
-  longDescription: text('long_description'),
-  editorialHighlight: text('editorial_highlight'),
-  
-  material: varchar('material', { length: 255 }),
-  materialSwatchUrl: text('material_swatch_url'),
-  finish: varchar('finish', { length: 255 }),
-  careInstructions: text('care_instructions'),
-  whatsIncluded: jsonb('whats_included').$type<string[]>().default([]),
-  dimensions: jsonb('dimensions').default({}),
+// --- MATERIAL LIBRARY ---
+export const materialLibrary = pgTable(
+  'material_library',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 255 }).notNull().unique(), // e.g., "Oak", "Travertine"
+    baseType: varchar('base_type', { length: 100 }).notNull(), // e.g., "Wood", "Stone", "Metal"
+    description: text('description'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    nameIdx: uniqueIndex('material_name_idx').on(table.name),
+    baseTypeIdx: index('material_base_type_idx').on(table.baseType),
+  })
+);
 
-  // --- IMAGES & MEDIA ---
-  thumbnailImage: text('thumbnail_image'),
-  images: jsonb('images').$type<string[]>().default([]), // ✅ Direct image array fallback
+// --- FINISH LIBRARY ---
+export const finishLibrary = pgTable(
+  'finish_library',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 255 }).notNull().unique(), // e.g., "Smoked Oak", "Brushed Brass"
+    baseType: varchar('base_type', { length: 100 }), // e.g., "Wood Finish", "Metal Finish"
+    swatchImage: text('swatch_image'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    nameIdx: uniqueIndex('finish_name_idx').on(table.name),
+  })
+);
 
-  // --- RATINGS & REVIEW METRICS ---
-  rating: numeric('rating', { precision: 3, scale: 2 }).default('5.00'), // ✅ Aggregate rating
-  ratingCount: integer('rating_count').default(0),                        // ✅ Total review count
+// --- FABRIC LIBRARY ---
+export const fabricLibrary = pgTable(
+  'fabric_library',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 255 }).notNull(), // e.g., "Bouclé Ivory"
+    code: varchar('code', { length: 100 }).unique(),
+    composition: varchar('composition', { length: 255 }), // e.g., "100% Linen"
+    martindaleRating: integer('martindale_rating'),
+    fireRating: varchar('fire_rating', { length: 100 }),
+    indoorOutdoor: boolean('indoor_outdoor').default(false),
+    swatchImage: text('swatch_image'),
+    priceTier: integer('price_tier').default(1),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    codeIdx: uniqueIndex('fabric_code_idx').on(table.code),
+  })
+);
 
-  googleSyncStatus: googleSyncStatusEnum('google_sync_status').default('draft'),
-  googleSyncError: text('google_sync_error'),
-  
-  seoTitle: varchar('seo_title', { length: 255 }),
-  seoDescription: text('seo_description'),
-  featured: boolean('featured').default(false),
-  status: varchar('status', { length: 50 }).default('draft'),
-  
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-})
+// --- ATTRIBUTE TEMPLATES ---
+export const attributeTemplates = pgTable(
+  'attribute_templates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 255 }).notNull().unique(), // e.g., "SOFA_TEMPLATE"
+    schemaDefinition: jsonb('schema_definition').notNull(), // Defines field layout, measurements, library restrictions
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    nameIdx: uniqueIndex('template_name_idx').on(table.name),
+  })
+);
 
+// --- DEPARTMENTS ---
+export const departments = pgTable(
+  'departments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 255 }).notNull().unique(), // e.g., "01. FURNITURE"
+    slug: varchar('slug', { length: 255 }).notNull().unique(),
+    order: integer('order').default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    slugIdx: uniqueIndex('department_slug_idx').on(table.slug),
+  })
+);
+
+// --- CATEGORIES ---
+export const categories = pgTable(
+  'categories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    departmentId: uuid('department_id')
+      .notNull()
+      .references(() => departments.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 255 }).notNull(), // e.g., "Living Room"
+    slug: varchar('slug', { length: 255 }).notNull().unique(),
+    order: integer('order').default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    departmentIdx: index('category_department_idx').on(table.departmentId),
+    slugIdx: uniqueIndex('category_slug_idx').on(table.slug),
+  })
+);
+
+// --- SUBCATEGORIES ---
+export const subCategories = pgTable(
+  'sub_categories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'cascade' }),
+    templateId: uuid('template_id')
+      .notNull()
+      .references(() => attributeTemplates.id),
+    name: varchar('name', { length: 255 }).notNull(), // e.g., "Sofas"
+    slug: varchar('slug', { length: 255 }).notNull().unique(),
+    googleProductCategoryId: varchar('google_product_category_id', { length: 255 }), // e.g., "6385"
+    order: integer('order').default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    categoryIdx: index('sub_category_category_idx').on(table.categoryId),
+    templateIdx: index('sub_category_template_idx').on(table.templateId),
+    slugIdx: uniqueIndex('sub_category_slug_idx').on(table.slug),
+  })
+);
+
+// --- PRODUCTS TABLE (REFACTORED) ---
+export const products = pgTable(
+  'products',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 255 }).notNull().unique(),
+    sku: varchar('sku', { length: 100 }).notNull().unique(),
+    mpn: varchar('mpn', { length: 100 }),
+    gtin: varchar('gtin', { length: 100 }),
+    brand: varchar('brand', { length: 100 }).default('The Revamp UG'),
+
+    // Modern Relational Taxonomy & Operations
+    subCategoryId: uuid('sub_category_id').references(() => subCategories.id),
+    productType: productTypeEnum('product_type').default('standard'),
+
+    price: numeric('price', { precision: 12, scale: 2 }).notNull(),
+    originalPrice: numeric('original_price', { precision: 12, scale: 2 }),
+    currency: varchar('currency', { length: 10 }).default('UGX'),
+
+    condition: productConditionEnum('condition').default('new'),
+    availability: productAvailabilityEnum('availability').default('in_stock'),
+    inStock: boolean('in_stock').default(true),
+    quantity: integer('quantity').default(0),
+    leadTime: varchar('lead_time', { length: 100 }),
+
+    description: text('description'),
+    longDescription: text('long_description'),
+    editorialHighlight: text('editorial_highlight'),
+
+    // All dynamic metadata (dimensions, libraries selected, care instructions, etc.) dictated by attribute template
+    attributes: jsonb('attributes').default({}),
+
+    // Media
+    thumbnailImage: text('thumbnail_image'),
+    images: jsonb('images').$type<string[]>().default([]),
+
+    // Ratings & Reviews
+    rating: numeric('rating', { precision: 3, scale: 2 }).default('5.00'),
+    ratingCount: integer('rating_count').default(0),
+
+    // Google Sync
+    googleSyncStatus: googleSyncStatusEnum('google_sync_status').default('draft'),
+    googleSyncError: text('google_sync_error'),
+
+    seoTitle: varchar('seo_title', { length: 255 }),
+    seoDescription: text('seo_description'),
+    featured: boolean('featured').default(false),
+    status: varchar('status', { length: 50 }).default('draft'),
+
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+  (table) => ({
+    subCategoryIdx: index('product_sub_category_idx').on(table.subCategoryId),
+    skuIdx: uniqueIndex('product_sku_idx').on(table.sku),
+    slugIdx: uniqueIndex('product_slug_idx').on(table.slug),
+    statusIdx: index('product_status_idx').on(table.status),
+    googleSyncIdx: index('product_google_sync_idx').on(table.googleSyncStatus),
+  })
+);
 
 // --- PRODUCT IMAGES TABLE ---
-export const productImages = pgTable('product_images', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
-  colorId: uuid('color_id'),
-  url: text('url').notNull(),
-  isPrimary: boolean('is_primary').default(false),
-  displayOrder: integer('display_order').default(0),
-  createdAt: timestamp('created_at').defaultNow(),
-})
+export const productImages = pgTable(
+  'product_images',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    colorId: uuid('color_id'),
+    url: text('url').notNull(),
+    isPrimary: boolean('is_primary').default(false),
+    displayOrder: integer('display_order').default(0),
+    altText: text('alt_text'),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => ({
+    productIdx: index('product_images_product_idx').on(table.productId),
+    colorIdx: index('product_images_color_idx').on(table.colorId),
+  })
+);
 
 // --- PRODUCT VARIANTS TABLE ---
-export const productVariants = pgTable('product_variants', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  productId: uuid('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
-  type: varchar('type', { length: 50 }).notNull(), // 'COLOR' or 'FABRIC'
-  label: varchar('label', { length: 100 }).notNull(),
-  value: varchar('value', { length: 100 }), // Hex value or code
-  priceDelta: numeric('price_delta', { precision: 12, scale: 2 }).default('0'),
-  imageUrl: text('image_url'),
-  createdAt: timestamp('created_at').defaultNow(),
-})
+export const productVariants = pgTable(
+  'product_variants',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    type: varchar('type', { length: 50 }).notNull(), // 'COLOR' or 'FABRIC'
+    label: varchar('label', { length: 100 }).notNull(),
+    value: varchar('value', { length: 100 }), // Hex value or code
+    priceDelta: numeric('price_delta', { precision: 12, scale: 2 }).default('0'),
+    sku: varchar('sku', { length: 100 }),
+    quantity: integer('quantity').default(0),
+    gtin: varchar('gtin', { length: 100 }),
+    imageUrl: text('image_url'),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => ({
+    productIdx: index('product_variant_product_idx').on(table.productId),
+    typeIdx: index('product_variant_type_idx').on(table.type),
+    skuIdx: index('product_variant_sku_idx').on(table.sku),
+  })
+);
 
 // --- PRODUCT REVIEWS TABLE ---
 export const productReviews = pgTable(
@@ -217,7 +384,7 @@ export const productReviews = pgTable(
     productIdIdx: index('product_reviews_product_idx').on(table.productId),
     ratingIdx: index('product_reviews_rating_idx').on(table.rating),
   })
-)
+);
 
 // --- PROJECTS TABLE ---
 export const projects = pgTable(
@@ -637,10 +804,42 @@ export const usersRelations = relations(users, ({ many }) => ({
   cart: many(carts),
 }));
 
-export const productsRelations = relations(products, ({ many }) => ({
+export const departmentsRelations = relations(departments, ({ many }) => ({
+  categories: many(categories),
+}));
+
+export const categoriesRelations = relations(categories, ({ one, many }) => ({
+  department: one(departments, {
+    fields: [categories.departmentId],
+    references: [departments.id],
+  }),
+  subCategories: many(subCategories),
+}));
+
+export const subCategoriesRelations = relations(subCategories, ({ one, many }) => ({
+  category: one(categories, {
+    fields: [subCategories.categoryId],
+    references: [categories.id],
+  }),
+  template: one(attributeTemplates, {
+    fields: [subCategories.templateId],
+    references: [attributeTemplates.id],
+  }),
+  products: many(products),
+}));
+
+export const attributeTemplatesRelations = relations(attributeTemplates, ({ many }) => ({
+  subCategories: many(subCategories),
+}));
+
+export const productsRelations = relations(products, ({ one, many }) => ({
+  subCategory: one(subCategories, {
+    fields: [products.subCategoryId],
+    references: [subCategories.id],
+  }),
   productVariants: many(productVariants),
   productImages: many(productImages),
-  productReviews: many(productReviews), // ✅ Properly tied to productReviews
+  productReviews: many(productReviews),
 }));
 
 export const productImagesRelations = relations(productImages, ({ one }) => ({
@@ -692,7 +891,3 @@ export const serviceRequestsRelations = relations(serviceRequests, ({ one }) => 
     references: [services.id],
   }),
 }));
-
-
-
-

@@ -179,7 +179,11 @@ export default async function ProductPage({
     productVariants: safeVariants,
     colors: safeColors,
     fabrics: safeFabrics,
-    reviews: Array.isArray((product as any).reviews) ? (product as any).reviews : [],
+    reviews: Array.isArray((product as any).productReviews)
+    ? (product as any).productReviews
+    : Array.isArray((product as any).reviews)
+    ? (product as any).reviews
+    : [],
     tags: Array.isArray(product.tags) ? product.tags : [],
     relatedProducts: Array.isArray(product.relatedProducts) ? product.relatedProducts : [],
     options: Array.isArray((product as any).options) ? (product as any).options : [],

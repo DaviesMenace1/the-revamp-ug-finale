@@ -1,289 +1,491 @@
-'use client';
+'use client'
 
-import React, { createContext, useContext, useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { useAuth } from '@clerk/nextjs';
-import { Cart, CartItem, Product, Color, Variant, Accessory } from '@/lib/types';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import { useAuth } from '@clerk/nextjs'
+import type {
+  Accessory,
+  Cart,
+  CartContextType,
+  CartItem,
+  Color,
+  CustomDimensions,
+  Product,
+  Variant,
+} from '@/lib/types'
 
-interface CartContextType {
-  cart: Cart | null;
-  items: CartItem[];
-  customerName: string;
-  setCustomerName: (name: string) => void;
-  addToCart: (
-    product: Product,
-    quantity: number,
-    selectedColor?: Color,
-    selectedVariant?: Variant,
-    selectedAccessories?: Accessory[],
-    customDimensions?: { width?: number; height?: number; depth?: number }
-  ) => void;
-  removeFromCart: (productId: string) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
-  cartCount: number;
-  cartTotal: number;
-  subtotal: number;
-  isLoaded: boolean;
+export const CartContext = createContext<CartContextType | undefined>(undefined)
+
+const GUEST_CART_KEY = 'revamp-cart-guest'
+const LEGACY_CART_KEY = 'revamp-cart'
+const CUSTOMER_NAME_KEY = 'revamp-customer-name'
+
+function cleanNumber(value: unknown, fallback = 0) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : fallback
 }
 
-export const CartContext = createContext<CartContextType | undefined>(undefined);
+/**
+ * Creates a deterministic identity for a product configuration.
+ *
+ * Example:
+ *
+ * Sofa + Ivory + Boucle + 240x90x80
+ *
+ * is different from:
+ *
+ * Sofa + Charcoal + Linen + 240x90x80
+ */
+function createCartItemId(
+  productId: string,
+  options: {
+    colorId?: string
+    fabricId?: string
+    materialId?: string
+    variantId?: string
+    accessoryIds?: string[]
+    dimensions?: CustomDimensions
+  }
+) {
+  const normalized = {
+    productId,
+    colorId: options.colorId || null,
+    fabricId: options.fabricId || null,
+    materialId: options.materialId || null,
+    variantId: options.variantId || null,
+    accessoryIds: [...(options.accessoryIds || [])].sort(),
+    dimensions: options.dimensions || null,
+  }
 
-function ShareHydrator({
-  onRestore,
+  return `cart_${btoa(
+    encodeURIComponent(JSON.stringify(normalized))
+  )
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .slice(0, 100)}`
+}
+
+function getOptionPrice(option?: any) {
+  if (!option) return 0
+
+  return cleanNumber(
+    option.priceDelta ??
+      option.price ??
+      0
+  )
+}
+
+function getProductBasePrice(product: Product) {
+  return cleanNumber(
+    product.salePrice ??
+      product.price ??
+      0
+  )
+}
+
+function getUnitPrice(
+  product: Product,
+  selectedVariant?: Variant,
+  selectedFabric?: Variant,
+  selectedMaterial?: Variant,
+  selectedAccessories: Accessory[] = []
+) {
+  let price = getProductBasePrice(product)
+
+  if (selectedVariant) {
+    price += getOptionPrice(selectedVariant)
+  }
+
+  if (selectedFabric) {
+    price += getOptionPrice(selectedFabric)
+  }
+
+  if (selectedMaterial) {
+    price += getOptionPrice(selectedMaterial)
+  }
+
+  for (const accessory of selectedAccessories) {
+    price += getOptionPrice(accessory)
+  }
+
+  return price
+}
+
+function normalizeCartItem(item: any): CartItem | null {
+  if (!item?.productId || !item?.product) return null
+
+  const selectedAccessories = Array.isArray(item.selectedAccessories)
+    ? item.selectedAccessories
+    : []
+
+  const cartItemId =
+    item.cartItemId ||
+    createCartItemId(item.productId, {
+      colorId: item.selectedColor?.id,
+      fabricId: item.selectedFabric?.id,
+      materialId: item.selectedMaterial?.id,
+      variantId: item.selectedVariant?.id,
+      accessoryIds: selectedAccessories.map((a: any) => a?.id).filter(Boolean),
+      dimensions: item.customDimensions,
+    })
+
+  return {
+    ...item,
+    cartItemId,
+    quantity: Math.max(1, cleanNumber(item.quantity, 1)),
+    selectedAccessories,
+    unitPrice: cleanNumber(
+      item.unitPrice ??
+        item.calculatedUnitPrice ??
+        item.product?.salePrice ??
+        item.product?.price,
+      0
+    ),
+  }
+}
+
+function readLocalCart(key: string): CartItem[] {
+  try {
+    const raw = localStorage.getItem(key)
+
+    if (!raw) return []
+
+    const parsed = JSON.parse(raw)
+
+    if (!Array.isArray(parsed)) return []
+
+    return parsed
+      .map(normalizeCartItem)
+      .filter(Boolean) as CartItem[]
+  } catch {
+    return []
+  }
+}
+
+export function CartProvider({
+  children,
 }: {
-  onRestore: (items: CartItem[], name?: string) => void;
+  children: React.ReactNode
 }) {
-  const searchParams = useSearchParams();
+  const { userId, isLoaded: isAuthLoaded } = useAuth()
 
+  const [items, setItems] = useState<CartItem[]>([])
+  const [customerName, setCustomerName] = useState('')
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  const cartStorageKey = userId
+    ? `revamp-cart-${userId}`
+    : GUEST_CART_KEY
+
+  const nameStorageKey = userId
+    ? `revamp-name-${userId}`
+    : CUSTOMER_NAME_KEY
+
+  /**
+   * Load the local cart first.
+   * This prevents the cart from appearing empty while authentication loads.
+   */
   useEffect(() => {
-    const shareData = searchParams.get('c');
-    const nameParam = searchParams.get('name');
+    if (!isAuthLoaded) return
 
-    if (!shareData) return;
+    const localItems =
+      readLocalCart(cartStorageKey).length > 0
+        ? readLocalCart(cartStorageKey)
+        : readLocalCart(LEGACY_CART_KEY)
 
-    try {
-      const decodedJson = atob(decodeURIComponent(shareData));
-      const sharedItems = JSON.parse(decodedJson);
+    setItems(localItems)
 
-      if (Array.isArray(sharedItems) && sharedItems.length > 0) {
-        const restored: CartItem[] = sharedItems.map((s: any) => {
-          if (s.product) return s;
-          return {
-            productId: s.i,
-            quantity: s.q,
-            selectedColor: s.c ? { id: s.c, name: s.c } : undefined,
-            selectedVariant: s.v ? { id: s.v, name: s.v } : undefined,
-            selectedAccessories: Array.isArray(s.a)
-              ? s.a.map((acc: string) => ({ id: acc, name: acc }))
-              : [],
-            customDimensions: s.d,
-            product: s.p || {
-              id: s.i,
-              name: s.n || 'Product',
-              price: s.pr || 0,
-              currency: s.cur || '$',
-              images: s.img ? [s.img] : [],
-              slug: s.s || '',
-            },
-          };
-        });
+    const savedName =
+      localStorage.getItem(nameStorageKey) ||
+      localStorage.getItem(CUSTOMER_NAME_KEY)
 
-        onRestore(restored, nameParam || undefined);
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-    } catch (error) {
-      console.error('Failed to decode short cart link:', error);
+    if (savedName) {
+      setCustomerName(savedName)
     }
-  }, [searchParams, onRestore]);
 
-  return null;
-}
+    setIsLoaded(true)
+  }, [isAuthLoaded, cartStorageKey, nameStorageKey])
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
-  const { userId, isLoaded: isAuthLoaded } = useAuth();
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [customerName, setCustomerName] = useState<string>('');
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  const cartStorageKey = userId ? `revamp-cart-${userId}` : 'revamp-cart-guest';
-  const nameStorageKey = userId ? `revamp-name-${userId}` : 'revamp-customer-name';
-
-  // 1. Instant Local Read & Safe DB Sync
+  /**
+   * Persist cart locally and synchronize with the authenticated cart API.
+   */
   useEffect(() => {
-    if (!isAuthLoaded) return;
+    if (!isLoaded || !isAuthLoaded) return
 
-    // Immediately read local storage so the cart UI doesn't flash empty
-    let initialItems: CartItem[] = [];
-    const savedCart = localStorage.getItem(cartStorageKey) || localStorage.getItem('revamp-cart');
-    const savedName = localStorage.getItem(nameStorageKey) || localStorage.getItem('revamp-customer-name');
+    localStorage.setItem(
+      cartStorageKey,
+      JSON.stringify(items)
+    )
 
-    if (savedCart) {
-      try {
-        initialItems = JSON.parse(savedCart);
-      } catch (e) {
-        initialItems = [];
-      }
-    }
+    localStorage.setItem(
+      nameStorageKey,
+      customerName
+    )
 
-    setItems(initialItems);
-    if (savedName) setCustomerName(savedName);
-    setIsLoaded(true);
+    if (!userId) return
 
-    // If logged in, sync with API in the background without clearing current state
-    if (userId) {
-      async function syncWithDb() {
-        try {
-          const guestCart = localStorage.getItem('revamp-cart-guest') || localStorage.getItem('revamp-cart');
-          const guestItems: CartItem[] = guestCart ? JSON.parse(guestCart) : [];
+    const timeout = window.setTimeout(() => {
+      fetch('/api/cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items,
+        }),
+      }).catch((error) => {
+        console.error(
+          'Failed to synchronize cart:',
+          error
+        )
+      })
+    }, 300)
 
-          const res = await fetch('/api/cart');
-          if (res.ok) {
-            const data = await res.json();
-            let serverItems: CartItem[] = data.items || [];
+    return () => window.clearTimeout(timeout)
+  }, [
+    items,
+    customerName,
+    isLoaded,
+    isAuthLoaded,
+    userId,
+    cartStorageKey,
+    nameStorageKey,
+  ])
 
-            if (guestItems.length > 0) {
-              const mergedMap = new Map<string, CartItem>();
-              serverItems.forEach((item) => mergedMap.set(item.productId, item));
-              guestItems.forEach((item) => {
-                if (mergedMap.has(item.productId)) {
-                  const existing = mergedMap.get(item.productId)!;
-                  mergedMap.set(item.productId, {
-                    ...existing,
-                    quantity: existing.quantity + item.quantity,
-                  });
-                } else {
-                  mergedMap.set(item.productId, item);
-                }
-              });
+  const addToCart = useCallback(
+    (
+      product: Product,
+      quantity: number,
+      selectedColor?: Color,
+      selectedVariant?: Variant,
+      selectedAccessories: Accessory[] = [],
+      customDimensions?: CustomDimensions,
+      selectedFabric?: Variant,
+      selectedMaterial?: Variant
+    ) => {
+      const safeQuantity = Math.max(
+        1,
+        Math.floor(cleanNumber(quantity, 1))
+      )
 
-              serverItems = Array.from(mergedMap.values());
-              localStorage.removeItem('revamp-cart-guest');
-              localStorage.removeItem('revamp-cart');
+      const unitPrice = getUnitPrice(
+        product,
+        selectedVariant,
+        selectedFabric,
+        selectedMaterial,
+        selectedAccessories
+      )
 
-              await fetch('/api/cart', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: serverItems }),
-              });
-            }
-
-            setItems(serverItems);
-          }
-        } catch (error) {
-          console.error('Failed to sync database cart:', error);
-        }
-      }
-
-      syncWithDb();
-    }
-  }, [userId, isAuthLoaded, cartStorageKey, nameStorageKey]);
-
-  // 2. Persist State Edits Safely
-  useEffect(() => {
-    if (!isLoaded || !isAuthLoaded) return;
-
-    localStorage.setItem(cartStorageKey, JSON.stringify(items));
-    localStorage.setItem(nameStorageKey, customerName);
-
-    if (userId) {
-      const syncTimeout = setTimeout(() => {
-        fetch('/api/cart', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items }),
-        }).catch((err) => console.error('Failed to sync cart updates:', err));
-      }, 300);
-
-      return () => clearTimeout(syncTimeout);
-    }
-  }, [items, customerName, isLoaded, isAuthLoaded, userId, cartStorageKey, nameStorageKey]);
-
-  // 3. Defensive Totals Calculation (Guards against NaN crashes)
-  const calculateTotals = (cartItems: CartItem[]) => {
-    const subtotal = cartItems.reduce((total, item) => {
-      if (!item?.product) return total;
-
-      const rawPrice = item.product.salePrice ?? item.product.price ?? 0;
-      const itemPrice = typeof rawPrice === 'string' ? parseFloat(rawPrice) : Number(rawPrice);
-
-      const safePrice = isNaN(itemPrice) ? 0 : itemPrice;
-      const safeQuantity = Number(item.quantity) || 1;
-
-      return total + safePrice * safeQuantity;
-    }, 0);
-
-    const tax = subtotal * 0.1;
-    const shipping = subtotal > 0 ? 150 : 0;
-    const total = subtotal + tax + shipping;
-
-    return { subtotal, tax, shipping, total };
-  };
-
-  const addToCart = (
-    product: Product,
-    quantity: number,
-    selectedColor?: Color,
-    selectedVariant?: Variant,
-    selectedAccessories?: Accessory[],
-    customDimensions?: { width?: number; height?: number; depth?: number }
-  ) => {
-    setItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.productId === product.id);
-      if (existingItem) {
-        return prevItems.map((item) =>
-          item.productId === product.id ? { ...item, quantity: item.quantity + quantity } : item
-        );
-      }
-      return [
-        ...prevItems,
+      const cartItemId = createCartItemId(
+        product.id,
         {
+          colorId: selectedColor?.id,
+          fabricId: selectedFabric?.id,
+          materialId: selectedMaterial?.id,
+          variantId: selectedVariant?.id,
+          accessoryIds: selectedAccessories
+            .map((a) => a.id)
+            .filter(Boolean),
+          dimensions: customDimensions,
+        }
+      )
+
+      const image =
+        selectedColor?.image ||
+        selectedVariant?.image ||
+        product.thumbnailImage ||
+        product.images?.[0]
+
+      setItems((previous) => {
+        const existingIndex = previous.findIndex(
+          (item) => item.cartItemId === cartItemId
+        )
+
+        if (existingIndex !== -1) {
+          return previous.map((item, index) =>
+            index === existingIndex
+              ? {
+                  ...item,
+                  quantity:
+                    item.quantity + safeQuantity,
+                }
+              : item
+          )
+        }
+
+        const item: CartItem = {
+          cartItemId,
           productId: product.id,
           product,
-          quantity,
+          quantity: safeQuantity,
+
           selectedColor,
+          selectedFabric,
+          selectedMaterial,
           selectedVariant,
-          selectedAccessories: selectedAccessories || [],
+          selectedAccessories,
+
           customDimensions,
-        },
-      ];
-    });
-  };
 
-  const removeFromCart = (productId: string) =>
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+          unitPrice,
+          image,
 
-  const updateQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) return removeFromCart(productId);
-    setItems((prev) =>
-      prev.map((i) => (i.productId === productId ? { ...i, quantity } : i))
-    );
-  };
+          selectedOptions: {
+            color: selectedColor?.label || selectedColor?.name,
+            fabric: selectedFabric?.label || selectedFabric?.name,
+            material:
+              selectedMaterial?.label ||
+              selectedMaterial?.name,
+            variant:
+              selectedVariant?.label ||
+              selectedVariant?.name,
+            accessories: selectedAccessories.map(
+              (accessory) =>
+                accessory.label ||
+                accessory.name
+            ),
+            dimensions: customDimensions,
+          },
+        }
 
-  const clearCart = () => setItems([]);
+        return [...previous, item]
+      })
+    },
+    []
+  )
 
-  const totals = calculateTotals(items);
+  const removeFromCart = useCallback(
+    (cartItemId: string) => {
+      setItems((previous) =>
+        previous.filter(
+          (item) => item.cartItemId !== cartItemId
+        )
+      )
+    },
+    []
+  )
+
+  const removeItem = removeFromCart
+
+  const updateQuantity = useCallback(
+    (cartItemId: string, quantity: number) => {
+      const safeQuantity = Math.floor(
+        cleanNumber(quantity, 0)
+      )
+
+      if (safeQuantity <= 0) {
+        removeFromCart(cartItemId)
+        return
+      }
+
+      setItems((previous) =>
+        previous.map((item) =>
+          item.cartItemId === cartItemId
+            ? {
+                ...item,
+                quantity: safeQuantity,
+              }
+            : item
+        )
+      )
+    },
+    [removeFromCart]
+  )
+
+  const clearCart = useCallback(() => {
+    setItems([])
+  }, [])
+
+  const totals = useMemo(() => {
+    const subtotal = items.reduce(
+      (sum, item) => {
+        const price = cleanNumber(
+          item.unitPrice ??
+            item.product?.salePrice ??
+            item.product?.price,
+          0
+        )
+
+        return sum + price * item.quantity
+      },
+      0
+    )
+
+    /*
+     * Keep these values configurable later.
+     * For now shipping remains zero because most
+     * Revamp products require a quote/delivery calculation.
+     */
+    const tax = 0
+    const shipping = 0
+    const total = subtotal + tax + shipping
+
+    return {
+      subtotal,
+      tax,
+      shipping,
+      total,
+    }
+  }, [items])
+
+  const cart: Cart = {
+    id: userId
+      ? `cart-${userId}`
+      : 'guest-cart',
+    userId: userId || 'guest',
+    items,
+    subtotal: totals.subtotal,
+    tax: totals.tax,
+    shipping: totals.shipping,
+    total: totals.total,
+    updatedAt: new Date(),
+  }
+
+  const cartCount = items.reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  )
 
   return (
     <CartContext.Provider
       value={{
-        cart: {
-          id: 'temp-cart',
-          userId: userId || 'guest',
-          items,
-          ...totals,
-          updatedAt: new Date(),
-        },
+        cart,
         items,
+
         customerName,
         setCustomerName,
+
         addToCart,
         removeFromCart,
-        removeItem: removeFromCart,
+        removeItem,
         updateQuantity,
         clearCart,
-        cartCount: items.reduce((count, item) => count + (Number(item.quantity) || 0), 0),
+
+        cartCount,
         cartTotal: totals.total,
         subtotal: totals.subtotal,
+
         isLoaded,
       }}
     >
-      <Suspense fallback={null}>
-        <ShareHydrator
-          onRestore={(restoredItems, name) => {
-            setItems(restoredItems);
-            if (name) setCustomerName(name);
-          }}
-        />
-      </Suspense>
       {children}
     </CartContext.Provider>
-  );
+  )
 }
 
 export function useCart() {
-  const context = useContext(CartContext);
-  if (!context) throw new Error('useCart must be used within CartProvider');
-  return context;
+  const context = useContext(CartContext)
+
+  if (!context) {
+    throw new Error(
+      'useCart must be used within CartProvider'
+    )
+  }
+
+  return context
 }

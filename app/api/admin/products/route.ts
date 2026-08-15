@@ -1,836 +1,363 @@
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { products } from "@/lib/db/schema"
+import { NextResponse } from "next/server"
+import { z } from "zod"
 import { eq } from "drizzle-orm"
+import {
+  db,
+  products,
+  subCategories,
+} from "@/lib/db"
 
-export const dynamic = "force-dynamic"
+const productSchema = z.object({
+  name: z.string().min(1),
+  slug: z.string().min(1),
+  sku: z.string().min(1),
 
-type ProductPayload = {
-  name: string
-  slug: string
-  sku: string
-  mpn?: string | null
-  gtin?: string | null
-  brand?: string | null
-  manufacturer?: string | null
-  countryOfOrigin?: string | null
+  mpn: z.string().optional().nullable(),
+  gtin: z.string().optional().nullable(),
+  brand: z.string().optional().nullable(),
+  manufacturer: z.string().optional().nullable(),
+  countryOfOrigin: z.string().optional().nullable(),
 
-  departmentId: string
-  categoryId: string
-  subCategoryId: string
+  departmentId: z.string().min(1),
+  categoryId: z.string().min(1),
+  subCategoryId: z.string().min(1),
 
-  productType?: string
-  description?: string
-  longDescription?: string
-  editorialHighlight?: string
+  productType: z.string().default("standard"),
 
-  price: number
-  originalPrice?: number | null
-  currency?: string
+  description: z.string().optional().nullable(),
+  longDescription: z.string().optional().nullable(),
+  editorialHighlight:
+    z.string().optional().nullable(),
 
-  condition?: string
-  availability?: string
-  inStock?: boolean
-  quantity?: number
-  leadTime?: string | null
+  price: z.number().nonnegative(),
+  originalPrice:
+    z.number().nonnegative().optional().nullable(),
+  currency: z.string().default("UGX"),
 
-  weight?: number | null
-  weightUnit?: string
+  condition: z.string().default("new"),
+  availability:
+    z.string().default("in_stock"),
 
-  googleProductCategoryId?: string | null
-  googleProductCategoryPath?: string | null
-  canonicalUrl?: string | null
+  quantity: z.number().int().nonnegative().default(0),
+  inStock: z.boolean().default(true),
 
-  seoTitle?: string | null
-  seoDescription?: string | null
+  leadTime: z.string().optional().nullable(),
 
-  featured?: boolean
-  isNewArrival?: boolean
-  isBestSeller?: boolean
-  isOnSale?: boolean
+  weight:
+    z.number().nonnegative().optional().nullable(),
+  weightUnit: z.string().default("kg"),
 
-  status?: "draft" | "ready_for_review" | "published" | "archived"
+  googleProductCategoryId:
+    z.string().optional().nullable(),
 
-  attributes?: Record<string, unknown>
-}
+  googleProductCategoryPath:
+    z.string().optional().nullable(),
 
-function cleanString(value: unknown) {
-  if (typeof value !== "string") return null
+  canonicalUrl:
+    z.string().optional().nullable(),
 
-  const trimmed = value.trim()
+  seoTitle:
+    z.string().optional().nullable(),
 
-  return trimmed.length ? trimmed : null
-}
+  seoDescription:
+    z.string().optional().nullable(),
 
-function cleanSlug(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-}
+  featured: z.boolean().default(false),
+  isNewArrival: z.boolean().default(false),
+  isBestSeller: z.boolean().default(false),
+  isOnSale: z.boolean().default(false),
 
-function isValidStatus(value: unknown) {
-  return (
-    value === "draft" ||
-    value === "ready_for_review" ||
-    value === "published" ||
-    value === "archived"
-  )
-}
+  status: z
+    .enum([
+      "draft",
+      "ready_for_review",
+      "published",
+      "archived",
+    ])
+    .default("draft"),
 
-function isValidAvailability(value: unknown) {
-  return (
-    value === "in_stock" ||
-    value === "made_to_order" ||
-    value === "pre_order" ||
-    value === "available_on_request" ||
-    value === "out_of_stock"
-  )
-}
+  attributes: z
+    .record(z.string(), z.unknown())
+    .default({}),
+})
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: Request,
+) {
   try {
-    const body = (await request.json()) as ProductPayload
+    const body = await request.json()
 
-    /*
-     * Basic validation.
-     *
-     * Do not rely only on the admin UI.
-     * The API must also protect the database from incomplete products.
-     */
-    if (!cleanString(body.name)) {
+    const parsed =
+      productSchema.safeParse(body)
+
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Product name is required." },
-        { status: 400 },
+        {
+          success: false,
+          error:
+            "Invalid product data.",
+          details:
+            parsed.error.flatten(),
+        },
+        {
+          status: 400,
+        },
       )
     }
 
-    if (!cleanString(body.sku)) {
+    const data = parsed.data
+
+    const existingSku =
+      await db.query.products.findFirst({
+        where: eq(
+          products.sku,
+          data.sku,
+        ),
+        columns: {
+          id: true,
+        },
+      })
+
+    if (existingSku) {
       return NextResponse.json(
-        { error: "SKU is required." },
-        { status: 400 },
+        {
+          success: false,
+          error:
+            "A product with this SKU already exists.",
+        },
+        {
+          status: 409,
+        },
       )
     }
 
-    if (!cleanString(body.departmentId)) {
+    const existingSlug =
+      await db.query.products.findFirst({
+        where: eq(
+          products.slug,
+          data.slug,
+        ),
+        columns: {
+          id: true,
+        },
+      })
+
+    if (existingSlug) {
       return NextResponse.json(
-        { error: "Department is required." },
-        { status: 400 },
+        {
+          success: false,
+          error:
+            "A product with this URL slug already exists.",
+        },
+        {
+          status: 409,
+        },
       )
     }
 
-    if (!cleanString(body.categoryId)) {
-      return NextResponse.json(
-        { error: "Category is required." },
-        { status: 400 },
-      )
-    }
+    const subCategory =
+      await db.query.subCategories.findFirst({
+        where: eq(
+          subCategories.id,
+          data.subCategoryId,
+        ),
+        columns: {
+          id: true,
+          categoryId: true,
+          templateId: true,
+          googleProductCategoryId:
+            true,
+          googleProductCategoryPath:
+            true,
+        },
+      })
 
-    if (!cleanString(body.subCategoryId)) {
+    if (!subCategory) {
       return NextResponse.json(
-        { error: "Subcategory is required." },
-        { status: 400 },
+        {
+          success: false,
+          error:
+            "Selected subcategory does not exist.",
+        },
+        {
+          status: 400,
+        },
       )
     }
 
     if (
-      typeof body.price !== "number" ||
-      Number.isNaN(body.price) ||
-      body.price < 0
+      subCategory.categoryId !==
+      data.categoryId
     ) {
       return NextResponse.json(
-        { error: "A valid product price is required." },
-        { status: 400 },
-      )
-    }
-
-    const slug = cleanSlug(
-      cleanString(body.slug) || cleanString(body.name) || "",
-    )
-
-    if (!slug) {
-      return NextResponse.json(
-        { error: "A valid product slug is required." },
-        { status: 400 },
-      )
-    }
-
-    const sku = body.sku.trim().toUpperCase()
-
-    /*
-     * Check duplicate SKU.
-     */
-    const existingSku = await db
-      .select({ id: products.id })
-      .from(products)
-      .where(eq(products.sku, sku))
-      .limit(1)
-
-    if (existingSku.length) {
-      return NextResponse.json(
         {
-          error: `SKU "${sku}" already exists.`,
+          success: false,
+          error:
+            "Selected category does not match the subcategory.",
         },
-        { status: 409 },
-      )
-    }
-
-    /*
-     * Check duplicate slug.
-     */
-    const existingSlug = await db
-      .select({ id: products.id })
-      .from(products)
-      .where(eq(products.slug, slug))
-      .limit(1)
-
-    if (existingSlug.length) {
-      return NextResponse.json(
         {
-          error: `The product slug "${slug}" already exists.`,
+          status: 400,
         },
-        { status: 409 },
       )
     }
 
-    const availability = isValidAvailability(body.availability)
-      ? body.availability
-      : "in_stock"
+    const googleCategoryId =
+      data.googleProductCategoryId ||
+      subCategory.googleProductCategoryId ||
+      null
 
-    const status = isValidStatus(body.status)
-      ? body.status
-      : "draft"
+    const googleCategoryPath =
+      data.googleProductCategoryPath ||
+      subCategory.googleProductCategoryPath ||
+      null
 
-    /*
-     * Never allow a product to accidentally become "published"
-     * without the admin explicitly choosing that state.
-     *
-     * The new-product UI currently sends draft or ready_for_review.
-     */
-    const safeStatus =
-      status === "published" ? "ready_for_review" : status
+    const [product] =
+      await db
+        .insert(products)
+        .values({
+          name: data.name,
+          slug: data.slug,
+          sku: data.sku,
 
-    const quantity =
-      typeof body.quantity === "number" &&
-      Number.isFinite(body.quantity) &&
-      body.quantity >= 0
-        ? Math.floor(body.quantity)
-        : 0
+          mpn: data.mpn || null,
+          gtin: data.gtin || null,
+          brand:
+            data.brand || null,
+          manufacturer:
+            data.manufacturer ||
+            null,
+          countryOfOrigin:
+            data.countryOfOrigin ||
+            null,
 
-    const inStock =
-      typeof body.inStock === "boolean"
-        ? body.inStock
-        : availability !== "out_of_stock"
+          departmentId:
+            data.departmentId,
+          categoryId:
+            data.categoryId,
+          subCategoryId:
+            data.subCategoryId,
 
-    /*
-     * Google sync starts as "not_synced".
-     *
-     * Creating the product in our database does NOT mean Google
-     * has received it yet. A separate sync process/API will handle
-     * Merchant Center later.
-     */
-    const [created] = await db
-      .insert(products)
-      .values({
-        name: body.name.trim(),
-        slug,
-        sku,
+          productType:
+            data.productType,
 
-        mpn: cleanString(body.mpn),
-        gtin: cleanString(body.gtin),
-        brand: cleanString(body.brand),
-        manufacturer: cleanString(body.manufacturer),
-        countryOfOrigin: cleanString(body.countryOfOrigin),
+          description:
+            data.description ||
+            null,
+          longDescription:
+            data.longDescription ||
+            null,
+          editorialHighlight:
+            data.editorialHighlight ||
+            null,
 
-        departmentId: body.departmentId,
-        categoryId: body.categoryId,
-        subCategoryId: body.subCategoryId,
+          price: String(
+            data.price,
+          ),
+          originalPrice:
+            data.originalPrice !==
+            null
+              ? String(
+                  data.originalPrice,
+                )
+              : null,
 
-        productType: cleanString(body.productType) ?? "standard",
+          currency:
+            data.currency,
 
-        description: cleanString(body.description),
-        longDescription: cleanString(body.longDescription),
-        editorialHighlight: cleanString(body.editorialHighlight),
+          condition:
+            data.condition,
 
-        price: body.price.toString(),
+          availability:
+            data.availability,
 
-        originalPrice:
-          typeof body.originalPrice === "number" &&
-          Number.isFinite(body.originalPrice)
-            ? body.originalPrice.toString()
-            : null,
+          quantity:
+            data.quantity,
 
-        currency: cleanString(body.currency) ?? "UGX",
+          inStock:
+            data.inStock,
 
-        condition: cleanString(body.condition) ?? "new",
-        availability,
-        inStock,
-        quantity,
+          leadTime:
+            data.leadTime ||
+            null,
 
-        leadTime: cleanString(body.leadTime),
+          weight:
+            data.weight !== null
+              ? String(
+                  data.weight,
+                )
+              : null,
 
-        weight:
-          typeof body.weight === "number" &&
-          Number.isFinite(body.weight)
-            ? body.weight.toString()
-            : null,
+          weightUnit:
+            data.weightUnit,
 
-        weightUnit: cleanString(body.weightUnit) ?? "kg",
+          googleProductCategoryId:
+            googleCategoryId,
 
-        googleProductCategoryId:
-          cleanString(body.googleProductCategoryId),
+          googleProductCategoryPath:
+            googleCategoryPath,
 
-        googleProductCategoryPath:
-          cleanString(body.googleProductCategoryPath),
+          canonicalUrl:
+            data.canonicalUrl ||
+            null,
 
-        canonicalUrl: cleanString(body.canonicalUrl),
+          seoTitle:
+            data.seoTitle ||
+            null,
 
-        seoTitle: cleanString(body.seoTitle),
-        seoDescription: cleanString(body.seoDescription),
+          seoDescription:
+            data.seoDescription ||
+            null,
 
-        featured: Boolean(body.featured),
-        isNewArrival: Boolean(body.isNewArrival),
-        isBestSeller: Boolean(body.isBestSeller),
-        isOnSale: Boolean(body.isOnSale),
+          featured:
+            data.featured,
 
-        status: safeStatus,
+          isNewArrival:
+            data.isNewArrival,
 
-        /*
-         * Category-specific specifications.
-         *
-         * Examples:
-         * Sofa -> dimensions, upholstery, fabric, filling, frame
-         * Table -> dimensions, material, finish, shape
-         * Door -> dimensions, material, finish, opening type
-         *
-         * These are controlled by the selected subcategory template.
-         */
-        attributes:
-          body.attributes &&
-          typeof body.attributes === "object"
-            ? body.attributes
-            : {},
-        
-        /*
-         * Google Merchant lifecycle.
-         */
-        googleSyncStatus: "not_synced",
-        googleSyncError: null,
-      })
-      .returning({
-        id: products.id,
-        name: products.name,
-        slug: products.slug,
-        sku: products.sku,
-        status: products.status,
-      })
+          isBestSeller:
+            data.isBestSeller,
+
+          isOnSale:
+            data.isOnSale,
+
+          status:
+            data.status,
+
+          attributes:
+            data.attributes,
+
+          createdAt:
+            new Date(),
+
+          updatedAt:
+            new Date(),
+        })
+        .returning()
 
     return NextResponse.json(
       {
         success: true,
-        product: created,
-        message: "Product created successfully.",
+        product,
       },
-      { status: 201 },
+      {
+        status: 201,
+      },
     )
   } catch (error) {
-    console.error("POST /api/admin/products:", error)
+    console.error(
+      "Product creation error:",
+      error,
+    )
 
-    /*
-     * Drizzle/Postgres constraint errors should not expose
-     * internal database details to the browser.
-     */
     return NextResponse.json(
       {
-        error: "Failed to create product.",
+        success: false,
+        error:
+          "Failed to create product.",
       },
-      { status: 500 },
+      {
+        status: 500,
+      },
     )
   }
 }
-
-// import { NextResponse } from 'next/server'
-// import { db } from '@/lib/db'
-// import { products, productImages, productVariants } from '@/lib/db/schema'
-// import { eq } from 'drizzle-orm'
-
-// export async function POST(req: Request) {
-//   try {
-//     const body = await req.json()
-
-//     const {
-//       id,
-//       thumbnailImage,
-//       gallery = [],
-//       colors = [],
-//       fabrics = [],
-//       whatsIncluded = [],
-//       ...productData
-//     } = body
-
-//     let productId = id
-
-//     // Normalize numerical and array types
-//     const cleanedProductData = {
-//       ...productData,
-//       price: String(productData.price || '0'),
-//       originalPrice: productData.originalPrice ? String(productData.originalPrice) : null,
-//       quantity: Number(productData.quantity || 0),
-//       whatsIncluded: Array.isArray(whatsIncluded) ? whatsIncluded : [],
-//       updatedAt: new Date(),
-//     }
-
-//     // 1. Create or Update Product
-//     if (productId) {
-//       await db.update(products).set(cleanedProductData).where(eq(products.id, productId))
-//     } else {
-//       const [newProduct] = await db.insert(products).values(cleanedProductData).returning()
-//       productId = newProduct.id
-//     }
-
-//     // 2. Synchronize Product Images
-//     if (productId) {
-//       // Clear current images for product
-//       await db.delete(productImages).where(eq(productImages.productId, productId))
-
-//       const imagesToInsert = []
-
-//       // Insert Primary Thumbnail
-//       if (thumbnailImage) {
-//         imagesToInsert.push({
-//           productId,
-//           url: thumbnailImage,
-//           isPrimary: true,
-//           displayOrder: 0,
-//         })
-//       }
-
-//       // Insert Gallery Images
-//       if (Array.isArray(gallery)) {
-//         gallery.forEach((url: string, index: number) => {
-//           if (url && url !== thumbnailImage) {
-//             imagesToInsert.push({
-//               productId,
-//               url,
-//               isPrimary: false,
-//               displayOrder: index + 1,
-//             })
-//           }
-//         })
-//       }
-
-//       if (imagesToInsert.length > 0) {
-//         await db.insert(productImages).values(imagesToInsert)
-//       }
-
-//       // 3. Synchronize Color & Fabric Variants
-//       await db.delete(productVariants).where(eq(productVariants.productId, productId))
-
-//       const variantsToInsert = []
-
-//       if (Array.isArray(colors)) {
-//         for (const col of colors) {
-//           if (col.label) {
-//             variantsToInsert.push({
-//               productId,
-//               type: 'COLOR',
-//               label: col.label,
-//               value: col.value || '#000000',
-//               imageUrl: col.imageUrl || null,
-//             })
-//           }
-//         }
-//       }
-
-//       if (Array.isArray(fabrics)) {
-//         for (const fab of fabrics) {
-//           if (fab.label) {
-//             variantsToInsert.push({
-//               productId,
-//               type: 'FABRIC',
-//               label: fab.label,
-//               priceDelta: String(fab.priceDelta || 0),
-//               imageUrl: fab.imageUrl || null,
-//             })
-//           }
-//         }
-//       }
-
-//       if (variantsToInsert.length > 0) {
-//         await db.insert(productVariants).values(variantsToInsert)
-//       }
-//     }
-
-//     return NextResponse.json({ success: true, id: productId })
-//   } catch (error: any) {
-//     console.error('API Product Save Error:', error)
-//     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
-//   }
-// }
-
-
-
-// // import { NextRequest, NextResponse } from 'next/server'
-// // import { db } from '@/lib/db/client'
-// // import { products, productVariants, productImages } from '@/lib/db/schema'
-// // import { eq, desc } from 'drizzle-orm'
-// // import { revalidatePath } from 'next/cache'
-
-// // export const dynamic = 'force-dynamic'
-
-// // export async function GET() {
-// //   try {
-// //     const data = await db.query.products.findMany({
-// //       orderBy: [desc(products.createdAt)],
-// //       with: {
-// //         variants: true,
-// //         productImages: true,
-// //       },
-// //     })
-// //     return NextResponse.json({ success: true, data })
-// //   } catch (error: any) {
-// //     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
-// //   }
-// // }
-
-// // export async function POST(req: NextRequest) {
-// //   try {
-// //     const body = await req.json()
-// //     const {
-// //       id, // If present, we are UPDATING an existing product
-// //       name,
-// //       slug,
-// //       description,
-// //       longDescription,
-// //       category,
-// //       subCategory,
-// //       price,
-// //       originalPrice,
-// //       sku,
-// //       quantity,
-// //       inStock,
-// //       featured,
-// //       status,
-// //       weight,
-// //       material,
-// //       rating,
-// //       ratingCount,
-// //       seoTitle,
-// //       seoDescription,
-// //       colors,
-// //       fabrics,
-// //     } = body
-
-// //     if (!name || !slug || !price || !category) {
-// //       return NextResponse.json(
-// //         { success: false, error: 'Name, slug, price, and category are required.' },
-// //         { status: 400 }
-// //       )
-// //     }
-
-// //     // 1. Collect Cloudinary images
-// //     const allCloudinaryImages: string[] = []
-// //     if (colors?.length) {
-// //       colors.forEach((c: any) => {
-// //         if (c.images?.length) {
-// //           allCloudinaryImages.push(...c.images)
-// //         }
-// //       })
-// //     }
-
-// //     // ==========================================
-// //     // BRANCH A: UPDATE EXISTING PRODUCT (if id exists)
-// //     // ==========================================
-// //     if (id) {
-// //       const updatedProduct = await db.transaction(async (tx) => {
-// //         // Update product record
-// //         const [product] = await tx
-// //           .update(products)
-// //           .set({
-// //             name: String(name).trim(),
-// //             slug: String(slug).trim(),
-// //             description: description ? String(description) : '',
-// //             longDescription: longDescription ? String(longDescription) : '',
-// //             category: String(category),
-// //             subCategory: subCategory ? String(subCategory) : null,
-// //             price: String(price),
-// //             originalPrice: originalPrice ? String(originalPrice) : null,
-// //             sku: sku ? String(sku) : null,
-// //             images: allCloudinaryImages,
-// //             gallery: allCloudinaryImages,
-// //             thumbnailImage: allCloudinaryImages[0] || null,
-// //             inStock: Boolean(inStock),
-// //             quantity: Number(quantity) || 0,
-// //             status: status || 'published',
-// //             featured: Boolean(featured),
-// //             weight: weight ? String(weight) : null,
-// //             material: material ? String(material) : null,
-// //             rating: String(rating || '0'),
-// //             ratingCount: Number(ratingCount) || 0,
-// //             seoTitle: seoTitle || String(name),
-// //             seoDescription: seoDescription || String(description || ''),
-// //             updatedAt: new Date(),
-// //           })
-// //           .where(eq(products.id, id))
-// //           .returning()
-
-// //         // Clear existing variants & images
-// //         await tx.delete(productImages).where(eq(productImages.productId, id))
-// //         await tx.delete(productVariants).where(eq(productVariants.productId, id))
-
-// //         // Re-insert Fabrics
-// //         if (fabrics?.length) {
-// //           await tx.insert(productVariants).values(
-// //             fabrics.map((f: any) => ({
-// //               productId: id,
-// //               type: 'FABRIC' as const,
-// //               label: String(f.label),
-// //               priceDelta: String(f.priceDelta || 0),
-// //             }))
-// //           )
-// //         }
-
-// //         // Re-insert Colors & Images
-// //         if (colors?.length) {
-// //           for (const c of colors) {
-// //             const [colorVariant] = await tx
-// //               .insert(productVariants)
-// //               .values({
-// //                 productId: id,
-// //                 type: 'COLOR' as const,
-// //                 label: String(c.label || 'Standard'),
-// //                 value: String(c.value || '#1C1C1C'),
-// //               })
-// //               .returning()
-
-// //             if (c.images?.length) {
-// //               await tx.insert(productImages).values(
-// //                 c.images.map((url: string, idx: number) => ({
-// //                   productId: id,
-// //                   colorId: colorVariant.id,
-// //                   url,
-// //                   isPrimary: idx === 0,
-// //                   order: idx,
-// //                 }))
-// //               )
-// //             }
-// //           }
-// //         }
-
-// //         return product
-// //       })
-
-// //       revalidatePath('/collections')
-// //       revalidatePath(`/collections/${slug}`)
-// //       revalidatePath('/admin/products')
-
-// //       return NextResponse.json({ success: true, data: updatedProduct })
-// //     }
-
-// //     // ==========================================
-// //     // BRANCH B: CREATE NEW PRODUCT (if no id)
-// //     // ==========================================
-// //     const newProductResult = await db.transaction(async (tx) => {
-// //       const [newProduct] = await tx
-// //         .insert(products)
-// //         .values({
-// //           name: String(name).trim(),
-// //           slug: String(slug).trim(),
-// //           description: description ? String(description) : '',
-// //           longDescription: longDescription ? String(longDescription) : '',
-// //           category: String(category),
-// //           subCategory: subCategory ? String(subCategory) : null,
-// //           price: String(price),
-// //           originalPrice: originalPrice ? String(originalPrice) : null,
-// //           sku: sku ? String(sku) : null,
-// //           images: allCloudinaryImages,
-// //           gallery: allCloudinaryImages,
-// //           thumbnailImage: allCloudinaryImages[0] || null,
-// //           inStock: Boolean(inStock),
-// //           quantity: Number(quantity) || 10,
-// //           status: status || 'published',
-// //           featured: Boolean(featured),
-// //           weight: weight ? String(weight) : null,
-// //           material: material ? String(material) : null,
-// //           rating: String(rating || '0'),
-// //           ratingCount: Number(ratingCount) || 0,
-// //           seoTitle: seoTitle || String(name),
-// //           seoDescription: seoDescription || String(description || ''),
-// //           tags: [],
-// //           relatedProducts: [],
-// //           publishedAt: new Date(),
-// //         })
-// //         .returning()
-
-// //       if (fabrics?.length) {
-// //         await tx.insert(productVariants).values(
-// //           fabrics.map((f: any) => ({
-// //             productId: newProduct.id,
-// //             type: 'FABRIC' as const,
-// //             label: String(f.label),
-// //             priceDelta: String(f.priceDelta || 0),
-// //           }))
-// //         )
-// //       }
-
-// //       if (colors?.length) {
-// //         for (const c of colors) {
-// //           const [colorVariant] = await tx
-// //             .insert(productVariants)
-// //             .values({
-// //               productId: newProduct.id,
-// //               type: 'COLOR' as const,
-// //               label: String(c.label || 'Standard'),
-// //               value: String(c.value || '#1C1C1C'),
-// //             })
-// //             .returning()
-
-// //           if (c.images?.length) {
-// //             await tx.insert(productImages).values(
-// //               c.images.map((url: string, idx: number) => ({
-// //                 productId: newProduct.id,
-// //                 colorId: colorVariant.id,
-// //                 url,
-// //                 isPrimary: idx === 0,
-// //                 order: idx,
-// //               }))
-// //             )
-// //           }
-// //         }
-// //       }
-
-// //       return newProduct
-// //     })
-
-// //     revalidatePath('/collections')
-// //     revalidatePath(`/collections/${slug}`)
-
-// //     return NextResponse.json({ success: true, data: newProductResult }, { status: 201 })
-// //   } catch (error: any) {
-// //     console.error('Error saving product:', error)
-// //     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
-// //   }
-// // }
-
-
-
-
-
-
-// // import { NextRequest, NextResponse } from 'next/server'
-// // import { db } from '@/lib/db/client'
-// // import { products, productVariants, productImages } from '@/lib/db/schema'
-// // import { eq, desc } from 'drizzle-orm'
-
-// // export async function GET() {
-// //   try {
-// //     const data = await db.query.products.findMany({
-// //       orderBy: [desc(products.createdAt)],
-// //       with: {
-// //         variants: true,
-// //         productImages: true,
-// //       },
-// //     })
-// //     return NextResponse.json({ success: true, data })
-// //   } catch (error: any) {
-// //     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
-// //   }
-// // }
-
-// // export async function POST(req: NextRequest) {
-// //   try {
-// //     const body = await req.json()
-// //     const { name, slug, description, category, price, colors, fabrics, quantity, status } = body
-
-// //     if (!name || !slug || !price) {
-// //       return NextResponse.json(
-// //         { success: false, error: 'Name, slug, and price are required.' },
-// //         { status: 400 }
-// //       )
-// //     }
-
-// //     const result = await db.transaction(async (tx) => {
-// //       // 1. Gather images across swatches
-// //       const allCloudinaryImages: string[] = []
-// //       if (colors?.length) {
-// //         colors.forEach((c: any) => {
-// //           if (c.images?.length) {
-// //             allCloudinaryImages.push(...c.images)
-// //           }
-// //         })
-// //       }
-
-// //       // 2. Insert Base Product
-// //       const [newProduct] = await tx
-// //         .insert(products)
-// //         .values({
-// //           name: String(name).trim(),
-// //           slug: String(slug).trim(),
-// //           description: description ? String(description) : '',
-// //           category: category || 'Furniture',
-// //           price: String(price),
-// //           images: allCloudinaryImages,
-// //           gallery: allCloudinaryImages,
-// //           thumbnailImage: allCloudinaryImages[0] || null,
-// //           inStock: true,
-// //           quantity: Number(quantity) || 10,
-// //           status: status || 'published',
-// //           rating: '0',
-// //           ratingCount: 0,
-// //           likes: 0,
-// //           views: 0,
-// //           tags: [],
-// //           relatedProducts: [],
-// //           featured: false,
-// //         })
-// //         .returning()
-
-// //       // 3. Insert Fabrics
-// //       if (fabrics?.length) {
-// //         await tx.insert(productVariants).values(
-// //           fabrics.map((f: any) => ({
-// //             productId: newProduct.id,
-// //             type: 'FABRIC' as const,
-// //             label: String(f.label),
-// //             priceDelta: String(f.priceDelta || 0),
-// //           }))
-// //         )
-// //       }
-
-// //       // 4. Insert Colors & Images
-// //       if (colors?.length) {
-// //         for (const c of colors) {
-// //           const [colorVariant] = await tx
-// //             .insert(productVariants)
-// //             .values({
-// //               productId: newProduct.id,
-// //               type: 'COLOR' as const,
-// //               label: String(c.label || 'Standard'),
-// //               value: String(c.value || '#1C1C1C'),
-// //             })
-// //             .returning()
-
-// //           if (c.images?.length) {
-// //             await tx.insert(productImages).values(
-// //               c.images.map((url: string, idx: number) => ({
-// //                 productId: newProduct.id,
-// //                 colorId: colorVariant.id,
-// //                 url,
-// //                 isPrimary: idx === 0,
-// //                 order: idx,
-// //               }))
-// //             )
-// //           }
-// //         }
-// //       }
-
-// //       return newProduct
-// //     })
-
-// //     return NextResponse.json({ success: true, data: result }, { status: 201 })
-// //   } catch (error: any) {
-// //     console.error('Error inserting product:', error)
-// //     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
-// //   }
-// // }

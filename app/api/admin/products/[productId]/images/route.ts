@@ -19,10 +19,10 @@ const updateSchema = z.object({
 
 export async function GET(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ productId: string }> },
 ) {
   try {
-    const { id } = await context.params
+    const { productId } = await context.params
 
     const images = await db
       .select()
@@ -42,14 +42,14 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ productId: string }> },
 ) {
   try {
     const { id } = await context.params
 
     const product = await db.query.products.findFirst({
-      where: eq(products.id, id),
-      columns: { id: true },
+      where: eq(products.productId, productId),
+      columns: { productId: true },
     })
 
     if (!product) {

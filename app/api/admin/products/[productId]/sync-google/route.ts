@@ -13,11 +13,11 @@ import { mapProductToMerchantResource } from "@/lib/google-merchant/map-product"
 export const dynamic = "force-dynamic"
 
 type RouteContext = {
-  params: Promise<{ id: string }>
+  params: Promise<{ productId: string }>
 }
 
 export async function POST(_req: NextRequest, { params }: RouteContext) {
-  const { id } = await params
+  const { productId } = await params
 
   if (!isGoogleMerchantConfigured()) {
     return NextResponse.json(
@@ -31,7 +31,7 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
   }
 
   const product = await db.query.products.findFirst({
-    where: eq(products.id, id),
+    where: eq(products.productId, productId),
     with: {
       productImages: true,
       subCategory: true,
@@ -53,12 +53,12 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
     await db
       .update(products)
       .set({
-        googleProductId: result.id ?? null,
+        googleProductId: result.productId ?? null,
         googleSyncStatus: "synced",
         googleSyncError: null,
         googleLastSyncedAt: new Date(),
       })
-      .where(eq(products.id, id))
+      .where(eq(products.productId, productId))
 
     return NextResponse.json({
       success: true,
@@ -78,7 +78,7 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
         googleSyncError: message,
         googleLastSyncedAt: new Date(),
       })
-      .where(eq(products.id, id))
+      .where(eq(products.productId, productId))
 
     return NextResponse.json(
       { success: false, error: message, warnings },

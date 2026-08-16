@@ -17,7 +17,7 @@ type RouteContext = {
 }
 
 export async function POST(_req: NextRequest, { params }: RouteContext) {
-  const { productId } = await params
+  const { productId: id } = await params
 
   if (!isGoogleMerchantConfigured()) {
     return NextResponse.json(
@@ -31,7 +31,7 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
   }
 
   const product = await db.query.products.findFirst({
-    where: eq(products.productId, productId),
+    where: eq(products.id, id),
     with: {
       productImages: true,
       subCategory: true,
@@ -53,12 +53,12 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
     await db
       .update(products)
       .set({
-        googleProductId: result.productId ?? null,
+        googleProductId: result.id ?? null,
         googleSyncStatus: "synced",
         googleSyncError: null,
         googleLastSyncedAt: new Date(),
       })
-      .where(eq(products.productId, productId))
+      .where(eq(products.id, id))
 
     return NextResponse.json({
       success: true,
@@ -78,7 +78,7 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
         googleSyncError: message,
         googleLastSyncedAt: new Date(),
       })
-      .where(eq(products.productId, productId))
+      .where(eq(products.id, id))
 
     return NextResponse.json(
       { success: false, error: message, warnings },

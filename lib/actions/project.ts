@@ -1,28 +1,33 @@
 'use server'
 
-import { db } from '@/lib/db'
+import { db } from '@/lib/db/client'
 import { projects } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-// this will help guide the uploads and up dates
+
 export async function createProject(data: {
+  title: string
   slug: string
-  name: string
-  client: string
-  description: string
-  shortDescription: string
-  location: string
-  status: 'draft' | 'in-progress' | 'completed' | 'on-hold'
-  progress: number
-  year: string
-  features: string[]
-  images: string[]
-  dueDate: string
+  description?: string
+  longDescription?: string
+  shortDescription?: string
+  category?: string
+  clientName?: string
+  client?: string
+  location?: string
+  images?: string[]
+  gallery?: string[]
+  thumbnailImage?: string
+  featured?: boolean
+  year?: string
+  progress?: number
+  dueDate?: Date | null
 }) {
   try {
     await db.insert(projects).values({
       ...data,
       createdAt: new Date(),
+      updatedAt: new Date(),
     })
     revalidatePath('/admin/projects')
     revalidatePath('/portfolio')
@@ -35,17 +40,15 @@ export async function createProject(data: {
 
 export async function updateProject(id: string, data: Partial<typeof projects.$inferSelect>) {
   try {
-    await db.update(projects).set(data).where(eq(projects.id, id))
+    await db.update(projects).set({ ...data, updatedAt: new Date() }).where(eq(projects.id, id))
     revalidatePath('/admin/projects')
     revalidatePath('/portfolio')
-    revalidatePath(`/portfolio/${data.slug}`)
     return { success: true }
   } catch (error) {
     console.error('Failed to update project:', error)
     return { success: false, error: 'Failed to update project' }
   }
 }
-
 
 export async function deleteProject(id: string) {
   try {
@@ -56,18 +59,5 @@ export async function deleteProject(id: string) {
   } catch (error) {
     console.error('Failed to delete project:', error)
     return { success: false, error: 'Failed to delete project' }
-  }
-}
-
-export async function incrementProjectLikes(id: string) {
-  try {
-    // Assuming you have a likes field or table in your schema
-    // If using a column on projects table:
-    // await db.update(projects).set({ likes: sql`likes + 1` }).where(eq(projects.id, id))
-    revalidatePath('/portfolio')
-    return { success: true }
-  } catch (error) {
-    console.error('Failed to like project:', error)
-    return { success: false }
   }
 }

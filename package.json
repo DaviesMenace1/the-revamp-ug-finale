@@ -1,10 +1,6 @@
 {
   "name": "my-project",
   "version": "0.1.0",
-  "packageManager": "pnpm@9.15.0",
-  "engines": {
-    "node": "24.x"
-  },
   "private": true,
   "scripts": {
     "dev": "next dev",

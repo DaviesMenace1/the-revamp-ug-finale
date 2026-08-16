@@ -1,42 +1,51 @@
-'use client'
-
+import { db } from '@/lib/db/client'
+import { serviceCategories, services } from '@/lib/db/schema'
+import { asc, eq } from 'drizzle-orm'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import Link from 'next/link'
 import { ArrowRight, ArrowLeft } from 'lucide-react'
-import { SERVICES } from '@/lib/data/services'
 import { notFound } from 'next/navigation'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
-  params: {
-    category: string
-    service: string
-  }
+  params: Promise<{ category: string; service: string }>
 }
 
-export default function ServiceDetailPage({ params }: PageProps) {
-  const category = SERVICES.find((c) => c.slug === params.category)
+export default async function ServiceDetailPage({ params }: PageProps) {
+  const { category: categorySlug, service: serviceSlug } = await params
+
+  const category = await db.query.serviceCategories.findFirst({
+    where: eq(serviceCategories.slug, categorySlug),
+  })
 
   if (!category) {
     notFound()
   }
 
-  const service = category.services.find((s) => s.slug === params.service)
+  const categoryServices = await db
+    .select()
+    .from(services)
+    .where(eq(services.categoryId, category.id))
+    .orderBy(asc(services.order))
+
+  const publishedServices = categoryServices.filter((s) => s.status === 'published')
+
+  const serviceIndex = publishedServices.findIndex((s) => s.slug === serviceSlug)
+  const service = publishedServices[serviceIndex]
 
   if (!service) {
     notFound()
   }
 
-  // Find previous and next services
-  const serviceIndex = category.services.findIndex((s) => s.slug === params.service)
-  const prevService = serviceIndex > 0 ? category.services[serviceIndex - 1] : null
-  const nextService = serviceIndex < category.services.length - 1 ? category.services[serviceIndex + 1] : null
+  const prevService = serviceIndex > 0 ? publishedServices[serviceIndex - 1] : null
+  const nextService = serviceIndex < publishedServices.length - 1 ? publishedServices[serviceIndex + 1] : null
 
   return (
     <>
       <SiteHeader />
       <main className="min-h-screen bg-background">
-        {/* Breadcrumb */}
         <section className="border-b border-border/20 py-6">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -44,7 +53,7 @@ export default function ServiceDetailPage({ params }: PageProps) {
                 Services
               </Link>
               <span>/</span>
-              <Link 
+              <Link
                 href={`/services/${category.slug}`}
                 className="hover:text-foreground transition-colors"
               >
@@ -56,7 +65,6 @@ export default function ServiceDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* Hero */}
         <section className="border-b border-border/20 py-20 md:py-28">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
             <div className="space-y-6">
@@ -79,11 +87,9 @@ export default function ServiceDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* Content */}
         <section className="py-20 md:py-28">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-              {/* Main Content */}
               <div className="md:col-span-2 space-y-8">
                 <div>
                   <h2 className="font-serif text-3xl font-light text-foreground mb-4">
@@ -93,6 +99,24 @@ export default function ServiceDetailPage({ params }: PageProps) {
                     {service.longDescription || service.description}
                   </p>
                 </div>
+
+                {Array.isArray(service.gallery) && service.gallery.length > 0 && (
+                  <div>
+                    <h2 className="font-serif text-3xl font-light text-foreground mb-4">
+                      Gallery
+                    </h2>
+                    <div className="grid grid-cols-2 gap-4">
+                      {(service.gallery as string[]).map((url, idx) => (
+                        <img
+                          key={idx}
+                          src={url}
+                          alt={`${service.name} ${idx + 1}`}
+                          className="aspect-[4/3] w-full rounded-lg object-cover"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <h2 className="font-serif text-3xl font-light text-foreground mb-4">
@@ -136,10 +160,8 @@ export default function ServiceDetailPage({ params }: PageProps) {
                 </div>
               </div>
 
-              {/* Sidebar */}
               <div className="md:col-span-1">
                 <div className="sticky top-24 space-y-6">
-                  {/* Service Card */}
                   <div className="p-6 bg-gold/5 border border-gold/20 rounded-lg">
                     <h3 className="font-serif text-xl font-light text-foreground mb-2">
                       {service.name}
@@ -149,7 +171,6 @@ export default function ServiceDetailPage({ params }: PageProps) {
                     </p>
                   </div>
 
-                  {/* CTA */}
                   <Link
                     href="/book-consultation"
                     className="block w-full text-center px-6 py-3 bg-gold text-foreground rounded font-medium hover:bg-gold/90 transition-colors"
@@ -157,7 +178,6 @@ export default function ServiceDetailPage({ params }: PageProps) {
                     Request Service
                   </Link>
 
-                  {/* More Info */}
                   <div className="p-6 border border-border/30 rounded-lg space-y-3">
                     <p className="text-sm font-medium text-foreground">Have questions?</p>
                     <p className="text-sm text-foreground/70">
@@ -177,7 +197,6 @@ export default function ServiceDetailPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* Related Services Navigation */}
         {(prevService || nextService) && (
           <section className="border-t border-border/20 py-16">
             <div className="mx-auto max-w-7xl px-6 md:px-8">
@@ -223,7 +242,6 @@ export default function ServiceDetailPage({ params }: PageProps) {
           </section>
         )}
 
-        {/* CTA */}
         <section className="border-t border-border/20 bg-foreground text-background py-16">
           <div className="mx-auto max-w-3xl px-6 md:px-8 text-center space-y-6">
             <h2 className="font-serif text-3xl md:text-4xl font-light">
@@ -245,4 +263,4 @@ export default function ServiceDetailPage({ params }: PageProps) {
       <SiteFooter />
     </>
   )
-}
+                       }

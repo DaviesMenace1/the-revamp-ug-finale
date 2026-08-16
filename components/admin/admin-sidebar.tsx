@@ -11,6 +11,8 @@ import {
   Grid3x3,
   Briefcase,
   HelpCircle,
+  MessageSquare,
+  LifeBuoy,
 } from 'lucide-react'
 
 const sidebarItems = [
@@ -21,6 +23,8 @@ const sidebarItems = [
   { label: 'FAQs', href: '/admin/faqs', icon: HelpCircle },
   { label: 'Projects', href: '/admin/projects', icon: FolderOpen },
   { label: 'Orders', href: '/admin/orders', icon: ShoppingCart },
+  { label: 'Messages', href: '/admin/messages', icon: MessageSquare },
+  { label: 'Support Tickets', href: '/admin/tickets', icon: LifeBuoy },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Consultations', href: '/admin/consultations', icon: FileText },
   { label: 'Settings', href: '/admin/settings', icon: Settings },
@@ -64,3 +68,4 @@ export default function AdminSidebar() {
     </aside>
   )
 }
+

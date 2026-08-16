@@ -133,7 +133,8 @@ export const departments = pgTable(
     slug: varchar("slug", { length: 255 }).notNull(),
     description: text("description"),
     active: boolean("active").notNull().default(true),
-    order: integer("order").notNull().default(0),
+    order: integer("display_order").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -157,7 +158,8 @@ export const categories = pgTable(
     slug: varchar("slug", { length: 255 }).notNull(),
     description: text("description"),
     active: boolean("active").notNull().default(true),
-    order: integer("order").notNull().default(0),
+    order: integer("display_order").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -257,6 +259,14 @@ export const attributeTemplates = pgTable(
       }>()
       .notNull(),
     active: boolean("active").notNull().default(true),
+    code: text("code"),
+    templateType: text("template_type").default("product"),
+    googleProductType: text("google_product_type"),
+    googleCategoryId: text("google_category_id"),
+    measurementSystem: text("measurement_system").default("metric"),
+    notes: text("notes"),
+    metadata: jsonb("metadata").notNull().default({}),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -285,7 +295,8 @@ export const subCategories = pgTable(
     }),
     googleProductCategoryPath: text("google_product_category_path"),
     active: boolean("active").notNull().default(true),
-    order: integer("order").notNull().default(0),
+    order: integer("display_order").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -303,16 +314,18 @@ export const subCategories = pgTable(
 )
 
 export const colorLibrary = pgTable(
-  "color_library",
+  "colors",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     name: varchar("name", { length: 150 }).notNull(),
     slug: varchar("slug", { length: 180 }).notNull(),
     family: varchar("family", { length: 100 }),
-    hex: varchar("hex", { length: 20 }),
+    hex: varchar("hex_code", { length: 20 }),
     description: text("description"),
     swatchImage: text("swatch_image"),
     active: boolean("active").notNull().default(true),
+    isActive: boolean("is_active").notNull().default(true),
+    displayOrder: integer("display_order").notNull().default(0),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -333,6 +346,7 @@ export const materialLibrary = pgTable(
     description: text("description"),
     swatchImage: text("swatch_image"),
     active: boolean("active").notNull().default(true),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -350,12 +364,15 @@ export const finishLibrary = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     slug: varchar("slug", { length: 280 }).notNull(),
     baseType: varchar("base_type", { length: 100 }),
-    colorId: uuid("color_id").references(() => colorLibrary.id, {
+    colorId: uuid("colour_id").references(() => colorLibrary.id, {
       onDelete: "set null",
     }),
+    /** legacy free-text colour label, superseded by colorId but still present in the DB */
+    colourLabel: text("colour"),
     description: text("description"),
     swatchImage: text("swatch_image"),
     active: boolean("active").notNull().default(true),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -378,15 +395,15 @@ export const fabricLibrary = pgTable(
     fireRating: varchar("fire_rating", { length: 100 }),
     indoorOutdoor: boolean("indoor_outdoor").default(false),
     pattern: varchar("pattern", { length: 100 }),
-    colorId: uuid("color_id").references(() => colorLibrary.id, {
+    colorId: uuid("colour_id").references(() => colorLibrary.id, {
       onDelete: "set null",
     }),
     supplier: varchar("supplier", { length: 255 }),
     careInstructions: text("care_instructions"),
-    width: numeric("width", { precision: 10, scale: 2 }),
     priceTier: integer("price_tier").default(1),
     swatchImage: text("swatch_image"),
     active: boolean("active").notNull().default(true),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -444,7 +461,6 @@ export const products = pgTable(
       .notNull()
       .default("in_stock"),
 
-    inStock: boolean("in_stock").notNull().default(true),
     quantity: integer("quantity").notNull().default(0),
 
     leadTime: varchar("lead_time", { length: 150 }),
@@ -467,7 +483,10 @@ export const products = pgTable(
       .notNull()
       .default({}),
 
-    thumbnailImage: text("thumbnail_image"),
+    tags: jsonb("tags").notNull().default([]),
+    careInstructions: text("care_instructions"),
+    whatsIncluded: jsonb("whats_included").notNull().default([]),
+    ogImage: text("og_image"),
 
     rating: numeric("rating", {
       precision: 3,
@@ -500,9 +519,11 @@ export const products = pgTable(
 
     googleSyncError: text("google_sync_error"),
 
-    googleLastSyncedAt: timestamp(
-      "google_last_synced_at",
-    ),
+    googleLastSyncedAt: timestamp("google_last_synced_at", {
+      withTimezone: true,
+    }),
+
+    googleCategoryOverride: text("google_category_override"),
 
     googleApprovedAt: timestamp(
       "google_approved_at",
@@ -597,10 +618,6 @@ export const productVariants = pgTable(
       },
     ),
 
-    finishId: uuid("finish_id").references(() => finishLibrary.id, {
-      onDelete: "set null",
-    }),
-
     sku: varchar("sku", { length: 100 }),
     mpn: varchar("mpn", { length: 100 }),
     gtin: varchar("gtin", { length: 100 }),
@@ -623,12 +640,6 @@ export const productVariants = pgTable(
       .notNull()
       .default({}),
 
-    imageUrl: text("image_url"),
-
-    active: boolean("active").notNull().default(true),
-
-    order: integer("order").notNull().default(0),
-
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -642,7 +653,6 @@ export const productVariants = pgTable(
     materialIdx: index("product_variants_material_idx").on(
       table.materialId,
     ),
-    finishIdx: index("product_variants_finish_idx").on(table.finishId),
     skuIdx: uniqueIndex("product_variants_sku_idx").on(table.sku),
   }),
 )
@@ -668,9 +678,6 @@ export const productImages = pgTable(
     url: text("url").notNull(),
 
     altText: text("alt_text"),
-
-    width: integer("width"),
-    height: integer("height"),
 
     isPrimary: boolean("is_primary").notNull().default(false),
 
@@ -729,7 +736,7 @@ export const productReviews = pgTable(
 
     approved: boolean("approved")
       .notNull()
-      .default(true),
+      .default(false),
 
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -747,6 +754,100 @@ export const productReviews = pgTable(
   }),
 )
 
+export const productRelations = pgTable(
+  "product_relations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    relatedProductId: uuid("related_product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    relationType: varchar("relation_type", { length: 50 })
+      .notNull()
+      .default("related"),
+    displayOrder: integer("display_order").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    productIdx: index("product_relations_product_idx").on(table.productId),
+    relatedIdx: index("product_relations_related_idx").on(
+      table.relatedProductId,
+    ),
+  }),
+)
+
+export const productTaxonomyRules = pgTable(
+  "product_taxonomy_rules",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    departmentId: uuid("department_id").references(() => departments.id),
+    categoryId: uuid("category_id").references(() => categories.id),
+    subCategoryId: uuid("sub_category_id").references(
+      () => subCategories.id,
+    ),
+    templateId: uuid("template_id").references(() => attributeTemplates.id),
+    ruleType: text("rule_type").notNull().default("form"),
+    priority: integer("priority").notNull().default(100),
+    googleProductType: text("google_product_type"),
+    metadata: jsonb("metadata").notNull().default({}),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    departmentIdx: index("taxonomy_rules_department_idx").on(
+      table.departmentId,
+    ),
+    categoryIdx: index("taxonomy_rules_category_idx").on(table.categoryId),
+    subCategoryIdx: index("taxonomy_rules_sub_category_idx").on(
+      table.subCategoryId,
+    ),
+    templateIdx: index("taxonomy_rules_template_idx").on(table.templateId),
+  }),
+)
+
+export const productAttributeDefinitions = pgTable(
+  "product_attribute_definitions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    templateId: uuid("template_id")
+      .notNull()
+      .references(() => attributeTemplates.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    label: text("label").notNull(),
+    description: text("description"),
+    fieldType: text("field_type").notNull().default("text"),
+    unit: text("unit"),
+    required: boolean("required").notNull().default(false),
+    searchable: boolean("searchable").notNull().default(false),
+    filterable: boolean("filterable").notNull().default(false),
+    variantLevel: boolean("variant_level").notNull().default(false),
+    googleAttribute: text("google_attribute"),
+    validation: jsonb("validation").notNull().default({}),
+    options: jsonb("options").notNull().default([]),
+    displayOrder: integer("display_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    metadata: jsonb("metadata").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    templateIdx: index("attribute_definitions_template_idx").on(
+      table.templateId,
+    ),
+  }),
+)
+
 export const projects = pgTable(
   "projects",
   {
@@ -758,8 +859,13 @@ export const projects = pgTable(
     category: varchar("category", { length: 100 }),
     subCategory: varchar("sub_category", { length: 100 }),
     clientName: varchar("client_name", { length: 255 }),
+    client: text("client"),
+    shortDescription: text("short_description"),
     location: varchar("location", { length: 255 }),
     budget: decimal("budget", { precision: 12, scale: 2 }),
+    progress: integer("progress").default(0),
+    year: text("year"),
+    dueDate: timestamp("due_date"),
     images: jsonb("images").default([]),
     gallery: jsonb("gallery").default([]),
     thumbnailImage: text("thumbnail_image"),
@@ -807,10 +913,8 @@ export const articles = pgTable(
     excerpt: varchar("excerpt", { length: 500 }),
     author: varchar("author", { length: 255 }),
     category: varchar("category", { length: 100 }),
-    subCategory: varchar("sub_category", { length: 100 }),
     tags: jsonb("tags").default([]),
     featuredImage: text("featured_image"),
-    gallery: jsonb("gallery").default([]),
     rating: decimal("rating", {
       precision: 3,
       scale: 2,
@@ -822,8 +926,6 @@ export const articles = pgTable(
     seoDescription: varchar("seo_description", {
       length: 255,
     }),
-    ogImage: text("og_image"),
-    relatedArticles: jsonb("related_articles").default([]),
     featured: boolean("featured").default(false),
     status: varchar("status", { length: 50 }).default("published"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -1219,6 +1321,150 @@ export const subscribers = pgTable(
   }),
 )
 
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    subject: varchar("subject", { length: 255 }).default("General"),
+    status: varchar("status", { length: 50 }).notNull().default("open"),
+    lastMessageAt: timestamp("last_message_at").notNull().defaultNow(),
+    clientUnreadCount: integer("client_unread_count").notNull().default(0),
+    adminUnreadCount: integer("admin_unread_count").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("conversations_user_idx").on(table.userId),
+    lastMessageIdx: index("conversations_last_message_idx").on(
+      table.lastMessageAt,
+    ),
+  }),
+)
+
+export const conversationMessages = pgTable(
+  "conversation_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id, { onDelete: "cascade" }),
+    senderType: varchar("sender_type", { length: 20 }).notNull(),
+    senderUserId: uuid("sender_user_id").references(() => users.id),
+    senderName: varchar("sender_name", { length: 255 }),
+    body: text("body").notNull(),
+    attachments: jsonb("attachments").default([]),
+    readAt: timestamp("read_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    convIdx: index("conversation_messages_conv_idx").on(
+      table.conversationId,
+      table.createdAt,
+    ),
+  }),
+)
+
+export const supportTickets = pgTable(
+  "support_tickets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ticketNumber: varchar("ticket_number", { length: 50 }).notNull().unique(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    subject: varchar("subject", { length: 255 }).notNull(),
+    description: text("description"),
+    category: varchar("category", { length: 100 }),
+    priority: varchar("priority", { length: 20 }).notNull().default("normal"),
+    status: varchar("status", { length: 30 }).notNull().default("open"),
+    orderId: uuid("order_id").references(() => orders.id),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at"),
+  },
+  (table) => ({
+    userIdx: index("support_tickets_user_idx").on(table.userId),
+    statusIdx: index("support_tickets_status_idx").on(table.status),
+  }),
+)
+
+export const supportTicketMessages = pgTable(
+  "support_ticket_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ticketId: uuid("ticket_id")
+      .notNull()
+      .references(() => supportTickets.id, { onDelete: "cascade" }),
+    senderType: varchar("sender_type", { length: 20 }).notNull(),
+    senderUserId: uuid("sender_user_id").references(() => users.id),
+    senderName: varchar("sender_name", { length: 255 }),
+    body: text("body").notNull(),
+    attachments: jsonb("attachments").default([]),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    ticketIdx: index("support_ticket_messages_ticket_idx").on(
+      table.ticketId,
+      table.createdAt,
+    ),
+  }),
+)
+
+export const siteSettings = pgTable("site_settings", {
+  key: varchar("key", { length: 100 }).primaryKey(),
+  value: jsonb("value").notNull().default({}),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+export const conversationsRelations = relations(
+  conversations,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [conversations.userId],
+      references: [users.id],
+    }),
+    conversationMessages: many(conversationMessages),
+  }),
+)
+
+export const conversationMessagesRelations = relations(
+  conversationMessages,
+  ({ one }) => ({
+    conversation: one(conversations, {
+      fields: [conversationMessages.conversationId],
+      references: [conversations.id],
+    }),
+  }),
+)
+
+export const supportTicketsRelations = relations(
+  supportTickets,
+  ({ one, many }) => ({
+    user: one(users, {
+      fields: [supportTickets.userId],
+      references: [users.id],
+    }),
+    order: one(orders, {
+      fields: [supportTickets.orderId],
+      references: [orders.id],
+    }),
+    supportTicketMessages: many(supportTicketMessages),
+  }),
+)
+
+export const supportTicketMessagesRelations = relations(
+  supportTicketMessages,
+  ({ one }) => ({
+    ticket: one(supportTickets, {
+      fields: [supportTicketMessages.ticketId],
+      references: [supportTickets.id],
+    }),
+  }),
+)
+
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
   consultations: many(consultations),
@@ -1316,9 +1562,9 @@ export const productsRelations = relations(
       fields: [products.subCategoryId],
       references: [subCategories.id],
     }),
-    variants: many(productVariants),
-    images: many(productImages),
-    reviews: many(productReviews),
+    productVariants: many(productVariants),
+    productImages: many(productImages),
+    productReviews: many(productReviews),
   }),
 )
 
@@ -1340,10 +1586,6 @@ export const productVariantsRelations = relations(
     material: one(materialLibrary, {
       fields: [productVariants.materialId],
       references: [materialLibrary.id],
-    }),
-    finish: one(finishLibrary, {
-      fields: [productVariants.finishId],
-      references: [finishLibrary.id],
     }),
     images: many(productImages),
   }),
@@ -1369,6 +1611,54 @@ export const productReviewsRelations = relations(
     product: one(products, {
       fields: [productReviews.productId],
       references: [products.id],
+    }),
+  }),
+)
+
+export const productRelationsRelations = relations(
+  productRelations,
+  ({ one }) => ({
+    product: one(products, {
+      fields: [productRelations.productId],
+      references: [products.id],
+      relationName: "productRelationsSource",
+    }),
+    relatedProduct: one(products, {
+      fields: [productRelations.relatedProductId],
+      references: [products.id],
+      relationName: "productRelationsTarget",
+    }),
+  }),
+)
+
+export const productTaxonomyRulesRelations = relations(
+  productTaxonomyRules,
+  ({ one }) => ({
+    department: one(departments, {
+      fields: [productTaxonomyRules.departmentId],
+      references: [departments.id],
+    }),
+    category: one(categories, {
+      fields: [productTaxonomyRules.categoryId],
+      references: [categories.id],
+    }),
+    subCategory: one(subCategories, {
+      fields: [productTaxonomyRules.subCategoryId],
+      references: [subCategories.id],
+    }),
+    template: one(attributeTemplates, {
+      fields: [productTaxonomyRules.templateId],
+      references: [attributeTemplates.id],
+    }),
+  }),
+)
+
+export const productAttributeDefinitionsRelations = relations(
+  productAttributeDefinitions,
+  ({ one }) => ({
+    template: one(attributeTemplates, {
+      fields: [productAttributeDefinitions.templateId],
+      references: [attributeTemplates.id],
     }),
   }),
 )
@@ -1416,6 +1706,10 @@ export const serviceRequestsRelations = relations(
     }),
   }),
 )
+
+
+
+
 
 
 

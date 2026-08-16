@@ -273,9 +273,6 @@ export async function POST(
           quantity:
             data.quantity,
 
-          inStock:
-            data.inStock,
-
           leadTime:
             data.leadTime ||
             null,

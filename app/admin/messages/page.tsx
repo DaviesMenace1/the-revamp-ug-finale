@@ -1,37 +1,30 @@
-import { redirect } from 'next/navigation'
 import { db } from '@/lib/db/client'
-import { conversations, conversationMessages } from '@/lib/db/schema'
-import { eq, asc } from 'drizzle-orm'
-import { getOrCreateCurrentUser } from '@/lib/auth/utils'
-import MessagesClient from './messages-client'
+import { conversations, users } from '@/lib/db/schema'
+import { desc, eq } from 'drizzle-orm'
+import MessagesInboxClient from './messages-inbox-client'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ClientMessagesPage() {
-  const user = await getOrCreateCurrentUser()
-  if (!user) redirect('/sign-in?redirect_url=/client/messages')
+export default async function AdminMessagesPage() {
+  const rows = await db
+    .select({
+      id: conversations.id,
+      subject: conversations.subject,
+      status: conversations.status,
+      lastMessageAt: conversations.lastMessageAt,
+      adminUnreadCount: conversations.adminUnreadCount,
+      clientEmail: users.email,
+      clientFirstName: users.firstName,
+      clientLastName: users.lastName,
+    })
+    .from(conversations)
+    .leftJoin(users, eq(conversations.userId, users.id))
+    .orderBy(desc(conversations.lastMessageAt))
 
-  const conversation = await db.query.conversations.findFirst({
-    where: eq(conversations.userId, user.id),
-  })
-
-  const messages = conversation
-    ? await db
-        .select()
-        .from(conversationMessages)
-        .where(eq(conversationMessages.conversationId, conversation.id))
-        .orderBy(asc(conversationMessages.createdAt))
-    : []
-
-  const formattedMessages = messages.map((m) => ({
-    ...m,
-    createdAt: m.createdAt.toISOString(),
+  const formatted = rows.map((row) => ({
+    ...row,
+    lastMessageAt: row.lastMessageAt.toISOString(),
   }))
 
-  return (
-    <MessagesClient
-      initialConversationId={conversation?.id ?? null}
-      initialMessages={formattedMessages}
-    />
-  )
+  return <MessagesInboxClient initialConversations={formatted} />
 }

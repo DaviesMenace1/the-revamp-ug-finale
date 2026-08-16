@@ -1928,7 +1928,7 @@ export default function NewProductPage() {
                             key as keyof FormState
                           ],
                         ),
-                      }
+                      },
                       onChange={(event) =>
                         updateField(
                           key as keyof FormState,

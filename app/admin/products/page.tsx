@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { and, desc, eq, ilike, or } from "drizzle-orm"
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm"
 import {
   Plus,
   Search,
@@ -148,7 +148,7 @@ export default async function AdminProductsPage({
       status: products.status,
       availability: products.availability,
       quantity: products.quantity,
-      inStock: products.inStock,
+      inStock: sql<boolean>`${products.availability} = 'in_stock'`,
       googleSyncStatus: products.googleSyncStatus,
       googleSyncError: products.googleSyncError,
       updatedAt: products.updatedAt,
@@ -595,3 +595,4 @@ function AvailabilityBadge({
     </span>
   )
 }
+

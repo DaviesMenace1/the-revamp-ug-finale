@@ -5,6 +5,7 @@ import {
   useMemo,
   useState,
 } from "react"
+import { useRouter } from "next/navigation"
 
 type Department = {
   id: string
@@ -208,6 +209,8 @@ function slugify(value: string) {
 }
 
 export default function NewProductPage() {
+  const router = useRouter()
+
   const [taxonomy, setTaxonomy] =
     useState<TaxonomyResponse | null>(null)
 
@@ -959,13 +962,12 @@ export default function NewProductPage() {
 
       setSuccess(
         status === "draft"
-          ? "Product saved as draft."
-          : "Product submitted for review.",
+          ? "Product saved as draft. Redirecting so you can add images and variants…"
+          : "Product submitted for review. Redirecting so you can add images and variants…",
       )
 
-      if (status === "draft") {
-        setForm(initialForm)
-        setAttributes({})
+      if (data.product?.id) {
+        router.push(`/admin/products/${data.product.id}`)
       }
     } catch (err) {
       setError(

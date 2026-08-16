@@ -124,4 +124,5 @@ export function mapProductToMerchantResource(
   }
 
   return { resource, warnings }
+}
   

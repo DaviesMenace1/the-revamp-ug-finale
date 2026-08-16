@@ -140,13 +140,19 @@ export async function GET(
       )
     }
 
-    const rows = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, id))
-      .limit(1)
+    const product = await db.query.products.findFirst({
+      where: eq(products.id, id),
+      with: {
+        productImages: {
+          orderBy: (images, { asc }) => [
+            asc(images.displayOrder),
+          ],
+        },
+        productVariants: true,
+      },
+    })
 
-    if (!rows.length) {
+    if (!product) {
       return NextResponse.json(
         { error: "Product not found." },
         { status: 404 },
@@ -154,7 +160,7 @@ export async function GET(
     }
 
     return NextResponse.json({
-      product: rows[0],
+      product,
     })
   } catch (error) {
     console.error(
@@ -442,10 +448,6 @@ export async function PATCH(
       update.availability = body.availability
     }
 
-    if (body.inStock !== undefined) {
-      update.inStock = Boolean(body.inStock)
-    }
-
     if (body.quantity !== undefined) {
       update.quantity = Math.floor(body.quantity)
     }
@@ -662,7 +664,7 @@ export async function DELETE(
       .update(products)
       .set({
         status: "archived",
-        inStock: false,
+        availability: "out_of_stock",
         googleSyncStatus: "pending",
         googleSyncError: null,
         updatedAt: new Date(),

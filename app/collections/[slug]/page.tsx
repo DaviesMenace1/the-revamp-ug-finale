@@ -64,11 +64,12 @@ async function getProductBySlugFromDB(slug: string) {
   }
 }
 
-async function getRelatedProductsFromDB(category: string, currentId: string) {
+async function getRelatedProductsFromDB(subCategoryId: string | null, currentId: string) {
   try {
+    if (!subCategoryId) return []
     return await db.query.products.findMany({
       where: and(
-        eq(productsTable.category, category),
+        eq(productsTable.subCategoryId, subCategoryId),
         ne(productsTable.id, currentId)
       ),
       with: {
@@ -194,7 +195,7 @@ export default async function ProductPage({
   }
   // -------------------------------------------------------------
 
-  const related = await getRelatedProductsFromDB(product.category, product.id)
+  const related = await getRelatedProductsFromDB(product.subCategoryId, product.id)
   const pageUrl = `https://therevampug.com/collections/${product.slug}`
 
   const productSchema = generateProductSchema({
@@ -288,3 +289,4 @@ export default async function ProductPage({
     </>
   )
 }
+

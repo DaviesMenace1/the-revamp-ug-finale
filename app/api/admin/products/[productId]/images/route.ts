@@ -22,7 +22,7 @@ export async function GET(
   context: { params: Promise<{ productId: string }> },
 ) {
   try {
-    const { productId } = await context.params
+    const { productId: id } = await context.params
 
     const images = await db
       .select()
@@ -45,11 +45,11 @@ export async function POST(
   context: { params: Promise<{ productId: string }> },
 ) {
   try {
-    const { id } = await context.params
+    const { productId: id } = await context.params
 
     const product = await db.query.products.findFirst({
-      where: eq(products.productId, productId),
-      columns: { productId: true },
+      where: eq(products.id, id),
+      columns: { id: true },
     })
 
     if (!product) {
@@ -137,10 +137,10 @@ export async function POST(
 
 export async function PATCH(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ productId: string }> },
 ) {
   try {
-    const { id } = await context.params
+    const { productId: id } = await context.params
     const body = await request.json()
     const parsed = updateSchema.safeParse(body)
 
@@ -199,10 +199,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ productId: string }> },
 ) {
   try {
-    const { id } = await context.params
+    const { productId: id } = await context.params
     const { searchParams } = new URL(request.url)
     const imageId = searchParams.get("imageId")
 
@@ -251,4 +251,4 @@ export async function DELETE(
       { status: 500 },
     )
   }
-                              }
+}

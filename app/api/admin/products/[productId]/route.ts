@@ -131,9 +131,9 @@ export async function GET(
   context: RouteContext,
 ) {
   try {
-    const { productId } = await context.params
+    const { productId: id } = await context.params
 
-    if (!productId) {
+    if (!id) {
       return NextResponse.json(
         { error: "Product ID is required." },
         { status: 400 },
@@ -141,7 +141,7 @@ export async function GET(
     }
 
     const product = await db.query.products.findFirst({
-      where: eq(products.productId, productId),
+      where: eq(products.id, id),
       with: {
         productImages: {
           orderBy: (images, { asc }) => [
@@ -164,7 +164,7 @@ export async function GET(
     })
   } catch (error) {
     console.error(
-      "GET /api/admin/products/[productId]:",
+      "GET /api/admin/products/[id]:",
       error,
     )
 
@@ -194,9 +194,9 @@ export async function PATCH(
   context: RouteContext,
 ) {
   try {
-    const { productId } = await context.params
+    const { productId: id } = await context.params
 
-    if (!productId) {
+    if (!id) {
       return NextResponse.json(
         { error: "Product ID is required." },
         { status: 400 },
@@ -208,7 +208,7 @@ export async function PATCH(
     const existingRows = await db
       .select()
       .from(products)
-      .where(eq(products.productId, productId))
+      .where(eq(products.id, id))
       .limit(1)
 
     if (!existingRows.length) {
@@ -299,14 +299,14 @@ export async function PATCH(
      */
     if (nextSku !== existing.sku) {
       const duplicateSku = await db
-        .select({ id: products.productId })
+        .select({ id: products.id })
         .from(products)
         .where(eq(products.sku, nextSku))
         .limit(1)
 
       if (
         duplicateSku.length &&
-        duplicateSku[0].productId !== productId
+        duplicateSku[0].id !== id
       ) {
         return NextResponse.json(
           {
@@ -322,14 +322,14 @@ export async function PATCH(
      */
     if (nextSlug !== existing.slug) {
       const duplicateSlug = await db
-        .select({ productId: products.productId })
+        .select({ id: products.id })
         .from(products)
         .where(eq(products.slug, nextSlug))
         .limit(1)
 
       if (
         duplicateSlug.length &&
-        duplicateSlug[0].productId !== productId
+        duplicateSlug[0].id !== id
       ) {
         return NextResponse.json(
           {
@@ -592,7 +592,7 @@ export async function PATCH(
     const [updated] = await db
       .update(products)
       .set(update)
-      .where(eq(products.productId, productId))
+      .where(eq(products.id, id))
       .returning()
 
     return NextResponse.json({
@@ -635,9 +635,9 @@ export async function DELETE(
   context: RouteContext,
 ) {
   try {
-    const { productId } = await context.params
+    const { productId: id } = await context.params
 
-    if (!productId) {
+    if (!id) {
       return NextResponse.json(
         { error: "Product ID is required." },
         { status: 400 },
@@ -646,11 +646,11 @@ export async function DELETE(
 
     const existing = await db
       .select({
-        id: products.productId,
+        id: products.id,
         status: products.status,
       })
       .from(products)
-      .where(eq(products.productId, productId))
+      .where(eq(products.id, id))
       .limit(1)
 
     if (!existing.length) {
@@ -669,9 +669,9 @@ export async function DELETE(
         googleSyncError: null,
         updatedAt: new Date(),
       })
-      .where(eq(products.productId, productId))
+      .where(eq(products.id, id))
       .returning({
-        id: products.productId,
+        id: products.id,
         status: products.status,
       })
 
@@ -683,7 +683,7 @@ export async function DELETE(
     })
   } catch (error) {
     console.error(
-      "DELETE /api/admin/products/[productId]:",
+      "DELETE /api/admin/products/[id]:",
       error,
     )
 

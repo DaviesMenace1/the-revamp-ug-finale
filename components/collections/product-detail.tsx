@@ -163,7 +163,7 @@ export function ProductDetail({ product }: { product: any }) {
 
   const handleColorSelect = (color: any) => {
     setSelectedColor(color)
-    const matchingImage = productImages.find((img: any) => img?.colorId === color?.id)
+    const matchingImage = productImages.find((img: any) => img?.variantId === color?.id)
     if (matchingImage?.url) {
       setSelectedImage(matchingImage.url)
     }
@@ -411,7 +411,15 @@ export function ProductDetail({ product }: { product: any }) {
                 return (
                   <button
                     key={fabric?.id || idx}
-                    onClick={() => setSelectedFabric(fabric)}
+                    onClick={() => {
+                      setSelectedFabric(fabric)
+                      const matchingImage = productImages.find(
+                        (img: any) => img?.variantId === fabric?.id,
+                      )
+                      if (matchingImage?.url) {
+                        setSelectedImage(matchingImage.url)
+                      }
+                    }}
                     className={`h-9 px-4 border text-xs font-medium transition-all ${
                       selectedFabric?.id === fabric?.id
                         ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold'

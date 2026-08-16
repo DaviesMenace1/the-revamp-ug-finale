@@ -1,49 +1,22 @@
 'use client'
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Upload, X, Loader2 } from 'lucide-react'
+import { X, Upload } from 'lucide-react'
 import Image from 'next/image'
+import { CldUploadWidget } from 'next-cloudinary'
 
 interface ImageUploadProps {
   value: string[]
   onChange: (value: string[]) => void
   maxImages?: number
+  label?: string
 }
 
-export function ImageUpload({ value = [], onChange, maxImages = 5 }: ImageUploadProps) {
-  const [uploading, setUploading] = useState(false)
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-
-    setUploading(true)
-    const newUrls: string[] = []
-
-    for (const file of Array.from(files)) {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'revamp_preset')
-
-      try {
-        const res = await fetch(
-          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'r8epy5mg'}/image/upload`,
-          { method: 'POST', body: formData }
-        )
-        const data = await res.json()
-        if (data.secure_url) {
-          newUrls.push(data.secure_url)
-        }
-      } catch (err) {
-        console.error('Upload failed:', err)
-      }
-    }
-
-    onChange([...value, ...newUrls].slice(0, maxImages))
-    setUploading(false)
-  }
-
+export function ImageUpload({
+  value = [],
+  onChange,
+  maxImages = 5,
+  label = 'Upload Image',
+}: ImageUploadProps) {
   const handleRemove = (urlToRemove: string) => {
     onChange(value.filter((url) => url !== urlToRemove))
   }
@@ -53,7 +26,7 @@ export function ImageUpload({ value = [], onChange, maxImages = 5 }: ImageUpload
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {value.map((url, idx) => (
           <div key={idx} className="relative h-32 rounded-lg overflow-hidden border border-border/20 group">
-            <Image src={url} alt="Uploaded project asset" fill className="object-cover" />
+            <Image src={url} alt="Uploaded asset" fill className="object-cover" />
             <button
               type="button"
               onClick={() => handleRemove(url)}
@@ -65,20 +38,29 @@ export function ImageUpload({ value = [], onChange, maxImages = 5 }: ImageUpload
         ))}
 
         {value.length < maxImages && (
-          <label className="border-2 border-dashed border-border/40 hover:border-primary/50 rounded-lg h-32 flex flex-col items-center justify-center cursor-pointer bg-muted/5 transition-colors">
-            {uploading ? (
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            ) : (
-              <>
+          <CldUploadWidget
+            uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'revamp_preset'}
+            onSuccess={(result: any) => {
+              if (result?.info?.secure_url) {
+                onChange([...value, result.info.secure_url].slice(0, maxImages))
+              }
+            }}
+          >
+            {({ open }) => (
+              <button
+                type="button"
+                onClick={() => open()}
+                className="border-2 border-dashed border-border/40 hover:border-primary/50 rounded-lg h-32 flex flex-col items-center justify-center cursor-pointer bg-muted/5 transition-colors w-full"
+              >
                 <Upload className="w-6 h-6 text-muted-foreground mb-1" />
-                <span className="text-xs text-muted-foreground font-light">Upload Image</span>
-              </>
+                <span className="text-xs text-muted-foreground font-light text-center px-2">{label}</span>
+              </button>
             )}
-            <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
-          </label>
+          </CldUploadWidget>
         )}
       </div>
     </div>
   )
 }
+
 

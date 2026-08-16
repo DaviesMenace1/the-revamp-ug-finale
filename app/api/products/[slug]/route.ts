@@ -25,7 +25,7 @@ export async function GET(
       with: {
         productVariants: true, // Color swatches & fabric deltas
         productImages: true,   // Full image gallery
-        category: true,        // Parent category info
+        subCategory: true,     // Parent taxonomy info
         productReviews: true,         // Customer ratings & comments
       },
     })
@@ -46,3 +46,4 @@ export async function GET(
     )
   }
 }
+

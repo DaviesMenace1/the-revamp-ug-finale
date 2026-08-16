@@ -1,35 +1,49 @@
-'use client'
-
+import { db } from '@/lib/db/client'
+import { serviceCategories, services } from '@/lib/db/schema'
+import { asc, eq } from 'drizzle-orm'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import Link from 'next/link'
 import { ArrowRight, ArrowLeft } from 'lucide-react'
-import { SERVICES } from '@/lib/data/services'
 import { notFound } from 'next/navigation'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
-  params: {
-    category: string
-  }
+  params: Promise<{ category: string }>
 }
 
-export default function ServiceCategoryPage({ params }: PageProps) {
-  const category = SERVICES.find((c) => c.slug === params.category)
+export default async function ServiceCategoryPage({ params }: PageProps) {
+  const { category: categorySlug } = await params
+
+  const allCategories = await db
+    .select()
+    .from(serviceCategories)
+    .where(eq(serviceCategories.status, 'published'))
+    .orderBy(asc(serviceCategories.order))
+
+  const categoryIndex = allCategories.findIndex((c) => c.slug === categorySlug)
+  const category = allCategories[categoryIndex]
 
   if (!category) {
     notFound()
   }
 
-  // Find previous and next categories
-  const categoryIndex = SERVICES.findIndex((c) => c.slug === params.category)
-  const prevCategory = categoryIndex > 0 ? SERVICES[categoryIndex - 1] : null
-  const nextCategory = categoryIndex < SERVICES.length - 1 ? SERVICES[categoryIndex + 1] : null
+  const categoryServices = await db
+    .select()
+    .from(services)
+    .where(eq(services.categoryId, category.id))
+    .orderBy(asc(services.order))
+
+  const publishedServices = categoryServices.filter((s) => s.status === 'published')
+
+  const prevCategory = categoryIndex > 0 ? allCategories[categoryIndex - 1] : null
+  const nextCategory = categoryIndex < allCategories.length - 1 ? allCategories[categoryIndex + 1] : null
 
   return (
     <>
       <SiteHeader />
       <main className="min-h-screen bg-background">
-        {/* Breadcrumb */}
         <section className="border-b border-border/20 py-6">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -42,7 +56,6 @@ export default function ServiceCategoryPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* Hero */}
         <section className="border-b border-border/20 py-20 md:py-28">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
             <div className="space-y-6">
@@ -56,11 +69,10 @@ export default function ServiceCategoryPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* Services */}
         <section className="py-20 md:py-28">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
             <div className="space-y-6">
-              {category.services.map((service, idx) => (
+              {publishedServices.map((service, idx) => (
                 <Link
                   key={service.slug}
                   href={`/services/${category.slug}/${service.slug}`}
@@ -89,11 +101,16 @@ export default function ServiceCategoryPage({ params }: PageProps) {
                   </div>
                 </Link>
               ))}
+
+              {publishedServices.length === 0 && (
+                <p className="text-center text-muted-foreground py-10">
+                  No services in this category yet.
+                </p>
+              )}
             </div>
           </div>
         </section>
 
-        {/* Navigation */}
         <section className="border-t border-border/20 py-16">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -134,7 +151,6 @@ export default function ServiceCategoryPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* CTA */}
         <section className="border-t border-border/20 bg-foreground text-background py-16">
           <div className="mx-auto max-w-3xl px-6 md:px-8 text-center space-y-6">
             <h2 className="font-serif text-3xl md:text-4xl font-light">

@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm"
 export const dynamic = "force-dynamic"
 
 type RouteContext = {
-  params: Promise<{ id: string }>
+  params: Promise<{ productId: string }>
 }
 
 type ProductUpdate = {
@@ -131,9 +131,9 @@ export async function GET(
   context: RouteContext,
 ) {
   try {
-    const { id } = await context.params
+    const { productId } = await context.params
 
-    if (!id) {
+    if (!productId) {
       return NextResponse.json(
         { error: "Product ID is required." },
         { status: 400 },
@@ -141,7 +141,7 @@ export async function GET(
     }
 
     const product = await db.query.products.findFirst({
-      where: eq(products.id, id),
+      where: eq(products.productId, id),
       with: {
         productImages: {
           orderBy: (images, { asc }) => [
@@ -164,7 +164,7 @@ export async function GET(
     })
   } catch (error) {
     console.error(
-      "GET /api/admin/products/[id]:",
+      "GET /api/admin/products/[productId]:",
       error,
     )
 
@@ -194,9 +194,9 @@ export async function PATCH(
   context: RouteContext,
 ) {
   try {
-    const { id } = await context.params
+    const { productId } = await context.params
 
-    if (!id) {
+    if (!productId) {
       return NextResponse.json(
         { error: "Product ID is required." },
         { status: 400 },
@@ -208,7 +208,7 @@ export async function PATCH(
     const existingRows = await db
       .select()
       .from(products)
-      .where(eq(products.id, id))
+      .where(eq(products.productId, id))
       .limit(1)
 
     if (!existingRows.length) {

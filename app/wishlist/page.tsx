@@ -21,8 +21,7 @@ type WishlistProduct = {
   name: string
   price: number
   currency?: string
-  thumbnailImage?: string
-  images?: string[]
+  productImages?: { url: string; isPrimary?: boolean }[]
 }
 
 function formatPrice(
@@ -38,11 +37,11 @@ function formatPrice(
 }
 
 function getImage(product: WishlistProduct) {
-  return (
-    product.thumbnailImage ||
-    product.images?.[0] ||
-    '/placeholder.jpg'
-  )
+  const images = Array.isArray(product.productImages)
+    ? product.productImages
+    : []
+  const primary = images.find((img) => img?.isPrimary) || images[0]
+  return primary?.url || '/placeholder.jpg'
 }
 
 export default function WishlistPage() {

@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import { CldUploadWidget } from "next-cloudinary"
 import {
   ArrowLeft,
   CheckCircle2,
   ExternalLink,
   Loader2,
+  RefreshCw,
   Save,
   Send,
   Trash2,
@@ -65,6 +67,41 @@ type Product = {
 
   googleSyncStatus?: string | null
   googleSyncError?: string | null
+
+  productImages?: ProductImage[]
+  productVariants?: ProductVariant[]
+}
+
+type LibraryItem = {
+  id: string
+  name: string
+  hex?: string | null
+  swatchImage?: string | null
+}
+
+type ProductImage = {
+  id: string
+  productId: string
+  variantId: string | null
+  url: string
+  altText: string | null
+  isPrimary: boolean
+  displayOrder: number
+}
+
+type ProductVariant = {
+  id: string
+  productId: string
+  type: "COLOR" | "FABRIC" | "MATERIAL" | "SIZE"
+  label: string
+  value: string
+  sku: string | null
+  priceDelta: string | number | null
+  quantity: number
+  availability: string
+  colorId: string | null
+  fabricId: string | null
+  materialId: string | null
 }
 
 type TaxonomyItem = {
@@ -139,9 +176,17 @@ export default function EditProductPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [subCategories, setSubCategories] = useState<SubCategory[]>([])
 
+  const [libraries, setLibraries] = useState<{
+    colors: LibraryItem[]
+    materials: LibraryItem[]
+    fabrics: LibraryItem[]
+    finishes: LibraryItem[]
+  }>({ colors: [], materials: [], fabrics: [], finishes: [] })
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [syncingGoogle, setSyncingGoogle] = useState(false)
 
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
@@ -151,17 +196,21 @@ export default function EditProductPage() {
       try {
         setLoading(true)
 
-        const [productResponse, taxonomyResponse] = await Promise.all([
+        const [productResponse, taxonomyResponse, librariesResponse] = await Promise.all([
           fetch(`/api/admin/products/${id}`, {
             cache: "no-store",
           }),
           fetch("/api/admin/product-taxonomy", {
             cache: "no-store",
           }),
+          fetch("/api/admin/product-libraries", {
+            cache: "no-store",
+          }),
         ])
 
         const productData = await productResponse.json()
         const taxonomyData = await taxonomyResponse.json()
+        const librariesData = await librariesResponse.json()
 
         if (!productResponse.ok) {
           throw new Error(
@@ -180,6 +229,15 @@ export default function EditProductPage() {
         setDepartments(taxonomyData.departments ?? [])
         setCategories(taxonomyData.categories ?? [])
         setSubCategories(taxonomyData.subCategories ?? [])
+
+        if (librariesResponse.ok) {
+          setLibraries({
+            colors: librariesData.colors ?? [],
+            materials: librariesData.materials ?? [],
+            fabrics: librariesData.fabrics ?? [],
+            finishes: librariesData.finishes ?? [],
+          })
+        }
       } catch (err) {
         setError(
           err instanceof Error
@@ -334,6 +392,279 @@ export default function EditProductPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  async function syncToGoogle() {
+    if (!product) return
+
+    setError("")
+    setMessage("")
+
+    try {
+      setSyncingGoogle(true)
+
+      const response = await fetch(
+        `/api/admin/products/${product.id}/sync-google`,
+        { method: "POST" },
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error || "Failed to sync product to Google Merchant.",
+        )
+      }
+
+      setProduct((current) =>
+        current
+          ? {
+              ...current,
+              googleSyncStatus: "synced",
+              googleSyncError: null,
+            }
+          : current,
+      )
+
+      setMessage(
+        data.warnings?.length
+          ? `Synced to Google Merchant with warnings: ${data.warnings.join(" ")}`
+          : "Synced to Google Merchant successfully.",
+      )
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Failed to sync product to Google Merchant."
+
+      setError(msg)
+
+      setProduct((current) =>
+        current
+          ? {
+              ...current,
+              googleSyncStatus: "error",
+              googleSyncError: msg,
+            }
+          : current,
+      )
+    } finally {
+      setSyncingGoogle(false)
+    }
+  }
+
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [savingVariant, setSavingVariant] = useState(false)
+  const [newVariant, setNewVariant] = useState({
+    type: "COLOR" as ProductVariant["type"],
+    label: "",
+    value: "",
+    colorId: "",
+    fabricId: "",
+    materialId: "",
+    priceDelta: "0",
+    quantity: "0",
+  })
+
+  async function attachImage(
+    url: string,
+    variantId?: string | null,
+  ) {
+    if (!product) return
+
+    setError("")
+    setMessage("")
+
+    try {
+      setUploadingImage(true)
+
+      const saveResponse = await fetch(
+        `/api/admin/products/${product.id}/images`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url,
+            variantId: variantId || null,
+          }),
+        },
+      )
+
+      const saveData = await saveResponse.json()
+
+      if (!saveResponse.ok || !saveData.success) {
+        throw new Error(
+          saveData?.error || "Failed to save image.",
+        )
+      }
+
+      setProduct((current) =>
+        current
+          ? {
+              ...current,
+              productImages: [
+                ...(current.productImages ?? []).map((img) =>
+                  saveData.image.isPrimary
+                    ? { ...img, isPrimary: false }
+                    : img,
+                ),
+                saveData.image,
+              ],
+            }
+          : current,
+      )
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to upload image.",
+      )
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  async function setPrimaryImage(imageId: string) {
+    if (!product) return
+
+    const response = await fetch(
+      `/api/admin/products/${product.id}/images`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageId, isPrimary: true }),
+      },
+    )
+
+    if (!response.ok) return
+
+    setProduct((current) =>
+      current
+        ? {
+            ...current,
+            productImages: (current.productImages ?? []).map((img) => ({
+              ...img,
+              isPrimary: img.id === imageId,
+            })),
+          }
+        : current,
+    )
+  }
+
+  async function deleteImage(imageId: string) {
+    if (!product) return
+
+    const response = await fetch(
+      `/api/admin/products/${product.id}/images?imageId=${imageId}`,
+      { method: "DELETE" },
+    )
+
+    if (!response.ok) return
+
+    setProduct((current) =>
+      current
+        ? {
+            ...current,
+            productImages: (current.productImages ?? []).filter(
+              (img) => img.id !== imageId,
+            ),
+          }
+        : current,
+    )
+  }
+
+  async function addVariant() {
+    if (!product) return
+
+    setError("")
+    setMessage("")
+
+    if (!newVariant.label.trim() || !newVariant.value.trim()) {
+      setError("Variant label and value are required.")
+      return
+    }
+
+    try {
+      setSavingVariant(true)
+
+      const response = await fetch(
+        `/api/admin/products/${product.id}/variants`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: newVariant.type,
+            label: newVariant.label,
+            value: newVariant.value,
+            colorId: newVariant.type === "COLOR" ? newVariant.colorId || null : null,
+            fabricId: newVariant.type === "FABRIC" ? newVariant.fabricId || null : null,
+            materialId: newVariant.type === "MATERIAL" ? newVariant.materialId || null : null,
+            priceDelta: parseFloat(newVariant.priceDelta) || 0,
+            quantity: parseInt(newVariant.quantity, 10) || 0,
+          }),
+        },
+      )
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data?.error || "Failed to add variant.")
+      }
+
+      setProduct((current) =>
+        current
+          ? {
+              ...current,
+              productVariants: [
+                ...(current.productVariants ?? []),
+                data.variant,
+              ],
+            }
+          : current,
+      )
+
+      setNewVariant({
+        type: "COLOR",
+        label: "",
+        value: "",
+        colorId: "",
+        fabricId: "",
+        materialId: "",
+        priceDelta: "0",
+        quantity: "0",
+      })
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to add variant.",
+      )
+    } finally {
+      setSavingVariant(false)
+    }
+  }
+
+  async function deleteVariant(variantId: string) {
+    if (!product) return
+
+    const response = await fetch(
+      `/api/admin/products/${product.id}/variants?variantId=${variantId}`,
+      { method: "DELETE" },
+    )
+
+    if (!response.ok) return
+
+    setProduct((current) =>
+      current
+        ? {
+            ...current,
+            productVariants: (current.productVariants ?? []).filter(
+              (v) => v.id !== variantId,
+            ),
+            productImages: (current.productImages ?? []).filter(
+              (img) => img.variantId !== variantId,
+            ),
+          }
+        : current,
+    )
   }
 
   async function deleteProduct() {
@@ -924,9 +1255,327 @@ export default function EditProductPage() {
                 schema={templateSchema}
                 values={product.attributes ?? {}}
                 onChange={updateAttribute}
+                libraries={libraries}
               />
             </Section>
           )}
+
+          <Section
+            title="Product Images"
+            description="Photos shown in the storefront gallery. The starred image is the primary/thumbnail image."
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {(product.productImages ?? [])
+                  .filter((img) => !img.variantId)
+                  .map((img) => (
+                    <div
+                      key={img.id}
+                      className="group relative overflow-hidden rounded-lg border border-stone-200"
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.altText ?? product.name}
+                        className="h-32 w-full object-cover"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2">
+                        <button
+                          type="button"
+                          onClick={() => setPrimaryImage(img.id)}
+                          className={`rounded px-2 py-1 text-[10px] font-medium ${
+                            img.isPrimary
+                              ? "bg-amber-400 text-stone-900"
+                              : "bg-white/90 text-stone-700 hover:bg-white"
+                          }`}
+                        >
+                          {img.isPrimary ? "Primary" : "Set primary"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteImage(img.id)}
+                          className="rounded bg-white/90 p-1 text-rose-600 hover:bg-white"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+              <CldUploadWidget
+                uploadPreset={
+                  process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ||
+                  "revamp_preset"
+                }
+                onSuccess={(result: any) => {
+                  const url = result?.info?.secure_url
+                  if (url) attachImage(url)
+                }}
+              >
+                {({ open }) => (
+                  <button
+                    type="button"
+                    disabled={uploadingImage}
+                    onClick={() => open()}
+                    className="flex h-10 w-fit items-center gap-2 rounded-lg border border-dashed border-stone-300 px-4 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-50"
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <span>+ Upload image</span>
+                    )}
+                  </button>
+                )}
+              </CldUploadWidget>
+            </div>
+          </Section>
+
+          <Section
+            title="Variants"
+            description="Color, fabric, material, or size options for this product. Each variant can have its own image, shown to customers when they select it."
+          >
+            <div className="space-y-5">
+              {(product.productVariants ?? []).length > 0 && (
+                <div className="space-y-3">
+                  {(product.productVariants ?? []).map((variant) => {
+                    const variantImages = (product.productImages ?? []).filter(
+                      (img) => img.variantId === variant.id,
+                    )
+
+                    return (
+                      <div
+                        key={variant.id}
+                        className="rounded-lg border border-stone-200 p-4"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium text-stone-900">
+                              {variant.type} · {variant.label}
+                            </p>
+                            <p className="text-xs text-stone-500">
+                              Value: {variant.value}
+                              {Number(variant.priceDelta) ? (
+                                <> · +{variant.priceDelta}</>
+                              ) : null}
+                              {" · Qty: "}
+                              {variant.quantity}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => deleteVariant(variant.id)}
+                            className="inline-flex h-8 items-center gap-1 rounded-lg border border-rose-200 px-3 text-xs font-medium text-rose-600 hover:bg-rose-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Remove
+                          </button>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {variantImages.map((img) => (
+                            <div
+                              key={img.id}
+                              className="group relative h-16 w-16 overflow-hidden rounded border border-stone-200"
+                            >
+                              <img
+                                src={img.url}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => deleteImage(img.id)}
+                                className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 group-hover:opacity-100"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+
+                          <CldUploadWidget
+                            uploadPreset={
+                              process.env
+                                .NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ||
+                              "revamp_preset"
+                            }
+                            onSuccess={(result: any) => {
+                              const url = result?.info?.secure_url
+                              if (url) attachImage(url, variant.id)
+                            }}
+                          >
+                            {({ open }) => (
+                              <button
+                                type="button"
+                                disabled={uploadingImage}
+                                onClick={() => open()}
+                                className="flex h-16 w-16 items-center justify-center rounded border border-dashed border-stone-300 text-[10px] text-stone-500 hover:bg-stone-50 disabled:opacity-50"
+                              >
+                                {uploadingImage ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  "+ Image"
+                                )}
+                              </button>
+                            )}
+                          </CldUploadWidget>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
+                <p className="mb-3 text-sm font-medium text-stone-900">
+                  Add a variant
+                </p>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <Field label="Type">
+                    <select
+                      value={newVariant.type}
+                      onChange={(e) =>
+                        setNewVariant((v) => ({
+                          ...v,
+                          type: e.target.value as ProductVariant["type"],
+                        }))
+                      }
+                      className={inputClass}
+                    >
+                      <option value="COLOR">Color</option>
+                      <option value="FABRIC">Fabric</option>
+                      <option value="MATERIAL">Material</option>
+                      <option value="SIZE">Size</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Label (shown to customers)">
+                    <input
+                      value={newVariant.label}
+                      onChange={(e) =>
+                        setNewVariant((v) => ({ ...v, label: e.target.value }))
+                      }
+                      placeholder="e.g. Natural Leather"
+                      className={inputClass}
+                    />
+                  </Field>
+
+                  <Field label="Value">
+                    <input
+                      value={newVariant.value}
+                      onChange={(e) =>
+                        setNewVariant((v) => ({ ...v, value: e.target.value }))
+                      }
+                      placeholder="e.g. #1C1C1C or Natural Leather"
+                      className={inputClass}
+                    />
+                  </Field>
+
+                  {newVariant.type === "COLOR" && (
+                    <Field label="Linked color (library)">
+                      <select
+                        value={newVariant.colorId}
+                        onChange={(e) =>
+                          setNewVariant((v) => ({ ...v, colorId: e.target.value }))
+                        }
+                        className={inputClass}
+                      >
+                        <option value="">None</option>
+                        {libraries.colors.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  )}
+
+                  {newVariant.type === "FABRIC" && (
+                    <Field label="Linked fabric (library)">
+                      <select
+                        value={newVariant.fabricId}
+                        onChange={(e) =>
+                          setNewVariant((v) => ({ ...v, fabricId: e.target.value }))
+                        }
+                        className={inputClass}
+                      >
+                        <option value="">None</option>
+                        {libraries.fabrics.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  )}
+
+                  {newVariant.type === "MATERIAL" && (
+                    <Field label="Linked material (library)">
+                      <select
+                        value={newVariant.materialId}
+                        onChange={(e) =>
+                          setNewVariant((v) => ({
+                            ...v,
+                            materialId: e.target.value,
+                          }))
+                        }
+                        className={inputClass}
+                      >
+                        <option value="">None</option>
+                        {libraries.materials.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  )}
+
+                  <Field label="Price delta">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newVariant.priceDelta}
+                      onChange={(e) =>
+                        setNewVariant((v) => ({
+                          ...v,
+                          priceDelta: e.target.value,
+                        }))
+                      }
+                      className={inputClass}
+                    />
+                  </Field>
+
+                  <Field label="Quantity">
+                    <input
+                      type="number"
+                      value={newVariant.quantity}
+                      onChange={(e) =>
+                        setNewVariant((v) => ({
+                          ...v,
+                          quantity: e.target.value,
+                        }))
+                      }
+                      className={inputClass}
+                    />
+                  </Field>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={savingVariant}
+                  onClick={addVariant}
+                  className="mt-3 inline-flex h-9 items-center gap-2 rounded-lg bg-stone-900 px-4 text-xs font-medium text-white hover:bg-stone-800 disabled:opacity-50"
+                >
+                  {savingVariant ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  Add variant
+                </button>
+              </div>
+            </div>
+          </Section>
 
           <Section
             title="Google Merchant"
@@ -981,22 +1630,40 @@ export default function EditProductPage() {
               </Field>
 
               <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
-                <div className="flex items-center gap-2">
-                  {product.googleSyncStatus ===
-                  "synced" ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  ) : product.googleSyncStatus ===
-                    "failed" ? (
-                    <AlertCircle className="h-4 w-4 text-rose-600" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                  )}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    {product.googleSyncStatus ===
+                    "synced" ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    ) : product.googleSyncStatus ===
+                      "error" ||
+                      product.googleSyncStatus ===
+                      "rejected" ? (
+                      <AlertCircle className="h-4 w-4 text-rose-600" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                    )}
 
-                  <p className="text-sm font-medium text-stone-900">
-                    Google status:{" "}
-                    {product.googleSyncStatus ??
-                      "not_synced"}
-                  </p>
+                    <p className="text-sm font-medium text-stone-900">
+                      Google status:{" "}
+                      {product.googleSyncStatus ??
+                        "draft"}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={syncingGoogle}
+                    onClick={syncToGoogle}
+                    className="inline-flex h-8 shrink-0 items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+                  >
+                    {syncingGoogle ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    )}
+                    Sync to Google
+                  </button>
                 </div>
 
                 {product.googleSyncError && (
@@ -1213,3 +1880,196 @@ function Section({
       <div className="p-5 sm:p-6">{children}</div>
     </section>
   )}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string
+  required?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-medium text-stone-700">
+        {label}
+        {required && <span className="ml-1 text-rose-500">*</span>}
+      </label>
+      {children}
+    </div>
+  )
+}
+
+function DynamicAttributes({
+  schema,
+  values,
+  onChange,
+  libraries,
+}: {
+  schema: TemplateSchema
+  values: Record<string, unknown>
+  onChange: (key: string, value: unknown) => void
+  libraries?: {
+    colors: LibraryItem[]
+    materials: LibraryItem[]
+    fabrics: LibraryItem[]
+    finishes: LibraryItem[]
+  }
+}) {
+  const allFields: AttributeField[] = schema.groups
+    ? schema.groups.flatMap((group) => group.fields)
+    : schema.fields ?? []
+
+  function renderField(field: AttributeField) {
+    const value = values?.[field.key]
+    const commonClass = inputClass
+
+    if (field.type === "textarea") {
+      return (
+        <textarea
+          value={(value as string) ?? ""}
+          onChange={(e) => onChange(field.key, e.target.value)}
+          placeholder={field.placeholder}
+          rows={3}
+          className={textareaClass}
+        />
+      )
+    }
+
+    if (field.type === "boolean") {
+      return (
+        <label className="flex h-10 items-center gap-2 text-sm text-stone-700">
+          <input
+            type="checkbox"
+            checked={Boolean(value)}
+            onChange={(e) => onChange(field.key, e.target.checked)}
+            className="h-4 w-4 rounded border-stone-300"
+          />
+          {field.label}
+        </label>
+      )
+    }
+
+    if (field.type === "number" || field.type === "measurement") {
+      return (
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            value={(value as string) ?? ""}
+            onChange={(e) => onChange(field.key, e.target.value)}
+            placeholder={field.placeholder}
+            className={commonClass}
+          />
+          {field.unit && (
+            <span className="shrink-0 text-xs text-stone-500">
+              {field.unit}
+            </span>
+          )}
+        </div>
+      )
+    }
+
+    if (field.type === "select") {
+      return (
+        <select
+          value={(value as string) ?? ""}
+          onChange={(e) => onChange(field.key, e.target.value)}
+          className={commonClass}
+        >
+          <option value="">Select…</option>
+          {field.options?.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      )
+    }
+
+    if (field.type === "multiselect") {
+      const selected = Array.isArray(value) ? (value as string[]) : []
+
+      return (
+        <div className="flex flex-wrap gap-2">
+          {field.options?.map((opt) => {
+            const active = selected.includes(opt.value)
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() =>
+                  onChange(
+                    field.key,
+                    active
+                      ? selected.filter((v) => v !== opt.value)
+                      : [...selected, opt.value],
+                  )
+                }
+                className={`rounded-full border px-3 py-1 text-xs ${
+                  active
+                    ? "border-stone-900 bg-stone-900 text-white"
+                    : "border-stone-300 text-stone-600 hover:bg-stone-50"
+                }`}
+              >
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+      )
+    }
+
+    if (
+      field.type === "material" ||
+      field.type === "fabric" ||
+      field.type === "finish" ||
+      field.type === "color"
+    ) {
+      const libraryKey =
+        field.type === "material"
+          ? "materials"
+          : field.type === "fabric"
+          ? "fabrics"
+          : field.type === "finish"
+          ? "finishes"
+          : "colors"
+
+      const items = libraries?.[libraryKey] ?? []
+
+      return (
+        <select
+          value={(value as string) ?? ""}
+          onChange={(e) => onChange(field.key, e.target.value)}
+          className={commonClass}
+        >
+          <option value="">Select…</option>
+          {items.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      )
+    }
+
+    return (
+      <input
+        value={(value as string) ?? ""}
+        onChange={(e) => onChange(field.key, e.target.value)}
+        placeholder={field.placeholder}
+        className={commonClass}
+      />
+    )
+  }
+
+  return (
+    <div className="grid gap-5 sm:grid-cols-2">
+      {allFields.map((field) => (
+        <Field key={field.key} label={field.label} required={field.required}>
+          {renderField(field)}
+        </Field>
+      ))}
+    </div>
+  )
+}

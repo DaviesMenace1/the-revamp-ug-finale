@@ -762,7 +762,7 @@ export function SiteHeader() {
 
             {/* Bottom Actions *
             <div className="p-6 border-t border-border mt-auto flex flex-col gap-3">
-              <Link href="/contact" onClick={() => setDrawerOpen(false)}>
+              <Link href="/book-consultation" onClick={() => setDrawerOpen(false)}>
                 <Button className="w-full rounded-none bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest uppercase py-6">
                   Book a Consultation
                 </Button>

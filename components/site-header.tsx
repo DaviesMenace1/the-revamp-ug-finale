@@ -412,7 +412,7 @@ export function SiteHeader() {
             {/* Bottom Actions */}
             <div className="p-6 border-t border-border mt-auto flex flex-col gap-3">
               <Link href="/client/tickets" onClick={() => setDrawerOpen(false)}>
-                <Button className="w-half rounded bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest  py-6">
+                <Button className="w-full rounded bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest  py-6">
                   Support Tickets
                 </Button>
               </Link>

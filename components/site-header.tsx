@@ -411,12 +411,12 @@ export function SiteHeader() {
 
             {/* Bottom Actions */}
             <div className="p-6 border-t border-border mt-auto flex flex-col gap-3">
-              <Link href="/client" onClick={() => setDrawerOpen(false)}>
+              <Link href="/client/tickets" onClick={() => setDrawerOpen(false)}>
                 <Button className="w-half rounded bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest  py-6">
-                  Sign In
+                  Support Tickets
                 </Button>
               </Link>
-              <Link href="/contact" onClick={() => setDrawerOpen(false)}>
+              <Link href="/book-consultation" onClick={() => setDrawerOpen(false)}>
                 <Button className="w-full rounded-none bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest uppercase py-6">
                   Book a Consultation
                 </Button>

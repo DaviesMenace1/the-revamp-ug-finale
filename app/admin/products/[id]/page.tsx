@@ -192,6 +192,10 @@ export default function EditProductPage() {
   const [message, setMessage] = useState("")
 
   useEffect(() => {
+    const productId = params?.id ? String(params.id) : null
+
+  // Guard: Stop execution if params are not yet available or named incorrectly
+  if (!productId || productId === "undefined") return
     async function load() {
       try {
         setLoading(true)

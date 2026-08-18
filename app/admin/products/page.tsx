@@ -410,7 +410,7 @@ export default async function AdminProductsPage({
 
                           <div className="min-w-0">
                             <Link
-                              href={`/admin/products/${product.id}`}
+                              href={`/admin/products/${product.productId}`}
                               className="block max-w-[280px] truncate text-sm font-medium text-stone-900 hover:text-stone-600"
                             >
                               {product.name}

@@ -8,11 +8,20 @@ const globalForDb = globalThis as unknown as {
   conn: postgres.Sql | undefined
 }
 
+// Serverless-safe pool settings. Vercel spins up many short-lived function
+// instances; without these, orphaned connections from invocations that end
+// mid-query (timeout, cold-start recycling, etc.) pile up on the Postgres
+// side forever, waiting on ClientRead for a client that's already gone —
+// eventually exhausting the connection limit and stalling every query,
+// including trivial ones.
 const conn = globalForDb.conn ?? postgres(connectionString, {
   ssl: { rejectUnauthorized: false },
+  max: 1,               // one connection per function instance; let Supabase's pooler handle concurrency
+  idle_timeout: 20,      // seconds — release an idle connection instead of holding it open
+  connect_timeout: 10,   // seconds — fail fast instead of hanging if the pooler is unreachable
+  max_lifetime: 60 * 30, // seconds — recycle connections periodically so nothing lingers indefinitely
 })
 
 if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn
 
 export const db = drizzle(conn, { schema })
-

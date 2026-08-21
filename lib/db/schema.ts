@@ -859,11 +859,14 @@ export const projects = pgTable(
     category: varchar("category", { length: 100 }),
     subCategory: varchar("sub_category", { length: 100 }),
     clientName: varchar("client_name", { length: 255 }),
+    userId: uuid("user_id").references(() => users.id),
     client: text("client"),
     shortDescription: text("short_description"),
     location: varchar("location", { length: 255 }),
     budget: decimal("budget", { precision: 12, scale: 2 }),
     progress: integer("progress").default(0),
+    currentPhase: varchar("current_phase", { length: 50 }).default("consultation"),
+    projectKind: varchar("project_kind", { length: 20 }).notNull().default("portfolio"),
     year: text("year"),
     dueDate: timestamp("due_date"),
     images: jsonb("images").default([]),
@@ -1020,6 +1023,11 @@ export const consultations = pgTable(
       scale: 2,
     }),
     preferredDate: timestamp("preferred_date"),
+    mode: varchar("mode", { length: 20 }).notNull().default("virtual"),
+    meetingLink: text("meeting_link"),
+    location: text("location"),
+    durationMinutes: integer("duration_minutes").notNull().default(45),
+    confirmedAt: timestamp("confirmed_at"),
     status: varchar("status", { length: 50 }).default("pending"),
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -1042,11 +1050,13 @@ export const quotes = pgTable(
       .unique(),
     userId: uuid("user_id").notNull(),
     consultationId: uuid("consultation_id"),
-    items: jsonb("items").default([]),
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+    pdfUrl: text("pdf_url"),
+    items: jsonb("items"),
     subtotal: decimal("subtotal", {
       precision: 12,
       scale: 2,
-    }).notNull(),
+    }),
     tax: decimal("tax", {
       precision: 12,
       scale: 2,
@@ -1135,6 +1145,8 @@ export const tradeMembers = pgTable(
     businessLicense: text("business_license"),
     certificate: text("certificate"),
     status: varchar("status", { length: 50 }).default("pending"),
+    tier: varchar("tier", { length: 50 }).default("standard"),
+    discountRate: numeric("discount_rate", { precision: 5, scale: 2 }).default("10.00"),
     appliedAt: timestamp("applied_at").notNull().defaultNow(),
     approvedAt: timestamp("approved_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -1419,6 +1431,425 @@ export const siteSettings = pgTable("site_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
 
+export const clientDocuments = pgTable(
+  "client_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
+    name: varchar("name", { length: 255 }).notNull(),
+    category: varchar("category", { length: 100 }).default("general"),
+    fileUrl: text("file_url").notNull(),
+    fileSize: integer("file_size"),
+    uploadedBy: varchar("uploaded_by", { length: 20 })
+      .notNull()
+      .default("admin"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("client_documents_user_idx").on(table.userId),
+    projectIdx: index("client_documents_project_idx").on(table.projectId),
+  }),
+)
+
+export const membershipEvents = pgTable(
+  "membership_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    image: text("image"),
+    location: varchar("location", { length: 255 }),
+    eventDate: timestamp("event_date").notNull(),
+    capacity: integer("capacity"),
+    membershipTier: varchar("membership_tier", { length: 50 }).default("all"),
+    status: varchar("status", { length: 50 }).notNull().default("published"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    dateIdx: index("membership_events_date_idx").on(table.eventDate),
+  }),
+)
+
+export const eventRsvps = pgTable(
+  "event_rsvps",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => membershipEvents.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    eventIdx: index("event_rsvps_event_idx").on(table.eventId),
+    userIdx: index("event_rsvps_user_idx").on(table.userId),
+  }),
+)
+
+export const clientDocumentsRelations = relations(
+  clientDocuments,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [clientDocuments.userId],
+      references: [users.id],
+    }),
+    project: one(projects, {
+      fields: [clientDocuments.projectId],
+      references: [projects.id],
+    }),
+  }),
+)
+
+export const projectMembers = pgTable(
+  "project_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 50 }).notNull().default("client"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    projectIdx: index("project_members_project_idx").on(table.projectId),
+    userIdx: index("project_members_user_idx").on(table.userId),
+  }),
+)
+
+export const projectAssets = pgTable(
+  "project_assets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    assetType: varchar("asset_type", { length: 30 }).notNull().default("image"),
+    category: varchar("category", { length: 100 }),
+    fileUrl: text("file_url").notNull(),
+    thumbnailUrl: text("thumbnail_url"),
+    fileSize: integer("file_size"),
+    storageProvider: varchar("storage_provider", { length: 20 })
+      .notNull()
+      .default("r2"),
+    version: integer("version").notNull().default(1),
+    parentAssetId: uuid("parent_asset_id"),
+    isCurrentVersion: boolean("is_current_version").notNull().default(true),
+    visibility: varchar("visibility", { length: 20 }).notNull().default("client"),
+    approvalStatus: varchar("approval_status", { length: 30 })
+      .notNull()
+      .default("pending"),
+    uploadedBy: uuid("uploaded_by").references(() => users.id),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    projectIdx: index("project_assets_project_idx").on(table.projectId),
+    parentIdx: index("project_assets_parent_idx").on(table.parentAssetId),
+    typeIdx: index("project_assets_type_idx").on(table.assetType),
+  }),
+)
+
+export const projectAssetComments = pgTable(
+  "project_asset_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    assetId: uuid("asset_id")
+      .notNull()
+      .references(() => projectAssets.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    senderType: varchar("sender_type", { length: 20 }).notNull().default("client"),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    assetIdx: index("project_asset_comments_asset_idx").on(table.assetId),
+  }),
+)
+
+export const projectDocuments = pgTable(
+  "project_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    category: varchar("category", { length: 100 }).default("general"),
+    fileUrl: text("file_url").notNull(),
+    fileSize: integer("file_size"),
+    storageProvider: varchar("storage_provider", { length: 20 })
+      .notNull()
+      .default("r2"),
+    visibility: varchar("visibility", { length: 20 }).notNull().default("client"),
+    signatureStatus: varchar("signature_status", { length: 20 }).default("n/a"),
+    uploadedBy: uuid("uploaded_by").references(() => users.id),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    projectIdx: index("project_documents_project_idx").on(table.projectId),
+  }),
+)
+
+export const projectActivity = pgTable(
+  "project_activity",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id),
+    actorType: varchar("actor_type", { length: 20 }).notNull().default("admin"),
+    action: varchar("action", { length: 100 }).notNull(),
+    summary: text("summary").notNull(),
+    relatedAssetId: uuid("related_asset_id").references(() => projectAssets.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    projectIdx: index("project_activity_project_idx").on(
+      table.projectId,
+      table.createdAt,
+    ),
+  }),
+)
+
+export const projectMembersRelations = relations(projectMembers, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectMembers.projectId],
+    references: [projects.id],
+  }),
+  user: one(users, {
+    fields: [projectMembers.userId],
+    references: [users.id],
+  }),
+}))
+
+export const projectAssetsRelations = relations(
+  projectAssets,
+  ({ one, many }) => ({
+    project: one(projects, {
+      fields: [projectAssets.projectId],
+      references: [projects.id],
+    }),
+    uploader: one(users, {
+      fields: [projectAssets.uploadedBy],
+      references: [users.id],
+    }),
+    comments: many(projectAssetComments),
+  }),
+)
+
+export const projectAssetCommentsRelations = relations(
+  projectAssetComments,
+  ({ one }) => ({
+    asset: one(projectAssets, {
+      fields: [projectAssetComments.assetId],
+      references: [projectAssets.id],
+    }),
+    user: one(users, {
+      fields: [projectAssetComments.userId],
+      references: [users.id],
+    }),
+  }),
+)
+
+export const projectDocumentsRelations = relations(
+  projectDocuments,
+  ({ one }) => ({
+    project: one(projects, {
+      fields: [projectDocuments.projectId],
+      references: [projects.id],
+    }),
+  }),
+)
+
+export const quotesRelations = relations(quotes, ({ one }) => ({
+  user: one(users, {
+    fields: [quotes.userId],
+    references: [users.id],
+  }),
+  project: one(projects, {
+    fields: [quotes.projectId],
+    references: [projects.id],
+  }),
+  consultation: one(consultations, {
+    fields: [quotes.consultationId],
+    references: [consultations.id],
+  }),
+}))
+
+export const consultationsRelations = relations(consultations, ({ one, many }) => ({
+  user: one(users, {
+    fields: [consultations.userId],
+    references: [users.id],
+  }),
+  slots: many(consultationSlots),
+}))
+
+export const projectActivityRelations = relations(
+  projectActivity,
+  ({ one }) => ({
+    project: one(projects, {
+      fields: [projectActivity.projectId],
+      references: [projects.id],
+    }),
+    asset: one(projectAssets, {
+      fields: [projectActivity.relatedAssetId],
+      references: [projectAssets.id],
+    }),
+  }),
+)
+
+export const projectTasks = pgTable(
+  "project_tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    assignedTo: varchar("assigned_to", { length: 20 }).notNull().default("client"),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    dueDate: timestamp("due_date"),
+    completedAt: timestamp("completed_at"),
+    createdBy: uuid("created_by").references(() => users.id),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    projectIdx: index("project_tasks_project_idx").on(table.projectId),
+    statusIdx: index("project_tasks_status_idx").on(table.status),
+  }),
+)
+
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    invoiceNumber: varchar("invoice_number", { length: 50 }).notNull().unique(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+    quoteId: uuid("quote_id").references(() => quotes.id, { onDelete: "set null" }),
+    items: jsonb("items"),
+    subtotal: decimal("subtotal", { precision: 12, scale: 2 }),
+    tax: decimal("tax", { precision: 12, scale: 2 }).default("0"),
+    total: decimal("total", { precision: 12, scale: 2 }).notNull(),
+    amountPaid: decimal("amount_paid", { precision: 12, scale: 2 })
+      .notNull()
+      .default("0"),
+    dueDate: timestamp("due_date"),
+    status: varchar("status", { length: 50 }).notNull().default("draft"),
+    pdfUrl: text("pdf_url"),
+    receiptUrl: text("receipt_url"),
+    receiptUploadedAt: timestamp("receipt_uploaded_at"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("invoices_user_idx").on(table.userId),
+    projectIdx: index("invoices_project_idx").on(table.projectId),
+    statusIdx: index("invoices_status_idx").on(table.status),
+  }),
+)
+
+export const consultationSlots = pgTable(
+  "consultation_slots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    startTime: timestamp("start_time").notNull(),
+    durationMinutes: integer("duration_minutes").notNull().default(45),
+    mode: varchar("mode", { length: 20 }).notNull().default("virtual"),
+    isBooked: boolean("is_booked").notNull().default(false),
+    consultationId: uuid("consultation_id").references(() => consultations.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    startIdx: index("consultation_slots_start_idx").on(table.startTime),
+    bookedIdx: index("consultation_slots_booked_idx").on(table.isBooked),
+  }),
+)
+
+export const projectTasksRelations = relations(projectTasks, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectTasks.projectId],
+    references: [projects.id],
+  }),
+}))
+
+export const invoicesRelations = relations(invoices, ({ one }) => ({
+  user: one(users, {
+    fields: [invoices.userId],
+    references: [users.id],
+  }),
+  project: one(projects, {
+    fields: [invoices.projectId],
+    references: [projects.id],
+  }),
+  quote: one(quotes, {
+    fields: [invoices.quoteId],
+    references: [quotes.id],
+  }),
+}))
+
+export const consultationSlotsRelations = relations(consultationSlots, ({ one }) => ({
+  consultation: one(consultations, {
+    fields: [consultationSlots.consultationId],
+    references: [consultations.id],
+  }),
+}))
+
+export const tradeResources = pgTable("trade_resources", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  type: varchar("type", { length: 50 }).notNull().default("guide"),
+  fileUrl: text("file_url").notNull(),
+  fileSize: varchar("file_size", { length: 50 }),
+  status: varchar("status", { length: 50 }).notNull().default("published"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+export const membershipEventsRelations = relations(
+  membershipEvents,
+  ({ many }) => ({
+    rsvps: many(eventRsvps),
+  }),
+)
+
+export const eventRsvpsRelations = relations(eventRsvps, ({ one }) => ({
+  event: one(membershipEvents, {
+    fields: [eventRsvps.eventId],
+    references: [membershipEvents.id],
+  }),
+  user: one(users, {
+    fields: [eventRsvps.userId],
+    references: [users.id],
+  }),
+}))
+
 export const conversationsRelations = relations(
   conversations,
   ({ one, many }) => ({
@@ -1665,9 +2096,21 @@ export const productAttributeDefinitionsRelations = relations(
 
 export const projectsRelations = relations(
   projects,
-  ({ many }) => ({
+  ({ many, one }) => ({
     comments: many(comments),
     likes: many(likes),
+    clientDocuments: many(clientDocuments),
+    members: many(projectMembers),
+    assets: many(projectAssets),
+    documents: many(projectDocuments),
+    activity: many(projectActivity),
+    tasks: many(projectTasks),
+    quotes: many(quotes),
+    invoices: many(invoices),
+    user: one(users, {
+      fields: [projects.userId],
+      references: [users.id],
+    }),
   }),
 )
 

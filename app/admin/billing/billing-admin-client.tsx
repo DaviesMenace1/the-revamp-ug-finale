@@ -255,7 +255,7 @@ export default function BillingAdminClient({
                     <p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Revamp operations · 02</p>
           <h1 className="mt-3 font-serif text-5xl font-light leading-none text-foreground">Finance workspace</h1>
 
-          <p className="mt-2 text-muted-foreground">Manual uploads and Revamp-generated financial documents.</p>
+          <p className="mt-2 text-muted-foreground">Manual uploads and generated financial documents.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="rounded" disabled={!storageConfigured} onClick={openQuoteForm}>

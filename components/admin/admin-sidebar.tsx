@@ -42,7 +42,7 @@ export default function AdminSidebar() {
     <aside className="w-64 border-r border-border/20 bg-card p-6 sticky top-0 h-screen overflow-y-auto">
       <div className="mb-8">
         <Link href="/admin" className="font-serif text-2xl font-light text-foreground">
-          The Revamp UG
+          The Revamp Ug
         </Link>
         <p className="text-xs text-muted-foreground mt-1">Admin Portal</p>
       </div>

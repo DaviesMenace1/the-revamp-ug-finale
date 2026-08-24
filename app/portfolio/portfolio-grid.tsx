@@ -26,7 +26,6 @@ type Project = {
 
 function phaseLabel(status: string | null, progress: number | null) {
   const labels: Record<string, string> = {
-    consultation_scheduled: 'Briefing & scope',
     design_phase: 'Design development',
     procurement_phase: 'Procurement',
     installation_phase: 'Installation',

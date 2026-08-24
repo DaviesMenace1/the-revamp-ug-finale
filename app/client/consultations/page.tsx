@@ -15,7 +15,21 @@ export default async function ClientConsultations() {
 
   const result = await safeQuery(
     db
-      .select()
+      .select({
+        id: consultations.id,
+        title: consultations.title,
+        description: consultations.description,
+        serviceType: consultations.serviceType,
+        status: consultations.status,
+        preferredDate: consultations.preferredDate,
+        mode: consultations.mode,
+        durationMinutes: consultations.durationMinutes,
+        meetingLink: consultations.meetingLink,
+        location: consultations.location,
+        notes: consultations.notes,
+        createdAt: consultations.createdAt,
+        updatedAt: consultations.updatedAt,
+      })
       .from(consultations)
       .where(eq(consultations.userId, user.id))
       .orderBy(desc(consultations.createdAt)),

@@ -34,6 +34,7 @@ const sidebarItems = [
   { label: 'Support Tickets', href: '/admin/tickets', icon: LifeBuoy },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Consultations', href: '/admin/consultations', icon: FileText },
+  { label: 'Studio Inquiries', href: '/admin/service-requests', icon: MessageSquare },
   { label: 'Settings', href: '/admin/settings', icon: Settings },
 ]
 

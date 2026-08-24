@@ -60,7 +60,7 @@ export default async function ProjectDetailPage({
     dueDate: project.dueDate ? project.dueDate.toISOString() : null,
     designer: project.designer,
     location: project.location,
-    features: Array.isArray(project.features) ? project.features : [],
+    features: [],
     documents: [
       ...legacyDocuments.map((d) => ({
         id: d.id,

@@ -22,13 +22,12 @@ import {
 import { updateOrderStatus, deleteOrder } from '@/lib/actions/orders'
 
 const STATUS_COLORS: Record<string, string> = {
-  completed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  confirmed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   paid: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   pending: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
   processing: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
   shipped: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
   delivered: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
-  failed: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
   cancelled: 'bg-muted text-muted-foreground border-border',
 }
 
@@ -39,7 +38,9 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
+  type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     startTransition(async () => {
       const res = await updateOrderStatus(orderId, newStatus)
       if (res.success) {
@@ -68,8 +69,8 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
   const filteredOrders = ordersList.filter((order) => {
     const matchesSearch =
       order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.shippingAddress?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      order.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.deliveryAddress?.name?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter
 
@@ -101,7 +102,7 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
-          {['all', 'completed', 'pending', 'processing', 'shipped', 'delivered', 'failed'].map(
+          {['all', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'].map(
             (status) => (
               <button
                 key={status}
@@ -141,7 +142,7 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
               </tr>
             ) : (
               filteredOrders.map((order) => {
-                const address = order.shippingAddress || {}
+                const address = order.deliveryAddress || {}
                 const itemsCount = order.items?.length || 0
 
                 return (
@@ -160,7 +161,7 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
                     <td className="py-3 px-4">
                       <div className="font-medium text-foreground">{address.name || 'N/A'}</div>
                       <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                        {order.userEmail}
+                        {order.userId}
                       </div>
                     </td>
 
@@ -175,25 +176,24 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
 
                     {/* Total Amount */}
                     <td className="py-3 px-4 font-mono text-sm font-medium">
-                      {order.currency || 'USD'} ${Number(order.totalAmount).toLocaleString()}
+                      UGX {Number(order.total).toLocaleString()}
                     </td>
 
                     {/* Status Select Badge */}
                     <td className="py-3 px-4">
                       <select
                         value={order.status}
-                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                        onChange={(e) => handleStatusChange(order.id, e.target.value as OrderStatus)}
                         disabled={isPending}
                         className={`text-[11px] font-semibold tracking-wider uppercase px-2 py-1 border rounded-none cursor-pointer focus:outline-none ${
                           STATUS_COLORS[order.status] || STATUS_COLORS.pending
                         }`}
                       >
                         <option value="pending">Pending</option>
-                        <option value="completed">Completed / Paid</option>
+                        <option value="confirmed">Confirmed / Paid</option>
                         <option value="processing">Processing</option>
                         <option value="shipped">Shipped</option>
                         <option value="delivered">Delivered</option>
-                        <option value="failed">Failed</option>
                         <option value="cancelled">Cancelled</option>
                       </select>
                     </td>
@@ -262,16 +262,16 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
                 <h3 className="font-medium text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-primary" /> Shipping Address
                 </h3>
-                <p className="font-semibold">{selectedOrder.shippingAddress?.name}</p>
-                <p className="text-muted-foreground text-xs">{selectedOrder.shippingAddress?.address}</p>
+                <p className="font-semibold">{selectedOrder.deliveryAddress?.name}</p>
+                <p className="text-muted-foreground text-xs">{selectedOrder.deliveryAddress?.address}</p>
                 <p className="text-muted-foreground text-xs">
-                  {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.country}
+                  {selectedOrder.deliveryAddress?.city}, {selectedOrder.deliveryAddress?.country}
                 </p>
                 <p className="text-muted-foreground text-xs flex items-center gap-1 pt-1">
-                  <Phone className="w-3 h-3" /> {selectedOrder.shippingAddress?.phone || 'N/A'}
+                  <Phone className="w-3 h-3" /> {selectedOrder.deliveryAddress?.phone || 'N/A'}
                 </p>
                 <p className="text-muted-foreground text-xs flex items-center gap-1">
-                  <Mail className="w-3 h-3" /> {selectedOrder.userEmail}
+                  <Mail className="w-3 h-3" /> {selectedOrder.userId}
                 </p>
               </div>
 
@@ -293,7 +293,7 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
                 <div className="flex justify-between text-sm font-medium pt-3 border-t">
                   <span>Total Amount Paid:</span>
                   <span className="font-mono text-primary font-bold">
-                    {selectedOrder.currency} ${Number(selectedOrder.totalAmount).toLocaleString()}
+                    UGX {Number(selectedOrder.total).toLocaleString()}
                   </span>
                 </div>
               </div>

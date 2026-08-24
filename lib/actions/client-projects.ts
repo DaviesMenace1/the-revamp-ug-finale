@@ -39,7 +39,7 @@ export async function createClientProject(data: {
         budget: data.budget || null,
         designer: data.designer || null,
         dueDate: data.dueDate ? new Date(data.dueDate) : null,
-        status: 'active',
+        status: 'consultation_scheduled',
         currentPhase: 'consultation',
         progress: 0,
       })

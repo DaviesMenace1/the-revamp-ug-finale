@@ -12,7 +12,7 @@
  */
 
 import { Ratelimit } from '@upstash/ratelimit';
-import { redis } from './client';
+import { redis, redisConfigured } from './client';
 import { NextRequest, NextResponse } from 'next/server';
 
 const slidingWindow = (tokens: number, window: string) =>
@@ -53,8 +53,18 @@ export async function checkRateLimit(
   request: NextRequest,
   limiter: RateLimiterKey = 'api',
 ): Promise<NextResponse | null> {
+  // Redis is optional for page availability. If it is down, fail open and log it.
+  if (!redisConfigured) return null;
+
   const ip = getIP(request);
-  const { success, limit, remaining, reset } = await rateLimiters[limiter].limit(ip);
+  let result: Awaited<ReturnType<typeof rateLimiters[typeof limiter]['limit']>>;
+  try {
+    result = await rateLimiters[limiter].limit(ip);
+  } catch (error) {
+    console.warn('[RateLimit] Redis unavailable; skipping rate limit:', error);
+    return null;
+  }
+  const { success, limit, remaining, reset } = result;
 
   if (!success) {
     return NextResponse.json(

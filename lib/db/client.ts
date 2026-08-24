@@ -17,6 +17,7 @@ const globalForDb = globalThis as unknown as {
 const conn = globalForDb.conn ?? postgres(connectionString, {
   ssl: { rejectUnauthorized: false },
   max: 1,               // one connection per function instance; let Supabase's pooler handle concurrency
+  prepare: false,         // required for Supavisor transaction-mode pooling
   idle_timeout: 20,      // seconds — release an idle connection instead of holding it open
   connect_timeout: 10,   // seconds — fail fast instead of hanging if the pooler is unreachable
   max_lifetime: 60 * 30, // seconds — recycle connections periodically so nothing lingers indefinitely

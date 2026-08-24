@@ -80,7 +80,19 @@ export default function BlogsClient({ initialArticles = [] }: { initialArticles:
       } else {
         const res = await createArticle(form)
         if (res.success && res.article) {
-          setList((prev) => [res.article as Article, ...prev])
+          const article: Article = {
+            id: res.article.id,
+            title: res.article.title,
+            slug: res.article.slug,
+            excerpt: res.article.excerpt,
+            content: res.article.content,
+            author: res.article.author,
+            category: res.article.category,
+            featuredImage: res.article.featuredImage,
+            status: res.article.status,
+            createdAt: new Date(res.article.createdAt).toISOString(),
+          }
+          setList((prev) => [article, ...prev])
           setShowForm(false)
         }
       }

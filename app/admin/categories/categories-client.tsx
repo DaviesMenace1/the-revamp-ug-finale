@@ -21,7 +21,7 @@ type SubCategory = {
   name: string
   slug: string
   active: boolean
-  templateId: string
+  templateId: string | null
 }
 type Template = { id: string; name: string }
 

@@ -61,10 +61,10 @@ export async function getProductById(id: string) {
   }
 }
 
-export async function getProductsByCategory(category: string) {
+export async function getProductsByCategory(subCategoryId: string) {
   try {
     return await db.query.products.findMany({
-      where: eq(products.category, category),
+      where: eq(products.subCategoryId, subCategoryId),
       orderBy: desc(products.createdAt),
     });
   } catch (error) {

@@ -617,6 +617,7 @@ export function ProductDetail({ product }: { product: any }) {
 
 // PRODUCT REVIEWS WITH INTERACTIVE FORM
 export function ProductReviews({ product }: { product: any }) {
+  const router = useRouter()
   const [reviewsList, setReviewsList] = useState<any[]>(
     Array.isArray(product?.reviews) ? product.reviews : product?.productReviews || []
   )

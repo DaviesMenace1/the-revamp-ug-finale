@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   serverExternalPackages: ['@getbrevo/brevo','postgres', 'pg', 'drizzle-orm'],
   images: {
     remotePatterns: [

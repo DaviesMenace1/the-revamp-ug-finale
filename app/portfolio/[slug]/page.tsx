@@ -9,6 +9,12 @@ import { generateProjectSchema } from '@/lib/seo/schema-generator'
 import LikeButton from '@/components/like-button'
 import { getProjectBySlug, getProjects } from '@/lib/db/queries'
 
+function imageUrls(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.length > 0)
+    : []
+}
+
 interface ProjectPageProps {
   params: Promise<{ slug: string }>
 }
@@ -24,21 +30,21 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
     }
   }
 
-  const heroImage = project.images?.[0] || ''
+  const heroImage = imageUrls(project.images)[0] || ''
 
   return {
-    title: `${project.name} | The Revamp UG`,
+    title: `${project.title} | The Revamp UG`,
     description: project.shortDescription || project.description,
     openGraph: {
-      title: project.name,
-      description: project.shortDescription || project.description,
+      title: project.title,
+      description: project.shortDescription || project.description || undefined,
       type: 'website',
       images: heroImage ? [{ url: heroImage, width: 1200, height: 630 }] : [],
     },
     twitter: {
       card: 'summary_large_image',
-      title: project.name,
-      description: project.shortDescription || project.description,
+      title: project.title,
+      description: project.shortDescription || project.description || undefined,
       images: heroImage ? [heroImage] : [],
     },
   }
@@ -55,12 +61,12 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   const allProjects = await getProjects(4, 0)
   const relatedProjects = allProjects.filter((item) => item.slug !== slug).slice(0, 2)
 
-  const heroImage = project.images?.[0] || 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&q=85&auto=format&fit=crop'
-  const galleryImages = project.images || []
+  const heroImage = imageUrls(project.images)[0] || 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&q=85&auto=format&fit=crop'
+  const galleryImages = imageUrls(project.images)
 
   const projectSchema = generateProjectSchema({
-    name: project.name,
-    description: project.description,
+    name: project.title,
+    description: project.description || '',
     image: heroImage,
     location: project.location,
     startDate: project.createdAt ? new Date(project.createdAt).toISOString() : new Date().toISOString(),
@@ -76,7 +82,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
           <div className="relative h-[65vh] md:h-[80vh] w-full overflow-hidden bg-muted">
             <Image
               src={heroImage}
-              alt={project.name}
+              alt={project.title}
               fill
               priority
               className="object-cover"
@@ -97,7 +103,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
                   </svg>
                   Back to Portfolio
                 </Link>
-                <h1 className="font-serif text-5xl md:text-6xl font-light text-foreground">{project.name}</h1>
+                <h1 className="font-serif text-5xl md:text-6xl font-light text-foreground">{project.title}</h1>
                 <div className="flex flex-wrap gap-6 text-sm text-muted-foreground font-light">
                   <span>Client: {project.client}</span>
                   <span>•</span>
@@ -125,7 +131,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-3">Target Completion</p>
-                  <p className="text-muted-foreground font-light">{project.dueDate}</p>
+                  <p className="text-muted-foreground font-light">{project.dueDate ? new Date(project.dueDate).toLocaleDateString('en-UG') : '—'}</p>
                 </div>
               </div>
             </div>
@@ -142,28 +148,11 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
                   <div key={idx} className="relative h-64 md:h-80 rounded-lg overflow-hidden group">
                     <Image
                       src={img}
-                      alt={`${project.name} view ${idx + 1}`}
+                      alt={`${project.title} view ${idx + 1}`}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                       sizes="(max-width: 768px) 100vw, 33vw"
                     />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* 4. FEATURES */}
-        {project.features && project.features.length > 0 && (
-          <section className="border-b border-border/20 py-16 md:py-20 bg-muted/5">
-            <div className="mx-auto max-w-5xl px-6 md:px-8">
-              <h2 className="font-serif text-3xl font-light text-foreground mb-12">Project Features</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {project.features.map((feature: string, idx: number) => (
-                  <div key={idx} className="flex items-center gap-3 p-4 border border-border/20 rounded-lg bg-background">
-                    <span className="flex items-center justify-center size-5 rounded-full bg-primary/10 text-xs font-medium text-primary">✓</span>
-                    <span className="font-light text-foreground">{feature}</span>
                   </div>
                 ))}
               </div>
@@ -178,14 +167,14 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
               <h2 className="font-serif text-3xl font-light text-foreground mb-12">Related Projects</h2>
               <div className="grid gap-8 md:grid-cols-2">
                 {relatedProjects.map((rel) => {
-                  const relImg = rel.images?.[0] || 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=800'
+                  const relImg = imageUrls(rel.images)[0] || 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=800'
                   return (
                     <Link key={rel.slug} href={`/portfolio/${rel.slug}`} className="group">
                       <article className="space-y-4 cursor-pointer">
                         <div className="relative w-full h-60 rounded-lg overflow-hidden group-hover:opacity-80 transition-opacity bg-muted">
                           <Image
                             src={relImg}
-                            alt={rel.name}
+                            alt={rel.title}
                             fill
                             className="object-cover"
                             sizes="(max-width: 768px) 100vw, 50vw"
@@ -196,7 +185,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
                             {rel.status}
                           </span>
                           <h3 className="font-serif text-xl font-light text-foreground group-hover:text-primary transition-colors">
-                            {rel.name}
+                            {rel.title}
                           </h3>
                           <p className="text-sm text-muted-foreground font-light">{rel.location}</p>
                         </div>

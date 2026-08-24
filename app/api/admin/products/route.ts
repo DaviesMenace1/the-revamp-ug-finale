@@ -22,7 +22,16 @@ const productSchema = z.object({
   categoryId: z.string().min(1),
   subCategoryId: z.string().min(1),
 
-  productType: z.string().default("standard"),
+  productType: z.enum([
+    "standard",
+    "made_to_order",
+    "custom_bespoke",
+    "sourced_on_request",
+    "pre_order",
+    "set",
+    "bundle",
+    "sample",
+  ]).default("standard"),
 
   description: z.string().optional().nullable(),
   longDescription: z.string().optional().nullable(),
@@ -34,9 +43,14 @@ const productSchema = z.object({
     z.number().nonnegative().optional().nullable(),
   currency: z.string().default("UGX"),
 
-  condition: z.string().default("new"),
-  availability:
-    z.string().default("in_stock"),
+  condition: z.enum(["new", "refurbished", "used"]).default("new"),
+  availability: z.enum([
+    "in_stock",
+    "out_of_stock",
+    "made_to_order",
+    "pre_order",
+    "available_on_request",
+  ]).default("in_stock"),
 
   quantity: z.number().int().nonnegative().default(0),
   inStock: z.boolean().default(true),
@@ -230,10 +244,6 @@ export async function POST(
             data.countryOfOrigin ||
             null,
 
-          departmentId:
-            data.departmentId,
-          categoryId:
-            data.categoryId,
           subCategoryId:
             data.subCategoryId,
 

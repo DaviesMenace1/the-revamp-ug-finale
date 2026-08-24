@@ -17,7 +17,7 @@ export function CartCheckout() {
     const orderDetails = items
       .map(
         (item) =>
-          `• ${item.name ?? item.product.name}  x${item.quantity} - USD ${((item.price ?? item.product.price) * item.quantity).toLocaleString()}`
+          `• ${item.product.name}  x${item.quantity} - UGX ${((item.unitPrice ?? item.product.price) * item.quantity).toLocaleString()}`
       )
       .join('\n');
 
@@ -67,18 +67,18 @@ export function CartCheckout() {
         </CardHeader>
         <CardContent className="space-y-4">
           {items.map((item) => (
-            <div key={item.productId} className="flex items-center justify-between gap-4 pb-4 border-b last:border-b-0">
+            <div key={item.cartItemId} className="flex items-center justify-between gap-4 pb-4 border-b last:border-b-0">
               {item.image && (
                 <img
                   src={item.image}
-                  alt={item.name ?? item.product.name}
+                  alt={item.product.name}
                   className="w-16 h-16 rounded object-cover"
                 />
               )}
               <div className="flex-1">
-                <h3 className="font-medium">{item.name ?? item.product.name}</h3>
+                <h3 className="font-medium">{item.product.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  UGX {(item.price ?? item.product.price).toLocaleString()} each
+                  UGX {(item.unitPrice ?? item.product.price).toLocaleString()} each
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -86,7 +86,7 @@ export function CartCheckout() {
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    updateQuantity(item.productId, item.quantity - 1)
+                    updateQuantity(item.cartItemId, item.quantity - 1)
                   }
                 >
                   <Minus className="h-4 w-4" />
@@ -96,7 +96,7 @@ export function CartCheckout() {
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    updateQuantity(item.productId, item.quantity + 1)
+                    updateQuantity(item.cartItemId, item.quantity + 1)
                   }
                 >
                   <Plus className="h-4 w-4" />
@@ -104,12 +104,12 @@ export function CartCheckout() {
               </div>
               <div className="text-right">
                 <p className="font-medium">
-                  UGX {((item.price ?? item.product.price) * item.quantity).toLocaleString()}
+                  UGX {((item.unitPrice ?? item.product.price) * item.quantity).toLocaleString()}
                 </p>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => removeItem(item.productId)}
+                  onClick={() => removeItem(item.cartItemId)}
                   className="text-destructive hover:text-destructive mt-1"
                 >
                   <Trash2 className="h-4 w-4" />

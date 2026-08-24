@@ -5,7 +5,9 @@ import { orders } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 
-export async function updateOrderStatus(orderId: string, status: string) {
+type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+
+export async function updateOrderStatus(orderId: string, status: OrderStatus) {
   try {
     await db
       .update(orders)

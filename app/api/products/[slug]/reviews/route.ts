@@ -45,7 +45,7 @@ export async function POST(
     await db
       .update(products)
       .set({
-        rating: newAverage,
+        rating: newAverage.toFixed(1),
         ratingCount: allReviews.length,
       })
       .where(eq(products.id, productId))

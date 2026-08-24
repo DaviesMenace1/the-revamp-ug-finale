@@ -929,7 +929,6 @@ export const articles = pgTable(
     seoDescription: varchar("seo_description", {
       length: 255,
     }),
-    featured: boolean("featured").default(false),
     status: varchar("status", { length: 50 }).default("published"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -939,7 +938,6 @@ export const articles = pgTable(
     categoryIdx: index("article_category_idx").on(table.category),
     statusIdx: index("article_status_idx").on(table.status),
     slugIdx: uniqueIndex("article_slug_idx").on(table.slug),
-    featuredIdx: index("article_featured_idx").on(table.featured),
   }),
 )
 

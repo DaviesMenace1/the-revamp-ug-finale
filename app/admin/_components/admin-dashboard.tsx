@@ -107,7 +107,7 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
                   <Line type="monotone" dataKey="revenue" stroke="#b88a3f" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
@@ -162,7 +162,10 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
                     cx="50%"
                     cy="50%"
                     outerRadius={100}
-                    label={(entry) => `${entry.category} (${entry.count})`}
+                    label={({ payload }) => {
+                      const entry = payload as { category?: string; count?: number } | undefined
+                      return `${entry?.category ?? ""} (${entry?.count ?? 0})`
+                    }}
                   >
                     {productsByCategory.map((entry, index) => (
                       <Cell key={entry.category} fill={PIE_COLORS[index % PIE_COLORS.length]} />

@@ -19,8 +19,6 @@ type ProductUpdate = {
   manufacturer?: string | null
   countryOfOrigin?: string | null
 
-  departmentId?: string
-  categoryId?: string
   subCategoryId?: string
 
   productType?: string
@@ -384,14 +382,6 @@ export async function PATCH(
     /*
      * Taxonomy.
      */
-    if (body.departmentId !== undefined) {
-      update.departmentId = body.departmentId
-    }
-
-    if (body.categoryId !== undefined) {
-      update.categoryId = body.categoryId
-    }
-
     if (body.subCategoryId !== undefined) {
       update.subCategoryId = body.subCategoryId
     }

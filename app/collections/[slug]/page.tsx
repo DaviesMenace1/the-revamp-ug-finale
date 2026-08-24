@@ -106,7 +106,9 @@ export async function generateMetadata({
   return {
     title: `${product.name} | The Revamp UG`,
     description: product.description || product.name,
-    keywords: [product.name, product.category].filter(Boolean) as string[],
+    keywords: [product.name, product.googleProductCategoryPath, product.googleProductCategoryId].filter(
+      (value): value is string => Boolean(value),
+    ),
     openGraph: {
       title: product.name,
       description: product.description || product.name,
@@ -186,7 +188,6 @@ export default async function ProductPage({
     ? (product as any).reviews
     : [],
     tags: Array.isArray(product.tags) ? product.tags : [],
-    relatedProducts: Array.isArray(product.relatedProducts) ? product.relatedProducts : [],
     options: Array.isArray((product as any).options) ? (product as any).options : [],
     specifications: Array.isArray((product as any).specifications) ? (product as any).specifications : [],
     dimensions: safeDimensions,

@@ -231,7 +231,16 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
         dueDate: taskForm.dueDate || null,
       })
       if (res.success && res.task) {
-        setProject((p) => ({ ...p, tasks: [res.task, ...p.tasks] }))
+        const task: Task = {
+          id: res.task.id,
+          title: res.task.title,
+          description: res.task.description,
+          assignedTo: res.task.assignedTo,
+          status: res.task.status,
+          dueDate: res.task.dueDate ? new Date(res.task.dueDate).toISOString() : null,
+          createdAt: new Date(res.task.createdAt).toISOString(),
+        }
+        setProject((p) => ({ ...p, tasks: [task, ...p.tasks] }))
         setTaskForm({ title: '', description: '', assignedTo: 'client', dueDate: '' })
         setShowTaskForm(false)
       }

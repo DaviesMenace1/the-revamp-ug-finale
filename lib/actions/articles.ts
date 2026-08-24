@@ -29,7 +29,7 @@ export async function createArticle(data: {
         title: data.title,
         slug: slugify(data.title),
         excerpt: data.excerpt || null,
-        content: data.content || null,
+        content: data.content?.trim() || '',
         author: data.author || null,
         category: data.category || null,
         featuredImage: data.featuredImage || null,

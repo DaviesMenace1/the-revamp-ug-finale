@@ -14,10 +14,10 @@ export default async function AdminOrdersPage() {
   const formattedOrders = allOrders.map((order) => ({
     ...order,
     items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [],
-    shippingAddress:
-      typeof order.shippingAddress === 'string'
-        ? JSON.parse(order.shippingAddress)
-        : order.shippingAddress || {},
+    deliveryAddress:
+      typeof order.deliveryAddress === 'string'
+        ? JSON.parse(order.deliveryAddress)
+        : order.deliveryAddress || {},
   }))
 
   return <OrdersClient initialOrders={formattedOrders} />

@@ -68,7 +68,28 @@ function ImageUpload({
   )
 }
 
-const defaultForm = {
+const defaultForm: {
+  title: string
+  slug: string
+  clientName: string
+  client: string
+  location: string
+  category: string
+  subCategory: string
+  designer: string
+  budget: string
+  description: string
+  longDescription: string
+  shortDescription: string
+  thumbnailImage: string
+  tags: string
+  images: string[]
+  gallery: string[]
+  publishStatus: string
+  year: string
+  progress: string
+  dueDate: string
+} = {
   title: '', slug: '', clientName: '', client: '', location: '', category: '', subCategory: '', designer: '', budget: '',
   description: '', longDescription: '', shortDescription: '', thumbnailImage: '', tags: '',
   images: [], gallery: [], publishStatus: 'published', year: '', progress: '0', dueDate: '',

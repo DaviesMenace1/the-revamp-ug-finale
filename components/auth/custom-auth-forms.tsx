@@ -3,7 +3,6 @@
 import { FormEvent, useState } from 'react'
 import { useSignIn, useSignUp } from '@clerk/nextjs'
 import { ArrowRight, Check, Globe2, Link2, Loader2, ShieldCheck } from 'lucide-react'
-import { FcGoogle, FaLinkedin } from 'react-icons/all'
 import Link from 'next/link'
 
 type OAuthStrategy = 'oauth_google' | 'oauth_linkedin_oidc'
@@ -110,6 +109,7 @@ function Field({
   autoComplete,
   placeholder,
   inputMode,
+  required = true,
 }: {
   label: string
   type?: string
@@ -118,12 +118,13 @@ function Field({
   autoComplete?: string
   placeholder?: string
   inputMode?: 'text' | 'numeric' | 'email'
+  required?: boolean
 }) {
   return (
     <label className="grid gap-2 text-sm font-medium">
       <span>{label}</span>
       <input
-        required
+        required={required}
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}

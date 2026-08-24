@@ -3,6 +3,7 @@ export interface ContactData {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  company?: string;
   attributes?: Record<string, any>;
   listIds?: number[];
 }
@@ -29,6 +30,7 @@ export async function syncContactToBrevo(contact: ContactData): Promise<void> {
   const attributes: Record<string, any> = {
     FIRSTNAME: contact.firstName || '',
     LASTNAME: contact.lastName || '',
+    ...(contact.company ? { COMPANY: contact.company } : {}),
     ...contact.attributes,
   };
 

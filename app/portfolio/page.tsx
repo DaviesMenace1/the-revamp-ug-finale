@@ -6,6 +6,12 @@ import { getProjects } from '@/lib/db/queries'
 
 export const revalidate = 300 // Revalidate cache every 5 minutes
 
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&q=85&auto=format&fit=crop'
+
+function firstImage(value: unknown) {
+  return Array.isArray(value) && typeof value[0] === 'string' ? value[0] : DEFAULT_IMAGE
+}
+
 export default async function PortfolioPage() {
   const projects = await getProjects(20, 0)
 
@@ -30,7 +36,7 @@ export default async function PortfolioPage() {
           <div className="mx-auto max-w-7xl px-6 md:px-8">
             <div className="grid gap-8 md:grid-cols-2">
               {projects.map((project) => {
-                const heroImage = project.images?.[0] || 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&q=85&auto=format&fit=crop'
+                const heroImage = firstImage(project.images)
                 
                 return (
                   <Link
@@ -43,7 +49,7 @@ export default async function PortfolioPage() {
                       <div className="relative w-full h-80 overflow-hidden bg-muted">
                         <Image
                           src={heroImage}
-                          alt={project.name}
+                          alt={project.title}
                           fill
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                           sizes="(max-width: 768px) 100vw, 50vw"
@@ -62,7 +68,7 @@ export default async function PortfolioPage() {
                         </div>
 
                         <h2 className="font-serif text-2xl font-light text-foreground group-hover:text-primary transition-colors">
-                          {project.name}
+                          {project.title}
                         </h2>
 
                         <p className="text-sm text-muted-foreground line-clamp-2 font-light">

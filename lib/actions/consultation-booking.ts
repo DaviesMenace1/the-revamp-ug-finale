@@ -9,6 +9,23 @@ import { getCurrentUserWithRole } from '@/lib/auth/server'
 import { notifyUser } from '@/lib/notifications/service'
 
 const VALID_MODES = new Set(['virtual', 'in_person', 'showroom'])
+const BUDGET_LABELS: Record<string, string> = {
+  under_10m: 'Under UGX 10 million',
+  '10m_30m': 'UGX 10–30 million',
+  '30m_75m': 'UGX 30–75 million',
+  '75m_plus': 'UGX 75 million and above',
+  not_sure: 'Not sure yet',
+}
+
+function parseBudget(value?: string) {
+  const normalized = value?.trim()
+  if (!normalized) return { amount: null, label: null }
+
+  const amount = Number(normalized.replace(/,/g, ''))
+  if (Number.isFinite(amount) && amount >= 0) return { amount: String(amount), label: null }
+
+  return { amount: null, label: BUDGET_LABELS[normalized] ?? normalized.slice(0, 100) }
+}
 
 function revalidateConsultationPaths() {
   revalidatePath('/admin/consultations')
@@ -83,6 +100,8 @@ export async function bookConsultationSlot(data: {
   if (!user) return { success: false, error: 'Not signed in.' }
   if (!data.slotId || !data.title?.trim()) return { success: false, error: 'Please choose a time and tell us what you would like to discuss.' }
 
+  const budget = parseBudget(data.budget)
+
   try {
     const booking = await db.transaction(async (transaction) => {
       const [slot] = await transaction
@@ -98,9 +117,15 @@ export async function bookConsultationSlot(data: {
         .values({
           userId: user.id,
           title: data.title.trim().slice(0, 255),
-          description: data.description?.trim().slice(0, 5000) || null,
+          description: [
+            data.description?.trim(),
+            budget.label ? `Budget range: ${budget.label}` : null,
+          ]
+            .filter(Boolean)
+            .join('\n\n')
+            .slice(0, 5000) || null,
           serviceType: data.serviceType?.trim().slice(0, 100) || null,
-          budget: data.budget?.trim().slice(0, 100) || null,
+          budget: budget.amount,
           preferredDate: slot.startTime,
           mode: slot.mode,
           durationMinutes: slot.durationMinutes,
@@ -148,7 +173,7 @@ export async function bookConsultationSlot(data: {
     return { success: true, consultation: booking.consultation }
   } catch (error) {
     console.error('Failed to book consultation:', error)
-    return { success: false, error: 'Failed to book consultation.' }
+    return { success: false, error: 'We could not reserve that consultation right now. Please try the slot again or contact the studio if it remains unavailable.' }
   }
 }
 

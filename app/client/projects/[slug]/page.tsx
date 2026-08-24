@@ -1,9 +1,11 @@
 import { requirePortalUser } from '@/lib/auth/portal-auth'
 import { db } from '@/lib/db/client'
 import { projects, clientDocuments, projectAssets, projectDocuments, projectActivity, projectTasks } from '@/lib/db/schema'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, or } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import ProjectDetailClient from './project-detail-client'
+import { safeQuery } from '@/lib/server/safe-query'
+import PageLoadError from '@/components/system/page-load-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,38 +20,81 @@ export default async function ProjectDetailPage({
     '/client/projects',
   )
 
-  const project = await db.query.projects.findFirst({
-    where: and(eq(projects.slug, slug), eq(projects.userId, user.id)),
-  })
+  const projectResult = await safeQuery(
+    db.query.projects.findFirst({
+      where: and(
+        eq(projects.userId, user.id),
+        or(eq(projects.slug, slug), eq(projects.id, slug)),
+      ),
+    }),
+    'client project detail',
+    null,
+  )
 
-  if (!project) {
-    notFound()
+  if (!projectResult.data) {
+    if (!projectResult.error) notFound()
+    return (
+      <main className="min-h-screen bg-background p-8">
+        <PageLoadError
+          title="This project could not load."
+          message="The project record is temporarily unavailable. No project data was changed."
+        />
+      </main>
+    )
   }
 
-  const [legacyDocuments, assets, docs, activity, tasks] = await Promise.all([
-    db.select().from(clientDocuments).where(eq(clientDocuments.projectId, project.id)).orderBy(desc(clientDocuments.createdAt)),
-    db
-      .select()
-      .from(projectAssets)
-      .where(and(eq(projectAssets.projectId, project.id), eq(projectAssets.visibility, 'client'), eq(projectAssets.isCurrentVersion, true)))
-      .orderBy(desc(projectAssets.createdAt)),
-    db
-      .select()
-      .from(projectDocuments)
-      .where(and(eq(projectDocuments.projectId, project.id), eq(projectDocuments.visibility, 'client')))
-      .orderBy(desc(projectDocuments.createdAt)),
-    db
-      .select()
-      .from(projectActivity)
-      .where(eq(projectActivity.projectId, project.id))
-      .orderBy(desc(projectActivity.createdAt))
-      .limit(20),
-    db.select().from(projectTasks).where(eq(projectTasks.projectId, project.id)).orderBy(desc(projectTasks.createdAt)),
+  const project = projectResult.data
+  const canonicalSlug = project.slug?.trim() || project.id
+  const [legacyDocumentsResult, assetsResult, docsResult, activityResult, tasksResult] = await Promise.all([
+    safeQuery(
+      db.select().from(clientDocuments).where(eq(clientDocuments.projectId, project.id)).orderBy(desc(clientDocuments.createdAt)),
+      'client project legacy documents',
+      [],
+    ),
+    safeQuery(
+      db
+        .select()
+        .from(projectAssets)
+        .where(and(eq(projectAssets.projectId, project.id), eq(projectAssets.visibility, 'client'), eq(projectAssets.isCurrentVersion, true)))
+        .orderBy(desc(projectAssets.createdAt)),
+      'client project assets',
+      [],
+    ),
+    safeQuery(
+      db
+        .select()
+        .from(projectDocuments)
+        .where(and(eq(projectDocuments.projectId, project.id), eq(projectDocuments.visibility, 'client')))
+        .orderBy(desc(projectDocuments.createdAt)),
+      'client project documents',
+      [],
+    ),
+    safeQuery(
+      db
+        .select()
+        .from(projectActivity)
+        .where(eq(projectActivity.projectId, project.id))
+        .orderBy(desc(projectActivity.createdAt))
+        .limit(20),
+      'client project activity',
+      [],
+    ),
+    safeQuery(
+      db.select().from(projectTasks).where(eq(projectTasks.projectId, project.id)).orderBy(desc(projectTasks.createdAt)),
+      'client project tasks',
+      [],
+    ),
   ])
+
+  const legacyDocuments = legacyDocumentsResult.data
+  const assets = assetsResult.data
+  const docs = docsResult.data
+  const activity = activityResult.data
+  const tasks = tasksResult.data
 
   const formatted = {
     id: project.id,
-    slug: project.slug,
+    slug: canonicalSlug,
     title: project.title,
     status: project.status,
     currentPhase: project.currentPhase ?? 'consultation',
@@ -92,7 +137,7 @@ export default async function ProjectDetailPage({
       assetType: a.assetType,
       category: a.category,
               fileUrl: a.fileUrl,
-        viewerUrl: ['3d_model', 'glb', 'gltf'].includes(a.assetType) ? `/client/projects/${project.slug}/visualization` : null,
+        viewerUrl: ['3d_model', 'glb', 'gltf'].includes(a.assetType) ? `/client/projects/${canonicalSlug}/visualization` : null,
         thumbnailUrl: a.thumbnailUrl,
 
       version: a.version,

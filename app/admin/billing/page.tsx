@@ -1,19 +1,10 @@
 import { db } from '@/lib/db/client'
-import { quotes, invoices, users, projects } from '@/lib/db/schema'
+import { quotes, invoices, users, projects, financialDocuments } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import BillingAdminClient from './billing-admin-client'
-import { listGeneratedFinancialDocuments } from '@/lib/actions/billing'
+import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
-
-async function safeQuery<T>(query: PromiseLike<T>, label: string): Promise<{ data: T | null; error: string | null }> {
-  try {
-    return { data: await query, error: null }
-  } catch (error) {
-    console.error(`[billing] ${label} query failed:`, error)
-    return { data: null, error: label }
-  }
-}
 
 export default async function AdminBillingPage() {
   const [quoteResult, invoiceResult, clientResult, projectResult, generatedResult] = await Promise.all([
@@ -35,6 +26,7 @@ export default async function AdminBillingPage() {
         .innerJoin(users, eq(quotes.userId, users.id))
         .orderBy(desc(quotes.createdAt)),
       'quotes',
+      [],
     ),
     safeQuery(
       db
@@ -56,6 +48,7 @@ export default async function AdminBillingPage() {
         .innerJoin(users, eq(invoices.userId, users.id))
         .orderBy(desc(invoices.createdAt)),
       'invoices',
+      [],
     ),
     safeQuery(
       db
@@ -63,6 +56,7 @@ export default async function AdminBillingPage() {
         .from(users)
         .orderBy(users.email),
       'clients',
+      [],
     ),
     safeQuery(
       db
@@ -70,15 +64,36 @@ export default async function AdminBillingPage() {
         .from(projects)
         .where(eq(projects.projectKind, 'client')),
       'projects',
+      [],
     ),
-    safeQuery(listGeneratedFinancialDocuments(), 'generated documents'),
+    safeQuery(
+      db
+        .select({
+          id: financialDocuments.id,
+          documentNumber: financialDocuments.documentNumber,
+          documentType: financialDocuments.documentType,
+          amount: financialDocuments.amount,
+          currency: financialDocuments.currency,
+          fileUrl: financialDocuments.fileUrl,
+          createdAt: financialDocuments.createdAt,
+          clientFirstName: users.firstName,
+          clientLastName: users.lastName,
+          clientEmail: users.email,
+        })
+        .from(financialDocuments)
+        .innerJoin(users, eq(financialDocuments.userId, users.id))
+        .orderBy(desc(financialDocuments.createdAt))
+        .limit(100),
+      'generated documents',
+      [],
+    ),
   ])
 
   const quoteRows = quoteResult.data ?? []
   const invoiceRows = invoiceResult.data ?? []
   const clients = clientResult.data ?? []
   const clientProjects = projectResult.data ?? []
-  const generatedDocuments = generatedResult.data ?? []
+  const generatedDocuments = generatedResult.data
   const failedQueries = [quoteResult, invoiceResult, clientResult, projectResult, generatedResult]
     .filter((result) => result.error)
     .map((result) => result.error)

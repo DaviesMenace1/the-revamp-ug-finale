@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/lib/theme-provider'
 import { NewsletterPopup } from '@/components/newsletter-popup'
 import { CookieConsentProvider } from '@/components/privacy/cookie-consent-provider'
 import OneSignalBootstrap from '@/components/notifications/onesignal-bootstrap'
+import ConsentGatedAnalytics from '@/components/analytics/consent-gated-analytics'
 import { CartProvider } from '@/lib/context/cart-context'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateOrganizationSchema, generateLocalBusinessSchema } from '@/lib/seo/schema-generator'
@@ -156,6 +157,7 @@ export default function RootLayout({
               <ThemeProvider>{children}</ThemeProvider>
               <NewsletterPopup />
               <OneSignalBootstrap />
+              <ConsentGatedAnalytics />
             </CartProvider>
           </CookieConsentProvider>
         </ClerkProvider>

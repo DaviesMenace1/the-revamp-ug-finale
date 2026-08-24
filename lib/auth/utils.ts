@@ -45,8 +45,8 @@ export async function getCurrentUser() {
  * - After the upsert we re-select, which returns the row regardless of
  *   whether we or the webhook won the race.
  */
-export async function getOrCreateCurrentUser() {
-  const { userId } = await auth()
+export async function getOrCreateCurrentUser(existingUserId?: string) {
+  const userId = existingUserId ?? (await auth()).userId
   if (!userId) {
     return null
   }

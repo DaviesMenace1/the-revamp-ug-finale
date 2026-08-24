@@ -4,6 +4,7 @@ import { conversations, conversationMessages } from '@/lib/db/schema'
 import { eq, asc } from 'drizzle-orm'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import MessagesClient from './messages-client'
+import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,19 +12,27 @@ export default async function ClientMessagesPage() {
   const user = await getOrCreateCurrentUser()
   if (!user) redirect('/sign-in?redirect_url=/client/messages')
 
-  const conversation = await db.query.conversations.findFirst({
-    where: eq(conversations.userId, user.id),
-  })
+  const conversationResult = await safeQuery(
+    db.query.conversations.findFirst({
+      where: eq(conversations.userId, user.id),
+    }),
+    'client conversation',
+    null,
+  )
+  const conversation = conversationResult.data
+  const messagesResult = await safeQuery(
+    conversation
+      ? db
+          .select()
+          .from(conversationMessages)
+          .where(eq(conversationMessages.conversationId, conversation.id))
+          .orderBy(asc(conversationMessages.createdAt))
+      : Promise.resolve([]),
+    'client messages',
+    [],
+  )
 
-  const messages = conversation
-    ? await db
-        .select()
-        .from(conversationMessages)
-        .where(eq(conversationMessages.conversationId, conversation.id))
-        .orderBy(asc(conversationMessages.createdAt))
-    : []
-
-  const formattedMessages = messages.map((m) => ({
+  const formattedMessages = messagesResult.data.map((m) => ({
     ...m,
     createdAt: m.createdAt.toISOString(),
   }))
@@ -32,6 +41,7 @@ export default async function ClientMessagesPage() {
     <MessagesClient
       initialConversationId={conversation?.id ?? null}
       initialMessages={formattedMessages}
+      loadError={conversationResult.error || messagesResult.error ? 'Messages are temporarily unavailable. You can retry the page.' : null}
     />
   )
 }

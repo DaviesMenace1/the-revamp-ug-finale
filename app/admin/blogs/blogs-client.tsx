@@ -32,7 +32,7 @@ const emptyForm = {
   status: 'draft',
 }
 
-export default function BlogsClient({ initialArticles = [] }: { initialArticles: Article[] }) {
+export default function BlogsClient({ initialArticles = [], loadError = null }: { initialArticles: Article[]; loadError?: string | null }) {
   const [list, setList] = useState(initialArticles)
   const [searchTerm, setSearchTerm] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -121,6 +121,13 @@ export default function BlogsClient({ initialArticles = [] }: { initialArticles:
           New Article
         </Button>
       </div>
+
+      {loadError && (
+        <div role="status" className="flex items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+          <span>{loadError}</span>
+          <button type="button" onClick={() => window.location.reload()} className="font-medium underline underline-offset-4">Retry</button>
+        </div>
+      )}
 
       <div className="relative w-64">
         <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />

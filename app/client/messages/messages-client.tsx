@@ -27,9 +27,11 @@ type Message = {
 
 export default function MessagesClient({
   initialMessages = [],
+  loadError = null,
 }: {
   initialConversationId: string | null
   initialMessages: Message[]
+  loadError?: string | null
 }) {
   const [messages, setMessages] = useState(initialMessages)
   const [draft, setDraft] = useState('')
@@ -75,6 +77,13 @@ export default function MessagesClient({
         <p className="mt-1 text-sm text-muted-foreground">
           Send a message and our team will get back to you here.
         </p>
+
+        {loadError && (
+          <div role="status" className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            <span>{loadError}</span>
+            <button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">Retry</button>
+          </div>
+        )}
 
         <div className="mt-6 flex h-[60vh] flex-col rounded-lg border border-border/20">
           <div className="flex-1 space-y-3 overflow-y-auto p-4">

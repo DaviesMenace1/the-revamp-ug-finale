@@ -87,6 +87,8 @@ export async function searchProducts(searchTerm: string) {
 // PROJECTS
 // ============================================================================
 
+const publishedPortfolioFilter = and(eq(projects.projectKind, 'portfolio'), eq(projects.publishStatus, 'published'))
+
 export async function getProjects(limit = 10, offset = 0) {
   try {
     return await db.query.projects.findMany({
@@ -110,14 +112,45 @@ export async function getProjectById(id: string) {
   }
 }
 
-export async function getProjectBySlug(slug: string) {
+export async function getPublishedProjectBySlug(slug: string) {
   try {
     return await db.query.projects.findFirst({
-      where: eq(projects.slug, slug),
+      where: and(eq(projects.slug, slug), publishedPortfolioFilter),
     });
   } catch (error) {
+    console.error('Error fetching published project:', error)
     return null;
   }
+}
+
+export async function getPublishedProjects(limit = 10, offset = 0) {
+  try {
+    return await db.query.projects.findMany({
+      where: publishedPortfolioFilter,
+      limit,
+      offset,
+      orderBy: desc(projects.createdAt),
+    });
+  } catch (error) {
+    console.error('Error fetching published projects:', error)
+    return [];
+  }
+}
+
+export async function getPublishedProjectsByCategory(category: string) {
+  try {
+    return await db.query.projects.findMany({
+      where: and(eq(projects.category, category), publishedPortfolioFilter),
+      orderBy: desc(projects.createdAt),
+    });
+  } catch (error) {
+    console.error('Error fetching published projects by category:', error)
+    return [];
+  }
+}
+
+export async function getProjectBySlug(slug: string) {
+  return getPublishedProjectBySlug(slug)
 }
 
 export async function getProjectsByStatus(status: ProjectStatus) {

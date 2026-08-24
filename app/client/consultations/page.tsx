@@ -3,6 +3,7 @@ import { db } from '@/lib/db/client'
 import { consultations } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import ConsultationsClient from './consultations-client'
+import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,18 +13,22 @@ export default async function ClientConsultations() {
     '/client/consultations',
   )
 
-  const myConsultations = await db
-    .select()
-    .from(consultations)
-    .where(eq(consultations.userId, user.id))
-    .orderBy(desc(consultations.createdAt))
+  const result = await safeQuery(
+    db
+      .select()
+      .from(consultations)
+      .where(eq(consultations.userId, user.id))
+      .orderBy(desc(consultations.createdAt)),
+    'client consultations',
+    [],
+  )
 
-  const formatted = myConsultations.map((c) => ({
+  const formatted = result.data.map((c) => ({
     ...c,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
     preferredDate: c.preferredDate ? c.preferredDate.toISOString() : null,
   }))
 
-  return <ConsultationsClient consultations={formatted} />
+  return <ConsultationsClient consultations={formatted} loadError={result.error ? 'Consultations are temporarily unavailable. You can retry the page.' : null} />
 }

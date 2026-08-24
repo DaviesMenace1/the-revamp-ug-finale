@@ -31,16 +31,25 @@ type Consultation = {
   createdAt: string
 }
 
-export default function ConsultationsClient({ consultations = [] }: { consultations: Consultation[] }) {
+export default function ConsultationsClient({ consultations = [], loadError = null }: { consultations: Consultation[]; loadError?: string | null }) {
+
   return (
     <PortalLayout portalName="Client Portal" portalSlug="client" navItems={clientNavItems}>
       <div className="space-y-8">
         <div className="space-y-2">
           <h1 className="font-serif text-4xl md:text-5xl font-light text-foreground">Consultations</h1>
-          <p className="text-muted-foreground">Your booked and past design consultations.</p>
+                    <p className="text-muted-foreground">Your booked and past design consultations.</p>
         </div>
 
+        {loadError && (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            <span>{loadError}</span>
+            <button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">Retry</button>
+          </div>
+        )}
+
         <div className="grid gap-4">
+
           {consultations.map((c) => (
             <Card key={c.id} className="p-6">
               <div className="flex items-start justify-between">

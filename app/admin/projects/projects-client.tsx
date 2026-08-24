@@ -95,12 +95,13 @@ const defaultForm: {
   images: [], gallery: [], publishStatus: 'published', year: '', progress: '0', dueDate: '',
 }
 
-export default function ProjectsClient({ initialProjects = [] }: { initialProjects: any[] }) {
+export default function ProjectsClient({ initialProjects = [], loadError = null }: { initialProjects: any[]; loadError?: string | null }) {
   const [projects, setProjects] = useState(initialProjects)
   const [searchTerm, setSearchTerm] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState(defaultForm)
 
@@ -138,18 +139,21 @@ export default function ProjectsClient({ initialProjects = [] }: { initialProjec
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this project?')) return
-    
+
+    setActionError(null)
     startTransition(async () => {
       const res = await deleteProject(id)
       if (res.success) {
-        setProjects(projects.filter(p => p.id !== id))
+        setProjects((current) => current.filter((project) => project.id !== id))
+      } else {
+        setActionError(res.error || 'Failed to delete project. Refresh the page and try again.')
       }
     })
   }
 
   const handleSubmit = async () => {
-    if (!formData.title || !formData.slug) {
-      alert('Please fill in required fields (Title and Slug)')
+    if (!formData.title) {
+      alert('Please enter a project title.')
       return
     }
 
@@ -160,21 +164,26 @@ export default function ProjectsClient({ initialProjects = [] }: { initialProjec
       dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
     }
 
+    setActionError(null)
     startTransition(async () => {
       if (editingId) {
         const res = await updateProject(editingId, submissionData)
         if (res.success) {
-          setProjects(projects.map(p => p.id === editingId ? { ...p, ...submissionData } : p))
+          setProjects((current) => current.map((project) => project.id === editingId ? { ...project, ...submissionData, slug: res.project?.slug || submissionData.slug } : project))
           setEditingId(null)
           setIsFormOpen(false)
+          setFormData(defaultForm)
+        } else {
+          setActionError(res.error || 'Failed to update project. Check the fields and try again.')
         }
       } else {
         const res = await createProject(submissionData)
         if (res.success) {
           window.location.reload()
+        } else {
+          setActionError(res.error || 'Failed to create project. Check the fields and try again.')
         }
       }
-      setFormData(defaultForm)
     })
   }
 
@@ -203,6 +212,20 @@ export default function ProjectsClient({ initialProjects = [] }: { initialProjec
           </Button>
         )}
       </div>
+
+      {loadError && (
+        <div role="status" className="flex items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+          <span>{loadError}</span>
+          <button type="button" onClick={() => window.location.reload()} className="font-medium underline underline-offset-4">Retry</button>
+        </div>
+      )}
+
+      {actionError && (
+        <div role="alert" className="flex items-center justify-between gap-4 rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} className="font-medium underline underline-offset-4">Dismiss</button>
+        </div>
+      )}
 
       {isFormOpen ? (
         /* Edit / Create Form */

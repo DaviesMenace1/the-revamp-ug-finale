@@ -38,10 +38,11 @@ type DashboardData = {
   ordersByWeek: { week: string; orders: number }[]
   productsByCategory: { category: string; count: number }[]
   activity: { action: string; detail: string; time: string }[]
+  loadError?: string | null
 }
 
 export default function AdminDashboard({ data }: { data: DashboardData }) {
-  const { kpis, revenueByMonth, ordersByWeek, productsByCategory, activity } = data
+  const { kpis, revenueByMonth, ordersByWeek, productsByCategory, activity, loadError } = data
 
   return (
     <div className="space-y-8 p-8">
@@ -49,6 +50,15 @@ export default function AdminDashboard({ data }: { data: DashboardData }) {
         <h1 className="font-serif text-4xl font-light text-foreground">Dashboard</h1>
         <p className="text-muted-foreground mt-2">Welcome back. Here's your business overview.</p>
       </div>
+
+      {loadError && (
+        <div role="status" className="flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+          <span>{loadError}</span>
+          <button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid gap-6 md:grid-cols-4">

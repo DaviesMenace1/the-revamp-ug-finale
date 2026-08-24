@@ -3,6 +3,8 @@ import { auth } from '@clerk/nextjs/server'
 import { AccountNavigation } from '@/components/account/account-navigation'
 import { AccountOverview } from '@/components/account/account-overview'
 import { getAccountOverview } from '@/lib/account/queries'
+import { safeQuery } from '@/lib/server/safe-query'
+import PageLoadError from '@/components/system/page-load-error'
 
 export const metadata = {
   title: 'My Account | The Revamp UG',
@@ -18,8 +20,26 @@ export default async function AccountPage() {
   // null the session was revoked mid-request. Database errors throw to the
   // error boundary instead of masquerading as "not authenticated" (this was
   // the cause of the sign-in <-> account redirect loop).
-  const data = await getAccountOverview()
-  if (!data) redirect('/sign-in?redirect_url=/account')
+  const result = await safeQuery(getAccountOverview(), 'account overview', null)
+  if (!result.data) {
+    if (!result.error) redirect('/sign-in?redirect_url=/account')
+
+    return (
+      <main className="min-h-screen bg-background">
+        <div className="mx-auto flex w-full max-w-7xl gap-12 px-6 py-10 md:px-10 md:py-16 lg:px-12">
+          <AccountNavigation />
+          <section className="flex min-w-0 flex-1 items-start">
+            <PageLoadError
+              title="Your account is taking longer than expected."
+              message="We could not load the account overview right now. Your account has not been changed."
+            />
+          </section>
+        </div>
+      </main>
+    )
+  }
+
+  const data = result.data
 
   return (
     <main className="min-h-screen bg-background">

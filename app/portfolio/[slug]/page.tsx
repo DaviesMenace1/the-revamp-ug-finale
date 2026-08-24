@@ -7,7 +7,7 @@ import type { Metadata } from 'next'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateProjectSchema } from '@/lib/seo/schema-generator'
 import LikeButton from '@/components/like-button'
-import { getProjectBySlug, getProjects } from '@/lib/db/queries'
+import { getProjectBySlug, getPublishedProjects } from '@/lib/db/queries'
 
 function imageUrls(value: unknown): string[] {
   return Array.isArray(value)
@@ -58,7 +58,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
     notFound()
   }
 
-  const allProjects = await getProjects(4, 0)
+  const allProjects = await getPublishedProjects(4, 0)
   const relatedProjects = allProjects.filter((item) => item.slug !== slug).slice(0, 2)
 
   const heroImage = imageUrls(project.images)[0] || 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&q=85&auto=format&fit=crop'

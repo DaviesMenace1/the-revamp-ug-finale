@@ -23,12 +23,15 @@ type Stats = {
 }
 
 export default function ClientDashboardView({
-  firstName,
+    firstName,
+  loadError,
   stats,
 }: {
   firstName: string | null
+  loadError?: string | null
   stats: Stats
 }) {
+
   const cards = [
     { label: 'Active Projects', value: stats.activeProjects, icon: FileText, href: '/client/projects' },
     { label: 'Orders', value: stats.orders, icon: ShoppingBag, href: '/client/orders' },
@@ -43,10 +46,18 @@ export default function ClientDashboardView({
           <h1 className="font-serif text-4xl md:text-5xl font-light text-foreground">
             Welcome back{firstName ? `, ${firstName}` : ''}
           </h1>
-          <p className="text-muted-foreground">Here's what's happening with your account.</p>
+                    <p className="text-muted-foreground">Here's what's happening with your account.</p>
         </div>
 
+        {loadError && (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            <span>{loadError}</span>
+            <button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">Retry</button>
+          </div>
+        )}
+
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+
           {cards.map((card) => (
             <Link key={card.label} href={card.href}>
               <Card className="p-6 hover:border-primary/40 transition-colors">

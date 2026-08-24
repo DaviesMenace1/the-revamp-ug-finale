@@ -22,16 +22,27 @@ type Document = {
   createdAt: string
 }
 
-export default function DocumentsClient({ documents = [] }: { documents: Document[] }) {
+export default function DocumentsClient({ documents = [], loadError = null }: { documents: Document[]; loadError?: string | null }) {
+
   return (
     <PortalLayout portalName="Client Portal" portalSlug="client" navItems={clientNavItems}>
       <div className="space-y-8">
-        <div className="space-y-2">
+                <div className="space-y-2">
           <h1 className="font-serif text-4xl md:text-5xl font-light text-foreground">Documents</h1>
           <p className="text-muted-foreground">Contracts, invoices, and files shared with you.</p>
         </div>
 
+        {loadError && (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            <span>{loadError}</span>
+            <button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">
+              Retry
+            </button>
+          </div>
+        )}
+
         <div className="grid gap-3">
+
           {documents.map((doc) => (
             <Card key={doc.id} className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">

@@ -1,6 +1,7 @@
 import 'server-only' // Ensures this file can NEVER be accidentally imported in 'use client' components
 import { auth } from '@clerk/nextjs/server'
 import { getOrCreateCurrentUser, type UserRole } from '@/lib/auth/utils'
+import { safeQuery } from '@/lib/server/safe-query'
 
 export type { UserRole }
 
@@ -29,11 +30,17 @@ export async function getCurrentUserWithRole(requiredRoles: UserRole[] = []): Pr
     return { user: null, authorized: false, reason: 'unauthenticated' }
   }
 
-  const user = await getOrCreateCurrentUser()
-  if (!user) {
+  const profileResult = await safeQuery(
+    getOrCreateCurrentUser(userId),
+    'authenticated user profile',
+    null,
+  )
+  if (!profileResult.data) {
+    if (profileResult.error) throw new Error('We could not load your account right now. Please retry the page.')
     // Session disappeared between checks; treat as signed out.
     return { user: null, authorized: false, reason: 'unauthenticated' }
   }
+  const user = profileResult.data
 
   if (requiredRoles.length > 0 && !requiredRoles.includes(user.role as UserRole)) {
     return { user, authorized: false, reason: 'forbidden' }

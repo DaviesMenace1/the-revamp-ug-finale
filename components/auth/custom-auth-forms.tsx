@@ -4,8 +4,29 @@ import { FormEvent, useState } from 'react'
 import { useSignIn, useSignUp } from '@clerk/nextjs'
 import { ArrowRight, Check, Globe2, Link2, Loader2, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
+import TurnstileChallenge, { turnstileConfigured } from './turnstile-challenge'
 
 type OAuthStrategy = 'oauth_google' | 'oauth_linkedin_oidc'
+
+async function verifyTurnstileToken(token: string) {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 6_000)
+
+  try {
+    const response = await fetch('/api/auth/turnstile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, action: 'auth' }),
+      signal: controller.signal,
+    })
+    const result = (await response.json().catch(() => null)) as { verified?: boolean; error?: string } | null
+    if (!response.ok || !result?.verified) {
+      throw new Error(result?.error || 'Security verification failed. Refresh the challenge and try again.')
+    }
+  } finally {
+    window.clearTimeout(timeout)
+  }
+}
 
 /**
  * Maps Clerk error codes to clear, user-safe messages.
@@ -147,6 +168,8 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0)
 
   const isLoaded = !!signIn
   const destination = redirectUrl || '/account'
@@ -222,15 +245,23 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
+    if (turnstileConfigured() && !turnstileToken) {
+      setError('Complete the security verification before signing in.')
+      return
+    }
+
     setLoading(true)
     setError(null)
     setInfo(null)
     try {
+      if (turnstileToken) await verifyTurnstileToken(turnstileToken)
       const { error: passwordError } = await signIn.password({ identifier: email, password })
       if (passwordError) throw passwordError
       await advance()
     } catch (err) {
       console.error(' Sign-in error:', err)
+      setTurnstileToken(null)
+      setTurnstileResetKey((key) => key + 1)
       setError(clerkErrorMessage(err, 'Unable to sign in. Check your details and try again.'))
     } finally {
       setLoading(false)
@@ -285,9 +316,15 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
 
   const oauth = async (strategy: OAuthStrategy) => {
     if (!signIn) return
+    if (turnstileConfigured() && !turnstileToken) {
+      setError('Complete the security verification before continuing.')
+      return
+    }
+
     setOauthLoading(strategy)
     setError(null)
     try {
+      if (turnstileToken) await verifyTurnstileToken(turnstileToken)
       // Redirects the browser to the provider; only returns here on error.
       const { error: ssoError } = await signIn.sso({
         strategy,
@@ -297,6 +334,8 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       if (ssoError) throw ssoError
     } catch (err) {
       console.error('[v0] OAuth start error:', err)
+      setTurnstileToken(null)
+      setTurnstileResetKey((key) => key + 1)
       setError(clerkErrorMessage(err, 'Unable to connect to the provider. Try again.'))
       setOauthLoading(null)
     }
@@ -357,6 +396,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
           <Divider />
           <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" />
           <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
+          <TurnstileChallenge onToken={setTurnstileToken} resetKey={turnstileResetKey} />
           <div className="flex justify-end">
             <Link href="/reset-password" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">
               Forgot password?
@@ -400,6 +440,8 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0)
 
   const isLoaded = !!signUp
   const destination = redirectUrl || '/account'
@@ -434,10 +476,16 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
       return
     }
 
+    if (turnstileConfigured() && !turnstileToken) {
+      setError('Complete the security verification before creating your account.')
+      return
+    }
+
     setLoading(true)
     setError(null)
     setInfo(null)
     try {
+      if (turnstileToken) await verifyTurnstileToken(turnstileToken)
       const { error: createError } = await signUp.password({
         emailAddress: email,
         password,
@@ -461,6 +509,8 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
       }
     } catch (err) {
       console.error('[v0] Sign-up error:', err)
+      setTurnstileToken(null)
+      setTurnstileResetKey((key) => key + 1)
       setError(clerkErrorMessage(err, 'Unable to create your account. Check your details and try again.'))
     } finally {
       setLoading(false)
@@ -509,9 +559,14 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
 
   const oauth = async (strategy: OAuthStrategy) => {
     if (!signUp) return
+    if (turnstileConfigured() && !turnstileToken) {
+      setError('Complete the security verification before continuing.')
+      return
+    }
     setOauthLoading(strategy)
     setError(null)
     try {
+      if (turnstileToken) await verifyTurnstileToken(turnstileToken)
       const { error: ssoError } = await signUp.sso({
         strategy,
         redirectUrl: destination,
@@ -520,6 +575,8 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
       if (ssoError) throw ssoError
     } catch (err) {
       console.error('[v0] Sign-up OAuth start error:', err)
+      setTurnstileToken(null)
+      setTurnstileResetKey((key) => key + 1)
       setError(clerkErrorMessage(err, 'Unable to connect to the provider. Try again.'))
       setOauthLoading(null)
     }
@@ -576,6 +633,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
           <Field label="Username" value={username} onChange={setUsername} autoComplete="username" required />
           <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" required />
           <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="new-password" required />
+          <TurnstileChallenge onToken={setTurnstileToken} resetKey={turnstileResetKey} />
 
           {/* Terms & Privacy Policy Checkbox */}
           <div className="flex items-start gap-3 text-xs text-muted-foreground">
@@ -636,6 +694,8 @@ export function CustomResetPassword() {
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0)
 
   const isLoaded = !!signIn
 
@@ -645,11 +705,16 @@ export function CustomResetPassword() {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
+    if (step === 'email' && turnstileConfigured() && !turnstileToken) {
+      setError('Complete the security verification before requesting a reset code.')
+      return
+    }
     setLoading(true)
     setError(null)
     setInfo(null)
     try {
       if (step === 'email') {
+        if (turnstileToken) await verifyTurnstileToken(turnstileToken)
         const { error: createError } = await signIn.create({ identifier: email })
         if (!createError) {
           const { error: sendError } = await signIn.resetPasswordEmailCode.sendCode()
@@ -674,6 +739,8 @@ export function CustomResetPassword() {
       }
     } catch (err) {
       console.error('[v0] Reset-password error:', err)
+      setTurnstileToken(null)
+      setTurnstileResetKey((key) => key + 1)
       setError(clerkErrorMessage(err, 'That code was not accepted. Try again.'))
     } finally {
       setLoading(false)
@@ -773,6 +840,7 @@ export function CustomResetPassword() {
             autoComplete={step === 'email' ? 'email' : 'one-time-code'}
             inputMode={step === 'email' ? 'email' : 'numeric'}
           />
+          {step === 'email' && <TurnstileChallenge onToken={setTurnstileToken} resetKey={turnstileResetKey} />}
           <InfoText message={info} />
           <ErrorText message={error} />
           <AuthButton disabled={!isLoaded || loading}>

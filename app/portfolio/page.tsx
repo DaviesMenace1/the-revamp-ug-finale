@@ -2,7 +2,7 @@ import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import Link from 'next/link'
 import Image from 'next/image'
-import { getProjects } from '@/lib/db/queries'
+import { getPublishedProjects } from '@/lib/db/queries'
 
 export const revalidate = 300 // Revalidate cache every 5 minutes
 
@@ -13,7 +13,7 @@ function firstImage(value: unknown) {
 }
 
 export default async function PortfolioPage() {
-  const projects = await getProjects(20, 0)
+  const projects = await getPublishedProjects(20, 0)
 
   return (
     <>

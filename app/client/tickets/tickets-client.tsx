@@ -44,7 +44,7 @@ type TicketMessage = {
   createdAt: string
 }
 
-export default function TicketsClient({ initialTickets = [] }: { initialTickets: Ticket[] }) {
+export default function TicketsClient({ initialTickets = [], loadError = null }: { initialTickets: Ticket[]; loadError?: string | null }) {
   const [tickets, setTickets] = useState(initialTickets)
   const [showNewForm, setShowNewForm] = useState(false)
   const [form, setForm] = useState({ subject: '', description: '', category: '', priority: 'normal' })
@@ -127,9 +127,17 @@ export default function TicketsClient({ initialTickets = [] }: { initialTickets:
             </div>
           )}
         </div>
-      </div>
+              </div>
 
-      {showNewForm && (
+        {loadError && (
+          <div role="status" className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            <span>{loadError}</span>
+            <button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">Retry</button>
+          </div>
+        )}
+
+        {showNewForm && (
+
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-xl">
             <div className="flex items-center justify-between">

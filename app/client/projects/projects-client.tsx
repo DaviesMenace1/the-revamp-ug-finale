@@ -27,16 +27,27 @@ type Project = {
   dueDate: string | null
 }
 
-export default function ProjectsClient({ projects = [] }: { projects: Project[] }) {
+export default function ProjectsClient({ projects = [], loadError = null }: { projects: Project[]; loadError?: string | null }) {
+
   return (
     <PortalLayout portalName="Client Portal" portalSlug="client" navItems={clientNavItems}>
       <div className="space-y-8">
-        <div className="space-y-2">
+                <div className="space-y-2">
           <h1 className="font-serif text-4xl md:text-5xl font-light text-foreground">Your Projects</h1>
           <p className="text-muted-foreground">Follow along as your project comes to life.</p>
         </div>
 
+        {loadError && (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            <span>{loadError}</span>
+            <button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">
+              Retry
+            </button>
+          </div>
+        )}
+
         <div className="grid gap-6 md:grid-cols-2">
+
           {projects.map((project) => (
             <Link key={project.id} href={`/client/projects/${project.slug}`}>
               <Card className="overflow-hidden hover:border-primary/40 transition-colors">

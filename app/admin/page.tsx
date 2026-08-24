@@ -2,6 +2,7 @@ import { requirePortalUser } from '@/lib/auth/portal-auth'
 import AdminDashboard from './_components/admin-dashboard'
 import { db } from '@/lib/db/client'
 import { sql } from 'drizzle-orm'
+import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +19,7 @@ async function getDashboardData() {
   fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28)
 
   // 1. All scalar KPIs in a single query.
-  const kpiResult = await db.execute(sql`
+  const kpiPromise = db.execute(sql`
     SELECT
       (SELECT COALESCE(SUM(total), 0) FROM orders) AS total_revenue,
       (SELECT COUNT(*) FROM orders) AS total_orders,
@@ -27,7 +28,7 @@ async function getDashboardData() {
   `)
 
   // 2. Revenue-by-month and orders-by-week in one query via UNION ALL.
-  const chartResult = await db.execute(sql`
+  const chartPromise = db.execute(sql`
     SELECT 'revenue' AS series,
            to_char(date_trunc('month', created_at), 'Mon') AS label,
            date_trunc('month', created_at) AS period_start,
@@ -50,7 +51,7 @@ async function getDashboardData() {
   `)
 
   // 3. Products by category.
-  const categoryResult = await db.execute(sql`
+  const categoryPromise = db.execute(sql`
     SELECT c.name AS category, COUNT(p.id) AS count
     FROM products p
     JOIN sub_categories sc ON sc.id = p.sub_category_id
@@ -62,7 +63,7 @@ async function getDashboardData() {
 
   // 4. Recent activity across orders/projects/consultations, merged in SQL
   // rather than fetched separately and merged in JS.
-  const activityResult = await db.execute(sql`
+  const activityPromise = db.execute(sql`
     (SELECT 'order' AS kind, order_number AS label, created_at FROM orders ORDER BY created_at DESC LIMIT 3)
     UNION ALL
     (SELECT 'project' AS kind, title AS label, created_at FROM projects ORDER BY created_at DESC LIMIT 3)
@@ -72,10 +73,18 @@ async function getDashboardData() {
     LIMIT 5
   `)
 
-  const kpiRow = ((kpiResult as any).rows ?? kpiResult)[0] ?? {}
-  const chartRows = (chartResult as any).rows ?? chartResult ?? []
-  const categoryRows = (categoryResult as any).rows ?? categoryResult ?? []
-  const activityRows = (activityResult as any).rows ?? activityResult ?? []
+  const [kpiResult, chartResult, categoryResult, activityResult] = await Promise.all([
+    safeQuery(kpiPromise, 'admin KPI report', null),
+    safeQuery(chartPromise, 'admin chart report', null),
+    safeQuery(categoryPromise, 'admin category report', null),
+    safeQuery(activityPromise, 'admin activity report', null),
+  ])
+
+  const kpiRows = (kpiResult.data as any)?.rows ?? kpiResult.data ?? []
+  const kpiRow = kpiRows[0] ?? {}
+  const chartRows = (chartResult.data as any)?.rows ?? chartResult.data ?? []
+  const categoryRows = (categoryResult.data as any)?.rows ?? categoryResult.data ?? []
+  const activityRows = (activityResult.data as any)?.rows ?? activityResult.data ?? []
 
   const ACTIVITY_LABELS: Record<string, string> = {
     order: 'New order placed',
@@ -106,6 +115,9 @@ async function getDashboardData() {
         detail: row.label,
         time: new Date(row.created_at).toISOString(),
       })),
+    loadError: [kpiResult, chartResult, categoryResult, activityResult].some((result) => result.error)
+      ? 'Some dashboard reports are temporarily unavailable. You can still use the navigation and retry the page.'
+      : null,
   }
 }
 

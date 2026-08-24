@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getProjects, getProjectsByCategory } from '@/lib/db/queries';
+import { getPublishedProjects, getPublishedProjectsByCategory } from '@/lib/db/queries';
 import { checkRateLimit, withCache, CACHE_KEYS, TTL } from '@/lib/redis';
 
 export async function GET(request: NextRequest) {
@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
     const projects = await withCache(
       cacheKey,
       async () => {
-        if (category) return getProjectsByCategory(category);
-        return getProjects(limit, offset);
+        if (category) return getPublishedProjectsByCategory(category);
+        return getPublishedProjects(limit, offset);
       },
       TTL.LONG,
     );

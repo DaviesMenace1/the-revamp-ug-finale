@@ -3,6 +3,8 @@ import { projects, users, projectAssets, projectDocuments, projectActivity, proj
 import { eq, and, desc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import ClientProjectDetailClient from './client-project-detail'
+import { safeQuery } from '@/lib/server/safe-query'
+import PageLoadError from '@/components/system/page-load-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,21 +15,63 @@ export default async function AdminClientProjectDetail({
 }) {
   const { id } = await params
 
-  const project = await db.query.projects.findFirst({
-    where: and(eq(projects.id, id), eq(projects.projectKind, 'client')),
-  })
+    const projectResult = await safeQuery(
+    db.query.projects.findFirst({
+      where: and(eq(projects.id, id), eq(projects.projectKind, 'client')),
+    }),
+    'admin client project',
+    null,
+  )
 
-  if (!project) notFound()
+  if (!projectResult.data) {
+    if (!projectResult.error) notFound()
+    return (
+      <main className="min-h-screen bg-background p-8">
+        <PageLoadError
+          title="This client project could not load."
+          message="The project record is temporarily unavailable. No project data was changed."
+        />
+      </main>
+    )
+  }
 
-  const [client, assets, documents, activity, tasks] = await Promise.all([
-    db.query.users.findFirst({ where: eq(users.id, project.userId!) }),
-    db.select().from(projectAssets).where(eq(projectAssets.projectId, id)).orderBy(desc(projectAssets.createdAt)),
-    db.select().from(projectDocuments).where(eq(projectDocuments.projectId, id)).orderBy(desc(projectDocuments.createdAt)),
-    db.select().from(projectActivity).where(eq(projectActivity.projectId, id)).orderBy(desc(projectActivity.createdAt)).limit(30),
-    db.select().from(projectTasks).where(eq(projectTasks.projectId, id)).orderBy(desc(projectTasks.createdAt)),
+  const project = projectResult.data
+  const [clientResult, assetsResult, documentsResult, activityResult, tasksResult] = await Promise.all([
+    safeQuery(
+      project.userId ? db.query.users.findFirst({ where: eq(users.id, project.userId) }) : Promise.resolve(undefined),
+      'client project owner',
+      undefined,
+    ),
+    safeQuery(
+      db.select().from(projectAssets).where(eq(projectAssets.projectId, id)).orderBy(desc(projectAssets.createdAt)),
+      'client project assets',
+      [],
+    ),
+    safeQuery(
+      db.select().from(projectDocuments).where(eq(projectDocuments.projectId, id)).orderBy(desc(projectDocuments.createdAt)),
+      'client project documents',
+      [],
+    ),
+    safeQuery(
+      db.select().from(projectActivity).where(eq(projectActivity.projectId, id)).orderBy(desc(projectActivity.createdAt)).limit(30),
+      'client project activity',
+      [],
+    ),
+    safeQuery(
+      db.select().from(projectTasks).where(eq(projectTasks.projectId, id)).orderBy(desc(projectTasks.createdAt)),
+      'client project tasks',
+      [],
+    ),
   ])
 
+  const client = clientResult.data
+  const assets = assetsResult.data
+  const documents = documentsResult.data
+  const activity = activityResult.data
+  const tasks = tasksResult.data
+
   const formatted = {
+
     id: project.id,
     title: project.title,
     description: project.description,

@@ -39,16 +39,25 @@ function formatCurrency(value: string | number) {
   }).format(Number(value) || 0)
 }
 
-export default function OrdersClient({ orders = [] }: { orders: Order[] }) {
+export default function OrdersClient({ orders = [], loadError = null }: { orders: Order[]; loadError?: string | null }) {
+
   return (
     <PortalLayout portalName="Client Portal" portalSlug="client" navItems={clientNavItems}>
       <div className="space-y-8">
         <div className="space-y-2">
           <h1 className="font-serif text-4xl md:text-5xl font-light text-foreground">Orders</h1>
-          <p className="text-muted-foreground">Track and manage all your furniture and décor orders.</p>
+                    <p className="text-muted-foreground">Track and manage all your furniture and décor orders.</p>
         </div>
 
+        {loadError && (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            <span>{loadError}</span>
+            <button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">Retry</button>
+          </div>
+        )}
+
         <div className="grid gap-4">
+
           {orders.map((order) => (
             <Card key={order.id} className="p-6">
               <div className="flex items-center justify-between mb-4">

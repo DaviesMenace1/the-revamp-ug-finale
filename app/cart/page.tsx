@@ -88,7 +88,7 @@ export default function CartPage() {
             <h1 className="mt-3 font-serif text-5xl tracking-tight">Your cart is empty</h1>
             <p className="mt-4 text-sm leading-7 text-muted-foreground">Discover furniture, lighting, architectural finishes, and beautifully sourced pieces from The Revamp UG.</p>
             <Link href="/collections" className="mt-8 inline-flex min-h-12 items-center justify-center rounded-md bg-primary px-6 text-xs font-medium uppercase tracking-[0.16em] text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-              Explore Collections <ArrowRight className="ml-2 size-4" aria-hidden="true" />
+              Explore Collections  <ArrowRight className="ml-2 size-4" aria-hidden="true" />
             </Link>
           </div>
         </main>

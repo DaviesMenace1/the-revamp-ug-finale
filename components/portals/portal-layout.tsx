@@ -25,7 +25,7 @@ export function PortalLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Heade */}
       <header className="sticky top-0 z-40 border-b border-border/20 bg-background/95 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-6 md:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">

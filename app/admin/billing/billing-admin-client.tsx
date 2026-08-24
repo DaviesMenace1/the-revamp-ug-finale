@@ -161,7 +161,7 @@ export default function BillingAdminClient({
         <div>
           <h1 className="font-serif text-4xl font-light text-foreground">Billing</h1>
           <p className="text-muted-foreground mt-2">
-            Quotes, invoices, and receipts — uploaded documents, scoped per client.
+            Quotes, invoices, and receipts.
           </p>
         </div>
         <div className="flex gap-2">

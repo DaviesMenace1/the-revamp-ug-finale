@@ -12,29 +12,27 @@ export async function getAccountOverview(userOverride?: AccountUser) {
   const user = userOverride ?? (await getOrCreateCurrentUser())
   if (!user) return null
 
-  const [cartResult, ordersResult, consultationsResult, membershipResult] = await Promise.all([
-    safeQuery(
-      db.select().from(carts).where(eq(carts.userId, user.id)).limit(1),
-      'account cart',
-      [],
-    ),
-    safeQuery(
-      db.select().from(orders).where(eq(orders.userId, user.clerkId)).orderBy(desc(orders.createdAt)).limit(3),
-      'account orders',
-      [],
-    ),
-    safeQuery(
-      db
-        .select()
-        .from(consultations)
-        .where(and(eq(consultations.userId, user.id), gte(consultations.preferredDate, new Date())))
-        .orderBy(consultations.preferredDate)
-        .limit(1),
-      'account consultations',
-      [],
-    ),
-    safeQuery(getUserMembership(user.id), 'account membership', null),
-  ])
+  const cartResult = await safeQuery(
+    db.select().from(carts).where(eq(carts.userId, user.id)).limit(1),
+    'account cart',
+    [],
+  )
+  const ordersResult = await safeQuery(
+    db.select().from(orders).where(eq(orders.userId, user.clerkId)).orderBy(desc(orders.createdAt)).limit(3),
+    'account orders',
+    [],
+  )
+  const consultationsResult = await safeQuery(
+    db
+      .select()
+      .from(consultations)
+      .where(and(eq(consultations.userId, user.id), gte(consultations.preferredDate, new Date())))
+      .orderBy(consultations.preferredDate)
+      .limit(1),
+    'account consultations',
+    [],
+  )
+  const membershipResult = await safeQuery(getUserMembership(user.id), 'account membership', null)
 
   const cart = cartResult.data
   const userOrders = ordersResult.data

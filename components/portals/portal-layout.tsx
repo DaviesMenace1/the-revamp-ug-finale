@@ -28,10 +28,10 @@ export function PortalLayout({
     <div className="min-h-screen bg-background">
       {/* Heade */}
       <header className="sticky top-0 z-40 border-b border-border/20 bg-background/95 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-6 md:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            <div className="flex items-center gap-4">
-              <Link href={`/${portalSlug}`} className="font-serif text-xl font-light text-foreground">
+        <div className="mx-auto max-w-7xl px-3 sm:px-5 md:px-8">
+          <div className="flex min-w-0 items-center justify-between gap-2 h-16 md:h-20">
+            <div className="flex min-w-0 items-center gap-4">
+              <Link href={`/${portalSlug}`} className="truncate font-serif text-lg font-light text-foreground sm:text-xl">
                 {portalName}
               </Link>
             </div>
@@ -56,14 +56,17 @@ export function PortalLayout({
               })}
             </nav>
 
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
               <ThemeSwitcher />
               <NotificationBell />
               {/* Mobile Menu Toggle */}
               <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 hover:bg-muted rounded transition-colors"
-            >
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-expanded={mobileMenuOpen}
+                aria-label={mobileMenuOpen ? 'Close portal navigation' : 'Open portal navigation'}
+                className="md:hidden flex size-11 items-center justify-center rounded hover:bg-muted transition-colors"
+              >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
             </div>
@@ -95,7 +98,7 @@ export function PortalLayout({
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-6 md:px-8 py-8 md:py-12">
+      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-5 sm:py-8 md:px-8 md:py-12">
         {children}
       </main>
     </div>

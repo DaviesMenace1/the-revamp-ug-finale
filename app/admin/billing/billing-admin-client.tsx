@@ -67,13 +67,13 @@ function formatCurrency(value: string | number | null) {
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-muted text-muted-foreground',
-  sent: 'bg-blue-100 text-blue-800',
-  pending: 'bg-amber-100 text-amber-800',
-  accepted: 'bg-emerald-100 text-emerald-800',
-  partial: 'bg-amber-100 text-amber-800',
-  paid: 'bg-emerald-100 text-emerald-800',
-  overdue: 'bg-rose-100 text-rose-800',
-  expired: 'bg-rose-100 text-rose-800',
+  sent: 'bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-200',
+  pending: 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200',
+  accepted: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200',
+  partial: 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200',
+  paid: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200',
+  overdue: 'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200',
+  expired: 'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200',
   cancelled: 'bg-muted text-muted-foreground',
 }
 
@@ -277,7 +277,7 @@ export default function BillingAdminClient({
       </div>
 
             {(loadError || clientLoadError) && (
-        <div role="status" className="flex items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <div role="status" className="flex flex-col items-start justify-between gap-3 rounded border border-amber-300/70 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50 sm:flex-row sm:items-center sm:gap-4">
           <span>{clientLoadError || loadError}</span>
           <button type="button" onClick={() => { if (clientLoadError) void loadClients(); else window.location.reload() }} className="shrink-0 font-medium underline underline-offset-4">
             Retry
@@ -285,7 +285,7 @@ export default function BillingAdminClient({
         </div>
       )}
 
-      {error && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
+      {error && <div role="alert" className="rounded-xl border border-rose-300/70 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-400/40 dark:bg-rose-950/40 dark:text-rose-100">{error}</div>}
       {!storageConfigured && <div role="status" className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-sm text-foreground"><p className="font-medium">Document storage is not ready.</p><p className="mt-1 text-muted-foreground">Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, and R2_PUBLIC_URL in the deployment environment before uploading or generating PDFs.</p></div>}
 
             <div className="grid gap-3 sm:grid-cols-3"><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><p className="font-serif text-3xl text-foreground">{clientList.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Client profiles ready</p></Card><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><p className="font-serif text-3xl text-foreground">{invoiceList.length + quoteList.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Uploaded records</p></Card><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><p className="font-serif text-3xl text-foreground">{documentList.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Generated PDFs</p></Card></div>
@@ -439,7 +439,7 @@ function UploadModal({ title, action, isPending, onClose, clients, clientLabel, 
         <form action={action} className="mt-4 space-y-3">
           <label className="block text-xs text-muted-foreground" htmlFor={`${extraField.name}-userId`}>Client</label>
           <select id={`${extraField.name}-userId`} name="userId" required disabled={isLoadingClients || clients.length === 0} value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)} className="w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{isLoadingClients ? 'Loading client profiles…' : clients.length ? 'Select client...' : clientLoadError ? 'Client list unavailable — retry below' : 'No client profiles found'}</option>{clients.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}</select>
-          {clientLoadError && <p role="alert" className="text-xs text-rose-700">{clientLoadError} <button type="button" onClick={() => void onRetryClients()} className="font-medium underline underline-offset-4">Retry client list</button></p>}
+          {clientLoadError && <p role="alert" className="text-xs text-rose-800 dark:text-rose-200">{clientLoadError} <button type="button" onClick={() => void onRetryClients()} className="font-medium underline underline-offset-4">Retry client list</button></p>}
           <label className="block text-xs text-muted-foreground" htmlFor={`${extraField.name}-projectId`}>Project (optional)</label>
           <select id={`${extraField.name}-projectId`} name="projectId" disabled={!selectedClientId} className="w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{selectedClientId ? 'No project' : 'Select a client first'}</option>{visibleProjects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select>
 
@@ -479,7 +479,7 @@ function GenerateDocumentModal({ action, isPending, onClose, clients, clientLabe
             <div><label className="block text-xs text-muted-foreground" htmlFor="userId">Client</label><select id="userId" name="userId" required disabled={isLoadingClients || clients.length === 0} value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)} className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{isLoadingClients ? 'Loading client profiles…' : clients.length ? 'Select client...' : clientLoadError ? 'Client list unavailable — retry below' : 'No client profiles found'}</option>{clients.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}</select>
 </div>
           </div>
-          <div>{clientLoadError && <p role="alert" className="text-xs text-rose-700">{clientLoadError} <button type="button" onClick={() => void onRetryClients()} className="font-medium underline underline-offset-4">Retry client list</button></p>}
+          <div>{clientLoadError && <p role="alert" className="text-xs text-rose-800 dark:text-rose-200">{clientLoadError} <button type="button" onClick={() => void onRetryClients()} className="font-medium underline underline-offset-4">Retry client list</button></p>}
           <label className="block text-xs text-muted-foreground" htmlFor="projectId">Project (optional)</label><select id="projectId" name="projectId" disabled={!selectedClientId} className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{selectedClientId ? 'No project' : 'Select a client first'}</option>{visibleProjects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
           <div className="grid gap-3 sm:grid-cols-3"><Input name="description" placeholder="Line item description" required aria-label="Line item description" /><Input name="quantity" type="number" min="0.01" step="0.01" defaultValue="1" placeholder="Qty" aria-label="Quantity" /><Input name="unitPrice" type="number" min="0" step="0.01" placeholder="Unit price (UGX)" required aria-label="Unit price" /></div>
           <div className="grid gap-3 sm:grid-cols-4"><Input name="taxRate" type="number" min="0" step="0.01" defaultValue="0" placeholder="Tax %" aria-label="Tax rate" /><Input name="discount" type="number" min="0" step="0.01" defaultValue="0" placeholder="Discount (UGX)" aria-label="Discount" /><Input name="dueDate" type="date" aria-label="Due date" /><Input name="validUntil" type="date" aria-label="Valid until" /></div>

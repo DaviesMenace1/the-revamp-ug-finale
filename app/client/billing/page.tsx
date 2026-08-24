@@ -13,15 +13,21 @@ export default async function ClientBillingPage() {
     '/client/billing',
   )
 
-  const [quoteResult, invoiceResult, documentResult] = await Promise.all([
-    safeQuery(db.select().from(quotes).where(eq(quotes.userId, user.id)).orderBy(desc(quotes.createdAt)).limit(100), 'quotes', []),
-    safeQuery(db.select().from(invoices).where(eq(invoices.userId, user.id)).orderBy(desc(invoices.createdAt)).limit(100), 'invoices', []),
-    safeQuery(
-      db.select({ id: financialDocuments.id, documentNumber: financialDocuments.documentNumber, documentType: financialDocuments.documentType, amount: financialDocuments.amount, currency: financialDocuments.currency, fileUrl: financialDocuments.fileUrl, createdAt: financialDocuments.createdAt }).from(financialDocuments).where(eq(financialDocuments.userId, user.id)).orderBy(desc(financialDocuments.createdAt)).limit(100),
-      'generated documents',
-      [],
-    ),
-  ])
+  const quoteResult = await safeQuery(
+    db.select().from(quotes).where(eq(quotes.userId, user.id)).orderBy(desc(quotes.createdAt)).limit(100),
+    'quotes',
+    [],
+  )
+  const invoiceResult = await safeQuery(
+    db.select().from(invoices).where(eq(invoices.userId, user.id)).orderBy(desc(invoices.createdAt)).limit(100),
+    'invoices',
+    [],
+  )
+  const documentResult = await safeQuery(
+    db.select({ id: financialDocuments.id, documentNumber: financialDocuments.documentNumber, documentType: financialDocuments.documentType, amount: financialDocuments.amount, currency: financialDocuments.currency, fileUrl: financialDocuments.fileUrl, createdAt: financialDocuments.createdAt }).from(financialDocuments).where(eq(financialDocuments.userId, user.id)).orderBy(desc(financialDocuments.createdAt)).limit(100),
+    'generated documents',
+    [],
+  )
 
   const myQuotes = quoteResult.data ?? []
   const myInvoices = invoiceResult.data ?? []

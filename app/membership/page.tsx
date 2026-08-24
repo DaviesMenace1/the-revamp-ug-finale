@@ -3,21 +3,30 @@ import { db } from '@/lib/db/client'
 import { memberships, membershipEvents } from '@/lib/db/schema'
 import { eq, gte, asc } from 'drizzle-orm'
 import MembershipDashboardClient from './membership-dashboard-client'
+import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
 
 export default async function MembershipDashboard() {
   const user = await requirePortalUser(['customer', 'admin', 'designer', 'trade_member', 'architect', 'interior_designer'], '/membership')
 
-  const [membership, upcomingEvents] = await Promise.all([
+  const membershipResult = await safeQuery(
     db.query.memberships.findFirst({ where: eq(memberships.userId, user.id) }),
+    'membership profile',
+    null,
+  )
+  const upcomingEventsResult = await safeQuery(
     db
       .select()
       .from(membershipEvents)
       .where(gte(membershipEvents.eventDate, new Date()))
       .orderBy(asc(membershipEvents.eventDate))
       .limit(3),
-  ])
+    'membership events',
+    [],
+  )
+  const membership = membershipResult.data
+  const upcomingEvents = upcomingEventsResult.data
 
   return (
     <MembershipDashboardClient

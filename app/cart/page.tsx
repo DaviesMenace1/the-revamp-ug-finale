@@ -112,7 +112,7 @@ export default function CartPage() {
           </header>
 
           {hasMixedCurrencies && (
-            <div role="alert" className="mb-6 rounded-lg border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
+            <div role="alert" className="mb-6 rounded-lg border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50">
               This selection contains more than one currency. Separate checkout is required so we never combine incompatible amounts.
             </div>
           )}
@@ -152,7 +152,7 @@ export default function CartPage() {
                           </button>
                         </div>
 
-                        {item.unavailable && <p role="status" className="mt-3 text-xs leading-5 text-amber-800">This saved selection needs review before checkout because its product details are unavailable.</p>}
+                        {item.unavailable && <p role="status" className="mt-3 text-xs leading-5 text-amber-800 dark:text-amber-200">This saved selection needs review before checkout because its product details are unavailable.</p>}
                         <ProductOptions item={item} />
 
                         <div className="mt-5 flex flex-wrap items-end justify-between gap-4">

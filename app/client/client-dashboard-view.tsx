@@ -48,14 +48,14 @@ type RecentConsultation = {
 }
 
 const statusTone: Record<string, string> = {
-  pending: 'bg-amber-100 text-amber-900',
-  processing: 'bg-blue-100 text-blue-900',
-  shipped: 'bg-indigo-100 text-indigo-900',
-  delivered: 'bg-emerald-100 text-emerald-900',
-  confirmed: 'bg-emerald-100 text-emerald-900',
+  pending: 'bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200',
+  processing: 'bg-blue-100 text-blue-900 dark:bg-blue-950/50 dark:text-blue-200',
+  shipped: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-200',
+  delivered: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200',
+  confirmed: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200',
   consultation_scheduled: 'bg-gold/15 text-foreground',
-  in_progress: 'bg-blue-100 text-blue-900',
-  completed: 'bg-emerald-100 text-emerald-900',
+  in_progress: 'bg-blue-100 text-blue-900 dark:bg-blue-950/50 dark:text-blue-200',
+  completed: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200',
 }
 
 function displayStatus(status: string | null | undefined) {
@@ -92,7 +92,7 @@ export default function ClientDashboardView({
   return (
     <PortalLayout portalName="Client Portal" portalSlug="client" navItems={clientNavItems}>
       <div className="space-y-8 pb-8">
-        <section className="relative overflow-hidden rounded-2xl bg-foreground px-6 py-8 text-background shadow-lift sm:px-10 sm:py-10">
+        <section className="relative overflow-hidden rounded-2xl bg-foreground px-4 py-7 text-background shadow-lift sm:px-10 sm:py-10">
           <div className="absolute -right-24 -top-28 size-72 rounded-full border border-gold/30" />
           <div className="absolute -bottom-32 right-16 size-64 rounded-full border border-background/10" />
           <div className="relative max-w-2xl">
@@ -103,7 +103,7 @@ export default function ClientDashboardView({
           <Link href="/book-consultation" className="relative mt-7 inline-flex min-h-11 items-center gap-2 rounded bg-gold px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-obsidian transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-foreground">Book a consultation <ArrowUpRight className="size-4" /></Link>
         </section>
 
-        {loadError && <div role="status" className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><span>{loadError}</span><button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">Retry</button></div>}
+        {loadError && <div role="status" className="flex flex-col items-start justify-between gap-3 rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50 sm:flex-row sm:items-center sm:gap-4"><span>{loadError}</span><button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">Retry</button></div>}
 
         <section aria-label="Account overview" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {cards.map((card) => (

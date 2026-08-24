@@ -3,6 +3,7 @@ import { getCurrentUserWithRole } from '@/lib/auth/server'
 import { redirect } from 'next/navigation'
 import NotificationBell from '@/components/notifications/notification-bell'
 import PageLoadError from '@/components/system/page-load-error'
+import { ThemeSwitcher } from '@/components/theme-switcher'
 
 export const metadata = {
   title: 'Admin Portal | The Revamp UG',
@@ -27,12 +28,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!authorized) redirect('/unauthorized')
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-dvh min-w-0 bg-background">
       <AdminSidebar />
-      <main className="relative flex-1 overflow-auto">
-        <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between border-b border-border/70 bg-background/90 px-4 backdrop-blur-xl sm:px-6">
-          <div><p className="text-[10px] uppercase tracking-[0.24em] text-primary">The Revamp UG</p><p className="text-sm text-muted-foreground">Admin command center</p></div>
-          <NotificationBell />
+      <main className="relative min-w-0 flex-1 overflow-x-hidden">
+        <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between gap-3 border-b border-border/70 bg-background/90 px-4 pl-16 backdrop-blur-xl sm:px-6 sm:pl-16 md:pl-6">
+          <div className="min-w-0"><p className="truncate text-[10px] uppercase tracking-[0.24em] text-primary">The Revamp UG</p><p className="truncate text-sm text-muted-foreground">Admin command center</p></div>
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+            <ThemeSwitcher />
+            <NotificationBell />
+          </div>
         </header>
         {children}
       </main>

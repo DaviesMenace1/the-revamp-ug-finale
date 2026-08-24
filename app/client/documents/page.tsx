@@ -13,48 +13,46 @@ export default async function ClientDocuments() {
     '/client/documents',
   )
 
-  const [sharedResult, financialResult, quoteResult, invoiceResult] = await Promise.all([
-    safeQuery(
-      db
-        .select({ id: clientDocuments.id, name: clientDocuments.name, category: clientDocuments.category, fileUrl: clientDocuments.fileUrl, createdAt: clientDocuments.createdAt })
-        .from(clientDocuments)
-        .where(eq(clientDocuments.userId, user.id))
-        .orderBy(desc(clientDocuments.createdAt))
-        .limit(100),
-      'client documents',
-      [],
-    ),
-    safeQuery(
-      db
-        .select({ id: financialDocuments.id, name: financialDocuments.documentNumber, category: financialDocuments.documentType, fileUrl: financialDocuments.fileUrl, currency: financialDocuments.currency, amount: financialDocuments.amount, createdAt: financialDocuments.createdAt })
-        .from(financialDocuments)
-        .where(eq(financialDocuments.userId, user.id))
-        .orderBy(desc(financialDocuments.createdAt))
-        .limit(100),
-      'client financial documents',
-      [],
-    ),
-    safeQuery(
-      db
-        .select({ id: quotes.id, name: quotes.quoteNumber, fileUrl: quotes.pdfUrl, total: quotes.total, createdAt: quotes.createdAt })
-        .from(quotes)
-        .where(eq(quotes.userId, user.id))
-        .orderBy(desc(quotes.createdAt))
-        .limit(100),
-      'client quotes',
-      [],
-    ),
-    safeQuery(
-      db
-        .select({ id: invoices.id, name: invoices.invoiceNumber, fileUrl: invoices.pdfUrl, receiptUrl: invoices.receiptUrl, total: invoices.total, createdAt: invoices.createdAt })
-        .from(invoices)
-        .where(eq(invoices.userId, user.id))
-        .orderBy(desc(invoices.createdAt))
-        .limit(100),
-      'client invoices',
-      [],
-    ),
-  ])
+  const sharedResult = await safeQuery(
+    db
+      .select({ id: clientDocuments.id, name: clientDocuments.name, category: clientDocuments.category, fileUrl: clientDocuments.fileUrl, createdAt: clientDocuments.createdAt })
+      .from(clientDocuments)
+      .where(eq(clientDocuments.userId, user.id))
+      .orderBy(desc(clientDocuments.createdAt))
+      .limit(100),
+    'client documents',
+    [],
+  )
+  const financialResult = await safeQuery(
+    db
+      .select({ id: financialDocuments.id, name: financialDocuments.documentNumber, category: financialDocuments.documentType, fileUrl: financialDocuments.fileUrl, currency: financialDocuments.currency, amount: financialDocuments.amount, createdAt: financialDocuments.createdAt })
+      .from(financialDocuments)
+      .where(eq(financialDocuments.userId, user.id))
+      .orderBy(desc(financialDocuments.createdAt))
+      .limit(100),
+    'client financial documents',
+    [],
+  )
+  const quoteResult = await safeQuery(
+    db
+      .select({ id: quotes.id, name: quotes.quoteNumber, fileUrl: quotes.pdfUrl, total: quotes.total, createdAt: quotes.createdAt })
+      .from(quotes)
+      .where(eq(quotes.userId, user.id))
+      .orderBy(desc(quotes.createdAt))
+      .limit(100),
+    'client quotes',
+    [],
+  )
+  const invoiceResult = await safeQuery(
+    db
+      .select({ id: invoices.id, name: invoices.invoiceNumber, fileUrl: invoices.pdfUrl, receiptUrl: invoices.receiptUrl, total: invoices.total, createdAt: invoices.createdAt })
+      .from(invoices)
+      .where(eq(invoices.userId, user.id))
+      .orderBy(desc(invoices.createdAt))
+      .limit(100),
+    'client invoices',
+    [],
+  )
 
   const sharedDocuments = sharedResult.data.map((document) => ({
     id: `shared-${document.id}`,

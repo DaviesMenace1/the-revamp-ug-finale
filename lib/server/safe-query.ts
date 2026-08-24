@@ -9,10 +9,14 @@ type SafeQueryResult<T> = {
 }
 
 /**
- * Resolve a server-side data operation without allowing a slow database or
- * storage dependency to hold a page request forever. The original promise is
- * deliberately not cancelled because database clients differ in cancellation
- * support; the database client still has its own statement/connect timeouts.
+ * Resolve a server-side data operation without converting a slow request into
+ * a false page failure. The database client owns cancellation through its
+ * connect, statement, and lock timeouts. A Promise.race cannot cancel a
+ * postgres.js query; returning before that query settles can leave the single
+ * serverless connection occupied and make later requests appear to hang.
+ *
+ * The timeout argument remains source-compatible for existing callers, but is
+ * intentionally not used as a second, non-cancellable timeout layer.
  */
 export async function safeQuery<T>(
   query: PromiseLike<T>,
@@ -20,24 +24,13 @@ export async function safeQuery<T>(
   fallback: T,
   timeoutMs = PAGE_DATA_TIMEOUT_MS,
 ): Promise<SafeQueryResult<T>> {
-  let timeoutHandle: ReturnType<typeof setTimeout> | undefined
-
+  void timeoutMs
   try {
-    const data = await Promise.race([
-      Promise.resolve(query),
-      new Promise<never>((_, reject) => {
-        timeoutHandle = setTimeout(() => {
-          reject(new Error(`${label} exceeded the ${timeoutMs}ms page-data timeout`))
-        }, timeoutMs)
-      }),
-    ])
-
+    const data = await Promise.resolve(query)
     return { data, error: null }
   } catch (error) {
     console.error(`[page-data] ${label} failed:`, error)
-    reportServerError('Server page data loader failed', error, { loader: label })
+    void reportServerError('Server page data loader failed', error, { loader: label })
     return { data: fallback, error: label }
-  } finally {
-    if (timeoutHandle) clearTimeout(timeoutHandle)
   }
 }

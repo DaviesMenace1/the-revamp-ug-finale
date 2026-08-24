@@ -1,4 +1,8 @@
+'use client'
+
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import { SignOutButton } from '@clerk/nextjs'
 import {
   BarChart3,
@@ -17,7 +21,10 @@ import {
   MessageSquare,
   LifeBuoy,
   FileCog,
+  Menu,
+  X,
 } from 'lucide-react'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 
 const sidebarItems = [
   { label: 'Dashboard', href: '/admin', icon: BarChart3 },
@@ -38,44 +45,101 @@ const sidebarItems = [
   { label: 'Settings', href: '/admin/settings', icon: Settings },
 ]
 
-export default function AdminSidebar() {
+function isItemActive(pathname: string, href: string) {
+  return href === '/admin' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`)
+}
+
+function AdminNav({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname()
+
   return (
-    <aside className="w-64 border-r border-border/20 bg-card p-6 sticky top-0 h-screen overflow-y-auto">
-      <div className="mb-8">
-        <Link href="/admin" className="font-serif text-2xl font-light text-foreground">
-          The Revamp Ug
-        </Link>
-        <p className="text-xs text-muted-foreground mt-1">Admin Portal</p>
-      </div>
-
-      <nav className="space-y-2 mb-12">
-        {sidebarItems.map(item => {
-          const Icon = item.icon
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <Icon className="w-4 h-4" />
-              {item.label}
-            </Link>
-          )
-        })}
-      </nav>
-
-      <div className="border-t border-border/20 pt-6 mt-auto">
-        <SignOutButton redirectUrl="/">
-          <button
-            type="button"
-            className="flex min-h-11 w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+    <nav aria-label="Admin navigation" className="space-y-1">
+      {sidebarItems.map((item) => {
+        const Icon = item.icon
+        const active = isItemActive(pathname, item.href)
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            aria-current={active ? 'page' : undefined}
+            className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+              active
+                ? 'bg-primary/10 font-medium text-primary'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
           >
-            <LogOut className="h-4 w-4" aria-hidden="true" />
-            Sign Out
-          </button>
-        </SignOutButton>
-      </div>
-    </aside>
+            <Icon className="size-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 truncate">{item.label}</span>
+          </Link>
+        )
+      })}
+    </nav>
   )
 }
 
+function AdminSignOut() {
+  return (
+    <SignOutButton redirectUrl="/">
+      <button
+        type="button"
+        className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+      >
+        <LogOut className="size-4 shrink-0" aria-hidden="true" />
+        Sign Out
+      </button>
+    </SignOutButton>
+  )
+}
+
+function AdminBrand() {
+  return (
+    <div className="mb-7">
+      <Link href="/admin" className="font-serif text-2xl font-light text-foreground">
+        The Revamp UG
+      </Link>
+      <p className="mt-1 text-xs text-muted-foreground">Admin Portal</p>
+    </div>
+  )
+}
+
+export default function AdminSidebar() {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  return (
+    <>
+      <aside className="hidden w-64 shrink-0 border-r border-border/20 bg-card p-5 md:sticky md:top-0 md:block md:h-screen md:overflow-y-auto lg:p-6">
+        <AdminBrand />
+        <AdminNav />
+        <div className="mt-8 border-t border-border/20 pt-5">
+          <AdminSignOut />
+        </div>
+      </aside>
+
+      <div className="md:hidden">
+        <button
+          type="button"
+          aria-label={mobileOpen ? 'Close admin navigation' : 'Open admin navigation'}
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen((open) => !open)}
+          className="fixed left-2.5 top-2.5 z-50 flex size-11 items-center justify-center rounded-lg border border-border/70 bg-background/95 text-foreground shadow-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        >
+          {mobileOpen ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
+        </button>
+
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent side="left" className="safe-bottom w-[min(20rem,calc(100vw-1rem))] border-border bg-card p-0">
+            <SheetTitle className="sr-only">Admin navigation</SheetTitle>
+            <div className="flex h-full flex-col overflow-y-auto p-5">
+              <AdminBrand />
+              <AdminNav onNavigate={() => setMobileOpen(false)} />
+              <div className="mt-8 border-t border-border/20 pt-5">
+                <AdminSignOut />
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+    </>
+  )
+}

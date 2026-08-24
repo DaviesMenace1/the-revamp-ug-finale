@@ -39,15 +39,15 @@ export default function TradeDashboardView({ member, stats }: { member: Member; 
     <PortalLayout portalName="Trade Portal" portalSlug="trade" navItems={tradeNavItems}>
       <div className="space-y-12">
         <div className="space-y-2">
-          <h1 className="font-serif text-4xl md:text-5xl font-light text-foreground">Trade Portal</h1>
+          <h1 className="font-serif text-3xl font-light text-foreground sm:text-4xl md:text-5xl">Trade Portal</h1>
           <p className="text-muted-foreground">
             Access wholesale collections, pricing, and exclusive resources for design professionals.
           </p>
         </div>
 
         {member?.status === 'pending' && (
-          <Card className="p-6 border-amber-200 bg-amber-50">
-            <p className="text-sm text-amber-800">
+<Card className="border-amber-300/70 bg-amber-50 p-6 dark:border-amber-400/40 dark:bg-amber-950/40">
+            <p className="text-sm text-amber-800 dark:text-amber-200">
               Your trade application for <strong>{member.businessName}</strong> is pending review. Standard
               pricing applies until approved.
             </p>

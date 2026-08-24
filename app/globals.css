@@ -193,11 +193,26 @@
   }
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
     min-width: 320px;
+    max-width: 100%;
+    overflow-x: hidden;
     font-feature-settings: 'kern' 1, 'liga' 1;
+  }
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
   }
   a,
   button,
@@ -256,6 +271,17 @@
   .surface-card {
     @apply rounded-lg border border-border/70 bg-card;
     box-shadow: var(--shadow-lift);
+  }
+
+  .mobile-scroll-row {
+    scrollbar-width: thin;
+    overscroll-behavior-inline: contain;
+  }
+
+  @media (max-width: 380px) {
+    .section-pad {
+      @apply py-16;
+    }
   }
 
   .motion-reveal {

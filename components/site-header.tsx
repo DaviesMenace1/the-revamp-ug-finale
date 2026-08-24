@@ -124,7 +124,7 @@ export function SiteHeader() {
                 <Link
                   href="/search"
                   className={cn(
-                    'flex size-11 items-center justify-center hover:text-gold transition-colors',
+                    'hidden size-11 items-center justify-center hover:text-gold transition-colors sm:flex',
                     scrolled || !isHome ? 'text-foreground' : 'text-white',
                   )}
                   aria-label="Search"
@@ -269,11 +269,12 @@ export function SiteHeader() {
               {/* Wishlist Icon */}
               <Link
                 href="/wishlist"
-                className={cn(
-                  'flex size-11 items-center justify-center hover:text-gold transition-colors',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-                aria-label="Wishlist"
+                                  className={cn(
+                    'hidden size-11 items-center justify-center hover:text-gold transition-colors sm:flex',
+                    scrolled || !isHome ? 'text-foreground' : 'text-white',
+                  )}
+                  aria-label="Wishlist"
+
               >
                 <Heart size={18} className="sm:w-[20px] sm:h-[20px]" />
               </Link>
@@ -281,11 +282,12 @@ export function SiteHeader() {
               {/* Profile / Account Icon */}
               <Link
                 href="/account"
-                className={cn(
-                  'flex size-11 items-center justify-center hover:text-gold transition-colors',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-                aria-label="Account"
+                                  className={cn(
+                    'hidden size-11 items-center justify-center hover:text-gold transition-colors sm:flex',
+                    scrolled || !isHome ? 'text-foreground' : 'text-white',
+                  )}
+                  aria-label="Account"
+
               >
                 <User size={18} className="sm:w-[20px] sm:h-[20px]" />
               </Link>

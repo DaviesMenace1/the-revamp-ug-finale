@@ -19,13 +19,13 @@ const clientNavItems = [
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-muted text-muted-foreground',
-  sent: 'bg-blue-100 text-blue-800',
-  pending: 'bg-amber-100 text-amber-800',
-  accepted: 'bg-emerald-100 text-emerald-800',
-  partial: 'bg-amber-100 text-amber-800',
-  paid: 'bg-emerald-100 text-emerald-800',
-  overdue: 'bg-rose-100 text-rose-800',
-  expired: 'bg-rose-100 text-rose-800',
+  sent: 'bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-200',
+  pending: 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200',
+  accepted: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200',
+  partial: 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200',
+  paid: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200',
+  overdue: 'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200',
+  expired: 'bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200',
   cancelled: 'bg-muted text-muted-foreground',
 }
 
@@ -51,9 +51,9 @@ export default function BillingClientView({ quotes = [], invoices = [], document
   return (
     <PortalLayout portalName="Client Portal" portalSlug="client" navItems={clientNavItems}>
       <div className="space-y-8 pb-8">
-        <header className="relative overflow-hidden rounded-2xl bg-foreground px-6 py-8 text-background shadow-lift sm:px-10 sm:py-10"><div className="absolute -right-20 -top-24 size-64 rounded-full border border-gold/25" /><div className="relative"><p className="text-[10px] uppercase tracking-[0.28em] text-gold">Your studio finance</p><h1 className="mt-4 font-serif text-4xl sm:text-6xl">Billing</h1><p className="mt-4 max-w-xl text-sm leading-7 text-background/70">Quotes, invoices, receipts, and generated documents from your work with The Revamp.</p></div></header>
+        <header className="relative overflow-hidden rounded-2xl bg-foreground px-4 py-7 text-background shadow-lift sm:px-10 sm:py-10"><div className="absolute -right-20 -top-24 size-64 rounded-full border border-gold/25" /><div className="relative"><p className="text-[10px] uppercase tracking-[0.28em] text-gold">Your studio finance</p><h1 className="mt-4 font-serif text-4xl sm:text-6xl">Billing</h1><p className="mt-4 max-w-xl text-sm leading-7 text-background/70">Quotes, invoices, receipts, and generated documents from your work with The Revamp.</p></div></header>
 
-        {loadError && <div role="status" className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><span>{loadError}</span><button type="button" onClick={() => window.location.reload()} className="min-h-11 font-medium underline underline-offset-4">Retry</button></div>}
+        {loadError && <div role="status" className="flex flex-col items-start justify-between gap-3 rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50 sm:flex-row sm:items-center sm:gap-4"><span>{loadError}</span><button type="button" onClick={() => window.location.reload()} className="min-h-11 font-medium underline underline-offset-4">Retry</button></div>}
 
         <section className="grid gap-3 sm:grid-cols-3"><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><div className="flex size-10 items-center justify-center rounded-lg bg-gold/15 text-primary"><Wallet className="size-4" /></div><p className="mt-6 font-serif text-3xl text-foreground">{formatMoney(totals, 'UGX')}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Invoice value</p></Card><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><div className="flex size-10 items-center justify-center rounded-lg bg-foreground text-background"><Receipt className="size-4" /></div><p className="mt-6 font-serif text-3xl text-foreground">{openInvoices}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Open invoices</p></Card><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><div className="flex size-10 items-center justify-center rounded-lg bg-muted text-primary"><FileText className="size-4" /></div><p className="mt-6 font-serif text-3xl text-foreground">{documents.length + quotes.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Documents available</p></Card></section>
 

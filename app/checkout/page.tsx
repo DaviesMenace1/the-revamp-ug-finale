@@ -159,7 +159,7 @@ export default function CheckoutPage() {
           <div className="mt-7 max-w-2xl"><p className="text-[10px] uppercase tracking-[0.3em] text-primary">Secure order</p><h1 className="mt-3 font-serif text-5xl tracking-tight md:text-6xl">Checkout</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">Confirm your details and review your selection before secure payment.</p></div>
 
           {errorMessage && <div role="alert" className="mt-7 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm leading-6 text-destructive"><CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" /><span>{errorMessage}</span></div>}
-          {hasMixedCurrencies && <div role="alert" className="mt-4 rounded-lg border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">Your selection includes {currencies.join(' and ')}. Payment is paused until the cart contains one currency.</div>}
+          {hasMixedCurrencies && <div role="alert" className="mt-4 rounded-lg border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50">Your selection includes {currencies.join(' and ')}. Payment is paused until the cart contains one currency.</div>}
 
           <form onSubmit={handlePayWithFlutterwave} className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12">
             <div className="space-y-8">

@@ -7,6 +7,15 @@ import { Center, OrbitControls, useGLTF, useProgress } from '@react-three/drei'
 import { ArrowLeft, Expand, RotateCcw, Box, AlertTriangle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { PortalLayout } from '@/components/portals/portal-layout'
+
+const clientNavItems = [
+  { label: 'Overview', href: '/client' },
+  { label: 'Projects', href: '/client/projects' },
+  { label: 'Orders', href: '/client/orders' },
+  { label: 'Documents', href: '/client/documents' },
+  { label: 'Consultations', href: '/client/consultations' },
+]
 
 type VisualizationAsset = {
   id: string
@@ -56,8 +65,8 @@ export default function VisualizationViewer({ project, assets }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground sm:px-8">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <PortalLayout portalName="Client Portal" portalSlug="client" navItems={clientNavItems}>
+      <div className="space-y-6">
         <Link href={`/client/projects/${project.slug}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" />Back to {project.title}</Link>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs uppercase tracking-[0.22em] text-primary">Project visualization</p><h1 className="mt-2 font-serif text-4xl font-light">{project.title}</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Explore the approved GLB/GLTF models shared for this project. Drag to rotate, scroll or pinch to zoom, and right-drag to pan.</p></div><div className="flex items-center gap-2"><Button type="button" variant="outline" className="rounded-none" onClick={() => setResetKey((key) => key + 1)} disabled={!selected}><RotateCcw className="mr-2 h-4 w-4" />Reset view</Button><Button type="button" variant="outline" className="rounded-none" onClick={toggleFullscreen} disabled={!selected}><Expand className="mr-2 h-4 w-4" />Fullscreen</Button></div></div>
 
@@ -83,6 +92,6 @@ export default function VisualizationViewer({ project, assets }: Props) {
           </div>
         )}
       </div>
-    </main>
+    </PortalLayout>
   )
 }

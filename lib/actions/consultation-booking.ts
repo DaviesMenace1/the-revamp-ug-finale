@@ -5,6 +5,7 @@ import { consultationSlots, consultations } from '@/lib/db/schema'
 import { eq, and, gte, asc } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
 
 // --- Admin: define availability ---
 
@@ -13,20 +14,29 @@ export async function createSlots(data: {
   durationMinutes: number
   mode: string
 }) {
-  if (data.startTimes.length === 0) return { success: false, error: 'Pick at least one time.' }
+  const authorization = await getCurrentUserWithRole(['admin'])
+  if (!authorization.authorized) return { success: false, error: 'Only administrators can manage consultation availability.' }
+
+  const validModes = new Set(['virtual', 'in_person', 'showroom'])
+  const durationMinutes = Number(data.durationMinutes)
+  const dates = Array.from(new Set(data.startTimes)).map((value) => new Date(value)).filter((date) => Number.isFinite(date.getTime()) && date.getTime() > Date.now())
+  if (dates.length === 0) return { success: false, error: 'Pick at least one future time.' }
+  if (!Number.isInteger(durationMinutes) || durationMinutes < 15 || durationMinutes > 240) return { success: false, error: 'Duration must be between 15 and 240 minutes.' }
+  if (!validModes.has(data.mode)) return { success: false, error: 'Choose a valid meeting format.' }
 
   try {
-    const rows = data.startTimes.map((t) => ({
-      startTime: new Date(t),
-      durationMinutes: data.durationMinutes,
+    const rows = dates.map((startTime) => ({
+      startTime,
+      durationMinutes,
       mode: data.mode,
     }))
 
-    await db.insert(consultationSlots).values(rows)
+        const created = await db.insert(consultationSlots).values(rows).returning({ id: consultationSlots.id, startTime: consultationSlots.startTime, durationMinutes: consultationSlots.durationMinutes, mode: consultationSlots.mode, isBooked: consultationSlots.isBooked, consultationId: consultationSlots.consultationId })
 
     revalidatePath('/admin/consultations')
     revalidatePath('/book-consultation')
-    return { success: true }
+    return { success: true, slots: created.map((slot) => ({ ...slot, startTime: slot.startTime.toISOString() })) }
+
   } catch (error) {
     console.error('Failed to create slots:', error)
     return { success: false, error: 'Failed to create availability.' }
@@ -34,8 +44,14 @@ export async function createSlots(data: {
 }
 
 export async function deleteSlot(slotId: string) {
+  const authorization = await getCurrentUserWithRole(['admin'])
+  if (!authorization.authorized) return { success: false, error: 'Only administrators can manage consultation availability.' }
+  if (!slotId) return { success: false, error: 'A slot is required.' }
+
   try {
-    await db.delete(consultationSlots).where(eq(consultationSlots.id, slotId))
+    const deleted = await db.delete(consultationSlots).where(and(eq(consultationSlots.id, slotId), eq(consultationSlots.isBooked, false))).returning({ id: consultationSlots.id })
+    if (deleted.length === 0) return { success: false, error: 'Booked or unavailable slots cannot be removed.' }
+
     revalidatePath('/admin/consultations')
     revalidatePath('/book-consultation')
     return { success: true }
@@ -112,9 +128,11 @@ export async function getAvailableSlots() {
       .select()
       .from(consultationSlots)
       .where(and(eq(consultationSlots.isBooked, false), gte(consultationSlots.startTime, new Date())))
-      .orderBy(asc(consultationSlots.startTime))
+            .orderBy(asc(consultationSlots.startTime))
+      .limit(100)
 
     return {
+
       success: true,
       slots: slots.map((s) => ({ ...s, startTime: s.startTime.toISOString() })),
     }

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
 import NotificationBell from '@/components/notifications/notification-bell'
+import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useState } from 'react'
 
 interface PortalLayoutProps {
@@ -55,7 +56,8 @@ export function PortalLayout({
               })}
             </nav>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <ThemeSwitcher />
               <NotificationBell />
               {/* Mobile Menu Toggle */}
               <button

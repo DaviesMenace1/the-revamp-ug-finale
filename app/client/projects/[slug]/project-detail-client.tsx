@@ -4,7 +4,8 @@ import { useState, useTransition } from 'react'
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, FileText, Download, Check, MessageSquare, Clock, CheckSquare, Square } from 'lucide-react'
+import { ArrowLeft, FileText, Download, ExternalLink, Check, MessageSquare, Clock, CheckSquare, Square } from 'lucide-react'
+
 import Link from 'next/link'
 import { approveAsset, requestAssetChanges } from '@/lib/actions/project-assets'
 import { toggleClientTask } from '@/lib/actions/tasks'
@@ -338,16 +339,8 @@ export default function ProjectDetailClient({ project }: { project: ProjectDetai
               ) : (
                 <div className="space-y-2">
                   {project.documents.map((doc) => (
-                    <a
-                      key={doc.id}
-                      href={doc.fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-between rounded border border-border/20 p-3 hover:bg-muted/50"
-                    >
-                      <span className="text-sm text-foreground">{doc.name}</span>
-                      <Download className="w-4 h-4 text-muted-foreground" />
-                    </a>
+                                        <div key={doc.id} className="flex flex-wrap items-center justify-between gap-3 rounded border border-border/20 p-3"><span className="text-sm text-foreground">{doc.name}</span><div className="flex flex-wrap gap-2"><a href={doc.fileUrl} target="_blank" rel="noreferrer" aria-label={`View ${doc.name}`} className="inline-flex min-h-10 items-center gap-2 rounded border border-border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground hover:border-gold hover:text-primary"><ExternalLink className="size-3.5" />View</a><a href={`/api/documents/download?url=${encodeURIComponent(doc.fileUrl)}`} download aria-label={`Download ${doc.name} to device`} className="inline-flex min-h-10 items-center gap-2 rounded border border-border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground hover:border-gold hover:text-primary"><Download className="size-3.5" />Download</a></div></div>
+
                   ))}
                 </div>
               )}

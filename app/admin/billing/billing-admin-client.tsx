@@ -5,7 +5,7 @@ import { useCallback, useState, useTransition } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, X, FileText, Upload, Loader2, Sparkles, Download } from 'lucide-react'
+import { Plus, X, FileText, Upload, Loader2, Sparkles, Download, ExternalLink } from 'lucide-react'
 
 import {
   createGeneratedFinancialDocument,
@@ -319,8 +319,9 @@ export default function BillingAdminClient({
               <div className="flex flex-wrap items-center gap-4">
                 <span className="text-sm font-medium text-foreground">{formatCurrency(inv.total)}</span>
                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[inv.status] || STATUS_COLORS.draft}`}>{inv.status}</span>
-{inv.pdfUrl && <DocumentDownload href={inv.pdfUrl} label={`Download ${inv.invoiceNumber}`} />}
-                {inv.receiptUrl && <DocumentDownload href={inv.receiptUrl} label={`Download receipt for ${inv.invoiceNumber}`} tone="success" />}
+{inv.pdfUrl && <DocumentActions href={inv.pdfUrl} label={inv.invoiceNumber} />}
+                {inv.receiptUrl && <DocumentActions href={inv.receiptUrl} label={`${inv.invoiceNumber} receipt`} tone="success" />}
+
                 {inv.status !== 'paid' && <Button size="sm" variant="outline" className="rounded-none" onClick={() => setReceiptTarget(inv)}>Upload Receipt</Button>}
               </div>
             </Card>
@@ -354,7 +355,8 @@ export default function BillingAdminClient({
                   <option value="expired">Expired</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
-                {q.pdfUrl && <DocumentDownload href={q.pdfUrl} label={`Download ${q.quoteNumber}`} />}
+                                {q.pdfUrl && <DocumentActions href={q.pdfUrl} label={q.quoteNumber} />}
+
               </div>
             </Card>
           ))}
@@ -372,7 +374,8 @@ export default function BillingAdminClient({
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-sm font-medium text-foreground">{formatCurrency(document.amount)}</span>
-                {document.fileUrl && <DocumentDownload href={document.fileUrl} label={`Download ${document.documentNumber}`} />}
+                                {document.fileUrl && <DocumentActions href={document.fileUrl} label={document.documentNumber} />}
+
               </div>
             </Card>
           ))}
@@ -405,8 +408,10 @@ export default function BillingAdminClient({
   )
 }
 
-function DocumentDownload({ href, label, tone = 'default' }: { href: string; label: string; tone?: 'default' | 'success' }) {
-  return <a href={href} download target="_blank" rel="noreferrer" aria-label={label} className={`inline-flex min-h-10 items-center gap-2 rounded border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors ${tone === 'success' ? 'border-emerald-200 text-emerald-700 hover:border-emerald-400' : 'border-border text-foreground hover:border-gold hover:text-primary'}`}><Download className="size-3.5" />Download</a>
+function DocumentActions({ href, label, tone = 'default' }: { href: string; label: string; tone?: 'default' | 'success' }) {
+  const toneClass = tone === 'success' ? 'border-emerald-200 text-emerald-700 hover:border-emerald-400' : 'border-border text-foreground hover:border-gold hover:text-primary'
+  const downloadHref = `/api/documents/download?url=${encodeURIComponent(href)}`
+  return <div className="flex flex-wrap gap-2"><a href={href} target="_blank" rel="noreferrer" aria-label={`View ${label}`} className={`inline-flex min-h-10 items-center gap-2 rounded border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors ${toneClass}`}><ExternalLink className="size-3.5" />View</a><a href={downloadHref} download aria-label={`Download ${label} to device`} className={`inline-flex min-h-10 items-center gap-2 rounded border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors ${toneClass}`}><Download className="size-3.5" />Download</a></div>
 }
 
 function UploadModal({ title, action, isPending, onClose, clients, clientLabel, projects, isLoadingClients, clientLoadError, onRetryClients, extraField }: {

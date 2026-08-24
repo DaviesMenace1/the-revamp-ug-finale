@@ -61,7 +61,7 @@ export default function CollectionsBrowser({
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search collections..."
+            placeholder="Search collections...."
             className="h-10 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
 

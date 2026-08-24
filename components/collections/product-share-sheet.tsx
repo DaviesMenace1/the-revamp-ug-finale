@@ -126,7 +126,7 @@ export function ProductShareSheet({
             {nativeShareAvailable && (
               <button type="button" onClick={shareNative} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
                 <Send className="size-5" aria-hidden="true" />
-                <span className="text-xs font-medium">Share via device</span>
+                <span className="text-xs font-medium">Share via Device</span>
               </button>
             )}
             <button type="button" onClick={() => openChannel(`https://wa.me/?text=${encodedText}`)} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-border/70 bg-background text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">

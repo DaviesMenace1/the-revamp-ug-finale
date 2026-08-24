@@ -20,7 +20,10 @@ declare global {
   }
 }
 
-const GOOGLE_ANALYTICS_ID = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID
+const GOOGLE_ANALYTICS_ID = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID?.trim()
+const GOOGLE_TAG_MANAGER_ID = process.env.NEXT_PUBLIC_GTM_ID?.trim()
+const VALID_GTM_ID = GOOGLE_TAG_MANAGER_ID && /^GTM-[A-Z0-9]+$/i.test(GOOGLE_TAG_MANAGER_ID) ? GOOGLE_TAG_MANAGER_ID : undefined
+const DIRECT_GOOGLE_ANALYTICS_ID = GOOGLE_ANALYTICS_ID && !VALID_GTM_ID ? GOOGLE_ANALYTICS_ID : undefined
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
 const TIKTOK_PIXEL_ID = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY
@@ -39,6 +42,7 @@ export default function ConsentGatedAnalytics() {
   const pathname = usePathname()
   const analyticsEnabled = ready && consent.analytics
   const marketingEnabled = ready && consent.marketing
+  const tagManagerEnabled = ready && Boolean(VALID_GTM_ID) && (analyticsEnabled || marketingEnabled)
 
   useEffect(() => {
     ensureGtagQueue()
@@ -65,10 +69,26 @@ export default function ConsentGatedAnalytics() {
     }
     window.gtag('consent', 'update', granted)
 
-    if (analyticsEnabled && GOOGLE_ANALYTICS_ID) {
-      window.gtag('config', GOOGLE_ANALYTICS_ID, { page_path: pathname })
+    if (analyticsEnabled && DIRECT_GOOGLE_ANALYTICS_ID) {
+      window.gtag('config', DIRECT_GOOGLE_ANALYTICS_ID, { page_path: pathname })
     }
   }, [analyticsEnabled, marketingEnabled, pathname, ready])
+
+  useEffect(() => {
+    if (!tagManagerEnabled || !VALID_GTM_ID) return
+    ensureGtagQueue()
+    window.dataLayer?.push({
+      event: 'revamp_consent_update',
+      revampConsent: {
+        analytics: analyticsEnabled,
+        marketing: marketingEnabled,
+        analytics_storage: analyticsEnabled ? 'granted' : 'denied',
+        ad_storage: marketingEnabled ? 'granted' : 'denied',
+        ad_user_data: marketingEnabled ? 'granted' : 'denied',
+        ad_personalization: marketingEnabled ? 'granted' : 'denied',
+      },
+    })
+  }, [analyticsEnabled, marketingEnabled, tagManagerEnabled])
 
   useEffect(() => {
     if (!ready || !POSTHOG_KEY) return
@@ -100,10 +120,27 @@ export default function ConsentGatedAnalytics() {
 
   return (
     <>
-      {analyticsEnabled && GOOGLE_ANALYTICS_ID && (
+      {tagManagerEnabled && VALID_GTM_ID && (
+        <>
+          <Script id="google-tag-manager" strategy="afterInteractive">
+            {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',${JSON.stringify(VALID_GTM_ID)});`}
+          </Script>
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(VALID_GTM_ID)}`}
+              height="0"
+              width="0"
+              style={{ display: 'none', visibility: 'hidden' }}
+              title="Google Tag Manager"
+            />
+          </noscript>
+        </>
+      )}
+
+      {analyticsEnabled && DIRECT_GOOGLE_ANALYTICS_ID && (
         <Script
           id="google-analytics"
-          src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GOOGLE_ANALYTICS_ID)}`}
+          src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(DIRECT_GOOGLE_ANALYTICS_ID)}`}
           strategy="afterInteractive"
         />
       )}

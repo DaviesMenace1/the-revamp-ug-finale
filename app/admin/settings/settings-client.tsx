@@ -22,19 +22,37 @@ type Payment = {
   cardPayments: boolean
   mobileMoney: boolean
 }
+type DocumentProfile = {
+  name: string
+  address: string
+  phone: string
+  primaryEmail: string
+  supportEmail: string
+  salesEmail: string
+  taxLabel: string
+  taxId: string
+  bankName: string
+  bankAccount: string
+  mtnMobileMoney: string
+  airtelMoney: string
+  footer: string
+}
 
 export default function SettingsClient({
   initialBusiness,
   initialEmail,
   initialPayment,
+  initialDocumentProfile,
 }: {
   initialBusiness: Business
   initialEmail: EmailPrefs
   initialPayment: Payment
+  initialDocumentProfile: DocumentProfile
 }) {
   const [business, setBusiness] = useState(initialBusiness)
   const [email, setEmail] = useState(initialEmail)
   const [payment, setPayment] = useState(initialPayment)
+  const [documentProfile, setDocumentProfile] = useState(initialDocumentProfile)
   const [savedKey, setSavedKey] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -239,6 +257,44 @@ export default function SettingsClient({
           </Button>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Generated Document Profile</CardTitle>
+          <CardDescription>These details appear on newly generated PDFs and remain editable.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {([
+              ['name', 'Business name'],
+              ['address', 'Address'],
+              ['phone', 'Phone'],
+              ['primaryEmail', 'Primary email'],
+              ['supportEmail', 'Support email'],
+              ['salesEmail', 'Sales email'],
+              ['taxLabel', 'Tax label'],
+              ['taxId', 'Tax / registration number'],
+              ['bankName', 'Bank/payment method label'],
+              ['bankAccount', 'Bank account details'],
+              ['mtnMobileMoney', 'MTN Mobile Money'],
+              ['airtelMoney', 'Airtel Money'],
+            ] as const).map(([key, label]) => (
+              <div key={key}>
+                <label className="mb-2 block text-sm font-medium text-foreground" htmlFor={`document-${key}`}>{label}</label>
+                <Input id={`document-${key}`} value={documentProfile[key]} onChange={(event) => setDocumentProfile((profile) => ({ ...profile, [key]: event.target.value }))} className="rounded-none border-muted" />
+              </div>
+            ))}
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-foreground" htmlFor="document-footer">Document footer</label>
+            <Input id="document-footer" value={documentProfile.footer} onChange={(event) => setDocumentProfile((profile) => ({ ...profile, footer: event.target.value }))} className="rounded-none border-muted" />
+          </div>
+          <Button disabled={isPending} onClick={() => handleSave('document_profile', documentProfile)} className="rounded-none bg-primary text-primary-foreground hover:bg-primary/90">
+            {savedKey === 'document_profile' ? <Check className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+            {savedKey === 'document_profile' ? 'Saved' : 'Save Document Profile'}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
-      }
+}

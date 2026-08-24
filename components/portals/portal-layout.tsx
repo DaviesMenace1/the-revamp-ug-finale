@@ -3,8 +3,8 @@
 import { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Button } from '@/components/ui/button'
 import { Menu, X } from 'lucide-react'
+import NotificationBell from '@/components/notifications/notification-bell'
 import { useState } from 'react'
 
 interface PortalLayoutProps {
@@ -55,13 +55,16 @@ export function PortalLayout({
               })}
             </nav>
 
-            {/* Mobile Menu Toggle */}
-            <button
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              {/* Mobile Menu Toggle */}
+              <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 hover:bg-muted rounded transition-colors"
             >
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+              </button>
+            </div>
           </div>
 
           {/* Mobile Nav */}

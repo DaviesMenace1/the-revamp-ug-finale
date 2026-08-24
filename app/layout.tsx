@@ -1,10 +1,11 @@
-import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/lib/theme-provider'
 import { NewsletterPopup } from '@/components/newsletter-popup'
+import { CookieConsentProvider } from '@/components/privacy/cookie-consent-provider'
+import OneSignalBootstrap from '@/components/notifications/onesignal-bootstrap'
 import { CartProvider } from '@/lib/context/cart-context'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateOrganizationSchema, generateLocalBusinessSchema } from '@/lib/seo/schema-generator'
@@ -146,18 +147,17 @@ export default function RootLayout({
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
         >
-          <CartProvider>
-            <head>
-        {/* Load Flutterwave Inline V3 Script */}
-        <Script
-          src="https://checkout.flutterwave.com/v3.js"
-          strategy="lazyOnload"
-        />
-      </head>
-            <ThemeProvider>{children}</ThemeProvider>
-            <NewsletterPopup />
-          </CartProvider>
-          {process.env.NODE_ENV === 'production' && <Analytics />}
+          <CookieConsentProvider>
+            <CartProvider>
+              <Script
+                src="https://checkout.flutterwave.com/v3.js"
+                strategy="lazyOnload"
+              />
+              <ThemeProvider>{children}</ThemeProvider>
+              <NewsletterPopup />
+              <OneSignalBootstrap />
+            </CartProvider>
+          </CookieConsentProvider>
         </ClerkProvider>
 
       </body>

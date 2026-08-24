@@ -1,11 +1,17 @@
 'use client'
 
-import { useState, useRef, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, X, FileText, Upload, Loader2 } from 'lucide-react'
-import { createQuote, createInvoice, uploadReceipt, updateQuoteStatus } from '@/lib/actions/billing'
+import { Plus, X, FileText, Upload, Loader2, Sparkles } from 'lucide-react'
+import {
+  createGeneratedFinancialDocument,
+  createQuote,
+  createInvoice,
+  uploadReceipt,
+  updateQuoteStatus,
+} from '@/lib/actions/billing'
 
 type Client = { id: string; firstName: string | null; lastName: string | null; email: string }
 type ProjectOption = { id: string; title: string; userId: string | null }
@@ -38,7 +44,20 @@ type Invoice = {
   clientEmail: string
 }
 
-function formatCurrency(value: string | number) {
+type GeneratedDocument = {
+  id: string
+  documentNumber: string
+  documentType: string
+  amount: string | null
+  currency: string
+  fileUrl: string | null
+  createdAt: string
+  clientFirstName: string | null
+  clientLastName: string | null
+  clientEmail: string
+}
+
+function formatCurrency(value: string | number | null) {
   return new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(
     Number(value) || 0,
   )
@@ -61,20 +80,24 @@ export default function BillingAdminClient({
   invoices: initialInvoices = [],
   clients = [],
   projects = [],
+  documents: initialDocuments = [],
+  loadError = null,
 }: {
   quotes: Quote[]
   invoices: Invoice[]
   clients: Client[]
   projects: ProjectOption[]
+  documents?: GeneratedDocument[]
+  loadError?: string | null
 }) {
-  const [tab, setTab] = useState<'quotes' | 'invoices'>('invoices')
+  const [tab, setTab] = useState<'quotes' | 'invoices' | 'documents'>('invoices')
   const [quoteList, setQuoteList] = useState(initialQuotes)
   const [invoiceList, setInvoiceList] = useState(initialInvoices)
-
+  const [documentList, setDocumentList] = useState(initialDocuments)
   const [showQuoteForm, setShowQuoteForm] = useState(false)
   const [showInvoiceForm, setShowInvoiceForm] = useState(false)
+  const [showGenerateForm, setShowGenerateForm] = useState(false)
   const [receiptTarget, setReceiptTarget] = useState<Invoice | null>(null)
-
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
 
@@ -82,7 +105,7 @@ export default function BillingAdminClient({
     return `${[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email} (${c.email})`
   }
 
-  async function handleQuoteSubmit(formData: FormData) {
+  function handleQuoteSubmit(formData: FormData) {
     setError('')
     startTransition(async () => {
       const res = await createQuote(formData)
@@ -110,7 +133,7 @@ export default function BillingAdminClient({
     })
   }
 
-  async function handleInvoiceSubmit(formData: FormData) {
+  function handleInvoiceSubmit(formData: FormData) {
     setError('')
     startTransition(async () => {
       const res = await createInvoice(formData)
@@ -140,14 +163,12 @@ export default function BillingAdminClient({
     })
   }
 
-  async function handleReceiptSubmit(formData: FormData) {
+  function handleReceiptSubmit(formData: FormData) {
     setError('')
     startTransition(async () => {
       const res = await uploadReceipt(formData)
       if (res.success && receiptTarget) {
-        setInvoiceList((prev) =>
-          prev.map((inv) => (inv.id === receiptTarget.id ? { ...inv, status: 'paid' } : inv)),
-        )
+        setInvoiceList((prev) => prev.map((inv) => (inv.id === receiptTarget.id ? { ...inv, status: 'paid' } : inv)))
         setReceiptTarget(null)
       } else {
         setError(res.error || 'Failed to upload receipt.')
@@ -155,69 +176,99 @@ export default function BillingAdminClient({
     })
   }
 
+  function handleGeneratedDocumentSubmit(formData: FormData) {
+    setError('')
+    startTransition(async () => {
+      const res = await createGeneratedFinancialDocument(formData)
+      if (res.success && res.document) {
+        const client = clients.find((c) => c.id === formData.get('userId'))
+        setDocumentList((prev) => [
+          {
+            id: res.document.id,
+            documentNumber: res.document.documentNumber,
+            documentType: res.document.documentType,
+            amount: res.document.amount,
+            currency: 'UGX',
+            fileUrl: res.document.fileUrl,
+            createdAt: new Date(res.document.createdAt).toISOString(),
+            clientFirstName: client?.firstName ?? null,
+            clientLastName: client?.lastName ?? null,
+            clientEmail: client?.email ?? '',
+          },
+          ...prev,
+        ])
+        setShowGenerateForm(false)
+        setTab('documents')
+      } else {
+        setError(res.error || 'Failed to generate the document.')
+      }
+    })
+  }
+
   return (
     <div className="space-y-8 p-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-serif text-4xl font-light text-foreground">Billing</h1>
-          <p className="text-muted-foreground mt-2">
-            Quotes, invoices, and receipts.
-          </p>
+          <p className="mt-2 text-muted-foreground">Manual uploads and Revamp-generated financial documents.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="rounded-none" onClick={() => setShowQuoteForm(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Quote
+            <Plus className="mr-2 h-4 w-4" />
+            Upload Quote
           </Button>
-          <Button className="rounded-none" onClick={() => setShowInvoiceForm(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Invoice
+          <Button variant="outline" className="rounded-none" onClick={() => setShowInvoiceForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Upload Invoice
+          </Button>
+          <Button className="rounded-none" onClick={() => setShowGenerateForm(true)}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            Generate PDF
           </Button>
         </div>
       </div>
 
-      {error && <div className="rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
+      {loadError && (
+        <div role="status" className="flex items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <span>{loadError}</span>
+          <button type="button" onClick={() => window.location.reload()} className="shrink-0 font-medium underline underline-offset-4">
+            Retry
+          </button>
+        </div>
+      )}
+      {error && <div role="alert" className="rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
 
-      <div className="flex gap-2">
-        <button
-          onClick={() => setTab('invoices')}
-          className={`px-4 py-1.5 rounded-full text-xs uppercase tracking-wider font-medium ${tab === 'invoices' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
-        >
-          Invoices ({invoiceList.length})
-        </button>
-        <button
-          onClick={() => setTab('quotes')}
-          className={`px-4 py-1.5 rounded-full text-xs uppercase tracking-wider font-medium ${tab === 'quotes' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
-        >
-          Quotes ({quoteList.length})
-        </button>
+      <div className="flex flex-wrap gap-2">
+        {([
+          ['invoices', `Invoices (${invoiceList.length})`],
+          ['quotes', `Quotes (${quoteList.length})`],
+          ['documents', `Generated PDFs (${documentList.length})`],
+        ] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setTab(value)}
+            className={`rounded-full px-4 py-1.5 text-xs font-medium uppercase tracking-wider ${tab === value ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {tab === 'invoices' && (
         <div className="grid gap-3">
           {invoiceList.map((inv) => (
-            <Card key={inv.id} className="p-4 flex items-center justify-between">
+            <Card key={inv.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-medium text-foreground">{inv.invoiceNumber}</p>
-                <p className="text-sm text-muted-foreground">
-                  {[inv.clientFirstName, inv.clientLastName].filter(Boolean).join(' ') || inv.clientEmail}
-                </p>
+                <p className="text-sm text-muted-foreground">{[inv.clientFirstName, inv.clientLastName].filter(Boolean).join(' ') || inv.clientEmail}</p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 <span className="text-sm font-medium text-foreground">{formatCurrency(inv.total)}</span>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[inv.status]}`}>
-                  {inv.status}
-                </span>
-                {inv.pdfUrl && (
-                  <a href={inv.pdfUrl} target="_blank" rel="noreferrer">
-                    <FileText className="w-4 h-4 text-muted-foreground" />
-                  </a>
-                )}
-                {inv.status !== 'paid' && (
-                  <Button size="sm" variant="outline" className="rounded-none" onClick={() => setReceiptTarget(inv)}>
-                    Upload Receipt
-                  </Button>
-                )}
+                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[inv.status] || STATUS_COLORS.draft}`}>{inv.status}</span>
+                {inv.pdfUrl && <a href={inv.pdfUrl} target="_blank" rel="noreferrer" aria-label={`Open ${inv.invoiceNumber}`}><FileText className="h-4 w-4 text-muted-foreground" /></a>}
+                {inv.receiptUrl && <a href={inv.receiptUrl} target="_blank" rel="noreferrer" aria-label={`Open receipt for ${inv.invoiceNumber}`}><FileText className="h-4 w-4 text-emerald-700" /></a>}
+                {inv.status !== 'paid' && <Button size="sm" variant="outline" className="rounded-none" onClick={() => setReceiptTarget(inv)}>Upload Receipt</Button>}
               </div>
             </Card>
           ))}
@@ -228,33 +279,29 @@ export default function BillingAdminClient({
       {tab === 'quotes' && (
         <div className="grid gap-3">
           {quoteList.map((q) => (
-            <Card key={q.id} className="p-4 flex items-center justify-between">
+            <Card key={q.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-medium text-foreground">{q.quoteNumber}</p>
-                <p className="text-sm text-muted-foreground">
-                  {[q.clientFirstName, q.clientLastName].filter(Boolean).join(' ') || q.clientEmail}
-                </p>
+                <p className="text-sm text-muted-foreground">{[q.clientFirstName, q.clientLastName].filter(Boolean).join(' ') || q.clientEmail}</p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 <span className="text-sm font-medium text-foreground">{formatCurrency(q.total)}</span>
                 <select
+                  aria-label={`Status for ${q.quoteNumber}`}
                   value={q.status ?? 'pending'}
                   onChange={(e) => {
-                    updateQuoteStatus(q.id, e.target.value)
-                    setQuoteList((prev) => prev.map((row) => (row.id === q.id ? { ...row, status: e.target.value } : row)))
+                    const nextStatus = e.target.value
+                    setQuoteList((prev) => prev.map((row) => (row.id === q.id ? { ...row, status: nextStatus } : row)))
+                    updateQuoteStatus(q.id, nextStatus).then((res) => { if (!res.success) setError(res.error || 'Failed to update quote.') })
                   }}
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium border-0 ${STATUS_COLORS[q.status ?? 'pending']}`}
+                  className={`rounded-full border-0 px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[q.status ?? 'pending'] || STATUS_COLORS.draft}`}
                 >
                   <option value="pending">Pending</option>
                   <option value="accepted">Accepted</option>
                   <option value="expired">Expired</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
-                {q.pdfUrl && (
-                  <a href={q.pdfUrl} target="_blank" rel="noreferrer">
-                    <FileText className="w-4 h-4 text-muted-foreground" />
-                  </a>
-                )}
+                {q.pdfUrl && <a href={q.pdfUrl} target="_blank" rel="noreferrer" aria-label={`Open ${q.quoteNumber}`}><FileText className="h-4 w-4 text-muted-foreground" /></a>}
               </div>
             </Card>
           ))}
@@ -262,46 +309,41 @@ export default function BillingAdminClient({
         </div>
       )}
 
-      {showQuoteForm && (
-        <UploadModal
-          title="Upload Quote"
-          action={handleQuoteSubmit}
-          isPending={isPending}
-          onClose={() => setShowQuoteForm(false)}
-          clients={clients}
-          clientLabel={clientLabel}
-          extraField={{ name: 'validUntil', label: 'Valid until', type: 'date' }}
-        />
+      {tab === 'documents' && (
+        <div className="grid gap-3">
+          {documentList.map((document) => (
+            <Card key={document.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-medium text-foreground">{document.documentNumber}</p>
+                <p className="text-sm capitalize text-muted-foreground">{document.documentType.replace(/_/g, ' ')} · {[document.clientFirstName, document.clientLastName].filter(Boolean).join(' ') || document.clientEmail}</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-foreground">{formatCurrency(document.amount)}</span>
+                {document.fileUrl && <a href={document.fileUrl} target="_blank" rel="noreferrer" aria-label={`Open ${document.documentNumber}`}><FileText className="h-4 w-4 text-muted-foreground" /></a>}
+              </div>
+            </Card>
+          ))}
+          {documentList.length === 0 && <p className="text-sm text-muted-foreground">No generated PDFs yet.</p>}
+        </div>
       )}
 
-      {showInvoiceForm && (
-        <UploadModal
-          title="Upload Invoice"
-          action={handleInvoiceSubmit}
-          isPending={isPending}
-          onClose={() => setShowInvoiceForm(false)}
-          clients={clients}
-          clientLabel={clientLabel}
-          extraField={{ name: 'dueDate', label: 'Due date', type: 'date' }}
-        />
-      )}
+      {showQuoteForm && <UploadModal title="Upload Quote" action={handleQuoteSubmit} isPending={isPending} onClose={() => setShowQuoteForm(false)} clients={clients} clientLabel={clientLabel} projects={projects} extraField={{ name: 'validUntil', label: 'Valid until', type: 'date' }} />}
+      {showInvoiceForm && <UploadModal title="Upload Invoice" action={handleInvoiceSubmit} isPending={isPending} onClose={() => setShowInvoiceForm(false)} clients={clients} clientLabel={clientLabel} projects={projects} extraField={{ name: 'dueDate', label: 'Due date', type: 'date' }} />}
+      {showGenerateForm && <GenerateDocumentModal action={handleGeneratedDocumentSubmit} isPending={isPending} onClose={() => setShowGenerateForm(false)} clients={clients} clientLabel={clientLabel} projects={projects} />}
 
       {receiptTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-xl">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium text-foreground">Upload Receipt — {receiptTarget.invoiceNumber}</h2>
-              <button onClick={() => setReceiptTarget(null)}>
-                <X className="w-5 h-5 text-muted-foreground" />
-              </button>
+              <button type="button" aria-label="Close receipt upload" onClick={() => setReceiptTarget(null)}><X className="h-5 w-5 text-muted-foreground" /></button>
             </div>
             <form action={handleReceiptSubmit} className="mt-4 space-y-3">
               <input type="hidden" name="invoiceId" value={receiptTarget.id} />
-              <Input name="amountPaid" type="number" placeholder={`Amount paid (total: ${receiptTarget.total})`} />
+              <label className="block text-xs text-muted-foreground" htmlFor="amountPaid">Amount paid</label>
+              <Input id="amountPaid" name="amountPaid" type="number" min="0" step="0.01" placeholder={`Amount paid (total: ${receiptTarget.total})`} />
               <input name="file" type="file" accept="application/pdf,image/*" required className="text-sm" />
-              <Button type="submit" disabled={isPending} className="w-full rounded-none">
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload Receipt'}
-              </Button>
+              <Button type="submit" disabled={isPending} className="w-full rounded-none">{isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload Receipt'}</Button>
             </form>
           </div>
         </div>
@@ -310,59 +352,60 @@ export default function BillingAdminClient({
   )
 }
 
-function UploadModal({
-  title,
-  action,
-  isPending,
-  onClose,
-  clients,
-  clientLabel,
-  extraField,
-}: {
+function UploadModal({ title, action, isPending, onClose, clients, clientLabel, projects, extraField }: {
   title: string
   action: (formData: FormData) => void
   isPending: boolean
   onClose: () => void
   clients: Client[]
   clientLabel: (c: Client) => string
+  projects: ProjectOption[]
   extraField: { name: string; label: string; type: string }
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-xl">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium text-foreground">{title}</h2>
-          <button onClick={onClose}>
-            <X className="w-5 h-5 text-muted-foreground" />
-          </button>
-        </div>
+        <div className="flex items-center justify-between"><h2 className="text-lg font-medium text-foreground">{title}</h2><button type="button" aria-label={`Close ${title.toLowerCase()} modal`} onClick={onClose}><X className="h-5 w-5 text-muted-foreground" /></button></div>
         <form action={action} className="mt-4 space-y-3">
-          <select name="userId" required className="w-full rounded border border-muted bg-transparent p-2.5 text-sm">
-            <option value="">Select client...</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {clientLabel(c)}
-              </option>
-            ))}
-          </select>
-          <Input name="total" type="number" step="0.01" placeholder="Total amount (UGX)" required />
-          <div>
-            <label className="text-xs text-muted-foreground">{extraField.label}</label>
-            <Input name={extraField.name} type={extraField.type} className="mt-1" />
-          </div>
+          <label className="block text-xs text-muted-foreground" htmlFor={`${extraField.name}-userId`}>Client</label>
+          <select id={`${extraField.name}-userId`} name="userId" required className="w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">Select client...</option>{clients.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}</select>
+          <label className="block text-xs text-muted-foreground" htmlFor={`${extraField.name}-projectId`}>Project (optional)</label>
+          <select id={`${extraField.name}-projectId`} name="projectId" className="w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">No project</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select>
+          <Input name="total" type="number" min="0" step="0.01" placeholder="Total amount (UGX)" required aria-label="Total amount" />
+          <div><label className="text-xs text-muted-foreground" htmlFor={extraField.name}>{extraField.label}</label><Input id={extraField.name} name={extraField.name} type={extraField.type} className="mt-1" /></div>
           <textarea name="notes" placeholder="Notes (optional)" rows={2} className="w-full rounded border border-muted bg-transparent p-2.5 text-sm" />
-          <div>
-            <label className="text-xs text-muted-foreground">PDF document</label>
-            <input name="file" type="file" accept="application/pdf,image/*" required className="mt-1 text-sm block" />
+          <div><label className="text-xs text-muted-foreground">PDF document</label><input name="file" type="file" accept="application/pdf,image/*" required className="mt-1 block text-sm" /></div>
+          <Button type="submit" disabled={isPending} className="w-full rounded-none">{isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Upload className="mr-2 h-4 w-4" />Upload</>}</Button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function GenerateDocumentModal({ action, isPending, onClose, clients, clientLabel, projects }: {
+  action: (formData: FormData) => void
+  isPending: boolean
+  onClose: () => void
+  clients: Client[]
+  clientLabel: (c: Client) => string
+  projects: ProjectOption[]
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4">
+      <div className="my-8 w-full max-w-2xl rounded-lg bg-background p-6 shadow-xl">
+        <div className="flex items-center justify-between"><div><h2 className="text-lg font-medium text-foreground">Generate Revamp PDF</h2><p className="mt-1 text-sm text-muted-foreground">Create a reusable, editable financial document.</p></div><button type="button" aria-label="Close document generator" onClick={onClose}><X className="h-5 w-5 text-muted-foreground" /></button></div>
+        <form action={action} className="mt-5 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div><label className="block text-xs text-muted-foreground" htmlFor="documentType">Document type</label><select id="documentType" name="documentType" required className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="quote">Quotation</option><option value="proforma_invoice">Proforma Invoice</option><option value="invoice">Invoice</option><option value="receipt">Company Receipt</option><option value="payment_receipt">Payment Receipt</option><option value="estimate">Project Estimate</option></select></div>
+            <div><label className="block text-xs text-muted-foreground" htmlFor="userId">Client</label><select id="userId" name="userId" required className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">Select client...</option>{clients.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}</select></div>
           </div>
-          <Button type="submit" disabled={isPending} className="w-full rounded-none">
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (
-              <>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload
-              </>
-            )}
-          </Button>
+          <div><label className="block text-xs text-muted-foreground" htmlFor="projectId">Project (optional)</label><select id="projectId" name="projectId" className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">No project</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
+          <div className="grid gap-3 sm:grid-cols-3"><Input name="description" placeholder="Line item description" required aria-label="Line item description" /><Input name="quantity" type="number" min="0.01" step="0.01" defaultValue="1" placeholder="Qty" aria-label="Quantity" /><Input name="unitPrice" type="number" min="0" step="0.01" placeholder="Unit price (UGX)" required aria-label="Unit price" /></div>
+          <div className="grid gap-3 sm:grid-cols-4"><Input name="taxRate" type="number" min="0" step="0.01" defaultValue="0" placeholder="Tax %" aria-label="Tax rate" /><Input name="discount" type="number" min="0" step="0.01" defaultValue="0" placeholder="Discount (UGX)" aria-label="Discount" /><Input name="dueDate" type="date" aria-label="Due date" /><Input name="validUntil" type="date" aria-label="Valid until" /></div>
+          <Input name="paymentMethod" placeholder="Payment method (optional)" aria-label="Payment method" />
+          <textarea name="terms" placeholder="Terms and conditions (optional)" rows={3} className="w-full rounded border border-muted bg-transparent p-2.5 text-sm" />
+          <textarea name="notes" placeholder="Notes (optional)" rows={2} className="w-full rounded border border-muted bg-transparent p-2.5 text-sm" />
+          <Button type="submit" disabled={isPending} className="w-full rounded-none">{isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="mr-2 h-4 w-4" />Generate PDF</>}</Button>
         </form>
       </div>
     </div>

@@ -1,10 +1,19 @@
 import { requirePortalUser } from '@/lib/auth/portal-auth'
 import { db } from '@/lib/db/client'
-import { quotes, invoices } from '@/lib/db/schema'
+import { quotes, invoices, financialDocuments } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import BillingClientView from './billing-client-view'
 
 export const dynamic = 'force-dynamic'
+
+async function safeQuery<T>(query: PromiseLike<T>, label: string): Promise<{ data: T | null; error: string | null }> {
+  try {
+    return { data: await query, error: null }
+  } catch (error) {
+    console.error(`[client-billing] ${label} query failed:`, error)
+    return { data: null, error: label }
+  }
+}
 
 export default async function ClientBillingPage() {
   const user = await requirePortalUser(
@@ -12,12 +21,19 @@ export default async function ClientBillingPage() {
     '/client/billing',
   )
 
-  // Every query here is filtered to this user's id — a client only ever
-  // sees their own quotes, invoices, and receipts, never another client's.
-  const [myQuotes, myInvoices] = await Promise.all([
-    db.select().from(quotes).where(eq(quotes.userId, user.id)).orderBy(desc(quotes.createdAt)),
-    db.select().from(invoices).where(eq(invoices.userId, user.id)).orderBy(desc(invoices.createdAt)),
+  const [quoteResult, invoiceResult, documentResult] = await Promise.all([
+    safeQuery(db.select().from(quotes).where(eq(quotes.userId, user.id)).orderBy(desc(quotes.createdAt)), 'quotes'),
+    safeQuery(db.select().from(invoices).where(eq(invoices.userId, user.id)).orderBy(desc(invoices.createdAt)), 'invoices'),
+    safeQuery(
+      db.select({ id: financialDocuments.id, documentNumber: financialDocuments.documentNumber, documentType: financialDocuments.documentType, amount: financialDocuments.amount, currency: financialDocuments.currency, fileUrl: financialDocuments.fileUrl, createdAt: financialDocuments.createdAt }).from(financialDocuments).where(eq(financialDocuments.userId, user.id)).orderBy(desc(financialDocuments.createdAt)).limit(100),
+      'generated documents',
+    ),
   ])
+
+  const myQuotes = quoteResult.data ?? []
+  const myInvoices = invoiceResult.data ?? []
+  const myDocuments = documentResult.data ?? []
+  const failed = [quoteResult, invoiceResult, documentResult].some((result) => result.error)
 
   return (
     <BillingClientView
@@ -30,6 +46,10 @@ export default async function ClientBillingPage() {
         validUntil: q.validUntil ? q.validUntil.toISOString() : null,
         createdAt: q.createdAt.toISOString(),
       }))}
+      documents={myDocuments.map((document) => ({
+        ...document,
+        createdAt: document.createdAt.toISOString(),
+      }))}
       invoices={myInvoices.map((i) => ({
         id: i.id,
         invoiceNumber: i.invoiceNumber,
@@ -41,6 +61,7 @@ export default async function ClientBillingPage() {
         dueDate: i.dueDate ? i.dueDate.toISOString() : null,
         createdAt: i.createdAt.toISOString(),
       }))}
+      loadError={failed ? 'Some billing records are temporarily unavailable. The available records are still shown.' : null}
     />
   )
 }

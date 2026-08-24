@@ -4,6 +4,7 @@ import { NewsletterSignup } from '@/components/newsletter-signup'
 import type { IconType } from 'react-icons'
 import { FaInstagram, FaSnapchatGhost, FaLinkedinIn } from 'react-icons/fa'
 import { SiTiktok } from 'react-icons/si'
+import { CookiePreferencesTrigger } from '@/components/privacy/cookie-consent-provider'
 
 const footerLinks = {
   Services: [
@@ -138,6 +139,7 @@ export function SiteFooter() {
               {link.label}
             </Link>
           ))}
+          <CookiePreferencesTrigger className="font-sans text-xs text-background/30 hover:text-background/60 transition-colors" />
         </div>
       </div>
     </footer>

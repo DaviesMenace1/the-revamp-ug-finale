@@ -23,14 +23,31 @@ const PAYMENT_DEFAULTS = {
   taxRate: '18',
   bankTransfer: true,
   cardPayments: true,
-  mobileMoney: false,
+  mobileMoney: true,
+}
+
+const DOCUMENT_PROFILE_DEFAULTS = {
+  name: 'The Revamp Ug',
+  address: 'Kyanja, Kampala, Uganda',
+  phone: '+256 783 476 807',
+  primaryEmail: 'info@therevampug.com',
+  supportEmail: 'support@therevampug.com',
+  salesEmail: 'sales@therevampug.com',
+  taxLabel: 'Tax details to be confirmed',
+  taxId: '',
+  bankName: 'Bank transfer',
+  bankAccount: 'Account no. 051 208 1946',
+  mtnMobileMoney: '0783 476807',
+  airtelMoney: '0703 861668',
+  footer: 'Thank you for choosing The Revamp Ug.',
 }
 
 export default async function AdminSettingsPage() {
-  const [business, email, payment] = await Promise.all([
+  const [business, email, payment, documentProfile] = await Promise.all([
     getSetting('business', BUSINESS_DEFAULTS),
     getSetting('email', EMAIL_DEFAULTS),
     getSetting('payment', PAYMENT_DEFAULTS),
+    getSetting('document_profile', DOCUMENT_PROFILE_DEFAULTS),
   ])
 
   return (
@@ -38,6 +55,7 @@ export default async function AdminSettingsPage() {
       initialBusiness={business}
       initialEmail={email}
       initialPayment={payment}
+      initialDocumentProfile={documentProfile}
     />
   )
 }

@@ -1537,6 +1537,7 @@ export const projectAssets = pgTable(
     assetType: varchar("asset_type", { length: 30 }).notNull().default("image"),
     category: varchar("category", { length: 100 }),
     fileUrl: text("file_url").notNull(),
+    storageKey: text("storage_key"),
     thumbnailUrl: text("thumbnail_url"),
     fileSize: integer("file_size"),
     storageProvider: varchar("storage_provider", { length: 20 })
@@ -1557,6 +1558,70 @@ export const projectAssets = pgTable(
     projectIdx: index("project_assets_project_idx").on(table.projectId),
     parentIdx: index("project_assets_parent_idx").on(table.parentAssetId),
     typeIdx: index("project_assets_type_idx").on(table.assetType),
+  }),
+)
+
+export const projectVisualizations = pgTable(
+  "project_visualizations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    modelType: varchar("model_type", { length: 20 }).notNull().default("glb"),
+    storageProvider: varchar("storage_provider", { length: 20 }).notNull().default("r2"),
+    storageKey: text("storage_key").notNull(),
+    thumbnailKey: text("thumbnail_key"),
+    fileSize: integer("file_size"),
+    version: integer("version").notNull().default(1),
+    status: varchar("status", { length: 20 }).notNull().default("ready"),
+    visibility: varchar("visibility", { length: 20 }).notNull().default("client"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    projectIdx: index("project_visualizations_project_idx").on(table.projectId),
+    statusIdx: index("project_visualizations_status_idx").on(table.status),
+    visibilityIdx: index("project_visualizations_visibility_idx").on(table.visibility),
+  }),
+)
+
+export const visualizationViews = pgTable(
+  "visualization_views",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    visualizationId: uuid("visualization_id").notNull().references(() => projectVisualizations.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 120 }).notNull(),
+    cameraPosition: jsonb("camera_position").$type<number[]>().notNull(),
+    targetPosition: jsonb("target_position").$type<number[]>().notNull(),
+    zoom: decimal("zoom", { precision: 10, scale: 4 }),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    visualizationIdx: index("visualization_views_visualization_idx").on(table.visualizationId),
+  }),
+)
+
+export const visualizationAnnotations = pgTable(
+  "visualization_annotations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    visualizationId: uuid("visualization_id").notNull().references(() => projectVisualizations.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    position: jsonb("position").$type<{ x: number; y: number; z: number }>().notNull(),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    linkedProjectItemId: varchar("linked_project_item_id", { length: 120 }),
+    imageKey: text("image_key"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    visualizationIdx: index("visualization_annotations_visualization_idx").on(table.visualizationId),
+    statusIdx: index("visualization_annotations_status_idx").on(table.status),
   }),
 )
 
@@ -1652,6 +1717,41 @@ export const projectAssetsRelations = relations(
     comments: many(projectAssetComments),
   }),
 )
+
+export const projectVisualizationsRelations = relations(projectVisualizations, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [projectVisualizations.projectId],
+    references: [projects.id],
+  }),
+  creator: one(users, {
+    fields: [projectVisualizations.createdBy],
+    references: [users.id],
+  }),
+  views: many(visualizationViews),
+  annotations: many(visualizationAnnotations),
+}))
+
+export const visualizationViewsRelations = relations(visualizationViews, ({ one }) => ({
+  visualization: one(projectVisualizations, {
+    fields: [visualizationViews.visualizationId],
+    references: [projectVisualizations.id],
+  }),
+  creator: one(users, {
+    fields: [visualizationViews.createdBy],
+    references: [users.id],
+  }),
+}))
+
+export const visualizationAnnotationsRelations = relations(visualizationAnnotations, ({ one }) => ({
+  visualization: one(projectVisualizations, {
+    fields: [visualizationAnnotations.visualizationId],
+    references: [projectVisualizations.id],
+  }),
+  creator: one(users, {
+    fields: [visualizationAnnotations.createdBy],
+    references: [users.id],
+  }),
+}))
 
 export const projectAssetCommentsRelations = relations(
   projectAssetComments,
@@ -1770,6 +1870,133 @@ export const invoices = pgTable(
   }),
 )
 
+export const paymentRecords = pgTable(
+  "payment_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id"),
+    invoiceId: uuid("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
+    provider: varchar("provider", { length: 40 }).notNull().default("manual"),
+    transactionReference: varchar("transaction_reference", { length: 120 }).notNull(),
+    amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+    currency: varchar("currency", { length: 3 }).notNull().default("UGX"),
+    method: varchar("method", { length: 40 }),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    metadata: jsonb("metadata").default({}),
+    paidAt: timestamp("paid_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("payment_records_user_idx").on(table.userId),
+    invoiceIdx: index("payment_records_invoice_idx").on(table.invoiceId),
+    providerReferenceIdx: uniqueIndex("payment_records_provider_reference_idx").on(
+      table.provider,
+      table.transactionReference,
+    ),
+    statusIdx: index("payment_records_status_idx").on(table.status),
+  }),
+)
+
+export const financialDocuments = pgTable(
+  "financial_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    documentNumber: varchar("document_number", { length: 80 }).notNull().unique(),
+    documentType: varchar("document_type", { length: 40 }).notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+    quoteId: uuid("quote_id").references(() => quotes.id, { onDelete: "set null" }),
+    invoiceId: uuid("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
+    paymentId: uuid("payment_id").references(() => paymentRecords.id, { onDelete: "set null" }),
+    status: varchar("status", { length: 30 }).notNull().default("draft"),
+    amount: decimal("amount", { precision: 12, scale: 2 }),
+    currency: varchar("currency", { length: 3 }).notNull().default("UGX"),
+    storageProvider: varchar("storage_provider", { length: 20 }).notNull().default("r2"),
+    storageKey: text("storage_key"),
+    fileUrl: text("file_url"),
+    fileName: varchar("file_name", { length: 255 }),
+    mimeType: varchar("mime_type", { length: 120 }),
+    fileSize: integer("file_size"),
+    payload: jsonb("payload").notNull().default({}),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("financial_documents_user_idx").on(table.userId),
+    projectIdx: index("financial_documents_project_idx").on(table.projectId),
+    typeIdx: index("financial_documents_type_idx").on(table.documentType),
+    statusIdx: index("financial_documents_status_idx").on(table.status),
+  }),
+)
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 60 }).notNull(),
+    priority: varchar("priority", { length: 20 }).notNull().default("informational"),
+    title: varchar("title", { length: 255 }).notNull(),
+    message: text("message").notNull(),
+    actionUrl: text("action_url"),
+    metadata: jsonb("metadata").default({}),
+    channels: jsonb("channels").notNull().default(["in_app"]),
+    readAt: timestamp("read_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("notifications_user_idx").on(table.userId),
+    unreadIdx: index("notifications_unread_idx").on(table.userId, table.readAt),
+    createdIdx: index("notifications_created_idx").on(table.createdAt),
+  }),
+)
+
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    preferences: jsonb("preferences").notNull().default({}),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: uniqueIndex("notification_preferences_user_idx").on(table.userId),
+  }),
+)
+
+export const notificationDeliveries = pgTable(
+  "notification_deliveries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    notificationId: uuid("notification_id")
+      .notNull()
+      .references(() => notifications.id, { onDelete: "cascade" }),
+    provider: varchar("provider", { length: 30 }).notNull(),
+    channel: varchar("channel", { length: 20 }).notNull(),
+    providerMessageId: varchar("provider_message_id", { length: 120 }),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    error: text("error"),
+    sentAt: timestamp("sent_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    notificationIdx: index("notification_deliveries_notification_idx").on(table.notificationId),
+    providerMessageIdx: index("notification_deliveries_provider_message_idx").on(table.providerMessageId),
+  }),
+)
+
 export const consultationSlots = pgTable(
   "consultation_slots",
   {
@@ -1808,6 +2035,69 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
   quote: one(quotes, {
     fields: [invoices.quoteId],
     references: [quotes.id],
+  }),
+}))
+
+export const paymentRecordsRelations = relations(paymentRecords, ({ one, many }) => ({
+  user: one(users, {
+    fields: [paymentRecords.userId],
+    references: [users.id],
+  }),
+  invoice: one(invoices, {
+    fields: [paymentRecords.invoiceId],
+    references: [invoices.id],
+  }),
+  documents: many(financialDocuments),
+}))
+
+export const financialDocumentsRelations = relations(financialDocuments, ({ one }) => ({
+  user: one(users, {
+    relationName: 'financialDocumentsUser',
+    fields: [financialDocuments.userId],
+    references: [users.id],
+  }),
+  project: one(projects, {
+    fields: [financialDocuments.projectId],
+    references: [projects.id],
+  }),
+  quote: one(quotes, {
+    fields: [financialDocuments.quoteId],
+    references: [quotes.id],
+  }),
+  invoice: one(invoices, {
+    fields: [financialDocuments.invoiceId],
+    references: [invoices.id],
+  }),
+  payment: one(paymentRecords, {
+    fields: [financialDocuments.paymentId],
+    references: [paymentRecords.id],
+  }),
+  createdByUser: one(users, {
+    relationName: 'financialDocumentsCreator',
+    fields: [financialDocuments.createdBy],
+    references: [users.id],
+  }),
+}))
+
+export const notificationsRelations = relations(notifications, ({ one, many }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  deliveries: many(notificationDeliveries),
+}))
+
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [notificationPreferences.userId],
+    references: [users.id],
+  }),
+}))
+
+export const notificationDeliveriesRelations = relations(notificationDeliveries, ({ one }) => ({
+  notification: one(notifications, {
+    fields: [notificationDeliveries.notificationId],
+    references: [notifications.id],
   }),
 }))
 
@@ -1894,7 +2184,7 @@ export const supportTicketMessagesRelations = relations(
   }),
 )
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   orders: many(orders),
   consultations: many(consultations),
   quotes: many(quotes),
@@ -1904,6 +2194,14 @@ export const usersRelations = relations(users, ({ many }) => ({
   memberships: many(memberships),
   sourcingRequests: many(sourcingRequests),
   carts: many(carts),
+  paymentRecords: many(paymentRecords),
+  financialDocuments: many(financialDocuments, { relationName: 'financialDocumentsUser' }),
+  visualizations: many(projectVisualizations),
+  visualizationViews: many(visualizationViews),
+  visualizationAnnotations: many(visualizationAnnotations),
+  createdFinancialDocuments: many(financialDocuments, { relationName: 'financialDocumentsCreator' }),
+  notifications: many(notifications),
+  notificationPreferences: one(notificationPreferences),
 }))
 
 export const departmentsRelations = relations(
@@ -2100,6 +2398,7 @@ export const projectsRelations = relations(
     clientDocuments: many(clientDocuments),
     members: many(projectMembers),
     assets: many(projectAssets),
+    visualizations: many(projectVisualizations),
     documents: many(projectDocuments),
     activity: many(projectActivity),
     tasks: many(projectTasks),

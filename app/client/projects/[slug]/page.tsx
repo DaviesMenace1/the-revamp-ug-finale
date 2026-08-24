@@ -91,8 +91,10 @@ export default async function ProjectDetailPage({
       description: a.description,
       assetType: a.assetType,
       category: a.category,
-      fileUrl: a.fileUrl,
-      thumbnailUrl: a.thumbnailUrl,
+              fileUrl: a.fileUrl,
+        viewerUrl: ['3d_model', 'glb', 'gltf'].includes(a.assetType) ? `/client/projects/${project.slug}/visualization` : null,
+        thumbnailUrl: a.thumbnailUrl,
+
       version: a.version,
       approvalStatus: a.approvalStatus,
       createdAt: a.createdAt.toISOString(),

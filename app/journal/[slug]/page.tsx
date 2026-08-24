@@ -19,15 +19,6 @@ interface ArticlePageProps {
   params: Promise<{ slug: string }>
 }
 
-export async function generateStaticParams() {
-  const published = await db
-    .select({ slug: articles.slug })
-    .from(articles)
-    .where(eq(articles.status, 'published'))
-
-  return published.map((a) => ({ slug: a.slug }))
-}
-
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
   const { slug } = await params
   const article = await db.query.articles.findFirst({ where: eq(articles.slug, slug) })

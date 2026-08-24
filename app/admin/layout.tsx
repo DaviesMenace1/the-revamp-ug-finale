@@ -1,6 +1,7 @@
 import AdminSidebar from '@/components/admin/admin-sidebar'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
 import { redirect } from 'next/navigation'
+import NotificationBell from '@/components/notifications/notification-bell'
 
 export const metadata = {
   title: 'Admin Portal | The Revamp UG',
@@ -15,7 +16,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="flex min-h-screen bg-background">
       <AdminSidebar />
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="relative flex-1 overflow-auto">
+        <div className="fixed right-6 top-5 z-40"><NotificationBell /></div>
+        {children}
+      </main>
     </div>
   )
 }

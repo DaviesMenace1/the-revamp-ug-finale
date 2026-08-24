@@ -15,6 +15,7 @@ import {
   HelpCircle,
   MessageSquare,
   LifeBuoy,
+  FileCog,
 } from 'lucide-react'
 
 const sidebarItems = [
@@ -26,6 +27,7 @@ const sidebarItems = [
   { label: 'Projects (Portfolio)', href: '/admin/projects', icon: FolderOpen },
   { label: 'Client Projects', href: '/admin/client-projects', icon: FolderKanban },
   { label: 'Billing', href: '/admin/billing', icon: Receipt },
+  { label: 'Finance Documents', href: '/admin/finance/documents', icon: FileCog },
   { label: 'Orders', href: '/admin/orders', icon: ShoppingCart },
   { label: 'Messages', href: '/admin/messages', icon: MessageSquare },
   { label: 'Support Tickets', href: '/admin/tickets', icon: LifeBuoy },

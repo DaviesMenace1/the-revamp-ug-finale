@@ -21,6 +21,10 @@ const conn = globalForDb.conn ?? postgres(connectionString, {
   idle_timeout: 20,      // seconds — release an idle connection instead of holding it open
   connect_timeout: 10,   // seconds — fail fast instead of hanging if the pooler is unreachable
   max_lifetime: 60 * 30, // seconds — recycle connections periodically so nothing lingers indefinitely
+  connection: {
+    statement_timeout: 8000, // fail blocked/slow statements instead of keeping a request pending
+    lock_timeout: 3000,      // do not wait indefinitely behind a database lock
+  },
 })
 
 if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn

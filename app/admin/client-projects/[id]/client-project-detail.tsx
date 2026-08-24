@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
-import { ArrowLeft, Upload, Trash2, Loader2, FileText, Clock, Plus, Check, CheckSquare, Square } from 'lucide-react'
+import { ArrowLeft, Upload, Trash2, Loader2, FileText, Clock, Plus, CheckSquare, Square } from 'lucide-react'
 import { updateClientProject } from '@/lib/actions/client-projects'
 import { createTask, updateTaskStatus, deleteTask } from '@/lib/actions/tasks'
 
@@ -21,8 +21,12 @@ const PHASE_STEPS = [
 ]
 
 const ASSET_TYPES = [
-  '3d_render',
+    '3d_render',
+  '3d_model',
+  'glb',
+  'gltf',
   'floor_plan',
+
   'elevation',
   'section',
   'cad',
@@ -414,7 +418,8 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
                   <option value="internal">Internal only</option>
                 </select>
               </div>
-              <input ref={assetFileRef} type="file" className="text-sm" />
+                            <input ref={assetFileRef} type="file" accept={['3d_model', 'glb', 'gltf'].includes(assetForm.assetType) ? '.glb,.gltf,model/gltf-binary,model/gltf+json' : undefined} className="text-sm" />
+
               <Button size="sm" disabled={uploadingAsset} onClick={handleUploadAsset} className="rounded-none">
                 {uploadingAsset ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Upload className="h-3.5 w-3.5 mr-2" />}
                 Upload Asset

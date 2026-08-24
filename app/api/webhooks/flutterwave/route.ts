@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
-import { orders, users } from '@/lib/db/schema'
+import { orders, paymentRecords, users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { sendOrderReceiptEmail } from '@/lib/email/send-receipt'
+import { notifyUser } from '@/lib/notifications/service'
+import { generateVerifiedPaymentReceipt } from '@/lib/documents/payment-receipt'
 
 type DeliveryAddress = { name?: string; [key: string]: unknown }
 
@@ -46,6 +48,34 @@ export async function POST(req: NextRequest) {
     await db.update(orders).set({ status: 'confirmed', paymentStatus: 'completed', updatedAt: new Date() }).where(eq(orders.orderNumber, data.tx_ref))
 
     const customer = await db.query.users.findFirst({ where: eq(users.clerkId, existingOrder.userId) })
+    if (customer) {
+      const [payment] = await db.insert(paymentRecords).values({
+        userId: customer.id,
+        orderId: existingOrder.id,
+        provider: 'flutterwave',
+        transactionReference: String(data.id || data.tx_ref),
+        amount: String(data.amount),
+        currency: String(data.currency || expectedCurrency),
+        method: typeof data.payment_type === 'string' ? data.payment_type : null,
+        status: 'completed',
+        metadata: { txRef: data.tx_ref, transactionId: data.id, paymentType: data.payment_type },
+        paidAt: new Date(),
+      }).onConflictDoNothing({ target: [paymentRecords.provider, paymentRecords.transactionReference] }).returning({ id: paymentRecords.id })
+      if (payment) {
+        void generateVerifiedPaymentReceipt({
+          paymentId: payment.id,
+          userId: customer.id,
+          clientName: `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() || customer.email,
+          clientEmail: customer.email,
+          orderNumber: existingOrder.orderNumber,
+          amount: String(data.amount),
+          currency: String(data.currency || expectedCurrency),
+          paymentMethod: typeof data.payment_type === 'string' ? data.payment_type : null,
+          transactionReference: String(data.id || data.tx_ref),
+        })
+      }
+      void notifyUser({ userId: customer.id, type: 'payment_completed', priority: 'important', title: 'Payment confirmed', message: `Payment for order ${existingOrder.orderNumber} was confirmed.`, actionUrl: '/client/orders', channels: ['in_app', 'push'] })
+    }
     const address = parseAddress(existingOrder.deliveryAddress)
     if (customer?.email) {
       await sendOrderReceiptEmail({

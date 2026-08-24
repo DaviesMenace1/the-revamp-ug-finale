@@ -38,7 +38,18 @@ type Quote = {
   createdAt: string
 }
 
+type GeneratedDocument = {
+  id: string
+  documentNumber: string
+  documentType: string
+  amount: string | null
+  currency: string
+  fileUrl: string | null
+  createdAt: string
+}
+
 type Invoice = {
+
   id: string
   invoiceNumber: string
   total: string
@@ -56,8 +67,8 @@ function formatCurrency(value: string | number) {
   )
 }
 
-export default function BillingClientView({ quotes = [], invoices = [] }: { quotes: Quote[]; invoices: Invoice[] }) {
-  const [tab, setTab] = useState<'invoices' | 'quotes'>('invoices')
+export default function BillingClientView({ quotes = [], invoices = [], documents = [], loadError = null }: { quotes: Quote[]; invoices: Invoice[]; documents?: GeneratedDocument[]; loadError?: string | null }) {
+  const [tab, setTab] = useState<'invoices' | 'quotes' | 'documents'>('invoices')
 
   return (
     <PortalLayout portalName="Client Portal" portalSlug="client" navItems={clientNavItems}>
@@ -66,20 +77,32 @@ export default function BillingClientView({ quotes = [], invoices = [] }: { quot
           <h1 className="font-serif text-4xl md:text-5xl font-light text-foreground">Billing</h1>
           <p className="text-muted-foreground">Your quotes, invoices, and payment receipts.</p>
         </div>
+        {loadError && <div role="status" className="flex items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><span>{loadError}</span><button type="button" onClick={() => window.location.reload()} className="font-medium underline underline-offset-4">Retry</button></div>}
 
         <div className="flex gap-2">
-          <button
+                    <button
+            type="button"
             onClick={() => setTab('invoices')}
+
             className={`px-4 py-1.5 rounded-full text-xs uppercase tracking-wider font-medium ${tab === 'invoices' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
           >
             Invoices ({invoices.length})
           </button>
-          <button
+                    <button
+            type="button"
             onClick={() => setTab('quotes')}
             className={`px-4 py-1.5 rounded-full text-xs uppercase tracking-wider font-medium ${tab === 'quotes' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
           >
             Quotes ({quotes.length})
           </button>
+          <button
+            type="button"
+            onClick={() => setTab('documents')}
+            className={`px-4 py-1.5 rounded-full text-xs uppercase tracking-wider font-medium ${tab === 'documents' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+          >
+            Documents ({documents.length})
+          </button>
+
         </div>
 
         {tab === 'invoices' && (
@@ -133,7 +156,26 @@ export default function BillingClientView({ quotes = [], invoices = [] }: { quot
           </div>
         )}
 
+                {tab === 'documents' && (
+          <div className="grid gap-3">
+            {documents.map((document) => (
+              <Card key={document.id} className="p-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium capitalize text-foreground">{document.documentType.replace(/_/g, ' ')}</p>
+                    <p className="text-xs text-muted-foreground">{document.documentNumber} · {new Date(document.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <p className="text-sm font-medium text-foreground">{formatCurrency(document.amount || '0')}</p>
+                </div>
+                {document.fileUrl && <a href={document.fileUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:underline"><Download className="h-3.5 w-3.5" />View document</a>}
+              </Card>
+            ))}
+            {documents.length === 0 && <div className="flex flex-col items-center rounded-lg border border-dashed border-border/40 p-12 text-center"><FileText className="mb-3 h-8 w-8 text-muted-foreground" /><p className="text-sm text-muted-foreground">No generated documents yet.</p></div>}
+          </div>
+        )}
+
         {tab === 'quotes' && (
+
           <div className="grid gap-3">
             {quotes.map((q) => (
               <Card key={q.id} className="p-5">

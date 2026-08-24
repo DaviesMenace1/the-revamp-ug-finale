@@ -42,8 +42,10 @@ type Asset = {
   description: string | null
   assetType: string
   category: string | null
-  fileUrl: string
+    fileUrl: string
+  viewerUrl: string | null
   thumbnailUrl: string | null
+
   version: number
   approvalStatus: string
   createdAt: string
@@ -119,9 +121,8 @@ function AssetCard({ asset, onUpdate }: { asset: Asset; onUpdate: (asset: Asset)
     })
   }
 
-  const isImage = ['image', '3d_render', 'floor_plan', 'elevation', 'section', 'moodboard'].includes(
-    asset.assetType,
-  )
+  const isModel = ['3d_model', 'glb', 'gltf'].includes(asset.assetType)
+  const isImage = ['image', '3d_render', 'floor_plan', 'elevation', 'section', 'moodboard'].includes(asset.assetType)
 
   return (
     <Card className="overflow-hidden">
@@ -129,6 +130,11 @@ function AssetCard({ asset, onUpdate }: { asset: Asset; onUpdate: (asset: Asset)
         <a href={asset.fileUrl} target="_blank" rel="noreferrer">
           <img src={asset.thumbnailUrl || asset.fileUrl} alt={asset.title} className="h-48 w-full object-cover" />
         </a>
+      )}
+      {isModel && asset.viewerUrl && (
+        <Link href={asset.viewerUrl} className="flex h-48 items-center justify-center bg-[#e8e6df] text-sm font-medium text-foreground hover:bg-[#dedbd1]">
+          <span className="rounded border border-foreground/20 bg-background/80 px-4 py-2">Open 3D Viewer</span>
+        </Link>
       )}
 
       <div className="p-4">

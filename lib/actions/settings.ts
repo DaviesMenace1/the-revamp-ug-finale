@@ -4,6 +4,7 @@ import { db } from '@/lib/db/client'
 import { siteSettings } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
 
 export async function getSetting<T = Record<string, unknown>>(
   key: string,
@@ -21,6 +22,10 @@ export async function getSetting<T = Record<string, unknown>>(
 }
 
 export async function saveSetting(key: string, value: Record<string, unknown>) {
+  const authorization = await getCurrentUserWithRole(['admin'])
+  if (!authorization.authorized) {
+    return { success: false, error: 'You are not authorized to change settings.' }
+  }
   try {
     await db
       .insert(siteSettings)

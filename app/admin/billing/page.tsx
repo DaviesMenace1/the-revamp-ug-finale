@@ -2,58 +2,106 @@ import { db } from '@/lib/db/client'
 import { quotes, invoices, users, projects } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import BillingAdminClient from './billing-admin-client'
+import { listGeneratedFinancialDocuments } from '@/lib/actions/billing'
 
 export const dynamic = 'force-dynamic'
 
+async function safeQuery<T>(query: PromiseLike<T>, label: string): Promise<{ data: T | null; error: string | null }> {
+  try {
+    return { data: await query, error: null }
+  } catch (error) {
+    console.error(`[billing] ${label} query failed:`, error)
+    return { data: null, error: label }
+  }
+}
+
 export default async function AdminBillingPage() {
-  const [quoteRows, invoiceRows, clients, clientProjects] = await Promise.all([
-    db
-      .select({
-        id: quotes.id,
-        quoteNumber: quotes.quoteNumber,
-        total: quotes.total,
-        status: quotes.status,
-        pdfUrl: quotes.pdfUrl,
-        validUntil: quotes.validUntil,
-        createdAt: quotes.createdAt,
-        clientFirstName: users.firstName,
-        clientLastName: users.lastName,
-        clientEmail: users.email,
-      })
-      .from(quotes)
-      .innerJoin(users, eq(quotes.userId, users.id))
-      .orderBy(desc(quotes.createdAt)),
-    db
-      .select({
-        id: invoices.id,
-        invoiceNumber: invoices.invoiceNumber,
-        total: invoices.total,
-        amountPaid: invoices.amountPaid,
-        status: invoices.status,
-        pdfUrl: invoices.pdfUrl,
-        receiptUrl: invoices.receiptUrl,
-        dueDate: invoices.dueDate,
-        createdAt: invoices.createdAt,
-        clientFirstName: users.firstName,
-        clientLastName: users.lastName,
-        clientEmail: users.email,
-      })
-      .from(invoices)
-      .innerJoin(users, eq(invoices.userId, users.id))
-      .orderBy(desc(invoices.createdAt)),
-    db.select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email }).from(users).orderBy(users.email),
-    db
-      .select({ id: projects.id, title: projects.title, userId: projects.userId })
-      .from(projects)
-      .where(eq(projects.projectKind, 'client')),
+  const [quoteResult, invoiceResult, clientResult, projectResult, generatedResult] = await Promise.all([
+    safeQuery(
+      db
+        .select({
+          id: quotes.id,
+          quoteNumber: quotes.quoteNumber,
+          total: quotes.total,
+          status: quotes.status,
+          pdfUrl: quotes.pdfUrl,
+          validUntil: quotes.validUntil,
+          createdAt: quotes.createdAt,
+          clientFirstName: users.firstName,
+          clientLastName: users.lastName,
+          clientEmail: users.email,
+        })
+        .from(quotes)
+        .innerJoin(users, eq(quotes.userId, users.id))
+        .orderBy(desc(quotes.createdAt)),
+      'quotes',
+    ),
+    safeQuery(
+      db
+        .select({
+          id: invoices.id,
+          invoiceNumber: invoices.invoiceNumber,
+          total: invoices.total,
+          amountPaid: invoices.amountPaid,
+          status: invoices.status,
+          pdfUrl: invoices.pdfUrl,
+          receiptUrl: invoices.receiptUrl,
+          dueDate: invoices.dueDate,
+          createdAt: invoices.createdAt,
+          clientFirstName: users.firstName,
+          clientLastName: users.lastName,
+          clientEmail: users.email,
+        })
+        .from(invoices)
+        .innerJoin(users, eq(invoices.userId, users.id))
+        .orderBy(desc(invoices.createdAt)),
+      'invoices',
+    ),
+    safeQuery(
+      db
+        .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email })
+        .from(users)
+        .orderBy(users.email),
+      'clients',
+    ),
+    safeQuery(
+      db
+        .select({ id: projects.id, title: projects.title, userId: projects.userId })
+        .from(projects)
+        .where(eq(projects.projectKind, 'client')),
+      'projects',
+    ),
+    safeQuery(listGeneratedFinancialDocuments(), 'generated documents'),
   ])
+
+  const quoteRows = quoteResult.data ?? []
+  const invoiceRows = invoiceResult.data ?? []
+  const clients = clientResult.data ?? []
+  const clientProjects = projectResult.data ?? []
+  const generatedDocuments = generatedResult.data ?? []
+  const failedQueries = [quoteResult, invoiceResult, clientResult, projectResult, generatedResult]
+    .filter((result) => result.error)
+    .map((result) => result.error)
 
   return (
     <BillingAdminClient
-      quotes={quoteRows.map((q) => ({ ...q, createdAt: q.createdAt.toISOString(), validUntil: q.validUntil ? q.validUntil.toISOString() : null }))}
-      invoices={invoiceRows.map((i) => ({ ...i, createdAt: i.createdAt.toISOString(), dueDate: i.dueDate ? i.dueDate.toISOString() : null }))}
+      quotes={quoteRows.map((q) => ({
+        ...q,
+        createdAt: q.createdAt.toISOString(),
+        validUntil: q.validUntil ? q.validUntil.toISOString() : null,
+      }))}
+      invoices={invoiceRows.map((i) => ({
+        ...i,
+        createdAt: i.createdAt.toISOString(),
+        dueDate: i.dueDate ? i.dueDate.toISOString() : null,
+      }))}
       clients={clients}
       projects={clientProjects}
+      documents={generatedDocuments.map((document) => ({
+        ...document,
+        createdAt: document.createdAt.toISOString(),
+      }))}
+      loadError={failedQueries.length > 0 ? 'Some billing data could not be loaded. You can still use the available sections and retry the page.' : null}
     />
   )
 }

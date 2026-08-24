@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useCallback, useState, useTransition } from 'react'
+
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -102,9 +103,46 @@ export default function BillingAdminClient({
   const [showGenerateForm, setShowGenerateForm] = useState(false)
   const [receiptTarget, setReceiptTarget] = useState<Invoice | null>(null)
   const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState('')
+    const [error, setError] = useState('')
+  const [clientList, setClientList] = useState(clients)
+  const [isLoadingClients, setIsLoadingClients] = useState(false)
+  const [clientLoadError, setClientLoadError] = useState('')
+
+  const loadClients = useCallback(async () => {
+    if (isLoadingClients) return
+    setIsLoadingClients(true)
+    setClientLoadError('')
+    try {
+      const response = await fetch('/api/admin/billing/clients', { cache: 'no-store' })
+      const payload = (await response.json()) as { success?: boolean; clients?: Client[]; error?: string }
+      if (!response.ok || !payload.success || !Array.isArray(payload.clients)) {
+        throw new Error(payload.error || 'The client list could not be loaded.')
+      }
+      setClientList(payload.clients)
+    } catch (loadError) {
+      setClientLoadError(loadError instanceof Error ? loadError.message : 'The client list could not be loaded.')
+    } finally {
+      setIsLoadingClients(false)
+    }
+  }, [isLoadingClients])
+
+  function openQuoteForm() {
+    setShowQuoteForm(true)
+    if (clientList.length === 0 && !clientLoadError) void loadClients()
+  }
+
+  function openInvoiceForm() {
+    setShowInvoiceForm(true)
+    if (clientList.length === 0 && !clientLoadError) void loadClients()
+  }
+
+  function openGenerateForm() {
+    setShowGenerateForm(true)
+    if (clientList.length === 0 && !clientLoadError) void loadClients()
+  }
 
   function clientLabel(c: Client) {
+
     return `${[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email} (${c.email})`
   }
 
@@ -113,7 +151,7 @@ export default function BillingAdminClient({
     startTransition(async () => {
       const res = await createQuote(formData)
       if (res.success && res.quote) {
-        const client = clients.find((c) => c.id === formData.get('userId'))
+        const client = clientList.find((c) => c.id === formData.get('userId'))
         setQuoteList((prev) => [
           {
             id: res.quote.id,
@@ -141,7 +179,7 @@ export default function BillingAdminClient({
     startTransition(async () => {
       const res = await createInvoice(formData)
       if (res.success && res.invoice) {
-        const client = clients.find((c) => c.id === formData.get('userId'))
+        const client = clientList.find((c) => c.id === formData.get('userId'))
         setInvoiceList((prev) => [
           {
             id: res.invoice.id,
@@ -184,7 +222,7 @@ export default function BillingAdminClient({
     startTransition(async () => {
       const res = await createGeneratedFinancialDocument(formData)
       if (res.success && res.document) {
-        const client = clients.find((c) => c.id === formData.get('userId'))
+        const client = clientList.find((c) => c.id === formData.get('userId'))
         setDocumentList((prev) => [
           {
             id: res.document.id,
@@ -219,17 +257,17 @@ export default function BillingAdminClient({
           <p className="mt-2 text-muted-foreground">Manual uploads and Revamp-generated financial documents.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="rounded" disabled={!storageConfigured} onClick={() => setShowQuoteForm(true)}>
+          <Button variant="outline" className="rounded" disabled={!storageConfigured} onClick={openQuoteForm}>
 
             <Plus className="mr-2 h-4 w-4" />
             Upload Quote
           </Button>
-          <Button variant="outline" className="rounded" disabled={!storageConfigured} onClick={() => setShowInvoiceForm(true)}>
+          <Button variant="outline" className="rounded" disabled={!storageConfigured} onClick={openInvoiceForm}>
 
             <Plus className="mr-2 h-4 w-4" />
             Upload Invoice
           </Button>
-          <Button className="rounded" disabled={!storageConfigured} onClick={() => setShowGenerateForm(true)}>
+          <Button className="rounded" disabled={!storageConfigured} onClick={openGenerateForm}>
 
             <Sparkles className="mr-2 h-4 w-4" />
             Generate PDF
@@ -237,18 +275,19 @@ export default function BillingAdminClient({
         </div>
       </div>
 
-      {loadError && (
+            {(loadError || clientLoadError) && (
         <div role="status" className="flex items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          <span>{loadError}</span>
-          <button type="button" onClick={() => window.location.reload()} className="shrink-0 font-medium underline underline-offset-4">
+          <span>{clientLoadError || loadError}</span>
+          <button type="button" onClick={() => { if (clientLoadError) void loadClients(); else window.location.reload() }} className="shrink-0 font-medium underline underline-offset-4">
             Retry
           </button>
         </div>
       )}
+
       {error && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
       {!storageConfigured && <div role="status" className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-sm text-foreground"><p className="font-medium">Document storage is not ready.</p><p className="mt-1 text-muted-foreground">Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, and R2_PUBLIC_URL in the deployment environment before uploading or generating PDFs.</p></div>}
 
-            <div className="grid gap-3 sm:grid-cols-3"><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><p className="font-serif text-3xl text-foreground">{clients.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Client profiles ready</p></Card><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><p className="font-serif text-3xl text-foreground">{invoiceList.length + quoteList.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Uploaded records</p></Card><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><p className="font-serif text-3xl text-foreground">{documentList.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Generated PDFs</p></Card></div>
+            <div className="grid gap-3 sm:grid-cols-3"><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><p className="font-serif text-3xl text-foreground">{clientList.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Client profiles ready</p></Card><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><p className="font-serif text-3xl text-foreground">{invoiceList.length + quoteList.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Uploaded records</p></Card><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><p className="font-serif text-3xl text-foreground">{documentList.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Generated PDFs</p></Card></div>
 
       <div className="flex flex-wrap gap-2">
         {([
@@ -340,9 +379,9 @@ export default function BillingAdminClient({
         </div>
       )}
 
-      {showQuoteForm && <UploadModal title="Upload Quote" action={handleQuoteSubmit} isPending={isPending} onClose={() => setShowQuoteForm(false)} clients={clients} clientLabel={clientLabel} projects={projects} extraField={{ name: 'validUntil', label: 'Valid until', type: 'date' }} />}
-      {showInvoiceForm && <UploadModal title="Upload Invoice" action={handleInvoiceSubmit} isPending={isPending} onClose={() => setShowInvoiceForm(false)} clients={clients} clientLabel={clientLabel} projects={projects} extraField={{ name: 'dueDate', label: 'Due date', type: 'date' }} />}
-      {showGenerateForm && <GenerateDocumentModal action={handleGeneratedDocumentSubmit} isPending={isPending} onClose={() => setShowGenerateForm(false)} clients={clients} clientLabel={clientLabel} projects={projects} />}
+      {showQuoteForm && <UploadModal title="Upload Quote" action={handleQuoteSubmit} isPending={isPending} onClose={() => setShowQuoteForm(false)} clients={clientList} clientLabel={clientLabel} projects={projects} isLoadingClients={isLoadingClients} clientLoadError={clientLoadError} onRetryClients={loadClients} extraField={{ name: 'validUntil', label: 'Valid until', type: 'date' }} />}
+      {showInvoiceForm && <UploadModal title="Upload Invoice" action={handleInvoiceSubmit} isPending={isPending} onClose={() => setShowInvoiceForm(false)} clients={clientList} clientLabel={clientLabel} projects={projects} isLoadingClients={isLoadingClients} clientLoadError={clientLoadError} onRetryClients={loadClients} extraField={{ name: 'dueDate', label: 'Due date', type: 'date' }} />}
+      {showGenerateForm && <GenerateDocumentModal action={handleGeneratedDocumentSubmit} isPending={isPending} onClose={() => setShowGenerateForm(false)} clients={clientList} clientLabel={clientLabel} projects={projects} isLoadingClients={isLoadingClients} clientLoadError={clientLoadError} onRetryClients={loadClients} />}
 
       {receiptTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4 backdrop-blur-sm">
@@ -365,7 +404,8 @@ export default function BillingAdminClient({
   )
 }
 
-function UploadModal({ title, action, isPending, onClose, clients, clientLabel, projects, extraField }: {
+function UploadModal({ title, action, isPending, onClose, clients, clientLabel, projects, isLoadingClients, clientLoadError, onRetryClients, extraField }: {
+
   title: string
   action: (formData: FormData) => void
   isPending: boolean
@@ -373,6 +413,9 @@ function UploadModal({ title, action, isPending, onClose, clients, clientLabel, 
   clients: Client[]
   clientLabel: (c: Client) => string
   projects: ProjectOption[]
+  isLoadingClients: boolean
+  clientLoadError: string
+  onRetryClients: () => Promise<void>
   extraField: { name: string; label: string; type: string }
 }) {
   const [selectedClientId, setSelectedClientId] = useState('')
@@ -385,7 +428,8 @@ function UploadModal({ title, action, isPending, onClose, clients, clientLabel, 
         <div className="flex items-center justify-between"><h2 className="text-lg font-medium text-foreground">{title}</h2><button type="button" aria-label={`Close ${title.toLowerCase()} modal`} onClick={onClose}><X className="h-5 w-5 text-muted-foreground" /></button></div>
         <form action={action} className="mt-4 space-y-3">
           <label className="block text-xs text-muted-foreground" htmlFor={`${extraField.name}-userId`}>Client</label>
-          <select id={`${extraField.name}-userId`} name="userId" required disabled={clients.length === 0} value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)} className="w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{clients.length ? 'Select client...' : 'No client profiles loaded'}</option>{clients.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}</select>
+          <select id={`${extraField.name}-userId`} name="userId" required disabled={isLoadingClients || clients.length === 0} value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)} className="w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{isLoadingClients ? 'Loading client profiles…' : clients.length ? 'Select client...' : clientLoadError ? 'Client list unavailable — retry below' : 'No client profiles found'}</option>{clients.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}</select>
+          {clientLoadError && <p role="alert" className="text-xs text-rose-700">{clientLoadError} <button type="button" onClick={() => void onRetryClients()} className="font-medium underline underline-offset-4">Retry client list</button></p>}
           <label className="block text-xs text-muted-foreground" htmlFor={`${extraField.name}-projectId`}>Project (optional)</label>
           <select id={`${extraField.name}-projectId`} name="projectId" disabled={!selectedClientId} className="w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{selectedClientId ? 'No project' : 'Select a client first'}</option>{visibleProjects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select>
 
@@ -400,13 +444,16 @@ function UploadModal({ title, action, isPending, onClose, clients, clientLabel, 
   )
 }
 
-function GenerateDocumentModal({ action, isPending, onClose, clients, clientLabel, projects }: {
+function GenerateDocumentModal({ action, isPending, onClose, clients, clientLabel, projects, isLoadingClients, clientLoadError, onRetryClients }: {
   action: (formData: FormData) => void
   isPending: boolean
   onClose: () => void
   clients: Client[]
   clientLabel: (c: Client) => string
   projects: ProjectOption[]
+  isLoadingClients: boolean
+  clientLoadError: string
+  onRetryClients: () => Promise<void>
 }) {
   const [selectedClientId, setSelectedClientId] = useState('')
   const visibleProjects = selectedClientId ? projects.filter((project) => project.userId === selectedClientId) : []
@@ -419,10 +466,11 @@ function GenerateDocumentModal({ action, isPending, onClose, clients, clientLabe
         <form action={action} className="mt-5 space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div><label className="block text-xs text-muted-foreground" htmlFor="documentType">Document type</label><select id="documentType" name="documentType" required className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="quote">Quotation</option><option value="proforma_invoice">Proforma Invoice</option><option value="invoice">Invoice</option><option value="receipt">Company Receipt</option><option value="payment_receipt">Payment Receipt</option><option value="estimate">Project Estimate</option></select></div>
-            <div><label className="block text-xs text-muted-foreground" htmlFor="userId">Client</label><select id="userId" name="userId" required disabled={clients.length === 0} value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)} className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{clients.length ? 'Select client...' : 'No client profiles loaded'}</option>{clients.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}</select>
+            <div><label className="block text-xs text-muted-foreground" htmlFor="userId">Client</label><select id="userId" name="userId" required disabled={isLoadingClients || clients.length === 0} value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)} className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{isLoadingClients ? 'Loading client profiles…' : clients.length ? 'Select client...' : clientLoadError ? 'Client list unavailable — retry below' : 'No client profiles found'}</option>{clients.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}</select>
 </div>
           </div>
-          <div><label className="block text-xs text-muted-foreground" htmlFor="projectId">Project (optional)</label><select id="projectId" name="projectId" disabled={!selectedClientId} className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{selectedClientId ? 'No project' : 'Select a client first'}</option>{visibleProjects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
+          <div>{clientLoadError && <p role="alert" className="text-xs text-rose-700">{clientLoadError} <button type="button" onClick={() => void onRetryClients()} className="font-medium underline underline-offset-4">Retry client list</button></p>}
+          <label className="block text-xs text-muted-foreground" htmlFor="projectId">Project (optional)</label><select id="projectId" name="projectId" disabled={!selectedClientId} className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{selectedClientId ? 'No project' : 'Select a client first'}</option>{visibleProjects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
           <div className="grid gap-3 sm:grid-cols-3"><Input name="description" placeholder="Line item description" required aria-label="Line item description" /><Input name="quantity" type="number" min="0.01" step="0.01" defaultValue="1" placeholder="Qty" aria-label="Quantity" /><Input name="unitPrice" type="number" min="0" step="0.01" placeholder="Unit price (UGX)" required aria-label="Unit price" /></div>
           <div className="grid gap-3 sm:grid-cols-4"><Input name="taxRate" type="number" min="0" step="0.01" defaultValue="0" placeholder="Tax %" aria-label="Tax rate" /><Input name="discount" type="number" min="0" step="0.01" defaultValue="0" placeholder="Discount (UGX)" aria-label="Discount" /><Input name="dueDate" type="date" aria-label="Due date" /><Input name="validUntil" type="date" aria-label="Valid until" /></div>
           <Input name="paymentMethod" placeholder="Payment method (optional)" aria-label="Payment method" />

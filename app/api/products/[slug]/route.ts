@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { products } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
+import { resolveProductImageUrls } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,7 +38,8 @@ export async function GET(
       )
     }
 
-    return NextResponse.json({ success: true, data: product })
+    const images = resolveProductImageUrls(product)
+    return NextResponse.json({ success: true, data: { ...product, images, thumbnailImage: images[0] } })
   } catch (error: any) {
     console.error('Error fetching product details:', error)
     return NextResponse.json(

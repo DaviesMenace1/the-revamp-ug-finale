@@ -19,7 +19,7 @@ export async function getAccountOverview(userOverride?: AccountUser) {
       [],
     ),
     safeQuery(
-      db.select().from(orders).where(eq(orders.userId, user.id)).orderBy(desc(orders.createdAt)).limit(3),
+      db.select().from(orders).where(eq(orders.userId, user.clerkId)).orderBy(desc(orders.createdAt)).limit(3),
       'account orders',
       [],
     ),

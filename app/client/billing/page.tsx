@@ -3,17 +3,9 @@ import { db } from '@/lib/db/client'
 import { quotes, invoices, financialDocuments } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import BillingClientView from './billing-client-view'
+import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
-
-async function safeQuery<T>(query: PromiseLike<T>, label: string): Promise<{ data: T | null; error: string | null }> {
-  try {
-    return { data: await query, error: null }
-  } catch (error) {
-    console.error(`[client-billing] ${label} query failed:`, error)
-    return { data: null, error: label }
-  }
-}
 
 export default async function ClientBillingPage() {
   const user = await requirePortalUser(
@@ -22,11 +14,12 @@ export default async function ClientBillingPage() {
   )
 
   const [quoteResult, invoiceResult, documentResult] = await Promise.all([
-    safeQuery(db.select().from(quotes).where(eq(quotes.userId, user.id)).orderBy(desc(quotes.createdAt)), 'quotes'),
-    safeQuery(db.select().from(invoices).where(eq(invoices.userId, user.id)).orderBy(desc(invoices.createdAt)), 'invoices'),
+    safeQuery(db.select().from(quotes).where(eq(quotes.userId, user.id)).orderBy(desc(quotes.createdAt)).limit(100), 'quotes', []),
+    safeQuery(db.select().from(invoices).where(eq(invoices.userId, user.id)).orderBy(desc(invoices.createdAt)).limit(100), 'invoices', []),
     safeQuery(
       db.select({ id: financialDocuments.id, documentNumber: financialDocuments.documentNumber, documentType: financialDocuments.documentType, amount: financialDocuments.amount, currency: financialDocuments.currency, fileUrl: financialDocuments.fileUrl, createdAt: financialDocuments.createdAt }).from(financialDocuments).where(eq(financialDocuments.userId, user.id)).orderBy(desc(financialDocuments.createdAt)).limit(100),
       'generated documents',
+      [],
     ),
   ])
 

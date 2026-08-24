@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCart } from '@/lib/context/cart-context'
-import { formatMoney, normalizeCurrency } from '@/lib/utils'
+import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
 
 declare global {
   interface Window {
@@ -21,12 +21,11 @@ declare global {
   }
 }
 
-function getProductImage(item: any): string | null {
-  const product = item?.product
-  const image = item?.selectedColor?.image || item?.selectedVariant?.image || item?.image || product?.thumbnailImage || product?.images?.[0]
+function getProductImage(item: any): string {
+  const image = item?.selectedColor?.image || item?.selectedVariant?.image || item?.image
   if (typeof image === 'string' && image.trim()) return image
-  if (image && typeof image === 'object' && typeof image.url === 'string') return image.url
-  return null
+  if (image && typeof image === 'object' && typeof image.url === 'string' && image.url.trim()) return image.url
+  return resolveProductImageUrls(item?.product)[0] || DEFAULT_PRODUCT_IMAGE
 }
 
 function itemUnitPrice(item: any) {
@@ -42,7 +41,7 @@ export default function CheckoutPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState({ name: customerName || '', email: '', phone: '', address: '', city: '', country: 'Uganda', notes: '' })
 
-  const currencies = useMemo(() => Array.from(new Set(items.map((item) => normalizeCurrency(item.product?.currency)))), [items])
+  const currencies = useMemo(() => Array.from(new Set(items.map((item) => normalizeCurrency(item.currency ?? item.product?.currency)))), [items])
   const checkoutCurrency = currencies[0] || 'UGX'
   const hasMixedCurrencies = currencies.length > 1
   const hasUnavailableItems = items.some((item) => item.unavailable)
@@ -111,7 +110,7 @@ export default function CheckoutPage() {
             name: item.product?.name || 'Product',
             quantity: item.quantity,
             unitPrice: itemUnitPrice(item),
-            currency: normalizeCurrency(item.product?.currency),
+            currency: normalizeCurrency(item.currency ?? item.product?.currency),
             color: typeof item.selectedColor === 'object' ? item.selectedColor?.name || item.selectedColor?.label : item.selectedColor,
             material: typeof item.selectedMaterial === 'object' ? item.selectedMaterial?.name || item.selectedMaterial?.label : item.selectedMaterial,
             variant: typeof item.selectedVariant === 'object' ? item.selectedVariant?.name || item.selectedVariant?.label : item.selectedVariant,
@@ -185,7 +184,7 @@ export default function CheckoutPage() {
 
             <aside className="h-fit rounded-xl border border-border/70 bg-card p-5 shadow-editorial sm:p-6 lg:sticky lg:top-28"><div className="flex items-end justify-between gap-4 border-b border-border/70 pb-5"><div><p className="text-[10px] uppercase tracking-[0.24em] text-primary">Your selection</p><h2 className="mt-2 font-serif text-3xl">Summary</h2></div><span className="text-xs text-muted-foreground">{items.length} {items.length === 1 ? 'piece' : 'pieces'}</span></div>
               <div className="mt-5 max-h-80 space-y-4 overflow-y-auto pr-1">
-                {items.map((item) => { const image = getProductImage(item); const unitPrice = itemUnitPrice(item); const currency = normalizeCurrency(item.product?.currency); return <div key={item.cartItemId} className="flex gap-3 border-b border-border/60 pb-4 last:border-0 last:pb-0"><div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted">{image ? <Image src={image} alt="" fill sizes="64px" className="object-cover" /> : <div className="flex h-full items-center justify-center text-primary"><ShoppingBag className="size-5" aria-hidden="true" /></div>}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.product?.name || 'Saved selection'}</p><p className="mt-1 text-xs text-muted-foreground">Qty {item.quantity} · {formatMoney(unitPrice, currency)}</p>{item.customDimensions && <p className="mt-1 flex items-center gap-1 text-[10px] text-primary"><Sparkles className="size-3" aria-hidden="true" /> Bespoke sizing</p>}</div><p className="text-right text-sm font-medium tabular-nums">{formatMoney(unitPrice * item.quantity, currency)}</p></div> })}
+                {items.map((item) => { const image = getProductImage(item); const unitPrice = itemUnitPrice(item); const currency = normalizeCurrency(item.currency ?? item.product?.currency); return <div key={item.cartItemId} className="flex gap-3 border-b border-border/60 pb-4 last:border-0 last:pb-0"><div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted">{image ? <Image src={image} alt="" fill sizes="64px" className="object-cover" /> : <div className="flex h-full items-center justify-center text-primary"><ShoppingBag className="size-5" aria-hidden="true" /></div>}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.product?.name || 'Saved selection'}</p><p className="mt-1 text-xs text-muted-foreground">Qty {item.quantity} · {formatMoney(unitPrice, currency)}</p>{item.customDimensions && <p className="mt-1 flex items-center gap-1 text-[10px] text-primary"><Sparkles className="size-3" aria-hidden="true" /> Bespoke sizing</p>}</div><p className="text-right text-sm font-medium tabular-nums">{formatMoney(unitPrice * item.quantity, currency)}</p></div> })}
               </div>
               <div className="mt-5 space-y-3 border-t border-border/70 pt-5 text-sm"><div className="flex justify-between gap-4 text-muted-foreground"><span>Subtotal</span><span className="tabular-nums text-foreground">{formatMoney(cart?.subtotal || 0, checkoutCurrency)}</span></div><div className="flex justify-between gap-4 text-muted-foreground"><span>Delivery</span><span className="text-right text-xs">Confirmed after quotation</span></div><div className="flex justify-between gap-4 border-t border-border/70 pt-4 font-serif text-2xl text-foreground"><span>Total</span><span className="tabular-nums text-primary">{formatMoney(checkoutTotal, checkoutCurrency)}</span></div></div>
               <Link href="/cart" className="mt-5 inline-flex min-h-11 items-center justify-center text-xs uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground hover:underline">Edit selection</Link>

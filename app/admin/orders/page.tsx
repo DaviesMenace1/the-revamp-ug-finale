@@ -1,18 +1,29 @@
 import { db } from '@/lib/db/client'
-import { orders } from '@/lib/db/schema'
-import { desc } from 'drizzle-orm'
+import { orders, users } from '@/lib/db/schema'
+import { desc, eq } from 'drizzle-orm'
 import OrdersClient from './orders-client'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminOrdersPage() {
-  const allOrders = await db.query.orders.findMany({
-    orderBy: desc(orders.createdAt),
-  })
+  const allOrders = await db
+    .select({
+      order: orders,
+      customerFirstName: users.firstName,
+      customerLastName: users.lastName,
+      customerEmail: users.email,
+    })
+    .from(orders)
+    .leftJoin(users, eq(users.clerkId, orders.userId))
+    .orderBy(desc(orders.createdAt))
+    .limit(200)
 
   // Parse JSON fields safely before passing to client
-  const formattedOrders = allOrders.map((order) => ({
+  const formattedOrders = allOrders.map(({ order, customerFirstName, customerLastName, customerEmail }) => ({
     ...order,
+    customerFirstName,
+    customerLastName,
+    customerEmail,
     items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [],
     deliveryAddress:
       typeof order.deliveryAddress === 'string'

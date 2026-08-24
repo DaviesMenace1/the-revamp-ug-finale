@@ -81,14 +81,17 @@ export default function BillingAdminClient({
   clients = [],
   projects = [],
   documents: initialDocuments = [],
-  loadError = null,
+    loadError = null,
+  storageConfigured = true,
 }: {
+
   quotes: Quote[]
   invoices: Invoice[]
   clients: Client[]
   projects: ProjectOption[]
   documents?: GeneratedDocument[]
   loadError?: string | null
+  storageConfigured?: boolean
 }) {
   const [tab, setTab] = useState<'quotes' | 'invoices' | 'documents'>('invoices')
   const [quoteList, setQuoteList] = useState(initialQuotes)
@@ -206,22 +209,28 @@ export default function BillingAdminClient({
   }
 
   return (
-    <div className="space-y-8 p-8">
+        <div className="min-h-screen space-y-8 bg-muted/30 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-serif text-4xl font-light text-foreground">Billing</h1>
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Revamp operations · 02</p>
+          <h1 className="mt-3 font-serif text-5xl font-light leading-none text-foreground">Finance workspace</h1>
+
           <p className="mt-2 text-muted-foreground">Manual uploads and Revamp-generated financial documents.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="rounded-none" onClick={() => setShowQuoteForm(true)}>
+          <Button variant="outline" className="rounded" disabled={!storageConfigured} onClick={() => setShowQuoteForm(true)}>
+
             <Plus className="mr-2 h-4 w-4" />
             Upload Quote
           </Button>
-          <Button variant="outline" className="rounded-none" onClick={() => setShowInvoiceForm(true)}>
+          <Button variant="outline" className="rounded" disabled={!storageConfigured} onClick={() => setShowInvoiceForm(true)}>
+
             <Plus className="mr-2 h-4 w-4" />
             Upload Invoice
           </Button>
-          <Button className="rounded-none" onClick={() => setShowGenerateForm(true)}>
+          <Button className="rounded" disabled={!storageConfigured} onClick={() => setShowGenerateForm(true)}>
+
             <Sparkles className="mr-2 h-4 w-4" />
             Generate PDF
           </Button>
@@ -236,10 +245,14 @@ export default function BillingAdminClient({
           </button>
         </div>
       )}
-      {error && <div role="alert" className="rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
+      {error && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>}
+      {!storageConfigured && <div role="status" className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-sm text-foreground"><p className="font-medium">Document storage is not ready.</p><p className="mt-1 text-muted-foreground">Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, and R2_PUBLIC_URL in the deployment environment before uploading or generating PDFs.</p></div>}
+
+            <div className="grid gap-3 sm:grid-cols-3"><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><p className="font-serif text-3xl text-foreground">{clients.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Client profiles ready</p></Card><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><p className="font-serif text-3xl text-foreground">{invoiceList.length + quoteList.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Uploaded records</p></Card><Card className="rounded-xl border-border/70 bg-card p-5 shadow-soft"><p className="font-serif text-3xl text-foreground">{documentList.length}</p><p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Generated PDFs</p></Card></div>
 
       <div className="flex flex-wrap gap-2">
         {([
+
           ['invoices', `Invoices (${invoiceList.length})`],
           ['quotes', `Quotes (${quoteList.length})`],
           ['documents', `Generated PDFs (${documentList.length})`],
@@ -258,7 +271,7 @@ export default function BillingAdminClient({
       {tab === 'invoices' && (
         <div className="grid gap-3">
           {invoiceList.map((inv) => (
-            <Card key={inv.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <Card key={inv.id} className="flex flex-col gap-4 rounded-xl border-border/70 bg-card p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-medium text-foreground">{inv.invoiceNumber}</p>
                 <p className="text-sm text-muted-foreground">{[inv.clientFirstName, inv.clientLastName].filter(Boolean).join(' ') || inv.clientEmail}</p>
@@ -279,7 +292,7 @@ export default function BillingAdminClient({
       {tab === 'quotes' && (
         <div className="grid gap-3">
           {quoteList.map((q) => (
-            <Card key={q.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <Card key={q.id} className="flex flex-col gap-4 rounded-xl border-border/70 bg-card p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-medium text-foreground">{q.quoteNumber}</p>
                 <p className="text-sm text-muted-foreground">{[q.clientFirstName, q.clientLastName].filter(Boolean).join(' ') || q.clientEmail}</p>
@@ -332,8 +345,8 @@ export default function BillingAdminClient({
       {showGenerateForm && <GenerateDocumentModal action={handleGeneratedDocumentSubmit} isPending={isPending} onClose={() => setShowGenerateForm(false)} clients={clients} clientLabel={clientLabel} projects={projects} />}
 
       {receiptTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-background p-6 shadow-lift">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium text-foreground">Upload Receipt — {receiptTarget.invoiceNumber}</h2>
               <button type="button" aria-label="Close receipt upload" onClick={() => setReceiptTarget(null)}><X className="h-5 w-5 text-muted-foreground" /></button>
@@ -362,15 +375,20 @@ function UploadModal({ title, action, isPending, onClose, clients, clientLabel, 
   projects: ProjectOption[]
   extraField: { name: string; label: string; type: string }
 }) {
+  const [selectedClientId, setSelectedClientId] = useState('')
+  const visibleProjects = selectedClientId ? projects.filter((project) => project.userId === selectedClientId) : []
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4 backdrop-blur-sm">
+
+      <div className="w-full max-w-md rounded-2xl bg-background p-6 shadow-lift">
         <div className="flex items-center justify-between"><h2 className="text-lg font-medium text-foreground">{title}</h2><button type="button" aria-label={`Close ${title.toLowerCase()} modal`} onClick={onClose}><X className="h-5 w-5 text-muted-foreground" /></button></div>
         <form action={action} className="mt-4 space-y-3">
           <label className="block text-xs text-muted-foreground" htmlFor={`${extraField.name}-userId`}>Client</label>
-          <select id={`${extraField.name}-userId`} name="userId" required className="w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">Select client...</option>{clients.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}</select>
+          <select id={`${extraField.name}-userId`} name="userId" required disabled={clients.length === 0} value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)} className="w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{clients.length ? 'Select client...' : 'No client profiles loaded'}</option>{clients.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}</select>
           <label className="block text-xs text-muted-foreground" htmlFor={`${extraField.name}-projectId`}>Project (optional)</label>
-          <select id={`${extraField.name}-projectId`} name="projectId" className="w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">No project</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select>
+          <select id={`${extraField.name}-projectId`} name="projectId" disabled={!selectedClientId} className="w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{selectedClientId ? 'No project' : 'Select a client first'}</option>{visibleProjects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select>
+
           <Input name="total" type="number" min="0" step="0.01" placeholder="Total amount (UGX)" required aria-label="Total amount" />
           <div><label className="text-xs text-muted-foreground" htmlFor={extraField.name}>{extraField.label}</label><Input id={extraField.name} name={extraField.name} type={extraField.type} className="mt-1" /></div>
           <textarea name="notes" placeholder="Notes (optional)" rows={2} className="w-full rounded border border-muted bg-transparent p-2.5 text-sm" />
@@ -390,16 +408,21 @@ function GenerateDocumentModal({ action, isPending, onClose, clients, clientLabe
   clientLabel: (c: Client) => string
   projects: ProjectOption[]
 }) {
+  const [selectedClientId, setSelectedClientId] = useState('')
+  const visibleProjects = selectedClientId ? projects.filter((project) => project.userId === selectedClientId) : []
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4">
-      <div className="my-8 w-full max-w-2xl rounded-lg bg-background p-6 shadow-xl">
+
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-foreground/50 p-4 backdrop-blur-sm">
+      <div className="my-8 w-full max-w-2xl rounded-2xl bg-background p-6 shadow-lift">
         <div className="flex items-center justify-between"><div><h2 className="text-lg font-medium text-foreground">Generate Revamp PDF</h2><p className="mt-1 text-sm text-muted-foreground">Create a reusable, editable financial document.</p></div><button type="button" aria-label="Close document generator" onClick={onClose}><X className="h-5 w-5 text-muted-foreground" /></button></div>
         <form action={action} className="mt-5 space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div><label className="block text-xs text-muted-foreground" htmlFor="documentType">Document type</label><select id="documentType" name="documentType" required className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="quote">Quotation</option><option value="proforma_invoice">Proforma Invoice</option><option value="invoice">Invoice</option><option value="receipt">Company Receipt</option><option value="payment_receipt">Payment Receipt</option><option value="estimate">Project Estimate</option></select></div>
-            <div><label className="block text-xs text-muted-foreground" htmlFor="userId">Client</label><select id="userId" name="userId" required className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">Select client...</option>{clients.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}</select></div>
+            <div><label className="block text-xs text-muted-foreground" htmlFor="userId">Client</label><select id="userId" name="userId" required disabled={clients.length === 0} value={selectedClientId} onChange={(event) => setSelectedClientId(event.target.value)} className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{clients.length ? 'Select client...' : 'No client profiles loaded'}</option>{clients.map((c) => <option key={c.id} value={c.id}>{clientLabel(c)}</option>)}</select>
+</div>
           </div>
-          <div><label className="block text-xs text-muted-foreground" htmlFor="projectId">Project (optional)</label><select id="projectId" name="projectId" className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">No project</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
+          <div><label className="block text-xs text-muted-foreground" htmlFor="projectId">Project (optional)</label><select id="projectId" name="projectId" disabled={!selectedClientId} className="mt-1 w-full rounded border border-muted bg-transparent p-2.5 text-sm"><option value="">{selectedClientId ? 'No project' : 'Select a client first'}</option>{visibleProjects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
           <div className="grid gap-3 sm:grid-cols-3"><Input name="description" placeholder="Line item description" required aria-label="Line item description" /><Input name="quantity" type="number" min="0.01" step="0.01" defaultValue="1" placeholder="Qty" aria-label="Quantity" /><Input name="unitPrice" type="number" min="0" step="0.01" placeholder="Unit price (UGX)" required aria-label="Unit price" /></div>
           <div className="grid gap-3 sm:grid-cols-4"><Input name="taxRate" type="number" min="0" step="0.01" defaultValue="0" placeholder="Tax %" aria-label="Tax rate" /><Input name="discount" type="number" min="0" step="0.01" defaultValue="0" placeholder="Discount (UGX)" aria-label="Discount" /><Input name="dueDate" type="date" aria-label="Due date" /><Input name="validUntil" type="date" aria-label="Valid until" /></div>
           <Input name="paymentMethod" placeholder="Payment method (optional)" aria-label="Payment method" />

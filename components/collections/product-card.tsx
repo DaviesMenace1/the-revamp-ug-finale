@@ -6,9 +6,8 @@ import { useState } from 'react'
 import { ShoppingBag, Check } from 'lucide-react'
 import { useCart } from '@/lib/context/cart-context'
 import { WishlistButton } from '@/components/collections/wishlist-button'
-import { formatMoney, normalizeCurrency } from '@/lib/utils'
+import { cn, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
 
-const DEFAULT_IMAGE = 'https://therevampug.com/default-thumb.png'
 const MAX_VISIBLE_SWATCHES = 5
 
 type SwatchVariant = {
@@ -17,16 +16,12 @@ type SwatchVariant = {
   label?: string | null
 }
 
-export function ProductCard({ product }: { product: any }) {
+export function ProductCard({ product, featured = false, className }: { product: any; featured?: boolean; className?: string }) {
   const { addToCart } = useCart()
   const [justAdded, setJustAdded] = useState(false)
 
-  const images = Array.isArray(product.productImages)
-    ? product.productImages.map((img: any) => img?.url).filter(Boolean)
-    : Array.isArray(product.images)
-      ? product.images.filter(Boolean)
-      : []
-  const mainImage = images[0] || DEFAULT_IMAGE
+  const images = resolveProductImageUrls(product)
+  const mainImage = images[0]
   const hoverImage = images[1] || mainImage
 
   const variants = Array.isArray(product.productVariants) ? product.productVariants : []
@@ -63,8 +58,8 @@ export function ProductCard({ product }: { product: any }) {
   }
 
   return (
-    <article className="group relative flex min-w-0 flex-col">
-      <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+    <article className={cn('group relative flex min-w-0 flex-col', className)}>
+      <div className={cn('relative overflow-hidden bg-muted', featured ? 'aspect-[4/5] md:aspect-[5/6]' : 'aspect-[3/4]')}>
         <Link href={`/collections/${product.slug}`} className="absolute inset-0 z-0 block" aria-label={`View ${product.name}`}>
           <Image
             src={mainImage}
@@ -85,9 +80,9 @@ export function ProductCard({ product }: { product: any }) {
           <span className="absolute inset-0 bg-foreground/0 transition-colors duration-500 group-hover:bg-foreground/10" />
         </Link>
 
-        {product.featured && (
+        {(product.featured || featured) && (
           <span className="absolute left-3 top-3 z-10 bg-gold px-2.5 py-1 text-[10px] uppercase tracking-widest text-obsidian">
-            Featured
+            {featured ? 'Studio edit' : 'Featured'}
           </span>
         )}
 

@@ -83,7 +83,7 @@ export async function syncOrderToBrevo(orderId: string) {
     if (!order) return;
 
     const user = await db.query.users.findFirst({
-      where: eq(users.id, order.userId),
+      where: eq(users.clerkId, order.userId),
     });
 
     if (!user) return;

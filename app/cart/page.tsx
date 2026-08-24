@@ -6,11 +6,13 @@ import { ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { useCart } from '@/lib/context/cart-context'
-import { formatMoney, normalizeCurrency } from '@/lib/utils'
+import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
 
 function getImage(item: any) {
-  const image = item.image || item.selectedColor?.image || item.selectedVariant?.image || item.product?.thumbnailImage || item.product?.images?.[0]
-  return typeof image === 'string' && image.length > 0 ? image : null
+  const image = item.image || item.selectedColor?.image || item.selectedVariant?.image
+  if (typeof image === 'string' && image.trim()) return image
+  if (image && typeof image === 'object' && typeof image.url === 'string' && image.url.trim()) return image.url
+  return resolveProductImageUrls(item.product)[0] || DEFAULT_PRODUCT_IMAGE
 }
 
 function Option({ label, value }: { label: string; value?: React.ReactNode }) {
@@ -61,7 +63,7 @@ function QuantityControl({ quantity, onDecrease, onIncrease }: { quantity: numbe
 
 export default function CartPage() {
   const { items, cart, updateQuantity, removeFromCart, clearCart, isLoaded } = useCart()
-  const currencies = Array.from(new Set(items.map((item) => normalizeCurrency(item.product?.currency))))
+  const currencies = Array.from(new Set(items.map((item) => normalizeCurrency(item.currency ?? item.product?.currency))))
   const hasMixedCurrencies = currencies.length > 1
   const cartCurrency = currencies[0] || 'UGX'
 
@@ -122,7 +124,7 @@ export default function CartPage() {
                 const slug = item.product?.slug
                 const itemHref = item.unavailable || !slug ? null : `/collections/${slug}`
                 const image = getImage(item)
-                const currency = normalizeCurrency(item.product?.currency)
+                const currency = normalizeCurrency(item.currency ?? item.product?.currency)
                 const unitPrice = Number(item.unitPrice ?? item.product?.salePrice ?? item.product?.price ?? 0)
                 const total = unitPrice * item.quantity
 

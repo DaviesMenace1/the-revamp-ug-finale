@@ -20,6 +20,7 @@ import {
   Truck,
 } from 'lucide-react'
 import { updateOrderStatus, deleteOrder } from '@/lib/actions/orders'
+import { formatMoney } from '@/lib/utils'
 
 const STATUS_COLORS: Record<string, string> = {
   confirmed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
@@ -70,6 +71,8 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
     const matchesSearch =
       order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customerEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${order.customerFirstName || ''} ${order.customerLastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.deliveryAddress?.name?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter
@@ -78,11 +81,12 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
   })
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen space-y-8 bg-muted/30 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
       {/* Top Title Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b">
         <div>
-          <h1 className="font-serif text-3xl font-normal text-foreground">Orders & Fulfillment</h1>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Revamp operations · 03</p>
+          <h1 className="mt-3 font-serif text-5xl font-normal leading-none text-foreground">Orders & Fulfillment</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Track customer checkout transactions, payment statuses, and shipping fulfillment
           </p>
@@ -121,7 +125,7 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
       </div>
 
       {/* Orders Table */}
-      <div className="border border-border/40 rounded-none bg-background overflow-x-auto shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-border/70 bg-background shadow-soft">
         <table className="w-full text-left text-sm">
           <thead className="bg-muted/40 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border/30">
             <tr>
@@ -159,9 +163,9 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
 
                     {/* Customer Info */}
                     <td className="py-3 px-4">
-                      <div className="font-medium text-foreground">{address.name || 'N/A'}</div>
+                      <div className="font-medium text-foreground">{[order.customerFirstName, order.customerLastName].filter(Boolean).join(' ') || address.name || order.customerEmail || 'N/A'}</div>
                       <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                        {order.userId}
+                        {order.customerEmail || order.userId}
                       </div>
                     </td>
 
@@ -176,7 +180,7 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
 
                     {/* Total Amount */}
                     <td className="py-3 px-4 font-mono text-sm font-medium">
-                      UGX {Number(order.total).toLocaleString()}
+                      {formatMoney(order.total, order.currency || 'UGX')}
                     </td>
 
                     {/* Status Select Badge */}
@@ -231,11 +235,11 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
 
       {/* Order Details Modal Drawer */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl bg-background border-border p-6 shadow-2xl max-h-[90vh] overflow-y-auto rounded-none relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4 backdrop-blur-sm">
+          <Card className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border-border bg-background p-6 shadow-lift">
             <button
               onClick={() => setSelectedOrder(null)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-3 flex size-11 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <X className="w-5 h-5" />
             </button>
@@ -271,7 +275,7 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
                   <Phone className="w-3 h-3" /> {selectedOrder.deliveryAddress?.phone || 'N/A'}
                 </p>
                 <p className="text-muted-foreground text-xs flex items-center gap-1">
-                  <Mail className="w-3 h-3" /> {selectedOrder.userId}
+                  <Mail className="w-3 h-3" /> {selectedOrder.customerEmail || selectedOrder.userId}
                 </p>
               </div>
 
@@ -317,12 +321,12 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
                     <div className="flex-1">
                       <p className="font-medium text-foreground">{item.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        Unit Price: ${Number(item.price).toLocaleString()}
+                        Unit Price: {formatMoney(item.unitPrice ?? item.price ?? 0, item.currency || selectedOrder.currency || 'UGX')}
                       </p>
                     </div>
                     <div className="text-right font-mono">
                       <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                      <p className="font-semibold">${(item.price * item.quantity).toLocaleString()}</p>
+                      <p className="font-semibold">{formatMoney(Number(item.unitPrice ?? item.price ?? 0) * Number(item.quantity || 0), item.currency || selectedOrder.currency || 'UGX')}</p>
                     </div>
                   </div>
                 ))}

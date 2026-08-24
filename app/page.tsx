@@ -1,6 +1,7 @@
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { HeroSection } from '@/components/sections/hero-section'
+import { StudioIntroSection } from '@/components/sections/studio-intro-section'
 import { ServicesSection } from '@/components/sections/services-section'
 import { PortfolioSection } from '@/components/sections/portfolio-section'
 import { ProcessSection } from '@/components/sections/process-section'
@@ -15,12 +16,13 @@ export default function HomePage() {
       <SiteHeader />
       <main>
         <HeroSection />
-        <JournalSection />
+        <StudioIntroSection />
         <PortfolioSection />
-        <CollectionsSection />
         <ServicesSection />
+        <CollectionsSection />
         <ProcessSection />
         <TestimonialsSection />
+        <JournalSection />
         <CtaSection />
       </main>
       <SiteFooter />

@@ -85,7 +85,7 @@ export async function POST(req: Request) {
     const flwPayload = {
       tx_ref: txRef,
       amount: numericAmount,
-      currency: (currency || 'USD').toUpperCase().trim(),
+      currency: (currency || 'UGX').toUpperCase().trim(),
       redirect_url: `${baseUrl}/api/checkout/callback`,
       payment_options: paymentOption || 'card,mobilemoneyuganda,banktransfer',
       customer: {

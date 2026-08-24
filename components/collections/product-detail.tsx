@@ -17,10 +17,9 @@ import {
 } from 'lucide-react'
 import { useCart } from '@/lib/context/cart-context'
 import { useRouter } from 'next/navigation'
-import { formatMoney, normalizeCurrency } from '@/lib/utils'
+import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
 import { ProductShareSheet } from '@/components/collections/product-share-sheet'
 
-const DEFAULT_IMAGE = '/images/placeholder.jpg'
 const WISHLIST_STORAGE_KEY = 'revamp:wishlist'
 
 // Helper component for Accordions
@@ -60,13 +59,8 @@ export function ProductDetail({ product }: { product: any }) {
   // Relational productImages fallback
   const productImages = Array.isArray(product?.productImages) ? product.productImages : []
 
-  // Images resolution
-  const rawImages: string[] =
-    Array.isArray(product?.images) && product.images.length > 0
-      ? product.images.filter(Boolean)
-      : productImages.length > 0
-      ? productImages.map((img: any) => img?.url || img).filter(Boolean)
-      : [DEFAULT_IMAGE]
+  // Images are sorted by primary flag and display order, with safe legacy fallbacks.
+  const rawImages = resolveProductImageUrls(product)
 
   // Variants extraction
   const variants = Array.isArray(product?.productVariants) ? product.productVariants : []
@@ -81,7 +75,7 @@ export function ProductDetail({ product }: { product: any }) {
   const initialHeight = typeof rawDims === 'object' ? rawDims.height || '' : ''
   const initialDepth = typeof rawDims === 'object' ? rawDims.depth || '' : ''
 
-  const [selectedImage, setSelectedImage] = useState<string>(rawImages[0] || DEFAULT_IMAGE)
+  const [selectedImage, setSelectedImage] = useState<string>(rawImages[0] || DEFAULT_PRODUCT_IMAGE)
   const [selectedColor, setSelectedColor] = useState(colors[0] || null)
   const [selectedFabric, setSelectedFabric] = useState(fabrics[0] || null)
   const [selectedMaterial, setSelectedMaterial] = useState(materials[0] || null)

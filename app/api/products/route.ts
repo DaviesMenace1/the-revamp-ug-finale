@@ -3,6 +3,7 @@ import { db } from '@/lib/db/client'
 import { products } from '@/lib/db/schema'
 import { desc, eq, and, inArray } from 'drizzle-orm'
 import { POST as adminPOST } from '../admin/products/route'
+import { isUuid, resolveProductImageUrls } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,10 +12,10 @@ export async function GET(req: NextRequest) {
   try {
     const idsParam = req.nextUrl.searchParams.get('ids')
     const ids = idsParam
-      ? idsParam.split(',').map((id) => id.trim()).filter(Boolean)
+      ? idsParam.split(',').map((id) => id.trim()).filter(isUuid)
       : null
 
-    const data = await db.query.products.findMany({
+    const rows = await db.query.products.findMany({
       where: ids
         ? and(eq(products.status, 'published'), inArray(products.id, ids))
         : eq(products.status, 'published'),
@@ -23,6 +24,10 @@ export async function GET(req: NextRequest) {
   productVariants: true,
   productImages: true,
 },
+    })
+    const data = rows.map((product) => {
+      const images = resolveProductImageUrls(product)
+      return { ...product, images, thumbnailImage: images[0] }
     })
     return NextResponse.json({ success: true, data })
   } catch (error: any) {

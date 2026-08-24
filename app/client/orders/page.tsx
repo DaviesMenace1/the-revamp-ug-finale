@@ -14,8 +14,9 @@ export default async function ClientOrders() {
     db
       .select()
       .from(orders)
-      .where(eq(orders.userId, user.id))
-      .orderBy(desc(orders.createdAt)),
+      .where(eq(orders.userId, user.clerkId))
+      .orderBy(desc(orders.createdAt))
+      .limit(100),
     'client orders',
     [],
   )

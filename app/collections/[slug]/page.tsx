@@ -9,6 +9,7 @@ import { SiteFooter } from '@/components/site-footer'
 import { ProductDetail, ProductReviews } from '@/components/collections/product-detail'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateProductSchema } from '@/lib/seo/schema-generator'
+import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
 
 // Database & Drizzle Imports
 import { db } from '@/lib/db/client'
@@ -18,34 +19,8 @@ import { eq, ne, and } from 'drizzle-orm'
 export const dynamicParams = true
 export const revalidate = 60
 
-const DEFAULT_IMAGE = 'https://therevampug.com/default-thumb.png'
-
-// Helper: Extract valid image URLs from both productImages relation and legacy images array
-function extractProductImages(product: any): string[] {
-  if (!product) return [DEFAULT_IMAGE]
-
-  // 1. Try relational productImages table first
-  if (Array.isArray(product.productImages) && product.productImages.length > 0) {
-    const urls = product.productImages.map((img: any) => img?.url || img).filter(Boolean)
-    if (urls.length > 0) return urls
-  }
-
-  // 2. Fall back to direct images array
-  if (Array.isArray(product.images) && product.images.length > 0) {
-    const urls = product.images.filter(Boolean)
-    if (urls.length > 0) return urls
-  }
-
-  return [DEFAULT_IMAGE]
-}
-
-const formatUGX = (price: string | number) => {
-  const num = typeof price === 'string' ? parseFloat(price) : price
-  return new Intl.NumberFormat('en-UG', {
-    style: 'currency',
-    currency: 'UGX',
-    maximumFractionDigits: 0,
-  }).format(num || 0)
+function extractProductImages(product: unknown): string[] {
+  return resolveProductImageUrls(product)
 }
 
 async function getProductBySlugFromDB(slug: string) {
@@ -252,7 +227,7 @@ export default async function ProductPage({
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border">
                 {related.map((p) => {
                   const relImages = extractProductImages(p)
-                  const thumb = relImages[0] || DEFAULT_IMAGE
+                  const thumb = relImages[0] || DEFAULT_PRODUCT_IMAGE
 
                   return (
                     <Link
@@ -275,7 +250,7 @@ export default async function ProductPage({
                           {p.name}
                         </h3>
                         <span className="font-sans text-sm text-foreground font-medium">
-                          {formatUGX(p.price)}
+                          {formatMoney(p.price, normalizeCurrency(p.currency))}
                         </span>
                       </div>
                     </Link>

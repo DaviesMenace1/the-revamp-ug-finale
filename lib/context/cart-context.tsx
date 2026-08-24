@@ -19,7 +19,7 @@ import type {
   Product,
   Variant,
 } from '@/lib/types'
-import { normalizeCurrency } from '@/lib/utils'
+import { normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
 
 export const CartContext = createContext<CartContextType | undefined>(undefined)
 
@@ -310,11 +310,7 @@ export function CartProvider({
         }
       )
 
-      const image =
-        selectedColor?.image ||
-        selectedVariant?.image ||
-        product.thumbnailImage ||
-        product.images?.[0]
+      const image = selectedColor?.image || selectedVariant?.image || resolveProductImageUrls(product)[0]
 
       setItems((previous) => {
         const existingIndex = previous.findIndex(
@@ -348,6 +344,7 @@ export function CartProvider({
           customDimensions,
 
           unitPrice,
+          currency: normalizeCurrency(product.currency),
           image,
 
           selectedOptions: {

@@ -13,15 +13,15 @@ export default async function TradeDashboard() {
 
   const [member, orderCountRow, pendingCountRow, ytdSpendRow] = await Promise.all([
     db.query.tradeMembers.findFirst({ where: eq(tradeMembers.userId, user.id) }),
-    db.select({ value: count() }).from(orders).where(eq(orders.userId, user.id)),
+    db.select({ value: count() }).from(orders).where(eq(orders.userId, user.clerkId)),
     db
       .select({ value: count() })
       .from(orders)
-      .where(and(eq(orders.userId, user.id), eq(orders.status, 'pending'))),
+      .where(and(eq(orders.userId, user.clerkId), eq(orders.status, 'pending'))),
     db
       .select({ value: sum(orders.subtotal) })
       .from(orders)
-      .where(and(eq(orders.userId, user.id), gte(orders.createdAt, yearStart))),
+      .where(and(eq(orders.userId, user.clerkId), gte(orders.createdAt, yearStart))),
   ])
 
   const discountRate = member?.discountRate ? Number(member.discountRate) : 10

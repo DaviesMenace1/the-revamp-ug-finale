@@ -3,11 +3,26 @@ import { quotes, invoices, users, projects, financialDocuments } from '@/lib/db/
 import { eq, desc } from 'drizzle-orm'
 import BillingAdminClient from './billing-admin-client'
 import { safeQuery } from '@/lib/server/safe-query'
+import { isR2Configured } from '@/lib/storage/r2'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminBillingPage() {
-  const [quoteResult, invoiceResult, clientResult, projectResult, generatedResult] = await Promise.all([
+  // Load the client selector independently. With one Supavisor connection per
+  // serverless instance, firing five uncancelled requests together can queue
+  // the selector behind a slow report and make every form look empty.
+  const clientResult = await safeQuery(
+    db
+      .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email })
+      .from(users)
+      .orderBy(users.email)
+      .limit(200),
+    'clients',
+    [],
+    4500,
+  )
+
+  const [quoteResult, invoiceResult, projectResult, generatedResult] = await Promise.all([
     safeQuery(
       db
         .select({
@@ -24,7 +39,8 @@ export default async function AdminBillingPage() {
         })
         .from(quotes)
         .innerJoin(users, eq(quotes.userId, users.id))
-        .orderBy(desc(quotes.createdAt)),
+        .orderBy(desc(quotes.createdAt))
+        .limit(100),
       'quotes',
       [],
     ),
@@ -46,23 +62,17 @@ export default async function AdminBillingPage() {
         })
         .from(invoices)
         .innerJoin(users, eq(invoices.userId, users.id))
-        .orderBy(desc(invoices.createdAt)),
+        .orderBy(desc(invoices.createdAt))
+        .limit(100),
       'invoices',
-      [],
-    ),
-    safeQuery(
-      db
-        .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email })
-        .from(users)
-        .orderBy(users.email),
-      'clients',
       [],
     ),
     safeQuery(
       db
         .select({ id: projects.id, title: projects.title, userId: projects.userId })
         .from(projects)
-        .where(eq(projects.projectKind, 'client')),
+        .where(eq(projects.projectKind, 'client'))
+        .limit(200),
       'projects',
       [],
     ),
@@ -93,7 +103,7 @@ export default async function AdminBillingPage() {
   const invoiceRows = invoiceResult.data ?? []
   const clients = clientResult.data ?? []
   const clientProjects = projectResult.data ?? []
-  const generatedDocuments = generatedResult.data
+  const generatedDocuments = generatedResult.data ?? []
   const failedQueries = [quoteResult, invoiceResult, clientResult, projectResult, generatedResult]
     .filter((result) => result.error)
     .map((result) => result.error)
@@ -102,20 +112,21 @@ export default async function AdminBillingPage() {
     <BillingAdminClient
       quotes={quoteRows.map((q) => ({
         ...q,
-        createdAt: q.createdAt.toISOString(),
-        validUntil: q.validUntil ? q.validUntil.toISOString() : null,
+        createdAt: new Date(q.createdAt).toISOString(),
+        validUntil: q.validUntil ? new Date(q.validUntil).toISOString() : null,
       }))}
       invoices={invoiceRows.map((i) => ({
         ...i,
-        createdAt: i.createdAt.toISOString(),
-        dueDate: i.dueDate ? i.dueDate.toISOString() : null,
+        createdAt: new Date(i.createdAt).toISOString(),
+        dueDate: i.dueDate ? new Date(i.dueDate).toISOString() : null,
       }))}
       clients={clients}
       projects={clientProjects}
       documents={generatedDocuments.map((document) => ({
         ...document,
-        createdAt: document.createdAt.toISOString(),
+        createdAt: new Date(document.createdAt).toISOString(),
       }))}
+      storageConfigured={isR2Configured()}
       loadError={failedQueries.length > 0 ? 'Some billing data could not be loaded. You can still use the available sections and retry the page.' : null}
     />
   )

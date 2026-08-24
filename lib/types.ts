@@ -58,6 +58,7 @@ export interface CartItem {
    * These make the cart stable even if the product is later edited.
    */
   unitPrice?: number
+  currency?: string
   image?: string
   selectedOptions?: Record<string, unknown>
   /** True when a legacy/local record lacks the embedded product snapshot. */

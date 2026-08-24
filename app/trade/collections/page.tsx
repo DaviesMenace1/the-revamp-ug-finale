@@ -3,6 +3,7 @@ import { db } from '@/lib/db/client'
 import { products, tradeMembers } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import TradeCollectionsClient from './trade-collections-client'
+import { resolveProductImageUrls } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,7 @@ export default async function TradeCollections() {
     name: p.name,
     price: Number(p.price),
     currency: p.currency,
-    image: p.productImages?.find((img) => img.isPrimary)?.url || p.productImages?.[0]?.url || null,
+    image: resolveProductImageUrls(p)[0],
   }))
 
   return <TradeCollectionsClient products={formatted} discountRate={discountRate} />

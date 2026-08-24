@@ -2,274 +2,37 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { db } from '@/lib/db/client'
 import { products } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
-
-// Helper function to format currency
-function formatPrice(price: string | number) {
-  const numericPrice = typeof price === 'string' ? parseFloat(price) : price
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(numericPrice || 0)
-}
-
-// Helper to check if a product is considered a "New Arrival" (e.g. created within last 30 days)
-function isNewArrival(createdAt: Date | string | null) {
-  if (!createdAt) return false
-  const created = new Date(createdAt)
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  return created > thirtyDaysAgo
-}
+import { ProductCard } from '@/components/collections/product-card'
+import { desc, eq } from 'drizzle-orm'
 
 export async function CollectionsSection() {
-  // Fetch the latest 10 published products directly from DB
   let items: any[] = []
   try {
     items = await db.query.products.findMany({
       where: eq(products.status, 'published'),
-      orderBy: [desc(products.createdAt)],
-      limit: 10,
+      orderBy: [desc(products.featured), desc(products.createdAt)],
+      with: {
+        productImages: true,
+        productVariants: true,
+        subCategory: { with: { category: true } },
+      },
+      limit: 8,
     })
   } catch (error) {
-    console.error('Failed to fetch new arrivals from database:', error)
+    console.error('Failed to fetch published homepage products:', error)
   }
 
-  if (!items || items.length === 0) {
-    return null // Or a subtle placeholder state if no products are published
-  }
+  if (!items.length) return null
 
   return (
     <section className="section-pad bg-background">
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <div>
-            <div className="gold-line" />
-            <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-foreground leading-tight">
-              Curated Collections
-            </h2>
-            <p className="font-sans text-sm text-muted-foreground mt-3 max-w-md">
-              The latest pieces to join our catalog | sourced, crafted, and ready to define your space.
-            </p>
-          </div>
-          <Link
-            href="/collections"
-            className="inline-flex items-center gap-2 font-sans text-xs tracking-widest uppercase text-gold hover-line group"
-          >
-            Browse All
-            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-          </Link>
+      <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-16">
+        <div className="mb-10 flex flex-col gap-6 border-b border-border/70 pb-7 md:flex-row md:items-end md:justify-between">
+          <div><p className="text-[10px] uppercase tracking-[0.28em] text-primary">The current edit</p><h2 className="mt-3 font-serif text-4xl font-light leading-tight sm:text-6xl">Objects with presence.</h2><p className="mt-4 max-w-md text-sm leading-6 text-muted-foreground">Furniture, lighting, and accents chosen for rooms that are meant to be lived in.</p></div>
+          <Link href="/collections" className="group inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.16em] text-primary transition-colors hover:text-gold">Browse the full collection<ArrowRight size={15} className="transition-transform group-hover:translate-x-1" /></Link>
         </div>
-
-        {/* Product Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-px bg-border w-full">
-          {items.map((item) => {
-            // Get primary image or fallback
-            const displayImage =
-              item.thumbnailImage ||
-              (Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : '/placeholder.jpg')
-
-            return (
-              <Link
-                key={item.id}
-                href={`/collections/${item.slug}`}
-                className="group relative bg-background w-full min-w-0 overflow-hidden block"
-              >
-                {/* Image Container */}
-                <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                    style={{ backgroundImage: `url('${displayImage}')` }}
-                    role="img"
-                    aria-label={item.name}
-                  />
-                  <div className="absolute inset-0 bg-foreground/20 group-hover:bg-foreground/40 transition-colors duration-500" />
-
-                  {/* New Arrivals Tag */}
-                  {isNewArrival(item.createdAt) && (
-                    <span className="absolute top-3 left-3 bg-gold text-obsidian font-sans text-[10px] tracking-widest uppercase px-2.5 py-1 z-10">
-                      New Arrivals
-                    </span>
-                  )}
-                </div>
-
-                {/* Details */}
-                <div className="p-4 border-t border-border">
-                  <h3 className="font-serif text-base font-light text-foreground group-hover:text-gold transition-colors leading-tight mb-1 truncate">
-                    {item.name}
-                  </h3>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-sans text-[11px] text-muted-foreground tracking-wide uppercase truncate">
-                      {item.category || item.subCategory || 'Furniture'}
-                    </span>
-                    <span className="font-sans text-xs text-foreground font-medium whitespace-nowrap">
-                      {formatPrice(item.price)}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            )
-          })}
-        </div>
+        <div className="grid gap-x-5 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">{items.map((item, index) => <ProductCard key={item.id} product={item} featured={index === 0} className={index === 0 ? 'lg:col-span-2' : ''} />)}</div>
       </div>
     </section>
   )
 }
-
-
-
-// import Link from 'next/link'
-// import { ArrowRight } from 'lucide-react'
-// import { getNewArrivals, isNewArrival, formatPrice } from '@/lib/data/products'
-
-// export function CollectionsSection() {
-//   const items = getNewArrivals(10)
-
-//   return (
-//     <section className="section-pad bg-background">
-//       <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-//         {/* Header */}
-//         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-//           <div>
-//             <div className="gold-line" />
-//             <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-foreground leading-tight">
-//               Curated Collections
-//             </h2>
-//             <p className="font-sans text-sm text-muted-foreground mt-3 max-w-md">
-//               The latest pieces to join our catalog | sourced, crafted, and ready to define your space.
-//             </p>
-//           </div>
-//           <Link
-//             href="/collections"
-//             className="inline-flex items-center gap-2 font-sans text-xs tracking-widest uppercase text-gold hover-line group"
-//           >
-//             Browse All
-//             <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-//           </Link>
-//         </div>
-
-//         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-px bg-border w-full">
-//           {items.map((item) => (
-//             <Link
-//               key={item.id}
-//               href={`/collections/${item.slug}`}
-//               className="group relative bg-background w-full min-w-0 overflow-hidden block">
-//               {/* Image Container */}
-//               <div className="relative aspect-[3/4] w-full overflow-hidden">
-//                 <div
-//                   className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-//                   style={{ backgroundImage: `url('${item.images[0]}')` }}
-//                   role="img"
-//                   aria-label={item.name}
-//                 />
-//                 <div className="absolute inset-0 bg-foreground/20 group-hover:bg-foreground/40 transition-colors duration-500" />
-
-//                 {/* New Arrivals Tag */}
-//                 {isNewArrival(item) && (
-//                   <span className="absolute top-3 left-3 bg-gold text-obsidian font-sans text-[10px] tracking-widest uppercase px-2.5 py-1 z-10">
-//                     New Arrivals
-//                   </span>
-//                 )}
-//               </div>
-//                {/* Label */}
-//               <div className="p-4 border-t border-border">
-//                 <h3 className="font-serif text-base font-light text-foreground group-hover:text-gold transition-colors leading-tight mb-1">
-//                   {item.name}
-//                 </h3>
-//                 <div className="flex items-center justify-between gap-2">
-//                   <span className="font-sans text-[11px] text-muted-foreground tracking-wide uppercase">
-//                     {item.itemType}
-//                   </span>
-//                   <span className="font-sans text-xs text-foreground font-medium">
-//                     {formatPrice(item.price, item.currency)}
-//                   </span>
-//                 </div>
-//               </div>
-    
-//             </Link>
-//           ))}
-//         </div>
-//       </div>
-//     </section>
-//   )}
-
-             
-
-{/*import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
-import { getNewArrivals, isNewArrival, formatPrice } from '@/lib/data/products'
-
-export function CollectionsSection() {
-  const items = getNewArrivals(6)
-
-  return (
-    <section className="section-pad bg-background">
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-        {/* Header *
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <div>
-            <div className="gold-line" />
-            <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-foreground leading-tight">
-              Curated Collections
-            </h2>
-            <p className="font-sans text-sm text-muted-foreground mt-3 max-w-md">
-              The latest pieces to join our catalog — sourced, crafted, and ready to define your space.
-            </p>
-          </div>
-          <Link
-            href="/collections"
-            className="inline-flex items-center gap-2 font-sans text-xs tracking-widest uppercase text-gold hover-line group"
-          >
-            Browse All
-            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-
-        {/* Horizontal scroll on mobile, grid on desktop *
-        <div className="flex gap-px overflow-x-auto snap-x snap-mandatory scrollbar-none md:grid md:grid-cols-3 lg:grid-cols-6 bg-border">
-          {items.map((item) => (
-            <Link
-              key={item.id}
-              href={`/collections/${item.slug}`}
-              className="group relative bg-background flex-none w-64 md:w-auto snap-start overflow-hidden"
-            >
-              {/* Image *
-              <div className="relative aspect-[3/4] overflow-hidden">
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                  style={{ backgroundImage: `url('${item.images[0]}')` }}
-                  role="img"
-                  aria-label={item.name}
-                />
-                <div className="absolute inset-0 bg-foreground/20 group-hover:bg-foreground/40 transition-colors duration-500" />
-
-                {/* New Arrivals tag — updates automatically as newer products are added *
-                {isNewArrival(item) && (
-                  <span className="absolute top-3 left-3 bg-gold text-obsidian font-sans text-[10px] tracking-widest uppercase px-2.5 py-1">
-                    New Arrivals
-                  </span>
-                )}
-              </div>
-
-              {/* Label *
-              <div className="p-4 border-t border-border">
-                <h3 className="font-serif text-base font-light text-foreground group-hover:text-gold transition-colors leading-tight mb-1">
-                  {item.name}
-                </h3>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-sans text-[11px] text-muted-foreground tracking-wide uppercase">
-                    {item.itemType}
-                  </span>
-                  <span className="font-sans text-xs text-foreground font-medium">
-                    {formatPrice(item.price, item.currency)}
-                  </span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-} */}

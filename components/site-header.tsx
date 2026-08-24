@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, ChevronDown, ShoppingBag, Search, Heart, User } from 'lucide-react'
+import NotificationBell from '@/components/notifications/notification-bell'
 import { cn } from '@/lib/utils'
 import { useCart } from '@/lib/context/cart-context'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
@@ -261,6 +262,9 @@ export function SiteHeader() {
               <div className="scale-90 sm:scale-100">
                 <ThemeSwitcher />
               </div>
+
+              {/* Notifications */}
+              <NotificationBell className={scrolled || !isHome ? 'text-foreground' : 'text-white'} />
 
               {/* Wishlist Icon */}
               <Link

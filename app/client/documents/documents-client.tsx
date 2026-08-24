@@ -43,7 +43,7 @@ export default function DocumentsClient({ documents = [], loadError = null }: { 
           {documents.map((doc) => (
             <Card key={doc.id} className="flex flex-col gap-4 rounded-xl border-border/70 bg-card p-5 shadow-soft transition-shadow hover:shadow-lift sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-center gap-4"><span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-gold/15 text-primary"><FileText className="size-5" /></span><div className="min-w-0"><p className="truncate font-serif text-xl text-foreground">{doc.name}</p><p className="mt-1 text-xs capitalize text-muted-foreground">{doc.category} · {new Date(doc.createdAt).toLocaleDateString('en-UG', { month: 'short', day: 'numeric', year: 'numeric' })}</p></div></div>
-              <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded border border-border px-4 text-xs font-semibold uppercase tracking-[0.14em] text-foreground hover:border-gold hover:text-primary"><Download className="size-4" /> Open <ArrowUpRight className="size-4" /></a>
+              <a href={doc.fileUrl} download={doc.name} target="_blank" rel="noreferrer" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded border border-border px-4 text-xs font-semibold uppercase tracking-[0.14em] text-foreground hover:border-gold hover:text-primary"><Download className="size-4" /> Download <ArrowUpRight className="size-4" /></a>
             </Card>
           ))}
 

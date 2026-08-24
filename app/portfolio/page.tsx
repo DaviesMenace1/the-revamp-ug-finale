@@ -1,330 +1,35 @@
-import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
-import Link from 'next/link'
-import Image from 'next/image'
+import { SiteHeader } from '@/components/site-header'
 import { getPublishedProjects } from '@/lib/db/queries'
+import PortfolioGrid from './portfolio-grid'
 
-export const revalidate = 300 // Revalidate cache every 5 minutes
-
-const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&q=85&auto=format&fit=crop'
-
-function firstImage(value: unknown) {
-  return Array.isArray(value) && typeof value[0] === 'string' ? value[0] : DEFAULT_IMAGE
-}
+export const dynamic = 'force-dynamic'
 
 export default async function PortfolioPage() {
-  const projects = await getPublishedProjects(20, 0)
+  const projects = await getPublishedProjects(100, 0)
 
   return (
     <>
       <SiteHeader />
       <main className="min-h-screen bg-background">
-        {/* Hero */}
-        <section className="border-b border-border/20 bg-gradient-to-br from-background via-background to-muted/20 py-24 md:py-32">
-          <div className="mx-auto max-w-5xl px-6 md:px-8 space-y-6">
-            <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground">
-              Portfolio
-            </h1>
-            <p className="max-w-2xl text-lg text-muted-foreground font-light">
-              Completed and ongoing projects showcasing our expertise in residential, commercial, and hospitality design
-            </p>
-          </div>
-        </section>
-
-        {/* Projects Grid */}
-        <section className="py-20 md:py-28">
-          <div className="mx-auto max-w-7xl px-6 md:px-8">
-            <div className="grid gap-8 md:grid-cols-2">
-              {projects.map((project) => {
-                const heroImage = firstImage(project.images)
-                
-                return (
-                  <Link
-                    key={project.id}
-                    href={`/portfolio/${project.slug}`}
-                    className="group h-full"
-                  >
-                    <article className="space-y-4 cursor-pointer h-full flex flex-col rounded-lg overflow-hidden border border-border/20 hover:border-primary/20 transition-colors bg-background">
-                      {/* Image */}
-                      <div className="relative w-full h-80 overflow-hidden bg-muted">
-                        <Image
-                          src={heroImage}
-                          alt={project.title}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-500"
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                        />
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-grow p-6 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="uppercase font-medium text-primary/80 text-xs tracking-wider">
-                            {project.status}
-                          </span>
-                          <span className="text-muted-foreground font-light text-sm">
-                            {project.location}
-                          </span>
-                        </div>
-
-                        <h2 className="font-serif text-2xl font-light text-foreground group-hover:text-primary transition-colors">
-                          {project.title}
-                        </h2>
-
-                        <p className="text-sm text-muted-foreground line-clamp-2 font-light">
-                          {project.shortDescription || project.description}
-                        </p>
-                      </div>
-
-                      {/* Footer */}
-                      <div className="px-6 pb-6">
-                        <span className="inline-flex items-center gap-2 text-primary/70 group-hover:text-primary transition-colors font-light text-sm">
-                          View Project
-                          <svg className="size-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                          </svg>
-                        </span>
-                      </div>
-                    </article>
-                  </Link>
-                )
-              })}
+        <section className="relative overflow-hidden bg-obsidian px-5 pb-16 pt-36 text-ivory sm:px-8 md:pb-24 md:pt-48 lg:px-16">
+          <div className="absolute right-[-10%] top-[-25%] size-[42rem] rounded-full border border-gold/20" aria-hidden="true" />
+          <div className="absolute bottom-[-70%] left-[38%] size-[38rem] rounded-full border border-ivory/10" aria-hidden="true" />
+          <div className="relative mx-auto grid max-w-[1440px] gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div className="max-w-5xl motion-reveal">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-gold">The Revamp studio / selected work</p>
+              <h1 className="mt-5 max-w-4xl font-serif text-6xl font-light leading-[0.9] tracking-tight sm:text-8xl lg:text-[9rem]">Spaces with a point of view.</h1>
+              <p className="mt-7 max-w-2xl text-base leading-7 text-ivory/65 sm:text-lg">A living archive of residential, hospitality, and commercial interiors shaped around how people actually live, gather, and move.</p>
             </div>
-
-            {projects.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground font-light">
-                  No projects available yet
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Stats */}
-        <section className="border-t border-border/20 py-20 md:py-24 bg-muted/5">
-          <div className="mx-auto max-w-7xl px-6 md:px-8">
-            <div className="grid md:grid-cols-3 gap-12 text-center">
-              <div className="space-y-2">
-                <p className="font-serif text-5xl font-light text-primary">120+</p>
-                <p className="text-muted-foreground font-light">Projects Completed</p>
-              </div>
-              <div className="space-y-2">
-                <p className="font-serif text-5xl font-light text-primary">14</p>
-                <p className="text-muted-foreground font-light">Years of Experience</p>
-              </div>
-              <div className="space-y-2">
-                <p className="font-serif text-5xl font-light text-primary">98%</p>
-                <p className="text-muted-foreground font-light">Client Satisfaction</p>
-              </div>
+            <div className="flex items-end gap-5 border-l border-gold/45 pl-5 text-sm text-ivory/60 lg:mb-2 lg:flex-col lg:items-start lg:gap-1">
+              <span className="font-serif text-5xl text-ivory">{projects.length.toString().padStart(2, '0')}</span>
+              <span className="max-w-[12rem] leading-6">Published case studies<br />from the Revamp studio</span>
             </div>
           </div>
         </section>
+        <PortfolioGrid projects={projects} />
       </main>
       <SiteFooter />
     </>
   )
 }
-
-
-
-
-
-// 'use client'
-
-// import { SiteHeader } from '@/components/site-header'
-// import { SiteFooter } from '@/components/site-footer'
-// import Link from 'next/link'
-// import { useState } from 'react'
-
-// const projects = [
-//   {
-//     id: 1,
-//     slug: 'skyline-apartment',
-//     title: 'Skyline Apartment',
-//     category: 'Residential',
-//     location: 'Kampala, Uganda',
-//     image: 'bg-gradient-to-br from-blue-200 to-blue-100',
-//   },
-//   {
-//     id: 2,
-//     slug: 'corporate-office',
-//     title: 'Corporate Office Refurbishment',
-//     category: 'Commercial',
-//     location: 'Nairobi, Kenya',
-//     image: 'bg-gradient-to-br from-gray-200 to-gray-100',
-//   },
-//   {
-//     id: 3,
-//     slug: 'villa-renovation',
-//     title: 'Lakeside Villa Renovation',
-//     category: 'Residential',
-//     location: 'Entebbe, Uganda',
-//     image: 'bg-gradient-to-br from-green-200 to-green-100',
-//   },
-//   {
-//     id: 4,
-//     slug: 'retail-showroom',
-//     title: 'Luxury Retail Showroom',
-//     category: 'Commercial',
-//     location: 'Kampala, Uganda',
-//     image: 'bg-gradient-to-br from-amber-200 to-amber-100',
-//   },
-//   {
-//     id: 5,
-//     slug: 'penthouse-suite',
-//     title: 'Penthouse Suite Design',
-//     category: 'Residential',
-//     location: 'Dar es Salaam, Tanzania',
-//     image: 'bg-gradient-to-br from-purple-200 to-purple-100',
-//   },
-//   {
-//     id: 6,
-//     slug: 'hospitality-resort',
-//     title: 'Hospitality Resort Interior',
-//     category: 'Hospitality',
-//     location: 'Kampala, Uganda',
-//     image: 'bg-gradient-to-br from-cyan-200 to-cyan-100',
-//   },
-//   {
-//     id: 7,
-//     slug: 'boutique-hotel',
-//     title: 'Boutique Hotel Concept',
-//     category: 'Hospitality',
-//     location: 'Kigali, Rwanda',
-//     image: 'bg-gradient-to-br from-pink-200 to-pink-100',
-//   },
-//   {
-//     id: 8,
-//     slug: 'family-home',
-//     title: 'Family Home Extension',
-//     category: 'Residential',
-//     location: 'Jinja, Uganda',
-//     image: 'bg-gradient-to-br from-yellow-200 to-yellow-100',
-//   },
-// ]
-
-// const categories = ['All', 'Residential', 'Commercial', 'Hospitality']
-
-// export default function PortfolioPage() {
-//   const [selectedCategory, setSelectedCategory] = useState('All')
-
-//   const filteredProjects = selectedCategory === 'All'
-//     ? projects
-//     : projects.filter(p => p.category === selectedCategory)
-
-//   return (
-//     <>
-//       <SiteHeader />
-//       <main className="min-h-screen bg-background">
-//         {/* Hero */}
-//         <section className="border-b border-border/20 bg-gradient-to-br from-background via-background to-muted/20 py-24 md:py-32">
-//           <div className="mx-auto max-w-5xl px-6 md:px-8 space-y-6">
-//             <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground">
-//               Portfolio
-//             </h1>
-//             <p className="max-w-2xl text-lg text-muted-foreground font-light">
-//               120+ completed projects showcasing our expertise in residential, commercial, and hospitality design
-//             </p>
-//           </div>
-//         </section>
-
-//         {/* Filters */}
-//         <section className="border-b border-border/20 py-8">
-//           <div className="mx-auto max-w-7xl px-6 md:px-8">
-//             <div className="flex flex-wrap gap-3">
-//               {categories.map(cat => (
-//                 <button
-//                   key={cat}
-//                   onClick={() => setSelectedCategory(cat)}
-//                   className={`px-4 py-2 rounded-full font-light text-sm transition-all ${
-//                     selectedCategory === cat
-//                       ? 'bg-primary text-primary-foreground'
-//                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
-//                   }`}
-//                 >
-//                   {cat}
-//                 </button>
-//               ))}
-//             </div>
-//           </div>
-//         </section>
-
-//         {/* Projects Grid */}
-//         <section className="py-20 md:py-28">
-//           <div className="mx-auto max-w-7xl px-6 md:px-8">
-//             <div className="grid gap-8 md:grid-cols-2">
-//               {filteredProjects.map(project => (
-//                 <Link
-//                   key={project.id}
-//                   href={`/portfolio/${project.slug}`}
-//                   className="group h-full"
-//                 >
-//                   <article className="space-y-4 cursor-pointer h-full flex flex-col rounded-lg overflow-hidden border border-border/20 hover:border-primary/20 transition-colors">
-//                     {/* Image */}
-//                     <div className={`relative w-full h-80 ${project.image} overflow-hidden group-hover:opacity-80 transition-opacity`} />
-
-//                     {/* Content */}
-//                     <div className="flex-grow p-6 space-y-3">
-//                       <div className="flex items-center justify-between">
-//                         <span className="uppercase font-medium text-primary/80 text-xs tracking-wider">
-//                           {project.category}
-//                         </span>
-//                         <span className="text-muted-foreground font-light text-sm">
-//                           {project.location}
-//                         </span>
-//                       </div>
-
-//                       <h2 className="font-serif text-2xl font-light text-foreground group-hover:text-primary transition-colors">
-//                         {project.title}
-//                       </h2>
-//                     </div>
-
-//                     {/* Footer */}
-//                     <div className="px-6 pb-6">
-//                       <span className="inline-flex items-center gap-2 text-primary/70 group-hover:text-primary transition-colors font-light text-sm">
-//                         View Project
-//                         <svg className="size-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-//                         </svg>
-//                       </span>
-//                     </div>
-//                   </article>
-//                 </Link>
-//               ))}
-//             </div>
-
-//             {filteredProjects.length === 0 && (
-//               <div className="text-center py-12">
-//                 <p className="text-muted-foreground font-light">
-//                   No projects in this category yet
-//                 </p>
-//               </div>
-//             )}
-//           </div>
-//         </section>
-
-//         {/* Stats */}
-//         <section className="border-t border-border/20 py-20 md:py-24 bg-muted/5">
-//           <div className="mx-auto max-w-7xl px-6 md:px-8">
-//             <div className="grid md:grid-cols-3 gap-12 text-center">
-//               <div className="space-y-2">
-//                 <p className="font-serif text-5xl font-light text-primary">120+</p>
-//                 <p className="text-muted-foreground font-light">Projects Completed</p>
-//               </div>
-//               <div className="space-y-2">
-//                 <p className="font-serif text-5xl font-light text-primary">14</p>
-//                 <p className="text-muted-foreground font-light">Years of Experience</p>
-//               </div>
-//               <div className="space-y-2">
-//                 <p className="font-serif text-5xl font-light text-primary">98%</p>
-//                 <p className="text-muted-foreground font-light">Client Satisfaction</p>
-//               </div>
-//             </div>
-//           </div>
-//         </section>
-//       </main>
-//       <SiteFooter />
-//     </>
-//   )
-// }

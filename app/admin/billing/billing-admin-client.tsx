@@ -5,7 +5,8 @@ import { useCallback, useState, useTransition } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, X, FileText, Upload, Loader2, Sparkles } from 'lucide-react'
+import { Plus, X, FileText, Upload, Loader2, Sparkles, Download } from 'lucide-react'
+
 import {
   createGeneratedFinancialDocument,
   createQuote,
@@ -318,8 +319,8 @@ export default function BillingAdminClient({
               <div className="flex flex-wrap items-center gap-4">
                 <span className="text-sm font-medium text-foreground">{formatCurrency(inv.total)}</span>
                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[inv.status] || STATUS_COLORS.draft}`}>{inv.status}</span>
-                {inv.pdfUrl && <a href={inv.pdfUrl} target="_blank" rel="noreferrer" aria-label={`Open ${inv.invoiceNumber}`}><FileText className="h-4 w-4 text-muted-foreground" /></a>}
-                {inv.receiptUrl && <a href={inv.receiptUrl} target="_blank" rel="noreferrer" aria-label={`Open receipt for ${inv.invoiceNumber}`}><FileText className="h-4 w-4 text-emerald-700" /></a>}
+{inv.pdfUrl && <DocumentDownload href={inv.pdfUrl} label={`Download ${inv.invoiceNumber}`} />}
+                {inv.receiptUrl && <DocumentDownload href={inv.receiptUrl} label={`Download receipt for ${inv.invoiceNumber}`} tone="success" />}
                 {inv.status !== 'paid' && <Button size="sm" variant="outline" className="rounded-none" onClick={() => setReceiptTarget(inv)}>Upload Receipt</Button>}
               </div>
             </Card>
@@ -353,7 +354,7 @@ export default function BillingAdminClient({
                   <option value="expired">Expired</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
-                {q.pdfUrl && <a href={q.pdfUrl} target="_blank" rel="noreferrer" aria-label={`Open ${q.quoteNumber}`}><FileText className="h-4 w-4 text-muted-foreground" /></a>}
+                {q.pdfUrl && <DocumentDownload href={q.pdfUrl} label={`Download ${q.quoteNumber}`} />}
               </div>
             </Card>
           ))}
@@ -371,7 +372,7 @@ export default function BillingAdminClient({
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-sm font-medium text-foreground">{formatCurrency(document.amount)}</span>
-                {document.fileUrl && <a href={document.fileUrl} target="_blank" rel="noreferrer" aria-label={`Open ${document.documentNumber}`}><FileText className="h-4 w-4 text-muted-foreground" /></a>}
+                {document.fileUrl && <DocumentDownload href={document.fileUrl} label={`Download ${document.documentNumber}`} />}
               </div>
             </Card>
           ))}
@@ -402,6 +403,10 @@ export default function BillingAdminClient({
       )}
     </div>
   )
+}
+
+function DocumentDownload({ href, label, tone = 'default' }: { href: string; label: string; tone?: 'default' | 'success' }) {
+  return <a href={href} download target="_blank" rel="noreferrer" aria-label={label} className={`inline-flex min-h-10 items-center gap-2 rounded border px-3 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors ${tone === 'success' ? 'border-emerald-200 text-emerald-700 hover:border-emerald-400' : 'border-border text-foreground hover:border-gold hover:text-primary'}`}><Download className="size-3.5" />Download</a>
 }
 
 function UploadModal({ title, action, isPending, onClose, clients, clientLabel, projects, isLoadingClients, clientLoadError, onRetryClients, extraField }: {

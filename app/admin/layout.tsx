@@ -30,7 +30,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="flex min-h-screen bg-background">
       <AdminSidebar />
       <main className="relative flex-1 overflow-auto">
-        <div className="fixed right-6 top-5 z-40"><NotificationBell /></div>
+        <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between border-b border-border/70 bg-background/90 px-4 backdrop-blur-xl sm:px-6">
+          <div><p className="text-[10px] uppercase tracking-[0.24em] text-primary">The Revamp UG</p><p className="text-sm text-muted-foreground">Admin command center</p></div>
+          <NotificationBell />
+        </header>
         {children}
       </main>
     </div>

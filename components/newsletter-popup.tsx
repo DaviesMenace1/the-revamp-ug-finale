@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react'
 import { X, CheckCircle2, Download, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+const NEWSLETTER_DELAY_MS = 2 * 60 * 1000
+const NEWSLETTER_DISMISSED_KEY = 'revamp-newsletter-dismissed'
+
 export function NewsletterPopup() {
   const [isOpen, setIsOpen] = useState(false)
   const [email, setEmail] = useState('')
@@ -12,22 +15,20 @@ export function NewsletterPopup() {
   const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
-    // Check if the user has already seen or dismissed the popup
-    const hasSeenPopup = localStorage.getItem('revamp-newsletter-dismissed')
+    const hasSeenPopup = window.localStorage.getItem(NEWSLETTER_DISMISSED_KEY)
 
-    if (!hasSeenPopup) {
-      // Trigger popup 4 seconds after arrival
-      const timer = setTimeout(() => {
-        setIsOpen(true)
-      }, 4000)
+    if (hasSeenPopup) return
 
-      return () => clearTimeout(timer)
-    }
+    const timer = window.setTimeout(() => {
+      setIsOpen(true)
+    }, NEWSLETTER_DELAY_MS)
+
+    return () => window.clearTimeout(timer)
   }, [])
 
   const handleClose = () => {
     setIsOpen(false)
-    localStorage.setItem('revamp-newsletter-dismissed', 'true')
+    window.localStorage.setItem(NEWSLETTER_DISMISSED_KEY, 'true')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,7 +55,7 @@ export function NewsletterPopup() {
 
       // Success (New subscriber OR already subscribed)
       setIsSubmitted(true)
-      localStorage.setItem('revamp-newsletter-dismissed', 'true')
+      window.localStorage.setItem(NEWSLETTER_DISMISSED_KEY, 'true')
     } catch (error: any) {
       setErrorMessage(error.message || 'Something went wrong. Please try again.')
     } finally {

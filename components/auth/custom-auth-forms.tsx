@@ -2,7 +2,8 @@
 
 import { FormEvent, useState } from 'react'
 import { useSignIn, useSignUp } from '@clerk/nextjs'
-import { ArrowRight, Check, Globe2, Link2, Loader2, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Check, Loader2, ShieldCheck } from 'lucide-react'
+import { FaGoogle, FaLinkedinIn } from 'react-icons/fa'
 import Link from 'next/link'
 import TurnstileChallenge, { turnstileConfigured } from './turnstile-challenge'
 
@@ -106,8 +107,8 @@ function OAuthButtons({ onOAuth, loading }: { onOAuth: (strategy: OAuthStrategy)
         disabled={!!loading}
         className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
       >
-        <Globe2 className="size-4" aria-hidden="true" />
-        {loading === 'oauth_google' ? 'Connecting…' : 'Google'}
+        <FaGoogle className="size-4" aria-hidden="true" />
+        {loading === 'oauth_google' ? 'Connecting…' : 'Continue with Google'}
       </button>
       <button
         type="button"
@@ -115,8 +116,8 @@ function OAuthButtons({ onOAuth, loading }: { onOAuth: (strategy: OAuthStrategy)
         disabled={!!loading}
         className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
       >
-        <Link2 className="size-4" aria-hidden="true" />
-        {loading === 'oauth_linkedin_oidc' ? 'Connecting…' : 'LinkedIn'}
+        <FaLinkedinIn className="size-4" aria-hidden="true" />
+        {loading === 'oauth_linkedin_oidc' ? 'Connecting…' : 'Continue with LinkedIn'}
       </button>
     </div>
   )

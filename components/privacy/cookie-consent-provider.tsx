@@ -31,7 +31,7 @@ function persist(consent: ConsentState) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(consent))
     document.cookie = `${COOKIE_NAME}=${encodeURIComponent(JSON.stringify(consent))}; Max-Age=31536000; Path=/; SameSite=Lax`
   } catch {
-    // Consent remains in memory if browser storage is unavailable.
+    // Consent remains in memory if browser storage is unavailable
   }
 }
 

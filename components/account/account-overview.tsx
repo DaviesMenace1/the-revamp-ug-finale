@@ -102,7 +102,7 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
             detail={<WishlistCount />}
           />
           <AccountCard
-            href="/orders"
+            href="/client/orders"
             icon={<ShoppingBag aria-hidden="true" />}
             title="Order History"
             detail={orders.length ? `${orders.length} recent orders` : 'No orders yet'}
@@ -132,7 +132,7 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
                 Explore design services <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
               </Link>
               <Link
-                href="/consultation"
+                href="/book-consultation"
                 className="text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
               >
                 Book a consultation
@@ -167,7 +167,7 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
                 <p className="text-sm leading-6 text-muted-foreground">
                   Start with a considered conversation about your space and your ambitions.
                 </p>
-                <Link href="/consultation" className="text-sm text-primary hover:underline">
+                <Link href="/book-consultation" className="text-sm text-primary hover:underline">
                   Book a consultation <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
                 </Link>
               </div>

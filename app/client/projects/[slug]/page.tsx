@@ -1,11 +1,12 @@
 import { requirePortalUser } from '@/lib/auth/portal-auth'
 import { db } from '@/lib/db/client'
 import { projects, clientDocuments, projectAssets, projectDocuments, projectActivity, projectTasks } from '@/lib/db/schema'
-import { eq, and, desc, or } from 'drizzle-orm'
+import { eq, and, desc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import ProjectDetailClient from './project-detail-client'
 import { safeQuery } from '@/lib/server/safe-query'
 import PageLoadError from '@/components/system/page-load-error'
+import { isUuid } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,7 +25,7 @@ export default async function ProjectDetailPage({
     db.query.projects.findFirst({
       where: and(
         eq(projects.userId, user.id),
-        or(eq(projects.slug, slug), eq(projects.id, slug)),
+        isUuid(slug) ? eq(projects.id, slug) : eq(projects.slug, slug),
       ),
     }),
     'client project detail',

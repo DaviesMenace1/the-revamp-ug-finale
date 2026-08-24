@@ -8,6 +8,7 @@ import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/context/cart-context'
+import { formatMoney, normalizeCurrency } from '@/lib/utils'
 import {
   CheckCircle2,
   Package,
@@ -19,13 +20,6 @@ import {
   Loader2,
   Sparkles,
 } from 'lucide-react'
-
-// Helper for formatting currency safely
-const safeFormatNumber = (num: any): string => {
-  const val = typeof num === 'string' ? parseFloat(num) : Number(num)
-  if (isNaN(val) || val === null || val === undefined) return '0.00'
-  return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
 
 function SuccessContent() {
   const searchParams = useSearchParams()
@@ -167,7 +161,7 @@ function SuccessContent() {
               <div className="flex justify-between pt-2 border-t border-border/50 text-sm font-semibold">
                 <span>Total Amount:</span>
                 <span className="font-mono text-primary">
-                  {order?.currency || 'USD'} ${safeFormatNumber(order?.totalAmount || 0)}
+                  {formatMoney(order?.totalAmount || 0, normalizeCurrency(order?.currency))}
                 </span>
               </div>
             </div>
@@ -186,7 +180,7 @@ function SuccessContent() {
               </p>
             ) : (
               items.map((item: any, idx: number) => (
-                <div key={idx} className="p-4 flex items-center justify-between gap-4 text-sm">
+                <div key={item.cartItemId || item.productId || item.id || `${item.name || 'item'}-${idx}`} className="p-4 flex items-center justify-between gap-4 text-sm">
                   <div className="flex items-center gap-3">
                     {item.image && (
                       <div className="relative w-12 h-12 bg-muted border border-border shrink-0 overflow-hidden">
@@ -195,7 +189,7 @@ function SuccessContent() {
                           alt={item.name}
                           fill
                           className="object-cover"
-                          unoptimized={item.image.startsWith('http')}
+                          unoptimized={typeof item.image === 'string' && item.image.startsWith('http')}
                         />
                       </div>
                     )}
@@ -226,7 +220,7 @@ function SuccessContent() {
                   </div>
 
                   <div className="text-right font-mono font-medium">
-                    ${safeFormatNumber(item.unitPrice * item.quantity)}
+                    {formatMoney(Number(item.unitPrice ?? item.price ?? 0) * Number(item.quantity || 0), normalizeCurrency(item.currency || order?.currency))}
                   </div>
                 </div>
               ))

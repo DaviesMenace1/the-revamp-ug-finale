@@ -13,33 +13,15 @@ import {
   Truck,
   Sparkle,
   Share2,
-  Copy,
-  MessageCircle,
-  X,
-  Send
+  Send,
 } from 'lucide-react'
 import { useCart } from '@/lib/context/cart-context'
-import { useRouter } from 'next/navigation' 
+import { useRouter } from 'next/navigation'
+import { formatMoney, normalizeCurrency } from '@/lib/utils'
+import { ProductShareSheet } from '@/components/collections/product-share-sheet'
 
 const DEFAULT_IMAGE = '/images/placeholder.jpg'
 const WISHLIST_STORAGE_KEY = 'revamp:wishlist'
-
-// Localized Currency Formatter
-const formatUGX = (amount: number) => {
-  return new Intl.NumberFormat('en-UG', {
-    style: 'currency',
-    currency: 'UGX',
-    maximumFractionDigits: 0,
-  }).format(amount || 0)
-}
-
-const formatUSD = (amount: number, exchangeRate = 3700) => {
-  const usdValue = (amount || 0) / exchangeRate
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(usdValue)
-}
 
 // Helper component for Accordions
 function AccordionItem({
@@ -88,8 +70,11 @@ export function ProductDetail({ product }: { product: any }) {
 
   // Variants extraction
   const variants = Array.isArray(product?.productVariants) ? product.productVariants : []
-  const colors = variants.filter((v: any) => v?.type === 'COLOR')
-  const fabrics = variants.filter((v: any) => v?.type === 'FABRIC')
+  const colors = variants.filter((variant: any) => variant?.type === 'COLOR')
+  const fabrics = variants.filter((variant: any) => variant?.type === 'FABRIC')
+  const materials = variants.filter((variant: any) => variant?.type === 'MATERIAL')
+  const otherVariants = variants.filter((variant: any) => !['COLOR', 'FABRIC', 'MATERIAL'].includes(variant?.type))
+  const accessories = Array.isArray(product?.addons) ? product.addons : []
 
   const rawDims = product?.dimensions || {}
   const initialWidth = typeof rawDims === 'object' ? rawDims.width || '' : ''
@@ -99,13 +84,14 @@ export function ProductDetail({ product }: { product: any }) {
   const [selectedImage, setSelectedImage] = useState<string>(rawImages[0] || DEFAULT_IMAGE)
   const [selectedColor, setSelectedColor] = useState(colors[0] || null)
   const [selectedFabric, setSelectedFabric] = useState(fabrics[0] || null)
+  const [selectedMaterial, setSelectedMaterial] = useState(materials[0] || null)
+  const [selectedVariant, setSelectedVariant] = useState(otherVariants[0] || null)
+  const [selectedAccessories, setSelectedAccessories] = useState<any[]>([])
   const [quantity, setQuantity] = useState<number>(1)
   const [isWishlisted, setIsWishlisted] = useState<boolean>(false)
   const [added, setAdded] = useState<boolean>(false)
 
-  // Share Modal State
   const [isShareOpen, setIsShareOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
 
   // Accordion State Management
   const [openAccordion, setOpenAccordion] = useState<string | null>('specs')
@@ -155,10 +141,11 @@ export function ProductDetail({ product }: { product: any }) {
   const reviewsCount = Array.isArray(product?.reviews) ? product.reviews.length : product?.ratingCount || 0
   const rating = typeof product?.rating === 'number' ? product.rating : parseFloat(product?.rating || '5.0')
 
-  // Pricing (UGX)
-  const basePrice = parseFloat(product?.price || '0')
-  const fabricDelta = selectedFabric ? parseFloat(selectedFabric.priceDelta || '0') : 0
-  const unitPrice = basePrice + fabricDelta
+  // Pricing stays in the product currency and is shared with the cart snapshot.
+  const basePrice = Number(product?.salePrice ?? product?.price ?? 0)
+  const optionPrice = (option: any) => Number(option?.priceDelta ?? option?.price ?? 0) || 0
+  const fabricDelta = optionPrice(selectedFabric)
+  const unitPrice = basePrice + fabricDelta + optionPrice(selectedMaterial) + optionPrice(selectedVariant) + selectedAccessories.reduce((sum, accessory) => sum + optionPrice(accessory), 0)
   const totalPrice = unitPrice * quantity
 
   const handleColorSelect = (color: any) => {
@@ -178,60 +165,30 @@ export function ProductDetail({ product }: { product: any }) {
         }
       : undefined
 
-    const itemToAdd = {
+    const productForCart = {
+      ...product,
       id: product?.id,
-      productId: product?.id,
-      name: product?.name,
-      slug: product?.slug,
-      price: unitPrice,
-      quantity,
-      selectedColor,
-      selectedFabric,
-      color: selectedColor?.label || null,
-      fabric: selectedFabric?.label || null,
-      image: selectedImage,
-      customDimensions: customDimensionsToPass,
-      product,
+      slug: product?.slug || product?.id,
+      name: product?.name || 'Untitled Piece',
+      price: basePrice,
+      currency: normalizeCurrency(product?.currency),
+      images: rawImages,
+      thumbnailImage: selectedImage,
     }
 
-    if (cart) {
-      if (typeof cart.addToCart === 'function') {
-        cart.addToCart(itemToAdd, quantity)
-      } else if (typeof cart.addItem === 'function') {
-        cart.addItem(itemToAdd, quantity, selectedColor, selectedFabric, [], customDimensionsToPass)
-      }
-    } else {
-      const existing = JSON.parse(localStorage.getItem('cart') || '[]')
-      existing.push(itemToAdd)
-      localStorage.setItem('cart', JSON.stringify(existing))
-    }
+    cart.addToCart(
+      productForCart,
+      quantity,
+      selectedColor,
+      selectedVariant,
+      selectedAccessories,
+      customDimensionsToPass,
+      selectedFabric,
+      selectedMaterial,
+    )
 
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
-  }
-
-  const handleCopyLink = () => {
-    if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(window.location.href)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
-  const shareToSocial = (platform: 'whatsapp' | 'twitter' | 'facebook') => {
-    const url = encodeURIComponent(window.location.href)
-    const text = encodeURIComponent(`Check out "${product?.name}" on The Revamp UG:`)
-
-    let shareUrl = ''
-    if (platform === 'whatsapp') {
-      shareUrl = `https://wa.me/?text=${text}%20${url}`
-    } else if (platform === 'twitter') {
-      shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`
-    } else if (platform === 'facebook') {
-      shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`
-    }
-
-    window.open(shareUrl, '_blank', 'noopener,noreferrer')
   }
 
   const categoryName = product?.category?.name || product?.category || 'Luxury Collection'
@@ -279,7 +236,7 @@ export function ProductDetail({ product }: { product: any }) {
           {/* Share Button Trigger */}
           <button
             onClick={() => setIsShareOpen(!isShareOpen)}
-            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+            className="flex min-h-11 items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
             title="Share Product"
           >
             <Share2 size={14} />
@@ -291,45 +248,17 @@ export function ProductDetail({ product }: { product: any }) {
           {product?.name || 'Untitled Piece'}
         </h1>
 
-        {/* Share Popover Drawer */}
-        {isShareOpen && (
-          <div className="mb-6 p-4 border border-border bg-card rounded shadow-lg space-y-3 relative animate-in fade-in slide-in-from-top-2">
-            <button
-              onClick={() => setIsShareOpen(false)}
-              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
-            >
-              <X size={14} />
-            </button>
-            <p className="text-xs font-medium uppercase tracking-wider text-foreground">Share this piece</p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => shareToSocial('whatsapp')}
-                className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-600 px-3 py-1.5 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
-              >
-                <MessageCircle size={14} /> WhatsApp
-              </button>
-              <button
-                onClick={() => shareToSocial('twitter')}
-                className="flex items-center gap-1.5 text-xs bg-sky-500/10 text-sky-600 px-3 py-1.5 border border-sky-500/20 hover:bg-sky-500/20 transition-colors"
-              >
-                X / Twitter
-              </button>
-              <button
-                onClick={() => shareToSocial('facebook')}
-                className="flex items-center gap-1.5 text-xs bg-blue-500/10 text-blue-600 px-3 py-1.5 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
-              >
-                Facebook
-              </button>
-              <button
-                onClick={handleCopyLink}
-                className="flex items-center gap-1.5 text-xs bg-muted text-foreground px-3 py-1.5 border border-border hover:bg-muted/80 transition-colors"
-              >
-                {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                {copied ? 'Copied Link' : 'Copy Link'}
-              </button>
-            </div>
-          </div>
-        )}
+        <ProductShareSheet
+          product={{
+            name: product?.name || 'Untitled Piece',
+            price: totalPrice,
+            currency: normalizeCurrency(product?.currency),
+            image: selectedImage,
+            description: product?.description,
+          }}
+          open={isShareOpen}
+          onOpenChange={setIsShareOpen}
+        />
 
         {/* Rating Overview */}
         <div className="flex items-center gap-3 mb-5">
@@ -350,10 +279,10 @@ export function ProductDetail({ product }: { product: any }) {
         {/* Price Display */}
         <div className="flex items-baseline gap-3 mb-6 pb-6 border-b border-border">
           <span className="text-2xl font-serif text-foreground font-medium">
-            {formatUGX(totalPrice)}
+            {formatMoney(totalPrice, normalizeCurrency(product?.currency))}
           </span>
           <span className="text-xs text-muted-foreground">
-            (≈ {formatUSD(totalPrice)})
+            Final price updates with your selected finish.
           </span>
         </div>
 
@@ -426,9 +355,47 @@ export function ProductDetail({ product }: { product: any }) {
                         : 'border-border text-muted-foreground hover:border-foreground'
                     }`}
                   >
-                    {fabric?.label} {delta > 0 ? `(+${formatUGX(delta)})` : ''}
+                    {fabric?.label} {delta > 0 ? `(+${formatMoney(delta, normalizeCurrency(product?.currency))})` : ''}
                   </button>
                 )
+              })}
+            </div>
+          </div>
+        )}
+
+        {materials.length > 0 && (
+          <div className="mb-6">
+            <label className="mb-3 block text-xs font-medium uppercase tracking-widest text-foreground">Material: <span className="text-gold">{selectedMaterial?.label || 'Standard'}</span></label>
+            <div className="flex flex-wrap gap-2">
+              {materials.map((material: any, index: number) => (
+                <button type="button" key={material?.id || index} onClick={() => setSelectedMaterial(material)} className={`min-h-11 border px-4 text-xs font-medium transition-all ${selectedMaterial?.id === material?.id ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold' : 'border-border text-muted-foreground hover:border-foreground'}`}>
+                  {material?.label || material?.name} {optionPrice(material) > 0 ? `(+${formatMoney(optionPrice(material), normalizeCurrency(product?.currency))})` : ''}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {otherVariants.length > 0 && (
+          <div className="mb-6">
+            <label className="mb-3 block text-xs font-medium uppercase tracking-widest text-foreground">Style / size: <span className="text-gold">{selectedVariant?.label || 'Select'}</span></label>
+            <div className="flex flex-wrap gap-2">
+              {otherVariants.map((variant: any, index: number) => (
+                <button type="button" key={variant?.id || index} onClick={() => setSelectedVariant(variant)} className={`min-h-11 border px-4 text-xs font-medium transition-all ${selectedVariant?.id === variant?.id ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold' : 'border-border text-muted-foreground hover:border-foreground'}`}>
+                  {variant?.label || variant?.name} {optionPrice(variant) > 0 ? `(+${formatMoney(optionPrice(variant), normalizeCurrency(product?.currency))})` : ''}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {accessories.length > 0 && (
+          <div className="mb-6">
+            <p className="mb-3 text-xs font-medium uppercase tracking-widest text-foreground">Complete the setting</p>
+            <div className="space-y-2">
+              {accessories.map((accessory: any, index: number) => {
+                const isSelected = selectedAccessories.some((selected) => selected?.id === accessory?.id)
+                return <label key={accessory?.id || index} className={`flex min-h-11 cursor-pointer items-center justify-between gap-4 border px-3 text-xs transition-colors ${isSelected ? 'border-gold bg-gold/10' : 'border-border hover:border-foreground'}`}><span className="flex items-center gap-2"><input type="checkbox" checked={isSelected} onChange={() => setSelectedAccessories((current) => isSelected ? current.filter((selected) => selected?.id !== accessory?.id) : [...current, accessory])} className="size-4 accent-[var(--primary)]" />{accessory?.label || accessory?.name}</span><span className="text-muted-foreground">{optionPrice(accessory) > 0 ? `+${formatMoney(optionPrice(accessory), normalizeCurrency(product?.currency))}` : 'Included'}</span></label>
               })}
             </div>
           </div>
@@ -600,7 +567,8 @@ export function ProductDetail({ product }: { product: any }) {
         </div>
 
         {/* Trust Badges */}
-        <div className="border-t border-border pt-6 mt-6 space-y-3 text-xs text-muted-foreground">
+                  <div className="border-t border-border pt-6 mt-6 space-y-3 text-xs text-muted-foreground">
+
           <div className="flex items-center gap-3">
             <Truck size={16} className="text-gold" />
             <span>Complimentary white-glove assembly on luxury orders.</span>

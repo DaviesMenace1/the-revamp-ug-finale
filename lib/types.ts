@@ -60,6 +60,8 @@ export interface CartItem {
   unitPrice?: number
   image?: string
   selectedOptions?: Record<string, unknown>
+  /** True when a legacy/local record lacks the embedded product snapshot. */
+  unavailable?: boolean
 }
 
 export interface Product {

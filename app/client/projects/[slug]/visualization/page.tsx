@@ -1,11 +1,12 @@
 import { db } from '@/lib/db'
 import { projectAssets, projectMembers, projects } from '@/lib/db/schema'
-import { and, eq, inArray, desc, or } from 'drizzle-orm'
+import { and, eq, inArray, desc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
 import VisualizationViewer from './visualization-viewer'
 import { safeQuery } from '@/lib/server/safe-query'
 import PageLoadError from '@/components/system/page-load-error'
+import { isUuid } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,11 +15,14 @@ const STAFF_ROLES = ['admin', 'designer', 'architect', 'interior_designer', 'tra
 export default async function ProjectVisualizationPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const authorization = await getCurrentUserWithRole(['customer', ...STAFF_ROLES])
+  if (authorization.reason === 'error') {
+    return <PageLoadError title="Your project workspace is temporarily unavailable." message="We could not confirm your account access right now. No project data was changed. Retry to reopen the 3D workspace." />
+  }
   if (!authorization.authorized || !authorization.user) notFound()
 
   const projectResult = await safeQuery(
     db.query.projects.findFirst({
-      where: or(eq(projects.slug, slug), eq(projects.id, slug)),
+      where: isUuid(slug) ? eq(projects.id, slug) : eq(projects.slug, slug),
       columns: { id: true, slug: true, title: true, userId: true },
     }),
     'project visualization',

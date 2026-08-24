@@ -4,10 +4,12 @@ import { carts, consultations, memberships, orders } from '@/lib/db/schema'
 import { getOrCreateCurrentUser, getUserMembership } from '@/lib/auth/utils'
 import { safeQuery } from '@/lib/server/safe-query'
 
-export async function getAccountOverview() {
-  // Provisions the local profile on demand, so a user who just signed up is
-  // never treated as unauthenticated while the user.created webhook is in flight.
-  const user = await getOrCreateCurrentUser()
+type AccountUser = NonNullable<Awaited<ReturnType<typeof getOrCreateCurrentUser>>>
+
+export async function getAccountOverview(userOverride?: AccountUser) {
+  // The account page passes the profile it already resolved at the protected
+  // route boundary. Other server callers can still use the on-demand path.
+  const user = userOverride ?? (await getOrCreateCurrentUser())
   if (!user) return null
 
   const [cartResult, ordersResult, consultationsResult, membershipResult] = await Promise.all([

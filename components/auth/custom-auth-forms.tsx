@@ -647,11 +647,11 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
             />
             <label htmlFor="terms" className="leading-snug">
               I agree to the{' '}
-              <Link href="/terms" className="underline underline-offset-2 hover:text-foreground">
+              <Link href="/legal/terms" className="underline underline-offset-2 hover:text-foreground">
                 Terms of Use
               </Link>{' '}
               and{' '}
-              <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+              <Link href="/legal/privacy" className="underline underline-offset-2 hover:text-foreground">
                 Privacy Policy
               </Link>
               .

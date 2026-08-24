@@ -19,10 +19,10 @@ const conn = globalForDb.conn ?? postgres(connectionString, {
   max: 1,               // one connection per function instance; let Supabase's pooler handle concurrency
   prepare: false,         // required for Supavisor transaction-mode pooling
   idle_timeout: 20,      // seconds — release an idle connection instead of holding it open
-  connect_timeout: 10,   // seconds — fail fast instead of hanging if the pooler is unreachable
+  connect_timeout: 5,    // seconds — fail before the protected-page budget expires
   max_lifetime: 60 * 30, // seconds — recycle connections periodically so nothing lingers indefinitely
   connection: {
-    statement_timeout: 8000, // fail blocked/slow statements instead of keeping a request pending
+    statement_timeout: 5000, // fail blocked/slow statements before the protected-page budget expires
     lock_timeout: 3000,      // do not wait indefinitely behind a database lock
   },
 })

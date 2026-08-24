@@ -10,14 +10,19 @@ export type { UserRole }
  *
  * - Unauthenticated -> redirect to /sign-in (preserving the return path).
  * - Authenticated but lacking the required role -> redirect to /unauthorized.
- * - Signed in with no local profile row -> the row is provisioned on demand
- *   (never bounced back to /sign-in, which previously caused redirect loops).
+ * - A profile/database failure -> redirect to a public retry screen instead of
+ *   turning an ambiguous authorization result into a 500 or a false 403.
  */
 export async function requirePortalUser(requiredRoles: UserRole[] = [], returnTo?: string) {
   const { user, authorized, reason } = await getCurrentUserWithRole(requiredRoles)
 
   if (reason === 'unauthenticated') {
     redirect(returnTo ? `/sign-in?redirect_url=${encodeURIComponent(returnTo)}` : '/sign-in')
+  }
+
+  if (reason === 'error') {
+    const target = returnTo || '/client'
+    redirect(`/account/unavailable?returnTo=${encodeURIComponent(target)}`)
   }
 
   if (!authorized || !user) {

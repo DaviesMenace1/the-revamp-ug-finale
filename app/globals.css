@@ -66,8 +66,10 @@
   --font-serif: 'Cormorant Garamond', Georgia, serif;
   --font-sans:  'Instrument Sans', system-ui, sans-serif;
 
-  /* Spacing extras */
+  /* Spacing and elevation extras */
   --spacing-section: 7rem;
+  --shadow-editorial: 0 18px 50px -28px oklch(0.10 0 0 / 35%);
+  --shadow-lift: 0 10px 30px -20px oklch(0.10 0 0 / 28%);
 }
 
 /* ─── Light mode ───────────────────────────────────────────────────────── */
@@ -91,7 +93,7 @@
   --border:                oklch(0.83 0.02 75);
   --input:                 oklch(0.83 0.02 75);
   --ring:                  oklch(0.72 0.10 78);    /* gold ring */
-  --radius:                0rem;                   /* sharp TanStack-style corners */
+  --radius:                0.375rem;              /* restrained editorial corners */
 
   --chart-1: oklch(0.72 0.10 78);
   --chart-2: oklch(0.58 0.12 75);
@@ -168,7 +170,7 @@
     --border:                oklch(1 0 0 / 10%);
     --input:                 oklch(1 0 0 / 12%);
     --ring:                  oklch(0.72 0.10 78);
-    --radius:                0rem;
+    --radius:                0.375rem;
     --chart-1: oklch(0.72 0.10 78);
     --chart-2: oklch(0.85 0.07 78);
     --chart-3: oklch(0.60 0.01 75);
@@ -194,7 +196,17 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    min-width: 320px;
     font-feature-settings: 'kern' 1, 'liga' 1;
+  }
+  a,
+  button,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
   }
   h1, h2, h3 {
     font-family: var(--font-serif);
@@ -233,6 +245,19 @@
     @apply py-24 md:py-32;
   }
 
+  .page-gutter {
+    padding-inline: clamp(1.25rem, 3vw, 3rem);
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+
+  .surface-card {
+    @apply rounded-lg border border-border/70 bg-card;
+    box-shadow: var(--shadow-lift);
+  }
+
   /* Hover underline animation */
   .hover-line {
     position: relative;
@@ -249,5 +274,21 @@
   }
   .hover-line:hover::after {
     width: 100%;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

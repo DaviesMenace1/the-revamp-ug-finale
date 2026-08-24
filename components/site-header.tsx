@@ -3,12 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, ChevronDown, ShoppingBag, Search, Heart, User, MessageSquare } from 'lucide-react'
+import { Menu, ChevronDown, ShoppingBag, Search, Heart, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/context/cart-context'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
-  import { ThemeSwitcher } from '@/components/theme-switcher'
+import { ThemeSwitcher } from '@/components/theme-switcher'
 
   interface NavLink {
     label: string
@@ -23,17 +22,9 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
     label: 'Services', 
     href: '/services',
     submenu: [
-      { label: 'Interior Design', href: '/services/interior-design' },
+      { label: 'Interior Design', href: '/services' },
       { label: 'Architecture', href: '/services/architecture' },
-      { label: '3D Visualization', href: '/services/3d-visualization' },
-      { label: 'Renovation & Construction', href: '/services/renovation' },
-      { label: 'Procurement & Sourcing', href: '/services/procurement' },
-      { label: 'Furniture & Manufacturing', href: '/services/furniture' },
-      { label: 'Styling & Living', href: '/services/styling' },
-      { label: 'Consultancy', href: '/services/consultancy' },
-      { label: 'Property Services', href: '/services/property' },
-      { label: 'Project Management', href: '/services/project-management' },
-      { label: 'Signature Services', href: '/services/signature-services' },
+      { label: 'View all services', href: '/services' },
     ]
   },
   { label: 'Projects', href: '/portfolio' },
@@ -44,7 +35,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 // Secondary links available via the Drawer/Sheet
 const secondaryNavLinks: NavLink[] = [
   { label: 'Journal', href: '/journal' },
-  { label: 'Source With Revamp', href: '/source-with-revamp' },
+  { label: 'Source With Revamp', href: '/contact' },
   { label: 'Trade Program', href: '/trade' },
   { label: 'Membership', href: '/membership' },
   { label: 'Contact', href: '/contact' },
@@ -105,14 +96,14 @@ export function SiteHeader() {
     <>
       <header
         className={cn(
-          'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
+          'fixed inset-x-0 top-0 z-50 transition-all duration-300',
           scrolled || !isHome
             ? 'bg-background/95 backdrop-blur-md border-b border-border'
             : 'bg-transparent',
         )}
       >
-        <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-12">
-          <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-12">
+          <div className="flex min-h-16 items-center justify-between md:min-h-20">
           
             {/* 1. LEFT SECTION */}
             <div className="flex items-center gap-1 sm:gap-2">
@@ -120,7 +111,7 @@ export function SiteHeader() {
               <div className="flex items-center gap-1 md:hidden">
                 <button
                   className={cn(
-                    'p-1.5 transition-colors',
+                    'flex size-11 items-center justify-center transition-colors',
                     scrolled || !isHome ? 'text-foreground' : 'text-white',
                   )}
                   onClick={() => setDrawerOpen(true)}
@@ -132,7 +123,7 @@ export function SiteHeader() {
                 <Link
                   href="/search"
                   className={cn(
-                    'p-1.5 hover:text-gold transition-colors',
+                    'flex size-11 items-center justify-center hover:text-gold transition-colors',
                     scrolled || !isHome ? 'text-foreground' : 'text-white',
                   )}
                   aria-label="Search"
@@ -197,10 +188,11 @@ export function SiteHeader() {
                           toggleDesktopDropdown(link.href)
                         }}
                         className={cn(
-                          'p-1 transition-colors',
+                          'flex size-11 items-center justify-center transition-colors',
                           scrolled || !isHome ? 'text-foreground/80 hover:text-foreground' : 'text-white/80 hover:text-white'
                         )}
-                        aria-label="Toggle Submenu"
+                        aria-expanded={desktopDropdownOpen === link.href}
+                        aria-label={`Toggle ${link.label} submenu`}
                       >
                         <ChevronDown 
                           size={14} 
@@ -257,7 +249,7 @@ export function SiteHeader() {
               <Link
                 href="/search"
                 className={cn(
-                  'hidden md:block p-1.5 hover:text-gold transition-colors',
+                  'hidden size-11 items-center justify-center md:flex hover:text-gold transition-colors',
                   scrolled || !isHome ? 'text-foreground' : 'text-white',
                 )}
                 aria-label="Search"
@@ -274,7 +266,7 @@ export function SiteHeader() {
               <Link
                 href="/wishlist"
                 className={cn(
-                  'p-1 sm:p-1.5 hover:text-gold transition-colors',
+                  'flex size-11 items-center justify-center hover:text-gold transition-colors',
                   scrolled || !isHome ? 'text-foreground' : 'text-white',
                 )}
                 aria-label="Wishlist"
@@ -286,7 +278,7 @@ export function SiteHeader() {
               <Link
                 href="/account"
                 className={cn(
-                  'p-1 sm:p-1.5 hover:text-gold transition-colors',
+                  'flex size-11 items-center justify-center hover:text-gold transition-colors',
                   scrolled || !isHome ? 'text-foreground' : 'text-white',
                 )}
                 aria-label="Account"
@@ -298,7 +290,7 @@ export function SiteHeader() {
               <Link
                 href="/cart"
                 className={cn(
-                  'relative p-1 sm:p-1.5 hover:text-gold transition-colors',
+                  'relative flex size-11 items-center justify-center hover:text-gold transition-colors',
                   scrolled || !isHome ? 'text-foreground' : 'text-white',
                 )}
                 aria-label="Shopping Cart"
@@ -314,7 +306,7 @@ export function SiteHeader() {
               {/* Desktop Drawer Toggle */}
               <button
                 className={cn(
-                  'hidden md:flex p-1.5 transition-colors items-center ml-1',
+                  'hidden size-11 items-center justify-center md:flex ml-1 transition-colors',
                   scrolled || !isHome ? 'text-foreground' : 'text-white',
                 )}
                 onClick={() => setDrawerOpen(true)}
@@ -328,22 +320,9 @@ export function SiteHeader() {
         </div>
       </header>
 
-      {/* FLOATING INQUIRE BUTTON */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <Link href="/contact">
-          <Button
-            size="lg"
-            className="shadow-2xl bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest uppercase px-5 py-6 rounded-full flex items-center gap-2 border border-border/20 backdrop-blur-md transition-all duration-300 hover:scale-105"
-          >
-            <MessageSquare size={16} />
-            <span>Inquire</span>
-          </Button>
-        </Link>
-      </div>
-
       {/* Side Drawer */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="right" className="w-full max-w-md bg-background border-border p-0">
+        <SheetContent side="right" className="safe-bottom w-full max-w-md border-border bg-background p-0">
           <SheetTitle className="sr-only">Main Navigation Menu</SheetTitle>
           <div className="flex flex-col h-full">
             {/* Header section inside Drawer */}
@@ -357,14 +336,15 @@ export function SiteHeader() {
             </div>
 
             {/* Navigation links inside Drawer */}
-            <nav className="flex flex-col px-6 py-6 overflow-y-auto flex-1 gap-1" aria-label="Expanded menu navigation">
+            <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-6 py-6" aria-label="Expanded menu navigation">
               {allNavLinks.map((link) => (
                 <div key={link.href} className="border-b border-border/40">
                   {link.submenu ? (
                     <button
                       onClick={() => toggleSubmenu(link.href)}
+                      aria-expanded={openSubmenu === link.href}
                       className={cn(
-                        'w-full text-left font-sans text-sm tracking-widest uppercase py-4 text-foreground/80 hover:text-gold transition-colors flex items-center justify-between',
+                        'flex min-h-11 w-full items-center justify-between py-4 text-left font-sans text-sm uppercase tracking-widest text-foreground/80 transition-colors hover:text-gold',
                         pathname === link.href && 'text-gold',
                       )}
                     >
@@ -411,15 +391,11 @@ export function SiteHeader() {
 
             {/* Bottom Actions */}
             <div className="p-6 border-t border-border mt-auto flex flex-col gap-3">
-              <Link href="/client/tickets" onClick={() => setDrawerOpen(false)}>
-                <Button className="w-full rounded bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest  py-6">
-                  Support Tickets
-                </Button>
+              <Link href="/client/tickets" onClick={() => setDrawerOpen(false)} className="flex min-h-12 items-center justify-center rounded bg-foreground px-5 py-4 text-xs uppercase tracking-widest text-background transition-colors hover:bg-gold hover:text-white">
+                Support Tickets
               </Link>
-              <Link href="/book-consultation" onClick={() => setDrawerOpen(false)}>
-                <Button className="w-full rounded-none bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest uppercase py-6">
-                  Book a Consultation
-                </Button>
+              <Link href="/book-consultation" onClick={() => setDrawerOpen(false)} className="flex min-h-12 items-center justify-center rounded bg-foreground px-5 py-4 text-xs uppercase tracking-widest text-background transition-colors hover:bg-gold hover:text-white">
+                Book a Consultation
               </Link>
             </div>
           </div>

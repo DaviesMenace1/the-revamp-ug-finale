@@ -1,5 +1,6 @@
 import 'server-only'
 import { auth, currentUser } from '@clerk/nextjs/server'
+import { cache } from 'react'
 import { db } from '@/lib/db/client'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -7,65 +8,55 @@ import { eq } from 'drizzle-orm'
 export type UserRole = 'customer' | 'designer' | 'admin' | 'trade_member' | 'architect' | 'interior_designer'
 
 /**
- * Get the current user's local database profile.
- *
- * Returns:
- * - `null` ONLY when the visitor is genuinely unauthenticated (no Clerk session)
- *   or authenticated without a local profile yet.
- * - Throws on database failure so callers/error boundaries see a real error
- *   instead of a false "not authenticated."
+ * The protected-route boundary only needs identity, role, and display fields.
+ * Keeping this projection small avoids pulling the full user row for every
+ * portal request while preserving the shape consumed by existing actions.
  */
-export async function getCurrentUser() {
-  const { userId } = await auth()
-  if (!userId) {
-    return null
-  }
+const currentUserColumns = {
+  id: users.id,
+  clerkId: users.clerkId,
+  email: users.email,
+  firstName: users.firstName,
+  lastName: users.lastName,
+  role: users.role,
+  avatar: users.avatar,
+} as const
 
+export type CurrentUser = typeof users.$inferSelect
+export type CurrentUserProfile = typeof currentUserColumns extends Record<string, never>
+  ? never
+  : Awaited<ReturnType<typeof findUserProfileByClerkId>>
+
+async function findUserProfileByClerkId(userId: string) {
   try {
-    const user = await db
-      .select()
+    const [user] = await db
+      .select(currentUserColumns)
       .from(users)
       .where(eq(users.clerkId, userId))
-      .then((result) => result[0])
+      .limit(1)
     return user ?? null
-  } catch (err) {
-    console.error('[auth] getCurrentUser database error for clerkId:', userId, err)
-    throw new Error('We could not load your account right now. Please try again shortly.')
+  } catch (error) {
+    console.error('[auth] user profile lookup failed for clerkId:', userId, error)
+    throw new Error('We could not load your account right now. Please try again shortly.', { cause: error })
   }
 }
 
 /**
- * Get the current user's local profile, provisioning it on demand if the
- * `user.created` webhook has not landed yet.
- *
- * This removes the Clerk -> local DB race deterministically:
- * - Clerk is the identity provider; `clerkId` is the stable identity key.
- * - The insert is idempotent (`onConflictDoNothing` on the unique clerkId),
- *   so a concurrent webhook insert can never create a duplicate.
- * - After the upsert we re-select, which returns the row regardless of
- *   whether we or the webhook won the race.
+ * React cache is request-scoped in the App Router. This prevents every
+ * protected component in one request from repeating the same profile query,
+ * without sharing one user's authorization result with another request.
  */
-export async function getOrCreateCurrentUser(existingUserId?: string) {
-  const userId = existingUserId ?? (await auth()).userId
-  if (!userId) {
-    return null
-  }
+const getCachedUserProfile = cache(findUserProfileByClerkId)
 
-  try {
-    const existing = await db
-      .select()
-      .from(users)
-      .where(eq(users.clerkId, userId))
-      .then((result) => result[0])
-    if (existing) {
-      return existing
-    }
-  } catch (err) {
-    console.error('[auth] getOrCreateCurrentUser lookup error for clerkId:', userId, err)
-    throw new Error('We could not load your account right now. Please try again shortly.')
-  }
+/**
+ * Resolve the local profile and provision only when the local row is absent.
+ * Existing users take one indexed lookup. The Clerk API and insert path are
+ * therefore not part of the normal authenticated-page waterfall.
+ */
+const getOrCreateUserProfile = cache(async (userId: string) => {
+  const existing = await getCachedUserProfile(userId)
+  if (existing) return existing
 
-  // Authenticated but no local row yet (webhook race or historical gap).
   const clerkUser = await currentUser()
   if (!clerkUser) {
     // Session was revoked between auth() and currentUser(); treat as signed out.
@@ -94,26 +85,43 @@ export async function getOrCreateCurrentUser(existingUserId?: string) {
         // never derived from client-controlled data.
       })
       .onConflictDoNothing({ target: users.clerkId })
-
-    const provisioned = await db
-      .select()
-      .from(users)
-      .where(eq(users.clerkId, userId))
-      .then((result) => result[0])
-
-    if (!provisioned) {
-      // Extremely unlikely: insert no-op'd on email conflict with a different clerkId.
-      console.error('[auth] Provisioning produced no row for clerkId:', userId, 'email:', email)
-      throw new Error('Your account could not be linked. Contact support.')
-    }
-    return provisioned
-  } catch (err) {
-    if (err instanceof Error && (err.message.includes('Contact support') || err.message.includes('try again shortly'))) {
-      throw err
-    }
-    console.error('[auth] getOrCreateCurrentUser provisioning error for clerkId:', userId, err)
-    throw new Error('We could not prepare your account right now. Please try again shortly.')
+  } catch (error) {
+    console.error('[auth] user profile provisioning failed for clerkId:', userId, error)
+    throw new Error('We could not prepare your account right now. Please try again shortly.', { cause: error })
   }
+
+  // Do not reuse the pre-insert cached miss. A webhook may have won the race,
+  // so read the row again after the insert attempt.
+  const provisioned = await findUserProfileByClerkId(userId)
+  if (!provisioned) {
+    console.error('[auth] provisioning produced no row for clerkId:', userId, 'email:', email)
+    throw new Error('Your account could not be linked. Contact support.')
+  }
+  return provisioned
+})
+
+/**
+ * Get the current user's local database profile.
+ *
+ * Returns null only for a genuinely missing Clerk session or missing local
+ * profile. Database failures throw a recoverable account error instead of
+ * masquerading as signed-out state.
+ */
+export async function getCurrentUser() {
+  const { userId } = await auth()
+  if (!userId) return null
+  return getCachedUserProfile(userId)
+}
+
+/**
+ * Get the current user's local profile, provisioning it on demand when the
+ * Clerk webhook has not landed yet. The request-scoped cache makes concurrent
+ * protected loads share the same result.
+ */
+export async function getOrCreateCurrentUser(existingUserId?: string) {
+  const userId = existingUserId ?? (await auth()).userId
+  if (!userId) return null
+  return getOrCreateUserProfile(userId)
 }
 
 /**

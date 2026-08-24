@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { SignOutButton } from '@clerk/nextjs'
 import {
   BarChart3,
   Package,
@@ -63,13 +64,15 @@ export default function AdminSidebar() {
       </nav>
 
       <div className="border-t border-border/20 pt-6 mt-auto">
-        <Link
-          href="/sign-out"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          <LogOut className="w-4 h-4" />
-          Sign Out
-        </Link>
+        <SignOutButton redirectUrl="/">
+          <button
+            type="button"
+            className="flex min-h-11 w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            Sign Out
+          </button>
+        </SignOutButton>
       </div>
     </aside>
   )

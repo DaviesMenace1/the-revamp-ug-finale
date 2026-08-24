@@ -19,6 +19,7 @@ import type {
   Product,
   Variant,
 } from '@/lib/types'
+import { normalizeCurrency } from '@/lib/utils'
 
 export const CartContext = createContext<CartContextType | undefined>(undefined)
 
@@ -117,7 +118,19 @@ function getUnitPrice(
 }
 
 function normalizeCartItem(item: any): CartItem | null {
-  if (!item?.productId || !item?.product) return null
+  if (!item?.productId && !item?.product?.id && !item?.id) return null
+
+  const productId = String(item.productId || item.product?.id || item.id)
+  const embeddedProduct = item.product && typeof item.product === 'object' ? item.product : null
+  const product = embeddedProduct || {
+    id: productId,
+    slug: String(item.slug || productId),
+    name: String(item.name || 'Saved selection'),
+    price: cleanNumber(item.price ?? item.unitPrice, 0),
+    currency: normalizeCurrency(item.currency),
+    images: item.image ? [String(item.image)] : [],
+    thumbnailImage: item.image ? String(item.image) : undefined,
+  }
 
   const selectedAccessories = Array.isArray(item.selectedAccessories)
     ? item.selectedAccessories
@@ -125,7 +138,7 @@ function normalizeCartItem(item: any): CartItem | null {
 
   const cartItemId =
     item.cartItemId ||
-    createCartItemId(item.productId, {
+    createCartItemId(productId, {
       colorId: item.selectedColor?.id,
       fabricId: item.selectedFabric?.id,
       materialId: item.selectedMaterial?.id,
@@ -136,6 +149,9 @@ function normalizeCartItem(item: any): CartItem | null {
 
   return {
     ...item,
+    productId,
+    product,
+    unavailable: !embeddedProduct,
     cartItemId,
     quantity: Math.max(1, cleanNumber(item.quantity, 1)),
     selectedAccessories,
@@ -143,7 +159,8 @@ function normalizeCartItem(item: any): CartItem | null {
       item.unitPrice ??
         item.calculatedUnitPrice ??
         item.product?.salePrice ??
-        item.product?.price,
+        item.product?.price ??
+        item.price,
       0
     ),
   }
@@ -193,10 +210,8 @@ export function CartProvider({
   useEffect(() => {
     if (!isAuthLoaded) return
 
-    const localItems =
-      readLocalCart(cartStorageKey).length > 0
-        ? readLocalCart(cartStorageKey)
-        : readLocalCart(LEGACY_CART_KEY)
+    const storedItems = readLocalCart(cartStorageKey)
+    const localItems = storedItems.length > 0 ? storedItems : readLocalCart(LEGACY_CART_KEY)
 
     setItems(localItems)
 

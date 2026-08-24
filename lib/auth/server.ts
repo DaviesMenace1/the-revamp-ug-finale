@@ -1,7 +1,6 @@
 import 'server-only' // Ensures this file can NEVER be accidentally imported in 'use client' components
 import { auth } from '@clerk/nextjs/server'
 import { getOrCreateCurrentUser, type UserRole } from '@/lib/auth/utils'
-import { safeQuery } from '@/lib/server/safe-query'
 
 export type { UserRole }
 
@@ -12,17 +11,24 @@ export type AuthorizationResult = {
    * Distinguishes WHY authorization failed so callers can respond correctly:
    * - 'unauthenticated': no Clerk session -> redirect to sign-in
    * - 'forbidden': signed in but lacks the required role -> show unauthorized
+   * - 'error': the session exists but the local profile could not be resolved
    */
-  reason: 'ok' | 'unauthenticated' | 'forbidden'
+  reason: 'ok' | 'unauthenticated' | 'forbidden' | 'error'
+  error?: 'profile_unavailable'
 }
 
 /**
  * Server-side authentication + role authorization.
  *
- * Uses on-demand provisioning (getOrCreateCurrentUser) so a user who just
- * signed up is never bounced back to sign-in while the user.created webhook
- * is still in flight. Roles come exclusively from the local database row —
- * never from client-supplied data.
+ * The profile helper performs one indexed, minimal-column lookup for existing
+ * users and caches that result for the current server-rendered request. It is
+ * deliberately not wrapped in the generic Promise.race page timeout: that
+ * race cannot cancel a database promise and can leave the single serverless
+ * connection occupied after the page has already failed.
+ *
+ * A profile/database error is always deny-by-default. Callers can render a
+ * recoverable state or return 503; no ambiguous database result can grant a
+ * role-protected request.
  */
 export async function getCurrentUserWithRole(requiredRoles: UserRole[] = []): Promise<AuthorizationResult> {
   const { userId } = await auth()
@@ -30,21 +36,20 @@ export async function getCurrentUserWithRole(requiredRoles: UserRole[] = []): Pr
     return { user: null, authorized: false, reason: 'unauthenticated' }
   }
 
-  const profileResult = await safeQuery(
-    getOrCreateCurrentUser(userId),
-    'authenticated user profile',
-    null,
-  )
-  if (!profileResult.data) {
-    if (profileResult.error) throw new Error('We could not load your account right now. Please retry the page.')
-    // Session disappeared between checks; treat as signed out.
-    return { user: null, authorized: false, reason: 'unauthenticated' }
-  }
-  const user = profileResult.data
+  try {
+    const user = await getOrCreateCurrentUser(userId)
+    if (!user) {
+      // Session disappeared between checks; treat as signed out.
+      return { user: null, authorized: false, reason: 'unauthenticated' }
+    }
 
-  if (requiredRoles.length > 0 && !requiredRoles.includes(user.role as UserRole)) {
-    return { user, authorized: false, reason: 'forbidden' }
-  }
+    if (requiredRoles.length > 0 && !requiredRoles.includes(user.role as UserRole)) {
+      return { user, authorized: false, reason: 'forbidden' }
+    }
 
-  return { user, authorized: true, reason: 'ok' }
+    return { user, authorized: true, reason: 'ok' }
+  } catch (error) {
+    console.error('[auth] protected profile unavailable:', error)
+    return { user: null, authorized: false, reason: 'error', error: 'profile_unavailable' }
+  }
 }

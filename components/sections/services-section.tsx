@@ -17,7 +17,7 @@ const services = [
     description:
       'Award-winning architectural design that harmonises form, function, and environment. We craft buildings that endure and inspire.',
     tags: ['New Build', 'Renovation', 'Masterplanning'],
-    href: '/architecture',
+    href: '/services/architecture',
     image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785573390/Screenshot_2026-08-01-11-33-52-556_cn.wps.moffice_eng_nzviq6.jpg',
   },
   {
@@ -26,7 +26,7 @@ const services = [
     description:
       'Access to the world\'s finest furniture, art, and décor. We source from over 15 countries, securing exclusive pieces unavailable elsewhere.',
     tags: ['Furniture', 'Lighting', 'Art & Objects'],
-    href: '/services/sourcing',
+    href: '/services',
     image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785575628/3c01978f6da28d6772001d9bad12cc_j6e7tf.jpg',
   },
   {
@@ -35,7 +35,7 @@ const services = [
     description:
       'Seamless project delivery from logistics coordination to precision installation. Your vision, realised without compromise.',
     tags: ['Logistics', 'Installation', 'Handover'],
-    href: '/services/installation',
+    href: '/services',
     image: 'https://res.cloudinary.com/r8epy5mg/image/upload/IMG_20260801_120540_xr8ffi.jpg',
   },
 ]

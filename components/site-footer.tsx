@@ -8,16 +8,16 @@ import { CookiePreferencesTrigger } from '@/components/privacy/cookie-consent-pr
 
 const footerLinks = {
   Services: [
-    { label: 'Interior Design', href: '/services/interior-design' },
-    { label: 'Architecture', href: '/architecture' },
-    { label: 'Global Sourcing', href: '/services/sourcing' },
-    { label: 'Installation', href: '/services/installation' },
+    { label: 'Interior Design', href: '/services' },
+    { label: 'Architecture', href: '/services/architecture' },
+    { label: 'Global Sourcing', href: '/services' },
+    { label: 'Installation', href: '/services' },
   ],
   Collections: [
-    { label: 'Living Spaces', href: '/collections/living' },
-    { label: 'Bedroom', href: '/collections/bedroom' },
-    { label: 'Dining', href: '/collections/dining' },
-    { label: 'Lighting', href: '/collections/lighting' },
+    { label: 'Living Spaces', href: '/collections' },
+    { label: 'Bedroom', href: '/collections' },
+    { label: 'Dining', href: '/collections' },
+    { label: 'Lighting', href: '/collections' },
   ],
   Studio: [
     { label: 'About Us', href: '/about' },
@@ -28,8 +28,8 @@ const footerLinks = {
   Client: [
     { label: 'Book Consultation', href: '/contact' },
     { label: 'Client Portal', href: '/client' },
-    { label: 'Track Project', href: '/portal/projects' },
-    { label: 'Support', href: '/support' },
+    { label: 'Track Project', href: '/client/projects' },
+    { label: 'Support', href: '/client/tickets' },
   ],
 }
 

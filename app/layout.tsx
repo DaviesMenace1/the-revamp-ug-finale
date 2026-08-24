@@ -10,6 +10,7 @@ import ConsentGatedAnalytics from '@/components/analytics/consent-gated-analytic
 import { CartProvider } from '@/lib/context/cart-context'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateOrganizationSchema, generateLocalBusinessSchema } from '@/lib/seo/schema-generator'
+import ClerkRuntimeGuard from '@/components/auth/clerk-runtime-guard'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({
@@ -106,7 +107,8 @@ export const viewport: Viewport = {
 
 // app/layout.tsx
 
-const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim()
+const hasValidClerkPublishableKey = /^pk_(test|live)_[A-Za-z0-9_]+$/.test(publishableKey ?? '')
 
 export default function RootLayout({
   children,
@@ -148,18 +150,20 @@ export default function RootLayout({
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
         >
-          <CookieConsentProvider>
-            <CartProvider>
-              <Script
-                src="https://checkout.flutterwave.com/v3.js"
-                strategy="lazyOnload"
-              />
-              <ThemeProvider>{children}</ThemeProvider>
-              <NewsletterPopup />
-              <OneSignalBootstrap />
-              <ConsentGatedAnalytics />
-            </CartProvider>
-          </CookieConsentProvider>
+          <ClerkRuntimeGuard configured={hasValidClerkPublishableKey}>
+            <CookieConsentProvider>
+              <CartProvider>
+                <Script
+                  src="https://checkout.flutterwave.com/v3.js"
+                  strategy="lazyOnload"
+                />
+                <ThemeProvider>{children}</ThemeProvider>
+                <NewsletterPopup />
+                <OneSignalBootstrap />
+                <ConsentGatedAnalytics />
+              </CartProvider>
+            </CookieConsentProvider>
+          </ClerkRuntimeGuard>
         </ClerkProvider>
 
       </body>

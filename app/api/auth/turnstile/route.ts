@@ -18,7 +18,7 @@ function getForwardedIp(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const limited = await checkRateLimit(request, 'auth')
+  const limited = await checkRateLimit(request, 'api')
   if (limited) return limited
 
   const secret = process.env.TURNSTILE_SECRET_KEY

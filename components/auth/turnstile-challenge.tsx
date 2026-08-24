@@ -1,7 +1,7 @@
 'use client'
 
 import Script from 'next/script'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type TurnstileWidget = {
   ready: (callback: () => void) => void
@@ -22,7 +22,8 @@ declare global {
   }
 }
 
-const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim()
+const WIDGET_LOAD_TIMEOUT_MS = 12_000
 
 export function turnstileConfigured() {
   return Boolean(SITE_KEY)
@@ -38,43 +39,80 @@ export default function TurnstileChallenge({
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
   const onTokenRef = useRef(onToken)
+  const [scriptReady, setScriptReady] = useState(false)
+  const [widgetError, setWidgetError] = useState(false)
 
   useEffect(() => {
     onTokenRef.current = onToken
   }, [onToken])
 
   useEffect(() => {
-    if (!SITE_KEY || !containerRef.current) return
-
-    const renderWidget = () => {
-      if (!window.turnstile || !containerRef.current || widgetIdRef.current) return
-      widgetIdRef.current = window.turnstile.render(containerRef.current, {
-        sitekey: SITE_KEY,
-        action: 'auth',
-        theme: 'auto',
-        callback: (token) => onTokenRef.current(token),
-        'expired-callback': () => onTokenRef.current(null),
-        'error-callback': () => onTokenRef.current(null),
-      })
+    if (!SITE_KEY) return
+    if (window.turnstile) {
+      setScriptReady(true)
+      return
     }
 
-    if (window.turnstile) window.turnstile.ready(renderWidget)
+    const timeout = window.setTimeout(() => setWidgetError(true), WIDGET_LOAD_TIMEOUT_MS)
+    return () => window.clearTimeout(timeout)
+  }, [])
+
+  useEffect(() => {
+    if (!SITE_KEY || !scriptReady || !containerRef.current || widgetIdRef.current) return
+
+    let cancelled = false
+    window.turnstile?.ready(() => {
+      if (cancelled || !window.turnstile || !containerRef.current || widgetIdRef.current) return
+      try {
+        widgetIdRef.current = window.turnstile.render(containerRef.current, {
+          sitekey: SITE_KEY,
+          action: 'auth',
+          theme: 'auto',
+          callback: (token) => {
+            setWidgetError(false)
+            onTokenRef.current(token)
+          },
+          'expired-callback': () => onTokenRef.current(null),
+          'error-callback': () => {
+            setWidgetError(true)
+            onTokenRef.current(null)
+          },
+        })
+        setWidgetError(false)
+      } catch (error) {
+        console.error('[turnstile] widget render failed:', error)
+        setWidgetError(true)
+        onTokenRef.current(null)
+      }
+    })
 
     return () => {
+      cancelled = true
       if (widgetIdRef.current && window.turnstile) {
         window.turnstile.remove(widgetIdRef.current)
       }
       widgetIdRef.current = null
       onTokenRef.current(null)
     }
-  }, [resetKey])
+  }, [resetKey, scriptReady])
 
   if (!SITE_KEY) return null
 
   return (
-    <>
-      <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" />
+    <div className="grid gap-2">
+      <Script
+        id="cloudflare-turnstile-script"
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        strategy="afterInteractive"
+        onLoad={() => setScriptReady(true)}
+        onError={() => setWidgetError(true)}
+      />
       <div ref={containerRef} className="min-h-[65px]" aria-label="Security verification" />
-    </>
+      {widgetError && (
+        <p role="alert" className="border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs leading-5 text-destructive">
+          Security verification could not load. Check your connection or browser privacy settings, then refresh and try again.
+        </p>
+      )}
+    </div>
   )
 }

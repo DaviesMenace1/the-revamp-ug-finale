@@ -9,6 +9,28 @@ import TurnstileChallenge, { turnstileConfigured } from './turnstile-challenge'
 
 type OAuthStrategy = 'oauth_google' | 'oauth_linkedin_oidc'
 
+async function authorizeAuthAttempt() {
+  let response: Response
+  try {
+    response = await fetch('/api/auth/attempt', {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+  } catch (error) {
+    console.error('[auth] rate-limit request failed:', error)
+    throw new Error('Authentication protection is temporarily unavailable. Refresh the page and try again.')
+  }
+
+  const result = (await response.json().catch(() => null)) as { allowed?: boolean; error?: string } | null
+  if (!response.ok || !result?.allowed) {
+    const retryAfter = Number(response.headers.get('Retry-After'))
+    const retryMessage = Number.isFinite(retryAfter) && retryAfter > 0 ? ` Try again in about ${retryAfter} seconds.` : ''
+    throw new Error(`${result?.error || 'Authentication attempts are temporarily limited.'}${retryMessage}`)
+  }
+}
+
 async function verifyTurnstileToken(token: string) {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 6_000)
@@ -256,6 +278,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
     setInfo(null)
     try {
       if (turnstileToken) await verifyTurnstileToken(turnstileToken)
+      await authorizeAuthAttempt()
       const { error: passwordError } = await signIn.password({ identifier: email, password })
       if (passwordError) throw passwordError
       await advance()
@@ -326,6 +349,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
     setError(null)
     try {
       if (turnstileToken) await verifyTurnstileToken(turnstileToken)
+      await authorizeAuthAttempt()
       // Redirects the browser to the provider; only returns here on error.
       const { error: ssoError } = await signIn.sso({
         strategy,
@@ -487,6 +511,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     setInfo(null)
     try {
       if (turnstileToken) await verifyTurnstileToken(turnstileToken)
+      await authorizeAuthAttempt()
       const { error: createError } = await signUp.password({
         emailAddress: email,
         password,
@@ -568,6 +593,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     setError(null)
     try {
       if (turnstileToken) await verifyTurnstileToken(turnstileToken)
+      await authorizeAuthAttempt()
       const { error: ssoError } = await signUp.sso({
         strategy,
         redirectUrl: destination,
@@ -716,6 +742,7 @@ export function CustomResetPassword() {
     try {
       if (step === 'email') {
         if (turnstileToken) await verifyTurnstileToken(turnstileToken)
+        await authorizeAuthAttempt()
         const { error: createError } = await signIn.create({ identifier: email })
         if (!createError) {
           const { error: sendError } = await signIn.resetPasswordEmailCode.sendCode()
@@ -753,6 +780,7 @@ export function CustomResetPassword() {
     setLoading(true)
     setError(null)
     try {
+      await authorizeAuthAttempt()
       const { error: createError } = await signIn.create({ identifier: email })
       if (!createError) await signIn.resetPasswordEmailCode.sendCode()
     } catch (err) {
@@ -777,6 +805,7 @@ export function CustomResetPassword() {
     setLoading(true)
     setError(null)
     try {
+      await authorizeAuthAttempt()
       const { error: submitError } = await signIn.resetPasswordEmailCode.submitPassword({
         password,
         signOutOfOtherSessions: true,

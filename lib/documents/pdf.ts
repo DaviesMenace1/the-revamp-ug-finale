@@ -21,6 +21,7 @@ export type FinancialDocumentInput = {
   currency: string
   items: FinancialDocumentLine[]
   taxRate?: number
+  taxInclusive?: boolean
   discount?: number
   notes?: string | null
   terms?: string | null
@@ -137,8 +138,10 @@ export async function renderFinancialDocument(input: FinancialDocumentInput, pro
 
   const discount = Math.max(0, input.discount || 0)
   const taxable = Math.max(0, subtotal - discount)
-  const tax = taxable * Math.max(0, input.taxRate || 0) / 100
-  const total = taxable + tax
+  const taxRate = Math.max(0, input.taxRate || 0)
+  const taxInclusive = input.taxInclusive === true
+  const tax = taxInclusive ? taxable * taxRate / (100 + taxRate) : taxable * taxRate / 100
+  const total = taxInclusive ? taxable : taxable + tax
   y -= 4
   drawRule(page, y)
   y -= 22
@@ -149,9 +152,9 @@ export async function renderFinancialDocument(input: FinancialDocumentInput, pro
     drawText(page, 'Discount', 390, y, regular, 8.5, MUTED)
     drawText(page, `-${formatMoney(discount, input.currency)}`, 493, y, regular, 8.5, INK)
   }
-  if (input.taxRate && input.taxRate > 0) {
+  if (taxRate > 0) {
     y -= 16
-    drawText(page, `Tax (${input.taxRate}%)`, 390, y, regular, 8.5, MUTED)
+    drawText(page, `${taxInclusive ? 'Included tax' : 'Tax'} (${taxRate}%)`, 390, y, regular, 8.5, MUTED)
     drawText(page, formatMoney(tax, input.currency), 493, y, regular, 8.5, INK)
   }
   y -= 22

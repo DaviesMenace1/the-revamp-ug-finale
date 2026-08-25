@@ -73,11 +73,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ verified: false, error: 'Security verification failed. Refresh the challenge and try again.' }, { status: 400 })
     }
 
-    const allowedHostnames = (process.env.TURNSTILE_ALLOWED_HOSTNAMES || '')
-      .split(',')
-      .map((hostname) => hostname.trim().toLowerCase())
-      .filter(Boolean)
-    if (allowedHostnames.length > 0 && (!result.hostname || !allowedHostnames.includes(result.hostname.toLowerCase()))) {
+    const allowedHostnames = new Set(
+      (process.env.TURNSTILE_ALLOWED_HOSTNAMES || '')
+        .split(',')
+        .map((hostname) => hostname.trim().toLowerCase())
+        .filter(Boolean),
+    )
+    const configuredHostname = (() => {
+      try {
+        return new URL(process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin).hostname.toLowerCase()
+      } catch {
+        return request.nextUrl.hostname.toLowerCase()
+      }
+    })()
+    if (configuredHostname === 'therevampug.com' || configuredHostname === 'www.therevampug.com') {
+      allowedHostnames.add('therevampug.com')
+      allowedHostnames.add('www.therevampug.com')
+    }
+    if (allowedHostnames.size > 0 && (!result.hostname || !allowedHostnames.has(result.hostname.toLowerCase()))) {
       console.warn('[turnstile] hostname mismatch', { received: result.hostname })
       return NextResponse.json({ verified: false, error: 'Security verification failed. Refresh the challenge and try again.' }, { status: 400 })
     }

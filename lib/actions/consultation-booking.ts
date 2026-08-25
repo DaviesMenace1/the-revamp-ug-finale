@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db/client'
 import { consultationSlots, consultations, users } from '@/lib/db/schema'
-import { eq, and, gte, asc } from 'drizzle-orm'
+import { eq, and, gte, asc, isNull, lt, or } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
@@ -106,8 +106,8 @@ export async function bookConsultationSlot(data: {
     const booking = await db.transaction(async (transaction) => {
       const [slot] = await transaction
         .update(consultationSlots)
-        .set({ isBooked: true })
-        .where(and(eq(consultationSlots.id, data.slotId), eq(consultationSlots.isBooked, false), gte(consultationSlots.startTime, new Date()), ...(data.mode ? [eq(consultationSlots.mode, data.mode)] : [])))
+        .set({ isBooked: true, holdUntil: null, holdUserId: null })
+        .where(and(eq(consultationSlots.id, data.slotId), eq(consultationSlots.isBooked, false), gte(consultationSlots.startTime, new Date()), or(isNull(consultationSlots.holdUntil), lt(consultationSlots.holdUntil, new Date()), eq(consultationSlots.holdUserId, user.id)), ...(data.mode ? [eq(consultationSlots.mode, data.mode)] : [])))
         .returning({ id: consultationSlots.id, startTime: consultationSlots.startTime, durationMinutes: consultationSlots.durationMinutes, mode: consultationSlots.mode })
 
       if (!slot) return null
@@ -182,7 +182,7 @@ export async function getAvailableSlots() {
     const slots = await db
       .select()
       .from(consultationSlots)
-      .where(and(eq(consultationSlots.isBooked, false), gte(consultationSlots.startTime, new Date())))
+      .where(and(eq(consultationSlots.isBooked, false), gte(consultationSlots.startTime, new Date()), or(isNull(consultationSlots.holdUntil), lt(consultationSlots.holdUntil, new Date()))))
       .orderBy(asc(consultationSlots.startTime))
       .limit(100)
 

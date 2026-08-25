@@ -13,6 +13,7 @@ type TurnstileWidget = {
     'error-callback'?: (errorCode?: string) => void
   }) => string
   remove: (widgetId: string) => void
+  reset?: (widgetId: string) => void
 }
 
 declare global {
@@ -40,6 +41,9 @@ export default function TurnstileChallenge({
   const onTokenRef = useRef(onToken)
   const [scriptReady, setScriptReady] = useState(() => typeof window !== 'undefined' && Boolean(window.turnstile))
   const [widgetError, setWidgetError] = useState(false)
+  const [errorCode, setErrorCode] = useState<string | null>(null)
+  const [renderAttempt, setRenderAttempt] = useState(0)
+  const [scriptAttempt, setScriptAttempt] = useState(0)
 
   useEffect(() => {
     onTokenRef.current = onToken
@@ -57,7 +61,6 @@ export default function TurnstileChallenge({
     const turnstile = window.turnstile
     if (!turnstile) return
 
-    if (!containerRef.current || widgetIdRef.current) return
     try {
       widgetIdRef.current = turnstile.render(containerRef.current, {
         sitekey: SITE_KEY,
@@ -65,17 +68,23 @@ export default function TurnstileChallenge({
         theme: 'auto',
         callback: (token) => {
           setWidgetError(false)
+          setErrorCode(null)
           onTokenRef.current(token)
         },
         'expired-callback': () => onTokenRef.current(null),
-        'error-callback': () => {
+        'error-callback': (code) => {
+          console.error('[turnstile] widget error:', code || 'unknown')
+          setErrorCode(code || null)
           setWidgetError(true)
           onTokenRef.current(null)
         },
       })
     } catch (error) {
       console.error('[turnstile] widget render failed:', error)
-      window.setTimeout(() => setWidgetError(true), 0)
+      window.setTimeout(() => {
+        setWidgetError(true)
+        setErrorCode('render_failed')
+      }, 0)
       onTokenRef.current(null)
     }
 
@@ -86,24 +95,64 @@ export default function TurnstileChallenge({
       widgetIdRef.current = null
       onTokenRef.current(null)
     }
-  }, [resetKey, scriptReady])
+  }, [resetKey, renderAttempt, scriptReady])
+
+  function retry() {
+    setWidgetError(false)
+    setErrorCode(null)
+    onTokenRef.current(null)
+    if (!window.turnstile && !scriptReady) {
+      setScriptAttempt((attempt) => attempt + 1)
+      return
+    }
+    if (widgetIdRef.current && window.turnstile) {
+      const widgetId = widgetIdRef.current
+      if (window.turnstile.reset) {
+        try {
+          window.turnstile.reset(widgetId)
+          return
+        } catch (error) {
+          console.warn('[turnstile] reset failed; rebuilding widget:', error)
+        }
+      }
+      try {
+        window.turnstile.remove(widgetId)
+      } catch (error) {
+        console.warn('[turnstile] remove failed during retry:', error)
+      }
+      widgetIdRef.current = null
+    }
+    setScriptReady(Boolean(window.turnstile))
+    setRenderAttempt((attempt) => attempt + 1)
+  }
 
   if (!SITE_KEY) return null
 
   return (
     <div className="grid gap-2">
       <Script
-        id="cloudflare-turnstile-script"
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        id={`cloudflare-turnstile-script-${scriptAttempt}`}
+        src={`https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&attempt=${scriptAttempt}`}
         strategy="afterInteractive"
-        onLoad={() => setScriptReady(true)}
-        onError={() => setWidgetError(true)}
+        onLoad={() => {
+          setScriptReady(true)
+          setWidgetError(false)
+          setErrorCode(null)
+        }}
+        onError={() => {
+          console.error('[turnstile] challenge script failed to load')
+          setScriptReady(false)
+          setWidgetError(true)
+          setErrorCode('script_load_failed')
+        }}
       />
       <div ref={containerRef} className="min-h-[65px]" aria-label="Security verification" />
       {widgetError && (
-        <p role="alert" className="border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs leading-5 text-destructive">
-          Security verification could not load. Check your connection or browser privacy settings, then refresh and try again.
-        </p>
+        <div className="grid gap-2 border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs leading-5 text-destructive">
+          <p role="alert">Security verification could not complete. Your browser may be blocking Cloudflare’s challenge resources.</p>
+          <button type="button" onClick={retry} className="min-h-10 w-fit font-medium underline underline-offset-4 hover:no-underline">Retry security verification</button>
+          {errorCode && <span className="sr-only">Verification diagnostic: {errorCode}</span>}
+        </div>
       )}
     </div>
   )

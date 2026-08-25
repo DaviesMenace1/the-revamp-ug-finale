@@ -1027,6 +1027,14 @@ export const consultations = pgTable(
     durationMinutes: integer("duration_minutes").notNull().default(45),
     confirmedAt: timestamp("confirmed_at"),
     status: varchar("status", { length: 50 }).default("pending"),
+    paymentStatus: varchar("payment_status", { length: 30 }).notNull().default("pending"),
+    paymentAmount: decimal("payment_amount", { precision: 12, scale: 2 }),
+    paymentCurrency: varchar("payment_currency", { length: 3 }).default("UGX"),
+    paymentReference: varchar("payment_reference", { length: 120 }),
+    baseFee: decimal("base_fee", { precision: 12, scale: 2 }),
+    discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).default("0"),
+    taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).default("0"),
+    promotionCode: varchar("promotion_code", { length: 40 }),
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -1034,6 +1042,93 @@ export const consultations = pgTable(
   (table) => ({
     userIdIdx: index("consultation_user_idx").on(table.userId),
     statusIdx: index("consultation_status_idx").on(table.status),
+  }),
+)
+
+export const consultationPromotions = pgTable(
+  "consultation_promotions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 160 }).notNull(),
+    code: varchar("code", { length: 40 }),
+    discountType: varchar("discount_type", { length: 20 }).notNull().default("percentage"),
+    discountValue: decimal("discount_value", { precision: 12, scale: 2 }).notNull(),
+    maxDiscount: decimal("max_discount", { precision: 12, scale: 2 }),
+    serviceTypes: jsonb("service_types").notNull().default([]),
+    audience: varchar("audience", { length: 30 }).notNull().default("all"),
+    startsAt: timestamp("starts_at"),
+    endsAt: timestamp("ends_at"),
+    totalUsageLimit: integer("total_usage_limit"),
+    perCustomerLimit: integer("per_customer_limit").notNull().default(1),
+    status: varchar("status", { length: 20 }).notNull().default("draft"),
+    stackable: boolean("stackable").notNull().default(false),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    codeIdx: uniqueIndex("consultation_promotions_code_idx").on(table.code),
+    statusIdx: index("consultation_promotions_status_idx").on(table.status),
+    validityIdx: index("consultation_promotions_validity_idx").on(table.startsAt, table.endsAt),
+  }),
+)
+
+export const consultationPaymentIntents = pgTable(
+  "consultation_payment_intents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
+    slotId: uuid("slot_id").notNull(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    txRef: varchar("tx_ref", { length: 120 }).notNull().unique(),
+    idempotencyKey: varchar("idempotency_key", { length: 120 }).notNull().unique(),
+    baseAmount: decimal("base_amount", { precision: 12, scale: 2 }).notNull(),
+    discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+    taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+    amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+    taxRate: decimal("tax_rate", { precision: 6, scale: 3 }).notNull().default("0"),
+    currency: varchar("currency", { length: 3 }).notNull().default("UGX"),
+    promotionId: uuid("promotion_id").references(() => consultationPromotions.id, { onDelete: "set null" }),
+    promotionCode: varchar("promotion_code", { length: 40 }),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    flutterwaveTransactionId: varchar("flutterwave_transaction_id", { length: 120 }),
+    paymentMethod: varchar("payment_method", { length: 40 }),
+    paymentUrl: text("payment_url"),
+    expiresAt: timestamp("expires_at").notNull(),
+    paidAt: timestamp("paid_at"),
+    failedAt: timestamp("failed_at"),
+    metadata: jsonb("metadata").notNull().default({}),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("consultation_payment_intents_user_idx").on(table.userId),
+    slotIdx: index("consultation_payment_intents_slot_idx").on(table.slotId),
+    statusExpiryIdx: index("consultation_payment_intents_status_expiry_idx").on(table.status, table.expiresAt),
+    consultationIdx: index("consultation_payment_intents_consultation_idx").on(table.consultationId),
+  }),
+)
+
+export const consultationPromotionRedemptions = pgTable(
+  "consultation_promotion_redemptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    promotionId: uuid("promotion_id").notNull().references(() => consultationPromotions.id, { onDelete: "cascade" }),
+    paymentIntentId: uuid("payment_intent_id").notNull().references(() => consultationPaymentIntents.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    code: varchar("code", { length: 40 }),
+    discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("reserved"),
+    reservedAt: timestamp("reserved_at").notNull().defaultNow(),
+    appliedAt: timestamp("applied_at"),
+    releasedAt: timestamp("released_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    paymentIntentIdx: uniqueIndex("consultation_promotion_redemptions_intent_idx").on(table.paymentIntentId),
+    promotionUserIdx: index("consultation_promotion_redemptions_promotion_user_idx").on(table.promotionId, table.userId),
+    statusIdx: index("consultation_promotion_redemptions_status_idx").on(table.status),
   }),
 )
 
@@ -1867,6 +1962,47 @@ export const consultationsRelations = relations(consultations, ({ one, many }) =
   }),
   slots: many(consultationSlots),
   reminders: many(consultationReminders),
+  paymentIntents: many(consultationPaymentIntents),
+}))
+
+export const consultationPromotionsRelations = relations(consultationPromotions, ({ one, many }) => ({
+  createdByUser: one(users, {
+    fields: [consultationPromotions.createdBy],
+    references: [users.id],
+  }),
+  paymentIntents: many(consultationPaymentIntents),
+  redemptions: many(consultationPromotionRedemptions),
+}))
+
+export const consultationPaymentIntentsRelations = relations(consultationPaymentIntents, ({ one, many }) => ({
+  consultation: one(consultations, {
+    fields: [consultationPaymentIntents.consultationId],
+    references: [consultations.id],
+  }),
+  user: one(users, {
+    fields: [consultationPaymentIntents.userId],
+    references: [users.id],
+  }),
+  promotion: one(consultationPromotions, {
+    fields: [consultationPaymentIntents.promotionId],
+    references: [consultationPromotions.id],
+  }),
+  redemptions: many(consultationPromotionRedemptions),
+}))
+
+export const consultationPromotionRedemptionsRelations = relations(consultationPromotionRedemptions, ({ one }) => ({
+  promotion: one(consultationPromotions, {
+    fields: [consultationPromotionRedemptions.promotionId],
+    references: [consultationPromotions.id],
+  }),
+  paymentIntent: one(consultationPaymentIntents, {
+    fields: [consultationPromotionRedemptions.paymentIntentId],
+    references: [consultationPaymentIntents.id],
+  }),
+  user: one(users, {
+    fields: [consultationPromotionRedemptions.userId],
+    references: [users.id],
+  }),
 }))
 
 export const consultationRemindersRelations = relations(consultationReminders, ({ one }) => ({
@@ -1927,6 +2063,7 @@ export const invoices = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
     quoteId: uuid("quote_id").references(() => quotes.id, { onDelete: "set null" }),
+    consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
     items: jsonb("items"),
     subtotal: decimal("subtotal", { precision: 12, scale: 2 }),
     tax: decimal("tax", { precision: 12, scale: 2 }).default("0"),
@@ -1946,6 +2083,7 @@ export const invoices = pgTable(
   (table) => ({
     userIdx: index("invoices_user_idx").on(table.userId),
     projectIdx: index("invoices_project_idx").on(table.projectId),
+    consultationIdx: index("invoices_consultation_idx").on(table.consultationId),
     statusIdx: index("invoices_status_idx").on(table.status),
   }),
 )
@@ -1959,6 +2097,7 @@ export const paymentRecords = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     orderId: uuid("order_id"),
     invoiceId: uuid("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
+    consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
     provider: varchar("provider", { length: 40 }).notNull().default("manual"),
     transactionReference: varchar("transaction_reference", { length: 120 }).notNull(),
     amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
@@ -1973,6 +2112,7 @@ export const paymentRecords = pgTable(
   (table) => ({
     userIdx: index("payment_records_user_idx").on(table.userId),
     invoiceIdx: index("payment_records_invoice_idx").on(table.invoiceId),
+    consultationIdx: index("payment_records_consultation_idx").on(table.consultationId),
     providerReferenceIdx: uniqueIndex("payment_records_provider_reference_idx").on(
       table.provider,
       table.transactionReference,
@@ -1992,6 +2132,7 @@ export const financialDocuments = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
     quoteId: uuid("quote_id").references(() => quotes.id, { onDelete: "set null" }),
+    consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
     invoiceId: uuid("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
     paymentId: uuid("payment_id").references(() => paymentRecords.id, { onDelete: "set null" }),
     status: varchar("status", { length: 30 }).notNull().default("draft"),
@@ -2011,6 +2152,7 @@ export const financialDocuments = pgTable(
   (table) => ({
     userIdx: index("financial_documents_user_idx").on(table.userId),
     projectIdx: index("financial_documents_project_idx").on(table.projectId),
+    consultationIdx: index("financial_documents_consultation_idx").on(table.consultationId),
     typeIdx: index("financial_documents_type_idx").on(table.documentType),
     statusIdx: index("financial_documents_status_idx").on(table.status),
   }),
@@ -2085,6 +2227,8 @@ export const consultationSlots = pgTable(
     durationMinutes: integer("duration_minutes").notNull().default(45),
     mode: varchar("mode", { length: 20 }).notNull().default("virtual"),
     isBooked: boolean("is_booked").notNull().default(false),
+    holdUntil: timestamp("hold_until"),
+    holdUserId: uuid("hold_user_id").references(() => users.id, { onDelete: "set null" }),
     consultationId: uuid("consultation_id").references(() => consultations.id, {
       onDelete: "set null",
     }),
@@ -2093,6 +2237,7 @@ export const consultationSlots = pgTable(
   (table) => ({
     startIdx: index("consultation_slots_start_idx").on(table.startTime),
     bookedIdx: index("consultation_slots_booked_idx").on(table.isBooked),
+    holdIdx: index("consultation_slots_hold_idx").on(table.holdUntil),
   }),
 )
 
@@ -2116,6 +2261,10 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
     fields: [invoices.quoteId],
     references: [quotes.id],
   }),
+  consultation: one(consultations, {
+    fields: [invoices.consultationId],
+    references: [consultations.id],
+  }),
 }))
 
 export const paymentRecordsRelations = relations(paymentRecords, ({ one, many }) => ({
@@ -2126,6 +2275,10 @@ export const paymentRecordsRelations = relations(paymentRecords, ({ one, many })
   invoice: one(invoices, {
     fields: [paymentRecords.invoiceId],
     references: [invoices.id],
+  }),
+  consultation: one(consultations, {
+    fields: [paymentRecords.consultationId],
+    references: [consultations.id],
   }),
   documents: many(financialDocuments),
 }))
@@ -2147,6 +2300,10 @@ export const financialDocumentsRelations = relations(financialDocuments, ({ one 
   invoice: one(invoices, {
     fields: [financialDocuments.invoiceId],
     references: [invoices.id],
+  }),
+  consultation: one(consultations, {
+    fields: [financialDocuments.consultationId],
+    references: [consultations.id],
   }),
   payment: one(paymentRecords, {
     fields: [financialDocuments.paymentId],

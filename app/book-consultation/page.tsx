@@ -1,6 +1,6 @@
 import { db } from '@/lib/db/client'
 import { consultationSlots } from '@/lib/db/schema'
-import { eq, and, gte, asc } from 'drizzle-orm'
+import { eq, and, gte, asc, isNull, lt, or } from 'drizzle-orm'
 import { safeQuery } from '@/lib/server/safe-query'
 import BookConsultationClient from './book-consultation-client'
 
@@ -10,7 +10,7 @@ async function getAvailableConsultationSlots() {
   return db
     .select({ id: consultationSlots.id, startTime: consultationSlots.startTime, durationMinutes: consultationSlots.durationMinutes, mode: consultationSlots.mode })
     .from(consultationSlots)
-    .where(and(eq(consultationSlots.isBooked, false), gte(consultationSlots.startTime, new Date())))
+    .where(and(eq(consultationSlots.isBooked, false), gte(consultationSlots.startTime, new Date()), or(isNull(consultationSlots.holdUntil), lt(consultationSlots.holdUntil, new Date()))))
     .orderBy(asc(consultationSlots.startTime))
     .limit(100)
 }

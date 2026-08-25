@@ -6,6 +6,7 @@ import { sendOrderReceiptEmail } from '@/lib/email/send-receipt'
 import { notifyUser } from '@/lib/notifications/service'
 import { generateVerifiedPaymentReceipt } from '@/lib/documents/payment-receipt'
 import { safelyReleasePointsForOrder, settleSuccessfulOrderRewards } from '@/lib/loyalty/service'
+import { settleConsultationPayment } from '@/lib/consultation-payments'
 
 type DeliveryAddress = { name?: string; [key: string]: unknown }
 
@@ -32,6 +33,15 @@ export async function POST(req: NextRequest) {
     const data = payload?.data
     if (payload?.event !== 'charge.completed' || data?.status !== 'successful' || !data?.tx_ref) {
       return NextResponse.json({ status: 'ignored' })
+    }
+
+    if (String(data.tx_ref).startsWith('REV-CONS-')) {
+      const consultationResult = await settleConsultationPayment({
+        txRef: String(data.tx_ref),
+        transactionId: data.id ? String(data.id) : null,
+      })
+      if (consultationResult.success) return NextResponse.json({ status: 'success', scope: 'consultation' })
+      return NextResponse.json({ status: consultationResult.status, error: consultationResult.error }, { status: consultationResult.status === 'verification_failed' ? 400 : 500 })
     }
 
     const expectedCurrency = process.env.FLUTTERWAVE_CURRENCY || 'UGX'

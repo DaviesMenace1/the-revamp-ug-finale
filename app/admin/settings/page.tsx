@@ -1,4 +1,6 @@
 import { getSetting } from '@/lib/actions/settings'
+import { listConsultationPromotions } from '@/lib/actions/consultation-commerce'
+import { type ConsultationPricing, type ConsultationPromotion } from './consultation-commerce-client'
 import SettingsClient from './settings-client'
 
 export const dynamic = 'force-dynamic'
@@ -26,6 +28,15 @@ const PAYMENT_DEFAULTS = {
   mobileMoney: true,
 }
 
+const CONSULTATION_PRICING_DEFAULTS: ConsultationPricing = {
+  baseFee: '200000',
+  currency: 'UGX',
+  taxRate: '18',
+  taxInclusive: true,
+  holdMinutes: 15,
+  terms: 'Consultation bookings are confirmed after successful payment. Please contact the studio if you need to change your appointment.',
+}
+
 const DOCUMENT_PROFILE_DEFAULTS = {
   name: 'The Revamp Ug',
   address: 'Kyanja, Kampala, Uganda',
@@ -46,6 +57,8 @@ export default async function AdminSettingsPage() {
   const business = await getSetting('business', BUSINESS_DEFAULTS)
   const email = await getSetting('email', EMAIL_DEFAULTS)
   const payment = await getSetting('payment', PAYMENT_DEFAULTS)
+  const consultationPricing = await getSetting('consultation_pricing', CONSULTATION_PRICING_DEFAULTS)
+  const promotions = await listConsultationPromotions()
   const documentProfile = await getSetting('document_profile', DOCUMENT_PROFILE_DEFAULTS)
 
   return (
@@ -54,6 +67,8 @@ export default async function AdminSettingsPage() {
       initialEmail={email}
       initialPayment={payment}
       initialDocumentProfile={documentProfile}
+      initialConsultationPricing={consultationPricing}
+      initialPromotions={promotions as ConsultationPromotion[]}
     />
   )
 }

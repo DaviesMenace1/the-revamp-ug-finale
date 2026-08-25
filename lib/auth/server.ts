@@ -31,12 +31,12 @@ export type AuthorizationResult = {
  * role-protected request.
  */
 export async function getCurrentUserWithRole(requiredRoles: UserRole[] = []): Promise<AuthorizationResult> {
-  const { userId } = await auth()
-  if (!userId) {
-    return { user: null, authorized: false, reason: 'unauthenticated' }
-  }
-
   try {
+    const { userId } = await auth()
+    if (!userId) {
+      return { user: null, authorized: false, reason: 'unauthenticated' }
+    }
+
     const user = await getOrCreateCurrentUser(userId)
     if (!user) {
       // Session disappeared between checks; treat as signed out.
@@ -49,7 +49,7 @@ export async function getCurrentUserWithRole(requiredRoles: UserRole[] = []): Pr
 
     return { user, authorized: true, reason: 'ok' }
   } catch (error) {
-    console.error('[auth] protected profile unavailable:', error)
+    console.error('[auth] protected authorization unavailable:', error)
     return { user: null, authorized: false, reason: 'error', error: 'profile_unavailable' }
   }
 }

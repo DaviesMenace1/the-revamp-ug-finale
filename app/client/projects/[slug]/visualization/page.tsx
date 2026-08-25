@@ -60,6 +60,9 @@ export default async function ProjectVisualizationPage({ params }: { params: Pro
     'project visualization assets',
     [],
   )
+  if (assetsResult.error) {
+    return <PageLoadError title="The 3D workspace needs another try." message="We could not load the shared models right now. Your project data was not changed; retry this route to try again." />
+  }
 
   return (
     <VisualizationViewer

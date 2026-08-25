@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { db } from '@/lib/db/client'
 import { consultationPaymentIntents, consultationPromotionRedemptions, consultationSlots } from '@/lib/db/schema'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
+import { flutterwaveConfigurationMessage, getFlutterwaveConfig } from '@/lib/flutterwave-config'
 import {
   calculatePromotionDiscount,
   getConsultationPricing,
@@ -109,11 +110,11 @@ export async function POST(request: Request) {
       if (response) return NextResponse.json(response)
     }
 
-    const flutterwaveSecret = process.env.FLUTTERWAVE_SECRET_KEY?.trim()
-    if (!flutterwaveSecret) {
+    const flutterwaveConfig = getFlutterwaveConfig()
+    if (!flutterwaveConfig.ok) {
       const insecurePublicSecretConfigured = Boolean(process.env.NEXT_PUBLIC_FLUTTERWAVE_SECRET_KEY?.trim())
-      console.error('[consultation-payment] FLUTTERWAVE_SECRET_KEY is not configured', { insecurePublicSecretConfigured })
-      return NextResponse.json({ error: insecurePublicSecretConfigured ? 'Payment setup needs one correction: rename the Flutterwave secret variable to FLUTTERWAVE_SECRET_KEY, then redeploy.' : 'Consultation payment is not configured yet. Please contact the studio while payment setup is completed.' }, { status: 503 })
+      console.error('[consultation-payment] Flutterwave configuration rejected', { mode: flutterwaveConfig.mode, reason: flutterwaveConfig.reason, insecurePublicSecretConfigured })
+      return NextResponse.json({ error: insecurePublicSecretConfigured && flutterwaveConfig.reason === 'missing' ? 'Payment setup needs one correction: rename the Flutterwave secret variable to FLUTTERWAVE_SECRET_KEY, then redeploy.' : flutterwaveConfigurationMessage(flutterwaveConfig) }, { status: 503 })
     }
 
     const txRef = `REV-CONS-${Date.now()}-${randomUUID().slice(0, 8)}`
@@ -167,10 +168,10 @@ export async function POST(request: Request) {
     let baseUrl = normalizeBaseUrl(request)
     if (!/^https?:\/\//i.test(baseUrl)) baseUrl = `https://${baseUrl}`
     const paymentOptions = 'card,mobilemoneyuganda,banktransfer'
-    const flwResponse = await fetch('https://api.flutterwave.com/v3/payments', {
+    const flwResponse = await fetch(`${flutterwaveConfig.baseUrl}/payments`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${flutterwaveSecret}`,
+        Authorization: `Bearer ${flutterwaveConfig.secretKey}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
         'X-Idempotency-Key': idempotencyKey,
@@ -201,7 +202,10 @@ export async function POST(request: Request) {
     const flwPayload = await flwResponse.json().catch(() => ({})) as { status?: string; message?: string; data?: { link?: string } }
     if (!flwResponse.ok || flwPayload.status !== 'success' || !flwPayload.data?.link) {
       await releaseFailedIntent(created.id, user.id)
-      return NextResponse.json({ error: flwPayload.message || 'Payment could not be initialized. Please try again.' }, { status: 502 })
+      const providerError = flwResponse.status === 401
+        ? `Flutterwave rejected the ${flutterwaveConfig.mode} server key. Confirm FLUTTERWAVE_SECRET_KEY contains the matching secret key, not the public key.`
+        : flwPayload.message || 'Payment could not be initialized. Please try again.'
+      return NextResponse.json({ error: providerError }, { status: flwResponse.status === 401 ? 503 : 502 })
     }
 
     const [updated] = await db.update(consultationPaymentIntents).set({ paymentUrl: flwPayload.data.link, updatedAt: new Date() }).where(and(eq(consultationPaymentIntents.id, created.id), eq(consultationPaymentIntents.status, 'pending'))).returning()

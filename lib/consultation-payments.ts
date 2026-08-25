@@ -12,9 +12,8 @@ import {
 } from '@/lib/db/schema'
 import { generateConsultationPaymentDocuments } from '@/lib/documents/consultation-payment'
 import { notifyUser } from '@/lib/notifications/service'
+import { flutterwaveConfigurationMessage, getFlutterwaveConfig } from '@/lib/flutterwave-config'
 import { revalidatePath } from 'next/cache'
-
-const FLUTTERWAVE_VERIFY_BASE = 'https://api.flutterwave.com/v3/transactions'
 
 type FlutterwaveVerification = {
   status?: string
@@ -52,22 +51,23 @@ function sameMoney(actual: unknown, expected: string) {
 }
 
 async function verifyFlutterwaveTransaction(transactionId: string, expectedTxRef: string, expectedAmount: string, expectedCurrency: string) {
-  const secret = process.env.FLUTTERWAVE_SECRET_KEY?.trim()
-  if (!secret) return { verified: false as const, error: 'Flutterwave is not configured on the server.' }
+  const config = getFlutterwaveConfig()
+  if (!config.ok) return { verified: false as const, error: flutterwaveConfigurationMessage(config) }
   if (!transactionId || !/^\d+$/.test(transactionId)) return { verified: false as const, error: 'Flutterwave did not provide a valid transaction id.' }
 
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 12_000)
   try {
-    const response = await fetch(`${FLUTTERWAVE_VERIFY_BASE}/${encodeURIComponent(transactionId)}/verify`, {
+    const response = await fetch(`${config.baseUrl}/transactions/${encodeURIComponent(transactionId)}/verify`, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${secret}`, Accept: 'application/json' },
+      headers: { Authorization: `Bearer ${config.secretKey}`, Accept: 'application/json' },
       signal: controller.signal,
       cache: 'no-store',
     })
     const payload = await response.json().catch(() => ({})) as FlutterwaveVerification
     const data = payload.data
     if (!response.ok || payload.status !== 'success' || !data || data.status !== 'successful') {
+      if (response.status === 401) return { verified: false as const, error: `Flutterwave rejected the ${config.mode} server key. Confirm FLUTTERWAVE_SECRET_KEY contains the matching secret key, not the public key.` }
       return { verified: false as const, error: payload.message || 'Flutterwave has not marked this payment successful.' }
     }
     if (data.tx_ref !== expectedTxRef) return { verified: false as const, error: 'The payment reference does not match this consultation.' }

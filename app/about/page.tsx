@@ -9,7 +9,7 @@ const teamMembers = [
   {
     name: 'Faridah Nakayiwa A.',
     title: 'Founder & Creative Director',
-    bio: 'The visionary behind The Revamp UG, blending refined East African craft with world-class design sensibility.',
+    bio: 'The visionary behind The Revamp UG, blending refined East African craft with world-class design sensibilit.',
     image: '/team/faridah-nakayiwa.webp',
   },
   {

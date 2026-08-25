@@ -31,7 +31,7 @@ const PAYMENT_DEFAULTS = {
 const CONSULTATION_PRICING_DEFAULTS: ConsultationPricing = {
   baseFee: '200000',
   currency: 'UGX',
-  taxRate: '18',
+  taxRate: '0',
   taxInclusive: true,
   holdMinutes: 15,
   terms: 'Consultation bookings are confirmed after successful payment. Please contact the studio if you need to change your appointment.',

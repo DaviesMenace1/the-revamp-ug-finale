@@ -111,8 +111,9 @@ export async function POST(request: Request) {
 
     const flutterwaveSecret = process.env.FLUTTERWAVE_SECRET_KEY?.trim()
     if (!flutterwaveSecret) {
-      console.error('[consultation-payment] FLUTTERWAVE_SECRET_KEY is not configured')
-      return NextResponse.json({ error: 'Consultation payment is not configured yet. Please contact the studio while payment setup is completed.' }, { status: 503 })
+      const insecurePublicSecretConfigured = Boolean(process.env.NEXT_PUBLIC_FLUTTERWAVE_SECRET_KEY?.trim())
+      console.error('[consultation-payment] FLUTTERWAVE_SECRET_KEY is not configured', { insecurePublicSecretConfigured })
+      return NextResponse.json({ error: insecurePublicSecretConfigured ? 'Payment setup needs one correction: rename the Flutterwave secret variable to FLUTTERWAVE_SECRET_KEY, then redeploy.' : 'Consultation payment is not configured yet. Please contact the studio while payment setup is completed.' }, { status: 503 })
     }
 
     const txRef = `REV-CONS-${Date.now()}-${randomUUID().slice(0, 8)}`

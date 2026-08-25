@@ -3,14 +3,13 @@
 
 import { useEffect } from 'react'
 import { useAuth } from '@clerk/nextjs'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { CustomSignIn, AuthIntro } from '@/components/auth/custom-auth-forms'
 import { safeRedirect } from '@/lib/auth/safe-redirect'
 
 export default function SignInPage() {
   const { isLoaded, isSignedIn } = useAuth()
   const searchParams = useSearchParams()
-  const router = useRouter()
 
   const rawRedirect = searchParams.get('redirect_url')
   const redirectUrl = rawRedirect ? safeRedirect(rawRedirect) : '/account'

@@ -32,6 +32,24 @@ function number(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+const BUDGET_LABELS: Record<string, string> = {
+  under_10m: 'Under UGX 10 million',
+  '10m_30m': 'UGX 10–30 million',
+  '30m_75m': 'UGX 30–75 million',
+  '75m_plus': 'UGX 75 million and above',
+  not_sure: 'Not sure yet',
+}
+
+function parseBudget(value: unknown) {
+  const normalized = typeof value === 'string' ? value.trim() : ''
+  if (!normalized) return { amount: null as string | null, label: null as string | null }
+
+  const parsed = Number(normalized.replace(/,/g, ''))
+  if (Number.isFinite(parsed) && parsed >= 0) return { amount: String(parsed), label: null as string | null }
+
+  return { amount: null as string | null, label: BUDGET_LABELS[normalized] || normalized.slice(0, 100) }
+}
+
 function sameMoney(actual: unknown, expected: string) {
   return number(actual) + 0.001 >= number(expected)
 }
@@ -74,6 +92,7 @@ export async function settleConsultationPayment(input: {
 
   const now = new Date()
   const metadata = (intent.metadata || {}) as IntentMetadata
+  const budget = parseBudget(metadata.budget)
   const booking = await db.transaction(async (transaction) => {
     const [slot] = await transaction
       .update(consultationSlots)
@@ -85,9 +104,12 @@ export async function settleConsultationPayment(input: {
     const [consultation] = await transaction.insert(consultations).values({
       userId: intent.userId,
       title: text(metadata.title, 'Design consultation', 255),
-      description: text(metadata.description, '', 5000) || null,
+      description: [
+        text(metadata.description, '', 5000),
+        budget.label ? `Budget range: ${budget.label}` : null,
+      ].filter(Boolean).join('\n\n').slice(0, 5000) || null,
       serviceType: text(metadata.serviceType, '', 100) || null,
-      budget: text(metadata.budget, '', 100) || null,
+      budget: budget.amount,
       preferredDate: slot.startTime,
       mode: slot.mode,
       durationMinutes: slot.durationMinutes,

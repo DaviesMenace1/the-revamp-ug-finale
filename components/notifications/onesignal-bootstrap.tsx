@@ -15,13 +15,23 @@ type OneSignalClient = {
   }
   User?: {
     PushSubscription?: {
+      id?: string | null
+      token?: string | null
+      optedIn?: boolean
       optIn?: () => Promise<void>
     }
   }
 }
 
 type NotificationPermissionResult = NotificationPermission | 'unavailable'
+type NotificationStatus = {
+  permission: NotificationPermissionResult
+  optedIn: boolean
+  subscriptionId: string | null
+  hasToken: boolean
+}
 type RequestNotificationPermission = () => Promise<NotificationPermissionResult>
+type GetNotificationStatus = () => Promise<NotificationStatus>
 
 declare global {
   interface Window {
@@ -29,6 +39,7 @@ declare global {
     __revampOneSignalInitialized?: boolean
     __revampOneSignalClient?: OneSignalClient
     __revampRequestNotificationPermission?: RequestNotificationPermission
+    __revampGetNotificationStatus?: GetNotificationStatus
   }
 }
 
@@ -96,6 +107,7 @@ function OneSignalClientBootstrap() {
 
   useEffect(() => {
     if (!enabled) return
+    void ensureInitialized().catch(() => undefined)
 
     const requestPermission: RequestNotificationPermission = async () => {
       const OneSignal = await ensureInitialized()
@@ -105,11 +117,27 @@ function OneSignalClientBootstrap() {
       }
       return browserPermission()
     }
+    const getNotificationStatus: GetNotificationStatus = async () => {
+      const OneSignal = await ensureInitialized()
+      const subscription = OneSignal.User?.PushSubscription
+      const permission = browserPermission()
+      const hasToken = Boolean(subscription?.token)
+      return {
+        permission,
+        optedIn: Boolean(subscription?.optedIn && hasToken),
+        subscriptionId: subscription?.id || null,
+        hasToken,
+      }
+    }
 
     window.__revampRequestNotificationPermission = requestPermission
+    window.__revampGetNotificationStatus = getNotificationStatus
     return () => {
       if (window.__revampRequestNotificationPermission === requestPermission) {
         delete window.__revampRequestNotificationPermission
+      }
+      if (window.__revampGetNotificationStatus === getNotificationStatus) {
+        delete window.__revampGetNotificationStatus
       }
     }
   }, [enabled, ensureInitialized])

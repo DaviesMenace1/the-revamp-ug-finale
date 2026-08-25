@@ -27,8 +27,8 @@ function oneSignalConfigured() {
 
 async function sendOneSignalPush(externalId: string, input: NotificationInput) {
   if (!oneSignalConfigured()) {
-    console.info('[notifications] OneSignal is not configured; keeping the in-app notification only.')
-    return { status: 'skipped' as const, providerMessageId: null, error: null }
+    console.warn('[notifications] OneSignal push is not configured; keeping the in-app notification only.')
+    return { status: 'skipped' as const, providerMessageId: null, error: 'OneSignal push is not configured in the server environment.' }
   }
 
   const controller = new AbortController()
@@ -88,8 +88,13 @@ export async function notifyUser(input: NotificationInput) {
         })
       : null
 
-    if (channels.includes('push') && user?.clerkId) {
-      const result = await sendOneSignalPush(user.clerkId, input)
+    if (channels.includes('push')) {
+      const result = user?.clerkId
+        ? await sendOneSignalPush(user.clerkId, input)
+        : { status: 'skipped' as const, providerMessageId: null, error: 'Recipient has no OneSignal external ID.' }
+      if (result.status !== 'sent') {
+        console.warn('[notifications] push delivery did not send:', result.error)
+      }
       await db.insert(notificationDeliveries).values({
         notificationId: notification.id,
         provider: 'onesignal',

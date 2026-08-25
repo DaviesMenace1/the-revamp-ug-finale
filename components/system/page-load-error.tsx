@@ -2,7 +2,7 @@
 
 export default function PageLoadError({
   title = 'This page is taking longer than expected.',
-  message = 'We could not load this data right now. Nothing has been changed.',
+  message = 'We could not load this data right now.Nothing has been changed.',
 }: {
   title?: string
   message?: string

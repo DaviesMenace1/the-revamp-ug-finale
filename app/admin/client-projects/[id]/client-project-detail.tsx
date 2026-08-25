@@ -60,6 +60,7 @@ async function uploadToStorage(uploadUrl: string, file: File, contentType: strin
   try {
     return await fetch(uploadUrl, {
       method: 'PUT',
+      mode: 'cors',
       headers: { 'Content-Type': contentType },
       body: file,
       signal: controller.signal,
@@ -69,7 +70,8 @@ async function uploadToStorage(uploadUrl: string, file: File, contentType: strin
       throw new Error('The storage upload timed out. Check your connection and R2 CORS settings, then try again.')
     }
     if (error instanceof TypeError) {
-      throw new Error('The browser could not reach storage. Add this site and its preview domain to the R2 bucket CORS origins, allow PUT, and allow the Content-Type header.')
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'this site'
+      throw new Error(`The browser could not reach storage from ${origin}. Add this exact origin and its preview domain to the R2 bucket CORS origins, allow PUT, and allow the Content-Type header.`)
     }
     throw error
   } finally {

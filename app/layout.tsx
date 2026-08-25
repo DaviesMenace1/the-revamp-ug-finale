@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeProvider } from '@/lib/theme-provider'
 import { NewsletterPopup } from '@/components/newsletter-popup'
 import { CookieConsentProvider } from '@/components/privacy/cookie-consent-provider'
@@ -161,7 +162,7 @@ export default function RootLayout({
             </CookieConsentProvider>
           </ClerkRuntimeGuard>
         </ClerkProvider>
-
+        <SpeedInsights />
       </body>
     </html>
   )

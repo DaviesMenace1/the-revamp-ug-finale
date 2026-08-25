@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
 
 
 const isProtectedRoute = createRouteMatcher([
@@ -8,12 +9,27 @@ const isProtectedRoute = createRouteMatcher([
   '/checkout(.*)',
   '/api/admin(.*)',
   '/api/notifications(.*)',
+  '/api/loyalty(.*)',
 ])
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     await auth.protect()
   }
+
+  const response = NextResponse.next()
+  const referralCode = req.nextUrl.searchParams.get('ref')?.trim().toUpperCase()
+  if (referralCode && /^[A-Z0-9-]{6,32}$/.test(referralCode)) {
+    response.cookies.set('revamp_referral', referralCode, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60,
+      path: '/',
+      sameSite: 'lax',
+      secure: req.nextUrl.protocol === 'https:',
+    })
+  }
+
+  return response
 })
 
 export const config = {

@@ -4,6 +4,11 @@ import { db } from '@/lib/db/client'
 import { departments, categories, subCategories } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
+
+async function isAdmin() {
+  return (await getCurrentUserWithRole(['admin'])).authorized
+}
 
 function slugify(input: string) {
   return input
@@ -16,6 +21,7 @@ function slugify(input: string) {
 // --- Departments ---
 
 export async function createDepartment(name: string) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage taxonomy.' }
   if (!name.trim()) return { success: false, error: 'Name is required.' }
   try {
     const [department] = await db
@@ -34,6 +40,7 @@ export async function updateDepartment(
   id: string,
   data: Partial<{ name: string; active: boolean; order: number }>,
 ) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage taxonomy.' }
   try {
     await db.update(departments).set(data).where(eq(departments.id, id))
     revalidatePath('/admin/categories')
@@ -45,6 +52,7 @@ export async function updateDepartment(
 }
 
 export async function deleteDepartment(id: string) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage taxonomy.' }
   try {
     await db.delete(departments).where(eq(departments.id, id))
     revalidatePath('/admin/categories')
@@ -61,6 +69,7 @@ export async function deleteDepartment(id: string) {
 // --- Categories ---
 
 export async function createCategory(departmentId: string, name: string) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage taxonomy.' }
   if (!name.trim()) return { success: false, error: 'Name is required.' }
   try {
     const [category] = await db
@@ -79,6 +88,7 @@ export async function updateCategory(
   id: string,
   data: Partial<{ name: string; active: boolean; order: number }>,
 ) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage taxonomy.' }
   try {
     await db.update(categories).set(data).where(eq(categories.id, id))
     revalidatePath('/admin/categories')
@@ -90,6 +100,7 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(id: string) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage taxonomy.' }
   try {
     await db.delete(categories).where(eq(categories.id, id))
     revalidatePath('/admin/categories')
@@ -110,6 +121,7 @@ export async function createSubCategory(
   name: string,
   templateId: string,
 ) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage taxonomy.' }
   if (!name.trim()) return { success: false, error: 'Name is required.' }
   if (!templateId) return { success: false, error: 'A template is required.' }
   try {
@@ -135,6 +147,7 @@ export async function updateSubCategory(
     googleProductCategoryPath: string
   }>,
 ) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage taxonomy.' }
   try {
     await db.update(subCategories).set(data).where(eq(subCategories.id, id))
     revalidatePath('/admin/categories')
@@ -146,6 +159,7 @@ export async function updateSubCategory(
 }
 
 export async function deleteSubCategory(id: string) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage taxonomy.' }
   try {
     await db.delete(subCategories).where(eq(subCategories.id, id))
     revalidatePath('/admin/categories')

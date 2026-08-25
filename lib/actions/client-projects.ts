@@ -5,6 +5,7 @@ import { projects, projectActivity } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
 
 function slugify(input: string) {
   return input
@@ -23,6 +24,7 @@ export async function createClientProject(data: {
   designer?: string
   dueDate?: string | null
 }) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to create client projects.' }
   if (!data.title.trim()) return { success: false, error: 'Title is required.' }
   if (!data.userId) return { success: false, error: 'A client must be selected.' }
 
@@ -77,6 +79,7 @@ export async function updateClientProject(
     dueDate: string | null
   }>,
 ) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to update client projects.' }
   try {
     const project = await db.query.projects.findFirst({
       where: and(eq(projects.id, id), eq(projects.projectKind, 'client')),
@@ -111,6 +114,7 @@ export async function updateClientProject(
 }
 
 export async function deleteClientProject(id: string) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to delete client projects.' }
   try {
     await db.delete(projects).where(and(eq(projects.id, id), eq(projects.projectKind, 'client')))
     revalidatePath('/admin/client-projects')

@@ -33,32 +33,56 @@ function itemUnitPrice(item: any) {
   return Number.isFinite(value) ? value : 0
 }
 
+type CheckoutLoyalty = {
+  balancePoints: number
+  rules: {
+    redemptionUgxPerPoint: number
+    redemptionCapPercent: number
+  }
+}
+
 export default function CheckoutPage() {
   const router = useRouter()
   const { isLoaded: isClerkLoaded, user } = useUser()
   const { items, cart, customerName, setCustomerName, isLoaded: isCartLoaded } = useCart()
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [formData, setFormData] = useState({ name: customerName || '', email: '', phone: '', address: '', city: '', country: 'Uganda', notes: '' })
+  const [loyalty, setLoyalty] = useState<CheckoutLoyalty | null>(null)
+  const [loyaltyPoints, setLoyaltyPoints] = useState('0')
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', address: '', city: '', country: 'Uganda', notes: '' })
+  const defaultName = user?.fullName || user?.firstName || customerName || ''
+  const defaultEmail = user?.primaryEmailAddress?.emailAddress || ''
+  const currentName = formData.name || defaultName
+  const currentEmail = formData.email || defaultEmail
 
   const currencies = useMemo(() => Array.from(new Set(items.map((item) => normalizeCurrency(item.currency ?? item.product?.currency)))), [items])
   const checkoutCurrency = currencies[0] || 'UGX'
   const hasMixedCurrencies = currencies.length > 1
   const hasUnavailableItems = items.some((item) => item.unavailable)
   const checkoutTotal = Number(cart?.total || items.reduce((sum, item) => sum + itemUnitPrice(item) * item.quantity, 0))
+  const checkoutSubtotal = Number(cart?.subtotal || checkoutTotal)
+  const maximumRedeemablePoints = loyalty ? Math.floor((checkoutSubtotal * loyalty.rules.redemptionCapPercent / 100) / loyalty.rules.redemptionUgxPerPoint) : 0
+  const selectedLoyaltyPoints = Math.min(Math.max(0, Math.floor(Number(loyaltyPoints) || 0)), Math.max(0, maximumRedeemablePoints), loyalty?.balancePoints ?? 0)
+  const loyaltyDiscountPreview = loyalty ? selectedLoyaltyPoints * loyalty.rules.redemptionUgxPerPoint : 0
+  const paymentTotal = Math.max(0, checkoutTotal - loyaltyDiscountPreview)
 
   useEffect(() => {
     if (!isClerkLoaded || !user) return
-    setFormData((previous) => ({
-      ...previous,
-      name: user.fullName || user.firstName || previous.name,
-      email: user.primaryEmailAddress?.emailAddress || previous.email,
-    }))
+    let cancelled = false
+    fetch('/api/loyalty/summary', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return null
+        const result = await response.json() as { loyalty?: CheckoutLoyalty | null }
+        return result.loyalty ?? null
+      })
+      .then((result) => {
+        if (!cancelled) setLoyalty(result)
+      })
+      .catch(() => {
+        if (!cancelled) setLoyalty(null)
+      })
+    return () => { cancelled = true }
   }, [isClerkLoaded, user])
-
-  useEffect(() => {
-    if (customerName && !formData.name) setFormData((previous) => ({ ...previous, name: customerName }))
-  }, [customerName, formData.name])
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target
@@ -78,7 +102,7 @@ export default function CheckoutPage() {
       setErrorMessage('One or more saved selections need review before payment. Return to the cart to remove or resolve them.')
       return
     }
-    if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.address.trim() || !formData.city.trim()) {
+    if (!currentName.trim() || !currentEmail.trim() || !formData.phone.trim() || !formData.address.trim() || !formData.city.trim()) {
       setErrorMessage('Please fill in your name, email, phone, address, and city before continuing.')
       return
     }
@@ -101,10 +125,11 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           amount: checkoutTotal,
           currency: checkoutCurrency,
-          email: formData.email.trim(),
-          customerName: formData.name.trim(),
+          email: currentEmail.trim(),
+          customerName: currentName.trim(),
           phoneNumber: formData.phone.trim(),
-          shippingAddress: { name: formData.name.trim(), address: formData.address.trim(), city: formData.city.trim(), country: formData.country.trim(), phone: formData.phone.trim(), notes: formData.notes.trim() },
+          shippingAddress: { name: currentName.trim(), address: formData.address.trim(), city: formData.city.trim(), country: formData.country.trim(), phone: formData.phone.trim(), notes: formData.notes.trim() },
+          loyaltyPoints: selectedLoyaltyPoints,
           items: items.map((item) => ({
             productId: item.productId,
             name: item.product?.name || 'Product',
@@ -123,16 +148,29 @@ export default function CheckoutPage() {
       if (!response.ok || !data?.txRef) throw new Error(data?.error || 'We could not initialize this order. Please try again.')
 
       setLoading(false)
+      let paymentCallbackReceived = false
       window.FlutterwaveCheckout({
         public_key: rawPublicKey,
         tx_ref: data.txRef,
-        amount: checkoutTotal,
+        amount: Number(data.amount) || paymentTotal,
         currency: checkoutCurrency,
         payment_options: 'card,mobilemoneyuganda,banktransfer',
-        customer: { email: formData.email.trim(), phone_number: formData.phone.trim(), name: formData.name.trim() },
-        customizations: { title: 'The Revamp UG', description: `Order #${data.txRef}` },
-        callback: (result: any) => router.push(`/checkout/success?tx_ref=${result.tx_ref}&transaction_id=${result.transaction_id}`),
-        onclose: () => setLoading(false),
+        customer: { email: currentEmail.trim(), phone_number: formData.phone.trim(), name: currentName.trim() },
+        customizations: { title: 'The Revamp UG', description: `Order #${data.txRef}${data.discountUgx ? ` · UGX ${data.discountUgx} rewards applied` : ''}` },
+        callback: (result: any) => {
+          paymentCallbackReceived = true
+          router.push(`/checkout/success?tx_ref=${result.tx_ref}&transaction_id=${result.transaction_id}`)
+        },
+        onclose: () => {
+          if (!paymentCallbackReceived) {
+            void fetch('/api/checkout/release-points', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ txRef: data.txRef }),
+            })
+          }
+          setLoading(false)
+        },
       })
     } catch (error) {
       console.error('Checkout error:', error)
@@ -166,8 +204,8 @@ export default function CheckoutPage() {
               <section className="rounded-xl border border-border/70 bg-card p-5 shadow-lift sm:p-7">
                 <div className="border-b border-border/70 pb-5"><p className="text-[10px] uppercase tracking-[0.24em] text-primary">01</p><h2 className="mt-2 font-serif text-3xl">Shipping information</h2></div>
                 <div className="mt-6 grid gap-5 sm:grid-cols-2">
-                  <div className="space-y-2 sm:col-span-2"><Label htmlFor="name">Full name</Label><Input id="name" name="name" required value={formData.name} onChange={handleInputChange} placeholder="e.g. Jane Doe" className="min-h-12 rounded-md bg-background" /></div>
-                  <div className="space-y-2"><Label htmlFor="email">Email address</Label><Input id="email" name="email" type="email" required value={formData.email} onChange={handleInputChange} placeholder="jane@example.com" className="min-h-12 rounded-md bg-background" /></div>
+                  <div className="space-y-2 sm:col-span-2"><Label htmlFor="name">Full name</Label><Input id="name" name="name" required value={currentName} onChange={handleInputChange} placeholder="e.g. Jane Doe" className="min-h-12 rounded-md bg-background" /></div>
+                  <div className="space-y-2"><Label htmlFor="email">Email address</Label><Input id="email" name="email" type="email" required value={currentEmail} onChange={handleInputChange} placeholder="jane@example.com" className="min-h-12 rounded-md bg-background" /></div>
                   <div className="space-y-2"><Label htmlFor="phone">Phone / mobile money</Label><Input id="phone" name="phone" type="tel" required value={formData.phone} onChange={handleInputChange} placeholder="+256 700 000000" className="min-h-12 rounded-md bg-background" /></div>
                   <div className="space-y-2 sm:col-span-2"><Label htmlFor="address">Street address</Label><Input id="address" name="address" required value={formData.address} onChange={handleInputChange} placeholder="Plot / Street / Delivery address" className="min-h-12 rounded-md bg-background" /></div>
                   <div className="space-y-2"><Label htmlFor="city">City / region</Label><Input id="city" name="city" required value={formData.city} onChange={handleInputChange} placeholder="Kampala" className="min-h-12 rounded-md bg-background" /></div>
@@ -178,7 +216,7 @@ export default function CheckoutPage() {
 
               <section className="rounded-xl border border-border/70 bg-card p-5 shadow-lift sm:p-7"><div className="border-b border-border/70 pb-5"><p className="text-[10px] uppercase tracking-[0.24em] text-primary">02</p><h2 className="mt-2 font-serif text-3xl">Payment method</h2></div><div className="mt-6 flex items-start gap-4 rounded-lg border border-border/70 bg-muted/30 p-4"><CreditCard className="mt-0.5 size-6 shrink-0 text-primary" aria-hidden="true" /><div><p className="text-sm font-medium">Flutterwave secure checkout</p><p className="mt-1 text-xs leading-6 text-muted-foreground">Pay by card, MTN Mobile Money, Airtel Money, or bank transfer through the secure Flutterwave overlay.</p></div></div></section>
 
-              <Button type="submit" disabled={loading || hasMixedCurrencies || hasUnavailableItems} className="min-h-14 w-full rounded-md bg-primary text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground hover:bg-primary/90">{loading ? <span className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Preparing payment…</span> : <span className="flex items-center gap-2"><Lock className="size-4" aria-hidden="true" /> Pay {formatMoney(checkoutTotal, checkoutCurrency)} securely</span>}</Button>
+              <Button type="submit" disabled={loading || hasMixedCurrencies || hasUnavailableItems} className="min-h-14 w-full rounded-md bg-primary text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground hover:bg-primary/90">{loading ? <span className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Preparing payment…</span> : <span className="flex items-center gap-2"><Lock className="size-4" aria-hidden="true" /> Pay {formatMoney(paymentTotal, checkoutCurrency)} securely</span>}</Button>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="size-4 text-emerald-600" aria-hidden="true" /> Encrypted payment via Flutterwave</div>
             </div>
 
@@ -186,7 +224,7 @@ export default function CheckoutPage() {
               <div className="mt-5 max-h-80 space-y-4 overflow-y-auto pr-1">
                 {items.map((item) => { const image = getProductImage(item); const unitPrice = itemUnitPrice(item); const currency = normalizeCurrency(item.currency ?? item.product?.currency); return <div key={item.cartItemId} className="flex gap-3 border-b border-border/60 pb-4 last:border-0 last:pb-0"><div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted">{image ? <Image src={image} alt="" fill sizes="64px" className="object-cover" /> : <div className="flex h-full items-center justify-center text-primary"><ShoppingBag className="size-5" aria-hidden="true" /></div>}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.product?.name || 'Saved selection'}</p><p className="mt-1 text-xs text-muted-foreground">Qty {item.quantity} · {formatMoney(unitPrice, currency)}</p>{item.customDimensions && <p className="mt-1 flex items-center gap-1 text-[10px] text-primary"><Sparkles className="size-3" aria-hidden="true" /> Bespoke sizing</p>}</div><p className="text-right text-sm font-medium tabular-nums">{formatMoney(unitPrice * item.quantity, currency)}</p></div> })}
               </div>
-              <div className="mt-5 space-y-3 border-t border-border/70 pt-5 text-sm"><div className="flex justify-between gap-4 text-muted-foreground"><span>Subtotal</span><span className="tabular-nums text-foreground">{formatMoney(cart?.subtotal || 0, checkoutCurrency)}</span></div><div className="flex justify-between gap-4 text-muted-foreground"><span>Delivery</span><span className="text-right text-xs">Confirmed after quotation</span></div><div className="flex justify-between gap-4 border-t border-border/70 pt-4 font-serif text-2xl text-foreground"><span>Total</span><span className="tabular-nums text-primary">{formatMoney(checkoutTotal, checkoutCurrency)}</span></div></div>
+              <div className="mt-5 space-y-3 border-t border-border/70 pt-5 text-sm"><div className="flex justify-between gap-4 text-muted-foreground"><span>Subtotal</span><span className="tabular-nums text-foreground">{formatMoney(cart?.subtotal || 0, checkoutCurrency)}</span></div><div className="flex justify-between gap-4 text-muted-foreground"><span>Delivery</span><span className="text-right text-xs">Confirmed after quotation</span></div>{loyalty && <div className="rounded-lg border border-primary/20 bg-primary/5 p-3"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-medium text-foreground">Revamp Rewards</p><p className="mt-1 text-xs text-muted-foreground">{loyalty.balancePoints.toLocaleString('en-UG')} points available</p></div><Sparkles className="size-4 text-primary" aria-hidden="true" /></div><label htmlFor="loyalty-points" className="mt-3 block text-xs font-medium text-foreground">Use points <span className="font-normal text-muted-foreground">(up to {maximumRedeemablePoints.toLocaleString('en-UG')} on this order)</span></label><input id="loyalty-points" type="number" min="0" max={maximumRedeemablePoints} step="1" value={loyaltyPoints} onChange={(event) => setLoyaltyPoints(event.target.value)} className="mt-2 min-h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" />{loyaltyDiscountPreview > 0 && <p className="mt-2 text-xs text-primary">Saving {formatMoney(loyaltyDiscountPreview, checkoutCurrency)} with points.</p>}</div>}<div className="flex justify-between gap-4 border-t border-border/70 pt-4 font-serif text-2xl text-foreground"><span>Total</span><span className="tabular-nums text-primary">{formatMoney(paymentTotal, checkoutCurrency)}</span></div></div>
               <Link href="/cart" className="mt-5 inline-flex min-h-11 items-center justify-center text-xs uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground hover:underline">Edit selection</Link>
             </aside>
           </form>

@@ -1,7 +1,9 @@
 import { and, desc, eq, gte } from 'drizzle-orm'
+import { cookies } from 'next/headers'
 import { db } from '@/lib/db/client'
-import { carts, consultations, memberships, orders } from '@/lib/db/schema'
+import { carts, consultations, orders } from '@/lib/db/schema'
 import { getOrCreateCurrentUser, getUserMembership } from '@/lib/auth/utils'
+import { getLoyaltyOverview, attributeReferralCodeForUser } from '@/lib/loyalty/service'
 import { safeQuery } from '@/lib/server/safe-query'
 
 type AccountUser = NonNullable<Awaited<ReturnType<typeof getOrCreateCurrentUser>>>
@@ -33,13 +35,19 @@ export async function getAccountOverview(userOverride?: AccountUser) {
     [],
   )
   const membershipResult = await safeQuery(getUserMembership(user.id), 'account membership', null)
+  const referralCode = (await cookies()).get('revamp_referral')?.value
+  if (referralCode) {
+    await safeQuery(attributeReferralCodeForUser(user.id, referralCode), 'account referral attribution', null)
+  }
+  const loyaltyResult = await safeQuery(getLoyaltyOverview(user.id), 'account loyalty', null)
 
   const cart = cartResult.data
   const userOrders = ordersResult.data
   const upcomingConsultations = consultationsResult.data
   const membership = membershipResult.data
+  const loyalty = loyaltyResult.data
   const cartItems = Array.isArray(cart[0]?.items) ? cart[0].items : []
-  const loadError = [cartResult, ordersResult, consultationsResult, membershipResult].some((result) => result.error)
+  const loadError = [cartResult, ordersResult, consultationsResult, membershipResult, loyaltyResult].some((result) => result.error)
 
   return {
     user,
@@ -54,5 +62,6 @@ export async function getAccountOverview(userOverride?: AccountUser) {
     orders: userOrders,
     nextConsultation: upcomingConsultations[0] ?? null,
     membership,
+    loyalty,
   }
 }

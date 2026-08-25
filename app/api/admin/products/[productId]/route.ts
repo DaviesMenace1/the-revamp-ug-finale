@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { products } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
+import { requireAdminApi } from "@/lib/auth/api"
 
 export const dynamic = "force-dynamic"
 
@@ -128,6 +129,9 @@ export async function GET(
   _request: NextRequest,
   context: RouteContext,
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId: id } = await context.params
 
@@ -191,6 +195,9 @@ export async function PATCH(
   request: NextRequest,
   context: RouteContext,
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId: id } = await context.params
 
@@ -624,6 +631,9 @@ export async function DELETE(
   _request: NextRequest,
   context: RouteContext,
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId: id } = await context.params
 

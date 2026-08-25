@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { orders, users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { sendOrderReceiptEmail } from '@/lib/email/send-receipt'
+import { safelyReleasePointsForOrder, settleSuccessfulOrderRewards } from '@/lib/loyalty/service'
 
 type DeliveryAddress = { name?: string; [key: string]: unknown }
 
@@ -29,7 +30,18 @@ export async function GET(request: NextRequest) {
   if (!txRef) return NextResponse.redirect(`${baseUrl}/checkout/failed?error=missing_ref`)
 
   if (status === 'cancelled') {
-    await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.orderNumber, txRef))
+    const [cancelledOrder] = await db
+      .select({ id: orders.id })
+      .from(orders)
+      .where(and(eq(orders.orderNumber, txRef), ne(orders.paymentStatus, 'completed')))
+      .limit(1)
+    if (cancelledOrder) {
+      await db
+        .update(orders)
+        .set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() })
+        .where(and(eq(orders.id, cancelledOrder.id), ne(orders.paymentStatus, 'completed')))
+      await safelyReleasePointsForOrder(cancelledOrder.id)
+    }
     return NextResponse.redirect(`${baseUrl}/checkout/failed?orderRef=${txRef}&reason=cancelled`)
   }
 
@@ -54,10 +66,29 @@ export async function GET(request: NextRequest) {
       verifyData.data?.currency === expectedCurrency
 
     if (isSuccessful) {
-      await db.update(orders).set({ status: 'confirmed', paymentStatus: 'completed', updatedAt: new Date() }).where(eq(orders.orderNumber, txRef))
+      const [settledOrder] = await db
+        .update(orders)
+        .set({ status: 'confirmed', paymentStatus: 'completed', updatedAt: new Date() })
+        .where(and(eq(orders.orderNumber, txRef), ne(orders.paymentStatus, 'completed')))
+        .returning({ id: orders.id })
+
+      if (!settledOrder) {
+        const [latestOrder] = await db
+          .select({ paymentStatus: orders.paymentStatus })
+          .from(orders)
+          .where(eq(orders.orderNumber, txRef))
+          .limit(1)
+        if (latestOrder?.paymentStatus === 'completed') {
+          return NextResponse.redirect(`${baseUrl}/checkout/success?orderRef=${txRef}&flw_id=${transactionId}`)
+        }
+        return NextResponse.redirect(`${baseUrl}/checkout/failed?orderRef=${txRef}&error=payment_state_conflict`)
+      }
 
       const customer = await db.query.users.findFirst({ where: eq(users.clerkId, existingOrder.userId) })
       const address = parseAddress(existingOrder.deliveryAddress)
+      if (customer) {
+        await settleSuccessfulOrderRewards(customer.id, existingOrder.id, existingOrder.subtotal)
+      }
       if (customer?.email) {
         await sendOrderReceiptEmail({
           toEmail: customer.email,
@@ -71,7 +102,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/checkout/success?orderRef=${txRef}&flw_id=${transactionId}`)
     }
 
-    await db.update(orders).set({ paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.orderNumber, txRef))
+    await db
+      .update(orders)
+      .set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() })
+      .where(and(eq(orders.orderNumber, txRef), ne(orders.paymentStatus, 'completed')))
+    await safelyReleasePointsForOrder(existingOrder.id)
     return NextResponse.redirect(`${baseUrl}/checkout/failed?orderRef=${txRef}&error=payment_unverified`)
   } catch (error) {
     console.error('Error verifying Flutterwave callback:', error)

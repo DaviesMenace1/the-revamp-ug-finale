@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { db, products, productVariants } from "@/lib/db"
 import { eq, asc } from "drizzle-orm"
+import { requireAdminApi } from "@/lib/auth/api"
 
 const variantSchema = z.object({
   type: z.enum(["COLOR", "FABRIC", "MATERIAL", "SIZE"]),
@@ -25,6 +26,9 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ productId: string }> },
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId } = await context.params
 
@@ -54,6 +58,9 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ productId: string }> },
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId } = await context.params
 
@@ -124,6 +131,9 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ productId: string }> },
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId } = await context.params
     const body = await request.json()
@@ -184,6 +194,9 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ productId: string }> },
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId } = await context.params
     const { searchParams } = new URL(request.url)

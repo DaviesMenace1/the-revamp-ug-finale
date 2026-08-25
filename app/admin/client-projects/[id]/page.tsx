@@ -36,33 +36,31 @@ export default async function AdminClientProjectDetail({
   }
 
   const project = projectResult.data
-  const [clientResult, assetsResult, documentsResult, activityResult, tasksResult] = await Promise.all([
-    safeQuery(
-      project.userId ? db.query.users.findFirst({ where: eq(users.id, project.userId) }) : Promise.resolve(undefined),
-      'client project owner',
-      undefined,
-    ),
-    safeQuery(
-      db.select().from(projectAssets).where(eq(projectAssets.projectId, id)).orderBy(desc(projectAssets.createdAt)),
-      'client project assets',
-      [],
-    ),
-    safeQuery(
-      db.select().from(projectDocuments).where(eq(projectDocuments.projectId, id)).orderBy(desc(projectDocuments.createdAt)),
-      'client project documents',
-      [],
-    ),
-    safeQuery(
-      db.select().from(projectActivity).where(eq(projectActivity.projectId, id)).orderBy(desc(projectActivity.createdAt)).limit(30),
-      'client project activity',
-      [],
-    ),
-    safeQuery(
-      db.select().from(projectTasks).where(eq(projectTasks.projectId, id)).orderBy(desc(projectTasks.createdAt)),
-      'client project tasks',
-      [],
-    ),
-  ])
+  const clientResult = await safeQuery(
+    project.userId ? db.query.users.findFirst({ where: eq(users.id, project.userId) }) : Promise.resolve(undefined),
+    'client project owner',
+    undefined,
+  )
+  const assetsResult = await safeQuery(
+    db.select().from(projectAssets).where(eq(projectAssets.projectId, id)).orderBy(desc(projectAssets.createdAt)),
+    'client project assets',
+    [],
+  )
+  const documentsResult = await safeQuery(
+    db.select().from(projectDocuments).where(eq(projectDocuments.projectId, id)).orderBy(desc(projectDocuments.createdAt)),
+    'client project documents',
+    [],
+  )
+  const activityResult = await safeQuery(
+    db.select().from(projectActivity).where(eq(projectActivity.projectId, id)).orderBy(desc(projectActivity.createdAt)).limit(30),
+    'client project activity',
+    [],
+  )
+  const tasksResult = await safeQuery(
+    db.select().from(projectTasks).where(eq(projectTasks.projectId, id)).orderBy(desc(projectTasks.createdAt)),
+    'client project tasks',
+    [],
+  )
 
   const client = clientResult.data
   const assets = assetsResult.data

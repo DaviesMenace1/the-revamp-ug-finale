@@ -9,6 +9,7 @@ import {
   GoogleMerchantConfigError,
 } from "@/lib/google-merchant/client"
 import { mapProductToMerchantResource } from "@/lib/google-merchant/map-product"
+import { requireAdminApi } from "@/lib/auth/api"
 
 export const dynamic = "force-dynamic"
 
@@ -17,6 +18,9 @@ type RouteContext = {
 }
 
 export async function POST(_req: NextRequest, { params }: RouteContext) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   const { productId: id } = await params
 
   if (!isGoogleMerchantConfigured()) {

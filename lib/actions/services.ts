@@ -4,6 +4,11 @@ import { db } from '@/lib/db/client'
 import { services, serviceCategories } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
+
+async function isAdmin() {
+  return (await getCurrentUserWithRole(['admin'])).authorized
+}
 
 function slugify(input: string) {
   return input
@@ -21,6 +26,7 @@ export async function createServiceCategory(data: {
   icon?: string
   image?: string
 }) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
     const [category] = await db
       .insert(serviceCategories)
@@ -52,6 +58,7 @@ export async function updateServiceCategory(
     featured: boolean
   }>,
 ) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
     await db
       .update(serviceCategories)
@@ -67,6 +74,7 @@ export async function updateServiceCategory(
 }
 
 export async function deleteServiceCategory(id: string) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
     await db.delete(serviceCategories).where(eq(serviceCategories.id, id))
     revalidatePath('/admin/services')
@@ -91,6 +99,7 @@ export async function createService(data: {
   image?: string
   gallery?: string[]
 }) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
     const [service] = await db
       .insert(services)
@@ -128,6 +137,7 @@ export async function updateService(
     featured: boolean
   }>,
 ) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
     await db
       .update(services)
@@ -143,6 +153,7 @@ export async function updateService(
 }
 
 export async function deleteService(id: string) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
     await db.delete(services).where(eq(services.id, id))
     revalidatePath('/admin/services')

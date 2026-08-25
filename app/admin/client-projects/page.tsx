@@ -7,8 +7,7 @@ import { safeQuery } from '@/lib/server/safe-query'
 export const dynamic = 'force-dynamic'
 
 export default async function AdminClientProjectsPage() {
-    const [rowsResult, usersResult] = await Promise.all([
-    safeQuery(
+    const rowsResult = await safeQuery(
       db
         .select({
           id: projects.id,
@@ -27,16 +26,15 @@ export default async function AdminClientProjectsPage() {
         .orderBy(desc(projects.createdAt)),
       'admin client projects',
       [],
-    ),
-    safeQuery(
+    )
+    const usersResult = await safeQuery(
       db
         .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email })
         .from(users)
         .orderBy(users.email),
       'admin project clients',
       [],
-    ),
-  ])
+    )
 
   const rows = rowsResult.data
   const allUsers = usersResult.data

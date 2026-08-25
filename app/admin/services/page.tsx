@@ -6,10 +6,8 @@ import ServicesClient from './services-client'
 export const dynamic = 'force-dynamic'
 
 export default async function AdminServicesPage() {
-  const [allCategories, allServices] = await Promise.all([
-    db.query.serviceCategories.findMany({ orderBy: asc(serviceCategories.order) }),
-    db.query.services.findMany({ orderBy: asc(services.order) }),
-  ])
+  const allCategories = await db.query.serviceCategories.findMany({ orderBy: asc(serviceCategories.order) })
+  const allServices = await db.query.services.findMany({ orderBy: asc(services.order) })
 
   const formattedCategories = allCategories.map((c) => ({
     ...c,

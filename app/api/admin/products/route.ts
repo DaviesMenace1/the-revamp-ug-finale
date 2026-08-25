@@ -6,6 +6,7 @@ import {
   products,
   subCategories,
 } from "@/lib/db"
+import { requireAdminApi } from "@/lib/auth/api"
 
 const productSchema = z.object({
   name: z.string().min(1),
@@ -98,6 +99,9 @@ const productSchema = z.object({
 export async function POST(
   request: Request,
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const body = await request.json()
 

@@ -43,12 +43,10 @@ const DOCUMENT_PROFILE_DEFAULTS = {
 }
 
 export default async function AdminSettingsPage() {
-  const [business, email, payment, documentProfile] = await Promise.all([
-    getSetting('business', BUSINESS_DEFAULTS),
-    getSetting('email', EMAIL_DEFAULTS),
-    getSetting('payment', PAYMENT_DEFAULTS),
-    getSetting('document_profile', DOCUMENT_PROFILE_DEFAULTS),
-  ])
+  const business = await getSetting('business', BUSINESS_DEFAULTS)
+  const email = await getSetting('email', EMAIL_DEFAULTS)
+  const payment = await getSetting('payment', PAYMENT_DEFAULTS)
+  const documentProfile = await getSetting('document_profile', DOCUMENT_PROFILE_DEFAULTS)
 
   return (
     <SettingsClient

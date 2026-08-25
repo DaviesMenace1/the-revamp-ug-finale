@@ -1,10 +1,11 @@
 'use server'
 
 import { db } from '@/lib/db/client'
-import { conversations, conversationMessages, users } from '@/lib/db/schema'
+import { conversations, conversationMessages } from '@/lib/db/schema'
 import { eq, desc, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
 
 async function getOrCreateConversation(userId: string, subject = 'General') {
   const existing = await db.query.conversations.findFirst({
@@ -87,6 +88,7 @@ export async function markClientMessagesRead() {
 // --- Admin-side actions ---
 
 export async function getConversationMessages(conversationId: string) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to view messages.', messages: [] }
   try {
     const messages = await db
       .select()
@@ -108,6 +110,7 @@ export async function getConversationMessages(conversationId: string) {
 }
 
 export async function sendAdminReply(conversationId: string, body: string, adminName?: string) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to reply to messages.' }
   if (!body.trim()) return { success: false, error: 'Message cannot be empty.' }
 
   try {
@@ -140,6 +143,7 @@ export async function sendAdminReply(conversationId: string, body: string, admin
 }
 
 export async function markAdminMessagesRead(conversationId: string) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false }
   try {
     await db
       .update(conversations)
@@ -155,6 +159,7 @@ export async function markAdminMessagesRead(conversationId: string) {
 }
 
 export async function updateConversationStatus(conversationId: string, status: string) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to update messages.' }
   try {
     await db
       .update(conversations)

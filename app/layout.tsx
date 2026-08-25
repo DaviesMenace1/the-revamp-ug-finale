@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next'
-import Script from 'next/script'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google'
 import { ThemeProvider } from '@/lib/theme-provider'
@@ -153,10 +152,6 @@ export default function RootLayout({
           <ClerkRuntimeGuard configured={hasValidClerkPublishableKey}>
             <CookieConsentProvider>
               <CartProvider>
-                <Script
-                  src="https://checkout.flutterwave.com/v3.js"
-                  strategy="lazyOnload"
-                />
                 <ThemeProvider>{children}</ThemeProvider>
                 <NewsletterPopup />
                 <OneSignalBootstrap />

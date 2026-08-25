@@ -4,6 +4,7 @@ import { projectDocuments, projectActivity, projects } from "@/lib/db/schema"
 import { eq, and, desc } from "drizzle-orm"
 import { uploadToR2, deleteFromR2, keyFromR2Url, isR2Configured } from "@/lib/storage/r2"
 import { getOrCreateCurrentUser } from "@/lib/auth/utils"
+import { requireAdminApi } from "@/lib/auth/api"
 
 export const dynamic = "force-dynamic"
 
@@ -11,6 +12,9 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { id: projectId } = await context.params
 
@@ -34,6 +38,9 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { id: projectId } = await context.params
 
@@ -122,6 +129,9 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { id: projectId } = await context.params
     const body = await request.json()
@@ -171,6 +181,9 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { id: projectId } = await context.params
     const { searchParams } = new URL(request.url)

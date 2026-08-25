@@ -2184,6 +2184,81 @@ export const supportTicketMessagesRelations = relations(
   }),
 )
 
+export const loyaltyAccounts = pgTable(
+  "loyalty_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    balancePoints: integer("balance_points").notNull().default(0),
+    lifetimeEarned: integer("lifetime_earned").notNull().default(0),
+    lifetimeRedeemed: integer("lifetime_redeemed").notNull().default(0),
+    referralCode: varchar("referral_code", { length: 32 }).notNull().unique(),
+    lastDailyClaimedAt: timestamp("last_daily_claimed_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: uniqueIndex("loyalty_accounts_user_idx").on(table.userId),
+    referralCodeIdx: uniqueIndex("loyalty_accounts_referral_code_idx").on(table.referralCode),
+  }),
+)
+
+export const loyaltyTransactions = pgTable(
+  "loyalty_transactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => loyaltyAccounts.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    points: integer("points").notNull(),
+    type: varchar("type", { length: 50 }).notNull(),
+    eventKey: varchar("event_key", { length: 180 }).notNull().unique(),
+    description: varchar("description", { length: 255 }).notNull(),
+    orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+    expiresAt: timestamp("expires_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    accountIdx: index("loyalty_transactions_account_idx").on(table.accountId, table.createdAt),
+    userIdx: index("loyalty_transactions_user_idx").on(table.userId, table.createdAt),
+    typeIdx: index("loyalty_transactions_type_idx").on(table.type),
+    orderIdx: index("loyalty_transactions_order_idx").on(table.orderId),
+    expiryIdx: index("loyalty_transactions_expiry_idx").on(table.expiresAt),
+  }),
+)
+
+export const loyaltyReferrals = pgTable(
+  "loyalty_referrals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    referralCode: varchar("referral_code", { length: 32 }).notNull(),
+    referrerUserId: uuid("referrer_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    referredUserId: uuid("referred_user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
+    qualifyingOrderId: uuid("qualifying_order_id").unique().references(() => orders.id, { onDelete: "set null" }),
+    rewardPoints: integer("reward_points").notNull().default(500),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    qualifiedAt: timestamp("qualified_at"),
+  },
+  (table) => ({
+    codeIdx: index("loyalty_referrals_code_idx").on(table.referralCode),
+    referrerIdx: index("loyalty_referrals_referrer_idx").on(table.referrerUserId, table.createdAt),
+    statusIdx: index("loyalty_referrals_status_idx").on(table.status),
+  }),
+)
+
 export const usersRelations = relations(users, ({ many, one }) => ({
   orders: many(orders),
   consultations: many(consultations),
@@ -2202,6 +2277,10 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   createdFinancialDocuments: many(financialDocuments, { relationName: 'financialDocumentsCreator' }),
   notifications: many(notifications),
   notificationPreferences: one(notificationPreferences),
+  loyaltyAccount: one(loyaltyAccounts),
+  loyaltyTransactions: many(loyaltyTransactions),
+  loyaltyReferralsSent: many(loyaltyReferrals, { relationName: 'loyaltyReferrer' }),
+  loyaltyReferralsReceived: many(loyaltyReferrals, { relationName: 'loyaltyReferred' }),
 }))
 
 export const departmentsRelations = relations(
@@ -2454,3 +2533,43 @@ export const serviceRequestsRelations = relations(
 
 
 
+
+export const loyaltyAccountsRelations = relations(loyaltyAccounts, ({ one, many }) => ({
+  user: one(users, {
+    fields: [loyaltyAccounts.userId],
+    references: [users.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}))
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  account: one(loyaltyAccounts, {
+    fields: [loyaltyTransactions.accountId],
+    references: [loyaltyAccounts.id],
+  }),
+  user: one(users, {
+    fields: [loyaltyTransactions.userId],
+    references: [users.id],
+  }),
+  order: one(orders, {
+    fields: [loyaltyTransactions.orderId],
+    references: [orders.id],
+  }),
+}))
+
+export const loyaltyReferralsRelations = relations(loyaltyReferrals, ({ one }) => ({
+  referrer: one(users, {
+    relationName: 'loyaltyReferrer',
+    fields: [loyaltyReferrals.referrerUserId],
+    references: [users.id],
+  }),
+  referred: one(users, {
+    relationName: 'loyaltyReferred',
+    fields: [loyaltyReferrals.referredUserId],
+    references: [users.id],
+  }),
+  qualifyingOrder: one(orders, {
+    fields: [loyaltyReferrals.qualifyingOrderId],
+    references: [orders.id],
+  }),
+}))

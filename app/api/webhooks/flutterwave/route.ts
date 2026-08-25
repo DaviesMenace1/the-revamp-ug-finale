@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { orders, paymentRecords, users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { sendOrderReceiptEmail } from '@/lib/email/send-receipt'
 import { notifyUser } from '@/lib/notifications/service'
 import { generateVerifiedPaymentReceipt } from '@/lib/documents/payment-receipt'
+import { safelyReleasePointsForOrder, settleSuccessfulOrderRewards } from '@/lib/loyalty/service'
 
 type DeliveryAddress = { name?: string; [key: string]: unknown }
 
@@ -41,11 +42,20 @@ export async function POST(req: NextRequest) {
     const amountMatches = Number(data.amount) >= Number(existingOrder.total)
     const currencyMatches = data.currency === expectedCurrency
     if (!amountMatches || !currencyMatches) {
-      await db.update(orders).set({ paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.orderNumber, data.tx_ref))
+      await db
+        .update(orders)
+        .set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() })
+        .where(and(eq(orders.orderNumber, data.tx_ref), ne(orders.paymentStatus, 'completed')))
+      await safelyReleasePointsForOrder(existingOrder.id)
       return NextResponse.json({ error: 'Payment amount or currency mismatch' }, { status: 400 })
     }
 
-    await db.update(orders).set({ status: 'confirmed', paymentStatus: 'completed', updatedAt: new Date() }).where(eq(orders.orderNumber, data.tx_ref))
+    const [settledOrder] = await db
+      .update(orders)
+      .set({ status: 'confirmed', paymentStatus: 'completed', updatedAt: new Date() })
+      .where(and(eq(orders.orderNumber, data.tx_ref), ne(orders.paymentStatus, 'completed')))
+      .returning({ id: orders.id })
+    if (!settledOrder) return NextResponse.json({ message: 'Order already processed' })
 
     const customer = await db.query.users.findFirst({ where: eq(users.clerkId, existingOrder.userId) })
     if (customer) {
@@ -74,6 +84,7 @@ export async function POST(req: NextRequest) {
           transactionReference: String(data.id || data.tx_ref),
         })
       }
+      await settleSuccessfulOrderRewards(customer.id, existingOrder.id, existingOrder.subtotal)
       void notifyUser({ userId: customer.id, type: 'payment_completed', priority: 'important', title: 'Payment confirmed', message: `Payment for order ${existingOrder.orderNumber} was confirmed.`, actionUrl: '/client/orders', channels: ['in_app', 'push'] })
     }
     const address = parseAddress(existingOrder.deliveryAddress)

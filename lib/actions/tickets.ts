@@ -2,9 +2,10 @@
 
 import { db } from '@/lib/db/client'
 import { supportTickets, supportTicketMessages } from '@/lib/db/schema'
-import { eq, desc, asc } from 'drizzle-orm'
+import { eq, asc } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
 
 function generateTicketNumber() {
   const rand = Math.floor(1000 + Math.random() * 9000)
@@ -63,6 +64,9 @@ export async function replyToTicketAsClient(ticketId: string, body: string) {
   if (!body.trim()) return { success: false, error: 'Message cannot be empty.' }
 
   try {
+    const ticket = await db.query.supportTickets.findFirst({ where: eq(supportTickets.id, ticketId) })
+    if (!ticket || ticket.userId !== user.id) return { success: false, error: 'Not authorized.' }
+
     const [message] = await db
       .insert(supportTicketMessages)
       .values({
@@ -89,7 +93,13 @@ export async function replyToTicketAsClient(ticketId: string, body: string) {
 }
 
 export async function getTicketMessages(ticketId: string) {
+  const authorization = await getCurrentUserWithRole()
+  const user = authorization.user
+  if (!authorization.authorized || !user) return { success: false, error: 'Not authorized.', messages: [] }
   try {
+    const ticket = await db.query.supportTickets.findFirst({ where: eq(supportTickets.id, ticketId) })
+    if (!ticket || (user.role !== 'admin' && ticket.userId !== user.id)) return { success: false, error: 'Not authorized.', messages: [] }
+
     const messages = await db
       .select()
       .from(supportTicketMessages)
@@ -109,6 +119,7 @@ export async function getTicketMessages(ticketId: string) {
 // --- Admin-side actions ---
 
 export async function replyToTicketAsAdmin(ticketId: string, body: string, adminName?: string) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to reply to tickets.' }
   if (!body.trim()) return { success: false, error: 'Message cannot be empty.' }
 
   try {
@@ -137,6 +148,7 @@ export async function replyToTicketAsAdmin(ticketId: string, body: string, admin
 }
 
 export async function updateTicketStatus(ticketId: string, status: string) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to update tickets.' }
   try {
     await db
       .update(supportTickets)
@@ -157,6 +169,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
 }
 
 export async function updateTicketPriority(ticketId: string, priority: string) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to update tickets.' }
   try {
     await db
       .update(supportTickets)

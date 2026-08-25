@@ -4,6 +4,7 @@ import { db } from '@/lib/db/client'
 import { articles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
 
 function slugify(input: string) {
   return input
@@ -22,6 +23,7 @@ export async function createArticle(data: {
   featuredImage?: string
   status?: string
 }) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to manage articles.' }
   try {
     const [article] = await db
       .insert(articles)
@@ -58,6 +60,7 @@ export async function updateArticle(
     status: string
   }>,
 ) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to manage articles.' }
   try {
     const patch: Record<string, unknown> = { ...data, updatedAt: new Date() }
 
@@ -82,6 +85,7 @@ export async function updateArticle(
 }
 
 export async function deleteArticle(id: string) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to manage articles.' }
   try {
     await db.delete(articles).where(eq(articles.id, id))
     revalidatePath('/admin/blogs')

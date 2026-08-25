@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowUpRight, CalendarDays, Heart, ShoppingBag } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useCart } from '@/lib/context/cart-context' // 👈 Import useCart
+import { LoyaltyCard } from './loyalty-card'
 
 type AccountData = Awaited<ReturnType<typeof import('@/lib/account/queries').getAccountOverview>>
 
@@ -39,7 +40,7 @@ function WishlistCount() {
 }
 
 export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
-  const { user, cartCount: serverCartCount, orders, nextConsultation, membership, loadError } = data
+  const { user, cartCount: serverCartCount, orders, nextConsultation, membership, loadError, loyalty } = data
   const firstName = user.firstName || ''
   const greeting = firstName ? `Welcome back, ${firstName}` : 'Welcome back'
 
@@ -73,13 +74,15 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
       </header>
 
       {loadError && (
-        <div role="status" className="flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+        <div role="status" className="flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-400/30 dark:bg-amber-950/30 dark:text-amber-100">
           <span>{loadError}</span>
           <button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">
             Retry
           </button>
         </div>
       )}
+
+      {loyalty && <LoyaltyCard data={loyalty} />}
 
       <section className="flex flex-col gap-5" aria-labelledby="shopping-heading">
         <SectionHeading

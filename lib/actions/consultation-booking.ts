@@ -37,19 +37,19 @@ export async function createSlots(data: {
   durationMinutes: number
   mode: string
 }) {
-  const authorization = await getCurrentUserWithRole(['admin'])
-  if (!authorization.authorized) return { success: false, error: 'Only administrators can manage consultation availability.' }
-
-  const durationMinutes = Number(data.durationMinutes)
-  const dates = Array.from(new Set(data.startTimes))
-    .map((value) => new Date(value))
-    .filter((date) => Number.isFinite(date.getTime()) && date.getTime() > Date.now())
-
-  if (dates.length === 0) return { success: false, error: 'Pick at least one future time.' }
-  if (!Number.isInteger(durationMinutes) || durationMinutes < 15 || durationMinutes > 240) return { success: false, error: 'Duration must be between 15 and 240 minutes.' }
-  if (!VALID_MODES.has(data.mode)) return { success: false, error: 'Choose a valid meeting format.' }
-
   try {
+    const authorization = await getCurrentUserWithRole(['admin'])
+    if (!authorization.authorized) return { success: false, error: 'Only administrators can manage consultation availability.' }
+
+    const durationMinutes = Number(data.durationMinutes)
+    const dates = Array.from(new Set(data.startTimes))
+      .map((value) => new Date(value))
+      .filter((date) => Number.isFinite(date.getTime()) && date.getTime() > Date.now())
+
+    if (dates.length === 0) return { success: false, error: 'Pick at least one future time.' }
+    if (!Number.isInteger(durationMinutes) || durationMinutes < 15 || durationMinutes > 240) return { success: false, error: 'Duration must be between 15 and 240 minutes.' }
+    if (!VALID_MODES.has(data.mode)) return { success: false, error: 'Choose a valid meeting format.' }
+
     const rows = dates.map((startTime) => ({ startTime, durationMinutes, mode: data.mode }))
     const created = await db.insert(consultationSlots).values(rows).returning({
       id: consultationSlots.id,
@@ -69,11 +69,11 @@ export async function createSlots(data: {
 }
 
 export async function deleteSlot(slotId: string) {
-  const authorization = await getCurrentUserWithRole(['admin'])
-  if (!authorization.authorized) return { success: false, error: 'Only administrators can manage consultation availability.' }
-  if (!slotId) return { success: false, error: 'A slot is required.' }
-
   try {
+    const authorization = await getCurrentUserWithRole(['admin'])
+    if (!authorization.authorized) return { success: false, error: 'Only administrators can manage consultation availability.' }
+    if (!slotId) return { success: false, error: 'A slot is required.' }
+
     const deleted = await db
       .delete(consultationSlots)
       .where(and(eq(consultationSlots.id, slotId), eq(consultationSlots.isBooked, false)))

@@ -5,7 +5,7 @@ import { Building2, Calendar, CheckCircle2, Clock3, MapPin, Plus, Search, Trash2
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { createSlots, deleteSlot } from '@/lib/actions/consultation-booking'
+import { deleteSlot } from '@/lib/actions/consultation-booking'
 import { updateConsultationStatus, updateConsultationNotes, deleteConsultation } from '@/lib/actions/consultations'
 
 type Consultation = {
@@ -40,6 +40,8 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-muted text-muted-foreground',
 }
 
+const SLOT_REQUEST_TIMEOUT_MS = 15_000
+
 const MODE_META: Record<string, { label: string; icon: typeof Video }> = {
   virtual: { label: 'Virtual', icon: Video },
   in_person: { label: 'In person', icon: MapPin },
@@ -52,6 +54,15 @@ function dateLabel(value: string) {
 
 function timeLabel(value: string) {
   return new Date(value).toLocaleTimeString('en-UG', { hour: 'numeric', minute: '2-digit' })
+}
+
+async function parseSlotResponse(response: Response) {
+  const text = await response.text()
+  try {
+    return JSON.parse(text) as { success?: boolean; slots?: Slot[]; error?: string }
+  } catch {
+    throw new Error(response.ok ? 'The availability service returned an invalid response.' : `The availability request failed (HTTP ${response.status}).`)
+  }
 }
 
 function localDateTimeMin() {
@@ -77,6 +88,7 @@ export default function ConsultationsClient({
   const [slotMode, setSlotMode] = useState('virtual')
   const [slotMessage, setSlotMessage] = useState('')
   const [slotError, setSlotError] = useState('')
+  const [slotSaveState, setSlotSaveState] = useState<'idle' | 'saving' | 'unknown'>('idle')
   const [isPending, startTransition] = useTransition()
 
   const filtered = useMemo(() => {
@@ -87,6 +99,7 @@ export default function ConsultationsClient({
 
   function handleCreateSlot(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (slotSaveState !== 'idle') return
     setSlotError('')
     setSlotMessage('')
     if (!slotStart) {
@@ -99,16 +112,43 @@ export default function ConsultationsClient({
       return
     }
     const durationMinutes = Number(slotDuration)
+    setSlotSaveState('saving')
     startTransition(async () => {
-      const response = await createSlots({ startTimes: [start.toISOString()], durationMinutes, mode: slotMode })
-      if (!response.success) {
-        setSlotError(response.error || 'Unable to create this slot.')
-        return
+      let timedOut = false
+      let timeoutId: number | undefined
+      try {
+        const timeout = new Promise<never>((_, reject) => {
+          timeoutId = window.setTimeout(() => {
+            timedOut = true
+            reject(new Error('The availability request timed out.'))
+          }, SLOT_REQUEST_TIMEOUT_MS)
+        })
+        const request = await fetch('/api/admin/consultations/slots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ startTimes: [start.toISOString()], durationMinutes, mode: slotMode }),
+        })
+        const response = await Promise.race([parseSlotResponse(request), timeout])
+        if (!request.ok && response.success !== false) throw new Error(`The availability request failed (HTTP ${request.status}).`)
+        if (!response.success) {
+          setSlotError(response.error || 'Unable to create this slot.')
+          return
+        }
+        const createdSlots: Slot[] = (response.slots ?? []).map((slot) => ({ ...slot, startTime: slot.startTime, isBooked: Boolean(slot.isBooked), consultationId: slot.consultationId ?? null }))
+        setSlots((current) => [...current, ...createdSlots].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()))
+        setSlotStart('')
+        setSlotMessage('Availability added. It is now visible on the public booking form.')
+      } catch (error) {
+        if (timedOut) {
+          setSlotSaveState('unknown')
+          setSlotError('The server did not respond. Refresh this page before trying again so you do not create a duplicate slot.')
+        } else {
+          setSlotError(error instanceof Error ? error.message : 'Unable to create this slot.')
+        }
+      } finally {
+        if (timeoutId !== undefined) window.clearTimeout(timeoutId)
+        if (!timedOut) setSlotSaveState('idle')
       }
-      const createdSlots: Slot[] = (response.slots ?? []).map((slot) => ({ ...slot, startTime: slot.startTime, isBooked: Boolean(slot.isBooked), consultationId: slot.consultationId ?? null }))
-      setSlots((current) => [...current, ...createdSlots].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()))
-      setSlotStart('')
-      setSlotMessage('Availability added. It is now visible on the public booking form.')
     })
   }
 
@@ -164,7 +204,7 @@ export default function ConsultationsClient({
       <div className="flex flex-col gap-3 border-b border-border/70 pb-7 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[10px] uppercase tracking-[0.24em] text-primary">Studio calendar</p><h1 className="mt-2 font-serif text-4xl font-light text-foreground">Consultations</h1><p className="mt-2 text-sm text-muted-foreground">Set availability first, then manage the conversations clients book.</p></div><div className="flex items-center gap-2 text-xs text-muted-foreground"><Calendar className="size-4 text-gold" />{slots.filter((slot) => !slot.isBooked).length} open slots</div></div>
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-        <Card className="rounded-xl border-border/70 bg-card shadow-soft"><CardHeader><div className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-full bg-gold/15 text-primary"><Plus className="size-5" /></span><div><CardTitle>Set availability</CardTitle><CardDescription>Add a time clients can book.</CardDescription></div></div></CardHeader><CardContent><form onSubmit={handleCreateSlot} className="space-y-4"><div><label htmlFor="slot-start" className="mb-2 block text-xs font-medium text-foreground">Date and start time</label><Input id="slot-start" type="datetime-local" min={localDateTimeMin()} value={slotStart} onChange={(event) => setSlotStart(event.target.value)} className="min-h-12 rounded-none" required /></div><div className="grid gap-4 sm:grid-cols-2"><div><label htmlFor="slot-duration" className="mb-2 block text-xs font-medium text-foreground">Duration</label><select id="slot-duration" value={slotDuration} onChange={(event) => setSlotDuration(event.target.value)} className="min-h-12 w-full rounded-none border border-input bg-background px-3 text-sm text-foreground"><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">2 hours</option></select></div><div><label htmlFor="slot-mode" className="mb-2 block text-xs font-medium text-foreground">Meeting format</label><select id="slot-mode" value={slotMode} onChange={(event) => setSlotMode(event.target.value)} className="min-h-12 w-full rounded-none border border-input bg-background px-3 text-sm text-foreground"><option value="virtual">Virtual</option><option value="in_person">In person</option><option value="showroom">Showroom</option></select></div></div>{slotError && <p role="alert" className="border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{slotError}</p>}{slotMessage && <p role="status" className="flex items-center gap-2 border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"><CheckCircle2 className="size-4" />{slotMessage}</p>}<Button type="submit" disabled={isPending} className="min-h-11 w-full rounded-none text-xs uppercase tracking-[0.14em]">{isPending ? 'Saving availability…' : 'Add bookable slot'}</Button></form></CardContent></Card>
+        <Card className="rounded-xl border-border/70 bg-card shadow-soft"><CardHeader><div className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-full bg-gold/15 text-primary"><Plus className="size-5" /></span><div><CardTitle>Set availability</CardTitle><CardDescription>Add a time clients can book.</CardDescription></div></div></CardHeader><CardContent><form onSubmit={handleCreateSlot} className="space-y-4"><div><label htmlFor="slot-start" className="mb-2 block text-xs font-medium text-foreground">Date and start time</label><Input id="slot-start" type="datetime-local" min={localDateTimeMin()} value={slotStart} onChange={(event) => setSlotStart(event.target.value)} className="min-h-12 rounded-none" required /></div><div className="grid gap-4 sm:grid-cols-2"><div><label htmlFor="slot-duration" className="mb-2 block text-xs font-medium text-foreground">Duration</label><select id="slot-duration" value={slotDuration} onChange={(event) => setSlotDuration(event.target.value)} className="min-h-12 w-full rounded-none border border-input bg-background px-3 text-sm text-foreground"><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">2 hours</option></select></div><div><label htmlFor="slot-mode" className="mb-2 block text-xs font-medium text-foreground">Meeting format</label><select id="slot-mode" value={slotMode} onChange={(event) => setSlotMode(event.target.value)} className="min-h-12 w-full rounded-none border border-input bg-background px-3 text-sm text-foreground"><option value="virtual">Virtual</option><option value="in_person">In person</option><option value="showroom">Showroom</option></select></div></div>{slotError && <p role="alert" className="border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{slotError}</p>}{slotMessage && <p role="status" className="flex items-center gap-2 border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"><CheckCircle2 className="size-4" />{slotMessage}</p>}<Button type="submit" disabled={isPending || slotSaveState !== 'idle'} className="min-h-11 w-full rounded-none text-xs uppercase tracking-[0.14em]">{slotSaveState === 'unknown' ? 'Refresh to check availability' : slotSaveState === 'saving' || isPending ? 'Saving availability…' : 'Add bookable slot'}</Button></form></CardContent></Card>
 
         <Card className="rounded-xl border-border/70 bg-card shadow-soft"><CardHeader><div className="flex items-center justify-between gap-3"><div><CardTitle>Upcoming availability</CardTitle><CardDescription>Only future slots appear on the public booking page.</CardDescription></div><Clock3 className="size-5 text-gold" /></div></CardHeader><CardContent>{slots.length === 0 ? <div className="rounded-lg border border-dashed border-border p-8 text-center"><p className="font-serif text-2xl">No slots yet.</p><p className="mt-2 text-sm leading-6 text-muted-foreground">Use the form beside this panel to publish the first appointment window.</p></div> : <div className="space-y-2">{slots.map((slot) => { const meta = MODE_META[slot.mode] || MODE_META.virtual; const ModeIcon = meta.icon; return <div key={slot.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 bg-background p-3"><div className="flex items-center gap-3"><span className={`flex size-9 items-center justify-center rounded-full ${slot.isBooked ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}><ModeIcon className="size-4" /></span><div><p className="text-sm font-medium text-foreground">{dateLabel(slot.startTime)} · {timeLabel(slot.startTime)}</p><p className="mt-1 text-xs text-muted-foreground">{meta.label} · {slot.durationMinutes} minutes{slot.isBooked ? ' · Booked' : ' · Open'}</p></div></div>{slot.isBooked ? <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Reserved</span> : <button type="button" onClick={() => handleDeleteSlot(slot)} disabled={isPending} className="inline-flex min-h-10 items-center gap-2 px-2 text-xs text-muted-foreground hover:text-rose-700 disabled:opacity-50"><Trash2 className="size-4" />Remove</button>}</div> })}</div>}</CardContent></Card>
       </section>

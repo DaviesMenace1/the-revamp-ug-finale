@@ -51,6 +51,8 @@ const ASSET_TYPES = [
   'presentation',
 ]
 
+const DOCUMENT_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.rtf', '.odt', '.ods', '.odp'])
+
 const APPROVAL_BADGE: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800',
   approved: 'bg-emerald-100 text-emerald-800',
@@ -228,26 +230,61 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
       return
     }
 
+    const extension = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')).toLowerCase() : ''
+    if (!DOCUMENT_EXTENSIONS.has(extension)) {
+      setError('Choose a supported document: PDF, Word, Excel, PowerPoint, text, CSV, or OpenDocument.')
+      return
+    }
+    if (file.size <= 0 || file.size > 100 * 1024 * 1024) {
+      setError('Documents must be between 1 byte and 100 MB.')
+      return
+    }
+
     setError('')
     setUploadingDoc(true)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('name', docForm.name)
-      formData.append('category', docForm.category)
-      formData.append('visibility', docForm.visibility)
-      formData.append('signatureStatus', docForm.signatureStatus)
-
-      const res = await fetch(`/api/admin/projects/${project.id}/documents`, {
+      const prepareResponse = await fetch(`/api/admin/projects/${project.id}/documents`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'presign',
+          filename: file.name,
+          contentType: file.type,
+        }),
       })
-      const data = await parseApiResponse<{ success?: boolean; document?: Document; error?: string }>(res, 'The document upload returned an invalid response.')
+      const prepared = await parseApiResponse<{ success?: boolean; uploadUrl?: string; storageKey?: string; contentType?: string; error?: string }>(prepareResponse, 'The document upload could not be prepared.')
+      if (!prepareResponse.ok || !prepared.success || !prepared.uploadUrl || !prepared.storageKey) {
+        throw new Error(prepared.error || 'The document upload could not be prepared.')
+      }
 
+      const uploadResponse = await fetch(prepared.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': prepared.contentType || file.type || 'application/octet-stream' },
+        body: file,
+      })
+      if (!uploadResponse.ok) {
+        throw new Error(`The file could not be sent to storage (HTTP ${uploadResponse.status}). Check the R2 bucket CORS settings and try again.`)
+      }
+
+      const completeResponse = await fetch(`/api/admin/projects/${project.id}/documents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'complete',
+          name: docForm.name,
+          category: docForm.category,
+          visibility: docForm.visibility,
+          signatureStatus: docForm.signatureStatus,
+          filename: file.name,
+          contentType: file.type,
+          storageKey: prepared.storageKey,
+        }),
+      })
+      const data = await parseApiResponse<{ success?: boolean; document?: Document; error?: string }>(completeResponse, 'The document was uploaded but could not be added to the project.')
       const document = data.document
-      if (!res.ok || !data.success || !document) {
-        throw new Error(data.error || 'Failed to upload document.')
+      if (!completeResponse.ok || !data.success || !document) {
+        throw new Error(data.error || 'The document was uploaded but could not be added to the project.')
       }
 
       setProject((p) => ({ ...p, documents: [document, ...p.documents] }))
@@ -557,8 +594,13 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
                   <option value="internal">Internal only</option>
                 </select>
               </div>
-              <input ref={docFileRef} type="file" className="text-sm" />
-              <Button size="sm" disabled={uploadingDoc} onClick={handleUploadDocument} className="rounded-none">
+              <input
+                ref={docFileRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp"
+                className="text-sm"
+              />
+              <Button type="button" size="sm" disabled={uploadingDoc} onClick={handleUploadDocument} className="rounded-none">
                 {uploadingDoc ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Upload className="h-3.5 w-3.5 mr-2" />}
                 Upload Document
               </Button>

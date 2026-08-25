@@ -9,6 +9,7 @@ import React, {
   useState,
 } from 'react'
 import { useAuth } from '@clerk/nextjs'
+import { usePathname } from 'next/navigation'
 import type {
   Accessory,
   Cart,
@@ -184,7 +185,22 @@ function readLocalCart(key: string): CartItem[] {
   }
 }
 
+function isAuthRoute(pathname: string | null) {
+  if (!pathname) return false
+  return pathname === '/sign-in' || pathname.startsWith('/sign-in/') || pathname === '/sign-up' || pathname.startsWith('/sign-up/') || pathname === '/reset-password' || pathname === '/login' || pathname === '/signup'
+}
+
 export function CartProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const pathname = usePathname()
+  if (isAuthRoute(pathname)) return <>{children}</>
+  return <AuthenticatedCartProvider>{children}</AuthenticatedCartProvider>
+}
+
+function AuthenticatedCartProvider({
   children,
 }: {
   children: React.ReactNode

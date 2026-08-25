@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit } from '@/lib/redis/rate-limit'
+import { isTrustedAuthOrigin } from '@/lib/auth/request-security'
 
 export const runtime = 'nodejs'
 
@@ -18,7 +19,11 @@ function getForwardedIp(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const limited = await checkRateLimit(request, 'api')
+  if (!isTrustedAuthOrigin(request)) {
+    return NextResponse.json({ verified: false, error: 'Invalid verification origin.' }, { status: 403 })
+  }
+
+  const limited = await checkRateLimit(request, 'auth')
   if (limited) return limited
 
   const secret = process.env.TURNSTILE_SECRET_KEY

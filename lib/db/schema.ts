@@ -1037,6 +1037,33 @@ export const consultations = pgTable(
   }),
 )
 
+export const consultationReminders = pgTable(
+  "consultation_reminders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    consultationId: uuid("consultation_id")
+      .notNull()
+      .references(() => consultations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reminderKey: varchar("reminder_key", { length: 20 }).notNull(),
+    scheduledFor: timestamp("scheduled_for").notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    lastAttemptAt: timestamp("last_attempt_at"),
+    sentAt: timestamp("sent_at"),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    consultationReminderIdx: uniqueIndex("consultation_reminders_consultation_key_idx").on(table.consultationId, table.reminderKey),
+    dueIdx: index("consultation_reminders_status_scheduled_idx").on(table.status, table.scheduledFor),
+    userIdx: index("consultation_reminders_user_idx").on(table.userId),
+  }),
+)
+
 export const quotes = pgTable(
   "quotes",
   {
@@ -1839,6 +1866,18 @@ export const consultationsRelations = relations(consultations, ({ one, many }) =
     references: [users.id],
   }),
   slots: many(consultationSlots),
+  reminders: many(consultationReminders),
+}))
+
+export const consultationRemindersRelations = relations(consultationReminders, ({ one }) => ({
+  consultation: one(consultations, {
+    fields: [consultationReminders.consultationId],
+    references: [consultations.id],
+  }),
+  user: one(users, {
+    fields: [consultationReminders.userId],
+    references: [users.id],
+  }),
 }))
 
 export const projectActivityRelations = relations(
@@ -2303,6 +2342,7 @@ export const loyaltyReferrals = pgTable(
 export const usersRelations = relations(users, ({ many, one }) => ({
   orders: many(orders),
   consultations: many(consultations),
+  consultationReminders: many(consultationReminders),
   quotes: many(quotes),
   comments: many(comments),
   likes: many(likes),

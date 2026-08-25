@@ -72,6 +72,7 @@ export const metadata: Metadata = {
     },
   },
   generator: 'Davis',
+  manifest: '/site.webmanifest',
   icons: {
     icon: [
       {
@@ -83,8 +84,8 @@ export const metadata: Metadata = {
         media: '(prefers-color-scheme: dark)',
       },
       {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
+        url: '/favicon.ico',
+        sizes: 'any',
       },
     ],
     apple: '/apple-icon.png',

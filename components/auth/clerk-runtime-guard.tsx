@@ -9,7 +9,7 @@ const AUTH_LOAD_TIMEOUT_MS = 12_000
 
 function isAuthRoute(pathname: string | null) {
   if (!pathname) return false
-  return pathname === '/sign-in' || pathname.startsWith('/sign-in/') || pathname === '/sign-up' || pathname.startsWith('/sign-up/') || pathname === '/reset-password'
+  return pathname === '/sign-in' || pathname.startsWith('/sign-in/') || pathname === '/sign-up' || pathname.startsWith('/sign-up/') || pathname === '/reset-password' || pathname === '/login' || pathname === '/signup'
 }
 
 export default function ClerkRuntimeGuard({ children, configured }: { children: React.ReactNode; configured: boolean }) {

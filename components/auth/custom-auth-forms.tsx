@@ -6,17 +6,18 @@ import { ArrowRight, Check, Loader2, ShieldCheck } from 'lucide-react'
 import { FaGoogle, FaLinkedinIn } from 'react-icons/fa'
 import Link from 'next/link'
 import TurnstileChallenge, { turnstileConfigured } from './turnstile-challenge'
+import { AUTH_NAME_MAX_LENGTH, AUTH_USERNAME_MAX_LENGTH, isBoundedAuthText, isValidAuthEmail, isValidAuthPassword, isValidVerificationCode, normalizeAuthEmail } from '@/lib/auth/input-validation'
 
 type OAuthStrategy = 'oauth_google' | 'oauth_linkedin_oidc'
 
-async function authorizeAuthAttempt() {
+async function authorizeAuthAttempt(identifier?: string) {
   let response: Response
   try {
     response = await fetch('/api/auth/attempt', {
       method: 'POST',
       cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
-      body: '{}',
+      body: JSON.stringify(identifier ? { identifier: normalizeAuthEmail(identifier) } : {}),
     })
   } catch (error) {
     console.error('[auth] rate-limit request failed:', error)
@@ -268,6 +269,15 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
+    const normalizedEmail = normalizeAuthEmail(email)
+    if (!isValidAuthEmail(normalizedEmail)) {
+      setError('Enter a valid email address.')
+      return
+    }
+    if (!isValidAuthPassword(password)) {
+      setError('Use a password between 8 and 128 characters without control characters.')
+      return
+    }
     if (turnstileConfigured() && !turnstileToken) {
       setError('Complete the security verification before signing in.')
       return
@@ -278,8 +288,8 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
     setInfo(null)
     try {
       if (turnstileToken) await verifyTurnstileToken(turnstileToken)
-      await authorizeAuthAttempt()
-      const { error: passwordError } = await signIn.password({ identifier: email, password })
+      await authorizeAuthAttempt(normalizedEmail)
+      const { error: passwordError } = await signIn.password({ identifier: normalizedEmail, password })
       if (passwordError) throw passwordError
       await advance()
     } catch (err) {
@@ -299,10 +309,15 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
     setError(null)
     setInfo(null)
     try {
+      if (!isValidVerificationCode(code)) {
+        setError('Enter the verification code exactly as provided.')
+        return
+      }
+      await authorizeAuthAttempt(normalizeAuthEmail(email))
       const { error: verifyError } =
         step === 'verify-email'
-          ? await signIn.emailCode.verifyCode({ code })
-          : await signIn.mfa.verifyEmailCode({ code })
+          ? await signIn.emailCode.verifyCode({ code: code.trim() })
+          : await signIn.mfa.verifyEmailCode({ code: code.trim() })
       if (verifyError) throw verifyError
       await advance()
     } catch (err) {
@@ -318,6 +333,9 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
     setLoading(true)
     setError(null)
     try {
+      const normalizedEmail = normalizeAuthEmail(email)
+      if (!isValidAuthEmail(normalizedEmail)) throw new Error('Enter a valid email address.')
+      await authorizeAuthAttempt(normalizedEmail)
       const { error: sendError } =
         step === 'verify-email' ? await signIn.emailCode.sendCode() : await signIn.mfa.sendEmailCode()
       if (sendError) throw sendError
@@ -511,13 +529,18 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     setInfo(null)
     try {
       if (turnstileToken) await verifyTurnstileToken(turnstileToken)
-      await authorizeAuthAttempt()
+      const normalizedEmail = normalizeAuthEmail(email)
+      if (!isValidAuthEmail(normalizedEmail)) throw new Error('Enter a valid email address.')
+      if (!isValidAuthPassword(password)) throw new Error('Use a password between 8 and 128 characters without control characters.')
+      if (!isBoundedAuthText(firstName, AUTH_NAME_MAX_LENGTH, true) || !isBoundedAuthText(lastName, AUTH_NAME_MAX_LENGTH)) throw new Error('Check the name fields and try again.')
+      if (username && !isBoundedAuthText(username, AUTH_USERNAME_MAX_LENGTH)) throw new Error('Check the username and try again.')
+      await authorizeAuthAttempt(normalizedEmail)
       const { error: createError } = await signUp.password({
-        emailAddress: email,
+        emailAddress: normalizedEmail,
         password,
-        firstName,
-        lastName,
-        username, // Pass username to Clerk
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        username: username.trim() || undefined,
       })
 
       if (createError) throw createError
@@ -550,7 +573,12 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     setError(null)
     setInfo(null)
     try {
-      const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code })
+      if (!isValidVerificationCode(code)) {
+        setError('Enter the verification code exactly as provided.')
+        return
+      }
+      await authorizeAuthAttempt(normalizeAuthEmail(email))
+      const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code: code.trim() })
       if (verifyError) throw verifyError
 
       if (signUp.status === 'complete') {
@@ -572,6 +600,9 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     setLoading(true)
     setError(null)
     try {
+      const normalizedEmail = normalizeAuthEmail(email)
+      if (!isValidAuthEmail(normalizedEmail)) throw new Error('Enter a valid email address.')
+      await authorizeAuthAttempt(normalizedEmail)
       const { error: sendError } = await signUp.verifications.sendEmailCode()
       if (sendError) throw sendError
       setInfo('A new verification code has been sent to your email.')
@@ -742,8 +773,10 @@ export function CustomResetPassword() {
     try {
       if (step === 'email') {
         if (turnstileToken) await verifyTurnstileToken(turnstileToken)
-        await authorizeAuthAttempt()
-        const { error: createError } = await signIn.create({ identifier: email })
+        const normalizedEmail = normalizeAuthEmail(email)
+        if (!isValidAuthEmail(normalizedEmail)) throw new Error('Enter a valid email address.')
+        await authorizeAuthAttempt(normalizedEmail)
+        const { error: createError } = await signIn.create({ identifier: normalizedEmail })
         if (!createError) {
           const { error: sendError } = await signIn.resetPasswordEmailCode.sendCode()
           if (sendError) console.error('[v0] Reset-code send error:', sendError)
@@ -754,7 +787,12 @@ export function CustomResetPassword() {
         setInfo('If an account exists for that email, a reset code has been sent. Check your inbox.')
         setStep('code')
       } else {
-        const { error: verifyError } = await signIn.resetPasswordEmailCode.verifyCode({ code })
+        if (!isValidVerificationCode(code)) {
+          setError('Enter the verification code exactly as provided.')
+          return
+        }
+        await authorizeAuthAttempt(normalizeAuthEmail(email))
+        const { error: verifyError } = await signIn.resetPasswordEmailCode.verifyCode({ code: code.trim() })
         if (verifyError) throw verifyError
         if (signIn.status === 'needs_new_password') {
           setStep('new-password')
@@ -780,8 +818,10 @@ export function CustomResetPassword() {
     setLoading(true)
     setError(null)
     try {
-      await authorizeAuthAttempt()
-      const { error: createError } = await signIn.create({ identifier: email })
+      const normalizedEmail = normalizeAuthEmail(email)
+      if (!isValidAuthEmail(normalizedEmail)) throw new Error('Enter a valid email address.')
+      await authorizeAuthAttempt(normalizedEmail)
+      const { error: createError } = await signIn.create({ identifier: normalizedEmail })
       if (!createError) await signIn.resetPasswordEmailCode.sendCode()
     } catch (err) {
       console.error('[v0] Reset-password resend error:', err)
@@ -802,10 +842,14 @@ export function CustomResetPassword() {
       setError('Passwords do not match.')
       return
     }
+    if (!isValidAuthPassword(password)) {
+      setError('Use a password between 8 and 128 characters without control characters.')
+      return
+    }
     setLoading(true)
     setError(null)
     try {
-      await authorizeAuthAttempt()
+      await authorizeAuthAttempt(normalizeAuthEmail(email))
       const { error: submitError } = await signIn.resetPasswordEmailCode.submitPassword({
         password,
         signOutOfOtherSessions: true,

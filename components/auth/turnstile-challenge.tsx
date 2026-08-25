@@ -4,7 +4,6 @@ import Script from 'next/script'
 import { useEffect, useRef, useState } from 'react'
 
 type TurnstileWidget = {
-  ready: (callback: () => void) => void
   render: (container: HTMLElement, options: {
     sitekey: string
     action?: string
@@ -39,7 +38,7 @@ export default function TurnstileChallenge({
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
   const onTokenRef = useRef(onToken)
-  const [scriptReady, setScriptReady] = useState(false)
+  const [scriptReady, setScriptReady] = useState(() => typeof window !== 'undefined' && Boolean(window.turnstile))
   const [widgetError, setWidgetError] = useState(false)
 
   useEffect(() => {
@@ -47,47 +46,40 @@ export default function TurnstileChallenge({
   }, [onToken])
 
   useEffect(() => {
-    if (!SITE_KEY) return
-    if (window.turnstile) {
-      setScriptReady(true)
-      return
-    }
-
+    if (!SITE_KEY || scriptReady) return
     const timeout = window.setTimeout(() => setWidgetError(true), WIDGET_LOAD_TIMEOUT_MS)
     return () => window.clearTimeout(timeout)
-  }, [])
+  }, [scriptReady])
 
   useEffect(() => {
     if (!SITE_KEY || !scriptReady || !containerRef.current || widgetIdRef.current) return
 
-    let cancelled = false
-    window.turnstile?.ready(() => {
-      if (cancelled || !window.turnstile || !containerRef.current || widgetIdRef.current) return
-      try {
-        widgetIdRef.current = window.turnstile.render(containerRef.current, {
-          sitekey: SITE_KEY,
-          action: 'auth',
-          theme: 'auto',
-          callback: (token) => {
-            setWidgetError(false)
-            onTokenRef.current(token)
-          },
-          'expired-callback': () => onTokenRef.current(null),
-          'error-callback': () => {
-            setWidgetError(true)
-            onTokenRef.current(null)
-          },
-        })
-        setWidgetError(false)
-      } catch (error) {
-        console.error('[turnstile] widget render failed:', error)
-        setWidgetError(true)
-        onTokenRef.current(null)
-      }
-    })
+    const turnstile = window.turnstile
+    if (!turnstile) return
+
+    if (!containerRef.current || widgetIdRef.current) return
+    try {
+      widgetIdRef.current = turnstile.render(containerRef.current, {
+        sitekey: SITE_KEY,
+        action: 'auth',
+        theme: 'auto',
+        callback: (token) => {
+          setWidgetError(false)
+          onTokenRef.current(token)
+        },
+        'expired-callback': () => onTokenRef.current(null),
+        'error-callback': () => {
+          setWidgetError(true)
+          onTokenRef.current(null)
+        },
+      })
+    } catch (error) {
+      console.error('[turnstile] widget render failed:', error)
+      window.setTimeout(() => setWidgetError(true), 0)
+      onTokenRef.current(null)
+    }
 
     return () => {
-      cancelled = true
       if (widgetIdRef.current && window.turnstile) {
         window.turnstile.remove(widgetIdRef.current)
       }

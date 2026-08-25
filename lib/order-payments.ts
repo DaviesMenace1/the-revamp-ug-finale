@@ -7,7 +7,7 @@ import { generateVerifiedPaymentReceipt } from '@/lib/documents/payment-receipt'
 import { notifyUser } from '@/lib/notifications/service'
 import { safelyReleasePointsForOrder, settleSuccessfulOrderRewards } from '@/lib/loyalty/service'
 import { flutterwaveErrorMessage, retrieveFlutterwaveCharge } from '@/lib/flutterwave-config'
-import { sendOrderReceiptEmail } from '@/lib/email/send-receipt'
+import { sendOrderVerificationEmail } from '@/lib/email/send-receipt'
 
 function parseAddress(value: unknown): { name?: string; [key: string]: unknown } {
   if (typeof value === 'string') {
@@ -68,7 +68,7 @@ export async function settleOrderPayment(input: { orderRef: string; chargeId?: s
     }
     void notifyUser({ userId: customer.id, type: 'payment_completed', priority: 'important', title: 'Payment confirmed', message: `Payment for order ${order.orderNumber} was confirmed.`, actionUrl: '/client/orders', channels: ['in_app', 'push'] })
     const address = parseAddress(order.deliveryAddress)
-    if (customer.email) await sendOrderReceiptEmail({ toEmail: customer.email, orderNumber: order.orderNumber, amount: String(order.total), currency: expectedCurrency, customerName: typeof address.name === 'string' ? address.name : 'Valued Customer' })
+    if (customer.email) await sendOrderVerificationEmail({ toEmail: customer.email, orderNumber: order.orderNumber, amount: String(order.total), currency: expectedCurrency, customerName: typeof address.name === 'string' ? address.name : 'Valued Customer' })
   }
 
   return { success: true as const, status: 'paid' as const, orderId: order.id }

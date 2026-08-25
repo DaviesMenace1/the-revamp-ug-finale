@@ -2053,6 +2053,38 @@ export const projectTasks = pgTable(
   }),
 )
 
+export const programSubscriptions = pgTable(
+  "program_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    program: varchar("program", { length: 30 }).notNull(),
+    planKey: varchar("plan_key", { length: 50 }).notNull(),
+    billingPeriod: varchar("billing_period", { length: 20 }).notNull(),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+    currency: varchar("currency", { length: 3 }).notNull().default("UGX"),
+    startDate: timestamp("start_date"),
+    endDate: timestamp("end_date"),
+    provider: varchar("provider", { length: 40 }).notNull().default("flutterwave"),
+    transactionReference: varchar("transaction_reference", { length: 120 }).notNull(),
+    idempotencyKey: varchar("idempotency_key", { length: 120 }).notNull(),
+    providerChargeId: varchar("provider_charge_id", { length: 120 }),
+    metadata: jsonb("metadata").default({}),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userProgramIdx: index("program_subscriptions_user_program_idx").on(table.userId, table.program),
+    statusIdx: index("program_subscriptions_status_idx").on(table.status),
+    providerChargeIdx: uniqueIndex("program_subscriptions_provider_charge_idx").on(table.provider, table.providerChargeId),
+    referenceIdx: uniqueIndex("program_subscriptions_reference_idx").on(table.provider, table.transactionReference),
+    idempotencyIdx: uniqueIndex("program_subscriptions_idempotency_idx").on(table.idempotencyKey),
+  }),
+)
+
 export const invoices = pgTable(
   "invoices",
   {
@@ -2098,6 +2130,7 @@ export const paymentRecords = pgTable(
     orderId: uuid("order_id"),
     invoiceId: uuid("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
     consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
+    subscriptionId: uuid("subscription_id").references(() => programSubscriptions.id, { onDelete: "set null" }),
     provider: varchar("provider", { length: 40 }).notNull().default("manual"),
     transactionReference: varchar("transaction_reference", { length: 120 }).notNull(),
     amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
@@ -2113,6 +2146,7 @@ export const paymentRecords = pgTable(
     userIdx: index("payment_records_user_idx").on(table.userId),
     invoiceIdx: index("payment_records_invoice_idx").on(table.invoiceId),
     consultationIdx: index("payment_records_consultation_idx").on(table.consultationId),
+    subscriptionIdx: index("payment_records_subscription_idx").on(table.subscriptionId),
     providerReferenceIdx: uniqueIndex("payment_records_provider_reference_idx").on(
       table.provider,
       table.transactionReference,
@@ -2280,7 +2314,19 @@ export const paymentRecordsRelations = relations(paymentRecords, ({ one, many })
     fields: [paymentRecords.consultationId],
     references: [consultations.id],
   }),
+  subscription: one(programSubscriptions, {
+    fields: [paymentRecords.subscriptionId],
+    references: [programSubscriptions.id],
+  }),
   documents: many(financialDocuments),
+}))
+
+export const programSubscriptionsRelations = relations(programSubscriptions, ({ one, many }) => ({
+  user: one(users, {
+    fields: [programSubscriptions.userId],
+    references: [users.id],
+  }),
+  paymentRecords: many(paymentRecords),
 }))
 
 export const financialDocumentsRelations = relations(financialDocuments, ({ one }) => ({
@@ -2508,6 +2554,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   sourcingRequests: many(sourcingRequests),
   carts: many(carts),
   paymentRecords: many(paymentRecords),
+  programSubscriptions: many(programSubscriptions),
   financialDocuments: many(financialDocuments, { relationName: 'financialDocumentsUser' }),
   visualizations: many(projectVisualizations),
   visualizationViews: many(visualizationViews),

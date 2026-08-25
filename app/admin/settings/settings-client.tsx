@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Save, Check } from 'lucide-react'
 import { saveSetting } from '@/lib/actions/settings'
 import ConsultationCommerceClient, { type ConsultationPricing, type ConsultationPromotion } from './consultation-commerce-client'
+import SubscriptionPricingClient, { type SubscriptionPricing } from './subscription-pricing-client'
 
 type Business = { name: string; email: string; phone: string; address: string; description: string }
 type EmailPrefs = {
@@ -46,6 +47,7 @@ export default function SettingsClient({
   initialDocumentProfile,
   initialConsultationPricing,
   initialPromotions,
+  initialSubscriptionPricing,
 }: {
   initialBusiness: Business
   initialEmail: EmailPrefs
@@ -53,6 +55,7 @@ export default function SettingsClient({
   initialDocumentProfile: DocumentProfile
   initialConsultationPricing: ConsultationPricing
   initialPromotions: ConsultationPromotion[]
+  initialSubscriptionPricing: SubscriptionPricing
 }) {
   const [business, setBusiness] = useState(initialBusiness)
   const [email, setEmail] = useState(initialEmail)
@@ -264,6 +267,8 @@ export default function SettingsClient({
       </Card>
 
       <ConsultationCommerceClient initialPricing={initialConsultationPricing} initialPromotions={initialPromotions} />
+
+      <SubscriptionPricingClient initialPricing={initialSubscriptionPricing} />
 
       <Card>
         <CardHeader>

@@ -15,7 +15,6 @@ import {
   MapPin,
   Mail,
   Printer,
-  ShoppingBag,
   ArrowRight,
   Loader2,
   Sparkles,
@@ -27,19 +26,11 @@ function SuccessContent() {
   const { clearCart } = useCart()
 
   const [order, setOrder] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(Boolean(orderRef))
 
-  // 1. Clear shopping cart state immediately upon landing on success page
+  // Fetch the order first; the cart is cleared only after the server confirms payment.
   useEffect(() => {
-    clearCart()
-  }, [clearCart])
-
-  // 2. Fetch completed order details from DB via orderRef
-  useEffect(() => {
-    if (!orderRef) {
-      setLoading(false)
-      return
-    }
+    if (!orderRef) return
 
     async function fetchOrderDetails() {
       try {
@@ -47,6 +38,7 @@ function SuccessContent() {
         if (res.ok) {
           const data = await res.json()
           setOrder(data.order)
+          if (data.order?.paymentStatus === 'completed') clearCart()
         }
       } catch (error) {
         console.error('Failed to load order details:', error)
@@ -56,7 +48,7 @@ function SuccessContent() {
     }
 
     fetchOrderDetails()
-  }, [orderRef])
+  }, [clearCart, orderRef])
 
   if (loading) {
     return (

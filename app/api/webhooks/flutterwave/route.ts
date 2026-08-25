@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { settleConsultationPayment } from '@/lib/consultation-payments'
 import { isValidFlutterwaveWebhookSignature } from '@/lib/flutterwave-config'
 import { settleOrderPayment } from '@/lib/order-payments'
+import { settleSubscriptionPayment } from '@/lib/subscription-payments'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,6 +27,12 @@ export async function POST(request: NextRequest) {
       const consultationResult = await settleConsultationPayment({ txRef: orderRef, transactionId: chargeId })
       if (consultationResult.success) return NextResponse.json({ status: 'success', scope: 'consultation' })
       return NextResponse.json({ status: consultationResult.status, error: consultationResult.error }, { status: consultationResult.status === 'verification_failed' ? 400 : 500 })
+    }
+
+    if (orderRef.startsWith('REV-SUB-')) {
+      const subscriptionResult = await settleSubscriptionPayment({ transactionReference: orderRef, chargeId })
+      if (subscriptionResult.success) return NextResponse.json({ status: 'success', scope: 'subscription' })
+      return NextResponse.json({ status: subscriptionResult.status, error: subscriptionResult.error }, { status: subscriptionResult.status === 'verification_failed' ? 400 : 500 })
     }
 
     const orderResult = await settleOrderPayment({ orderRef, chargeId })

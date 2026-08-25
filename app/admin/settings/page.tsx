@@ -2,6 +2,7 @@ import { getSetting } from '@/lib/actions/settings'
 import { listConsultationPromotions } from '@/lib/actions/consultation-commerce'
 import { type ConsultationPricing, type ConsultationPromotion } from './consultation-commerce-client'
 import SettingsClient from './settings-client'
+import { DEFAULT_SUBSCRIPTION_PRICING, getSubscriptionPricing } from '@/lib/subscriptions'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,6 +61,7 @@ export default async function AdminSettingsPage() {
   const consultationPricing = await getSetting('consultation_pricing', CONSULTATION_PRICING_DEFAULTS)
   const promotions = await listConsultationPromotions()
   const documentProfile = await getSetting('document_profile', DOCUMENT_PROFILE_DEFAULTS)
+  const subscriptionPricing = await getSubscriptionPricing()
 
   return (
     <SettingsClient
@@ -69,6 +71,7 @@ export default async function AdminSettingsPage() {
       initialDocumentProfile={documentProfile}
       initialConsultationPricing={consultationPricing}
       initialPromotions={promotions as ConsultationPromotion[]}
+      initialSubscriptionPricing={subscriptionPricing || DEFAULT_SUBSCRIPTION_PRICING}
     />
   )
 }

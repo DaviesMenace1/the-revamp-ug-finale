@@ -1,6 +1,9 @@
 import 'server-only' // Ensures this file can NEVER be accidentally imported in 'use client' components
 import { auth } from '@clerk/nextjs/server'
 import { getOrCreateCurrentUser, type UserRole } from '@/lib/auth/utils'
+import { and, eq, gt } from 'drizzle-orm'
+import { db } from '@/lib/db/client'
+import { programSubscriptions } from '@/lib/db/schema'
 
 export type { UserRole }
 
@@ -44,7 +47,18 @@ export async function getCurrentUserWithRole(requiredRoles: UserRole[] = []): Pr
     }
 
     if (requiredRoles.length > 0 && !requiredRoles.includes(user.role as UserRole)) {
-      return { user, authorized: false, reason: 'forbidden' }
+      const canUsePaidTradeAccess = requiredRoles.includes('trade_member')
+        ? Boolean(await db.query.programSubscriptions.findFirst({
+            where: and(
+              eq(programSubscriptions.userId, user.id),
+              eq(programSubscriptions.program, 'trade'),
+              eq(programSubscriptions.status, 'active'),
+              gt(programSubscriptions.endDate, new Date()),
+            ),
+            columns: { id: true },
+          }))
+        : false
+      if (!canUsePaidTradeAccess) return { user, authorized: false, reason: 'forbidden' }
     }
 
     return { user, authorized: true, reason: 'ok' }

@@ -82,7 +82,7 @@ function clerkErrorMessage(err: unknown, fallback: string): string {
     case 'too_many_requests':
       return 'Too many requests. Wait a moment and try again.'
     case 'session_exists':
-      return 'You are already signed in. Refresh the page to continue.'
+      return 'You are already signed in.Refresh the page to continue.'
     case 'form_password_pwned':
       return 'This password has appeared in a data breach. Choose a different, stronger password.'
     case 'form_password_length_too_short':

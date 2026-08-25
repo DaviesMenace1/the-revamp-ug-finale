@@ -12,22 +12,8 @@ import {
 } from '@/lib/db/schema'
 import { generateConsultationPaymentDocuments } from '@/lib/documents/consultation-payment'
 import { notifyUser } from '@/lib/notifications/service'
-import { flutterwaveConfigurationMessage, getFlutterwaveConfig } from '@/lib/flutterwave-config'
+import { flutterwaveErrorMessage, flutterwaveConfigurationMessage, getFlutterwaveConfig, retrieveFlutterwaveCharge } from '@/lib/flutterwave-config'
 import { revalidatePath } from 'next/cache'
-
-type FlutterwaveVerification = {
-  status?: string
-  message?: string
-  data?: {
-    id?: string | number
-    status?: string
-    tx_ref?: string
-    amount?: string | number
-    currency?: string
-    payment_type?: string
-    payment_method?: string
-  }
-}
 
 type IntentMetadata = {
   title?: unknown
@@ -50,38 +36,25 @@ function sameMoney(actual: unknown, expected: string) {
   return number(actual) + 0.001 >= number(expected)
 }
 
-async function verifyFlutterwaveTransaction(transactionId: string, expectedTxRef: string, expectedAmount: string, expectedCurrency: string) {
+async function verifyFlutterwaveTransaction(chargeId: string, expectedTxRef: string, expectedAmount: string, expectedCurrency: string) {
   const config = getFlutterwaveConfig()
   if (!config.ok) return { verified: false as const, error: flutterwaveConfigurationMessage(config) }
-  if (!transactionId || !/^\d+$/.test(transactionId)) return { verified: false as const, error: 'Flutterwave did not provide a valid transaction id.' }
+  if (!chargeId || !/^chg_[A-Za-z0-9]+$/.test(chargeId)) return { verified: false as const, error: 'Flutterwave did not provide a valid charge id.' }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 12_000)
   try {
-    const response = await fetch(`${config.baseUrl}/transactions/${encodeURIComponent(transactionId)}/verify`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${config.secretKey}`, Accept: 'application/json' },
-      signal: controller.signal,
-      cache: 'no-store',
-    })
-    const payload = await response.json().catch(() => ({})) as FlutterwaveVerification
+    const result = await retrieveFlutterwaveCharge(chargeId)
+    const payload = result.payload || {}
     const data = payload.data
-    if (!response.ok || payload.status !== 'success' || !data || data.status !== 'successful') {
-      if (response.status === 401) return { verified: false as const, error: `Flutterwave rejected the ${config.mode} server key. Confirm FLUTTERWAVE_SECRET_KEY contains the matching secret key, not the public key.` }
-      return { verified: false as const, error: payload.message || 'Flutterwave has not marked this payment successful.' }
+    if (!result.response?.ok || payload.status !== 'success' || !data || data.status !== 'succeeded') {
+      const pending = Boolean(result.response?.ok && payload.status === 'success' && data && ['pending', 'requires_authorization'].includes(String(data.status)))
+      return { verified: false as const, pending, error: flutterwaveErrorMessage(payload, result.response?.status || 502) }
     }
-    if (data.tx_ref !== expectedTxRef) return { verified: false as const, error: 'The payment reference does not match this consultation.' }
+    if (String(data.reference || data.tx_ref || '') !== expectedTxRef) return { verified: false as const, error: 'The payment reference does not match this consultation.' }
     if (String(data.currency || '').toUpperCase() !== expectedCurrency.toUpperCase()) return { verified: false as const, error: 'The payment currency does not match this consultation.' }
     if (!sameMoney(data.amount, expectedAmount)) return { verified: false as const, error: 'The verified payment amount is less than the consultation total.' }
-    return {
-      verified: true as const,
-      transactionId: String(data.id || transactionId),
-      paymentMethod: data.payment_type || data.payment_method || null,
-    }
+    return { verified: true as const, transactionId: String(data.id || chargeId), paymentMethod: data.payment_method_details?.type || data.payment_method?.type || null }
   } catch (error) {
     return { verified: false as const, error: error instanceof Error ? error.message : 'Flutterwave verification failed.' }
-  } finally {
-    clearTimeout(timeout)
   }
 }
 
@@ -95,8 +68,8 @@ export async function settleConsultationPayment(input: {
 
   const verification = await verifyFlutterwaveTransaction(String(input.transactionId || intent.flutterwaveTransactionId || ''), intent.txRef, intent.amount, intent.currency)
   if (!verification.verified) {
-    await db.update(consultationPaymentIntents).set({ status: input.transactionId ? 'verification_failed' : 'pending', failedAt: input.transactionId ? new Date() : null, updatedAt: new Date() }).where(and(eq(consultationPaymentIntents.id, intent.id), eq(consultationPaymentIntents.status, 'pending')))
-    return { success: false as const, status: 'verification_failed' as const, error: verification.error }
+    await db.update(consultationPaymentIntents).set({ status: verification.pending ? 'pending' : input.transactionId ? 'verification_failed' : 'pending', failedAt: verification.pending ? null : input.transactionId ? new Date() : null, updatedAt: new Date() }).where(and(eq(consultationPaymentIntents.id, intent.id), eq(consultationPaymentIntents.status, 'pending')))
+    return { success: false as const, status: verification.pending ? 'pending' as const : 'verification_failed' as const, error: verification.error }
   }
 
   const now = new Date()

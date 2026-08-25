@@ -3,10 +3,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import Script from 'next/script'
-import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { ArrowLeft, CheckCircle2, CreditCard, Loader2, Lock, ShieldCheck, ShoppingBag, Sparkles } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, CreditCard, Loader2, Lock, ShieldCheck, ShoppingBag, Smartphone, Sparkles } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
@@ -14,12 +12,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCart } from '@/lib/context/cart-context'
 import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
-
-declare global {
-  interface Window {
-    FlutterwaveCheckout?: (config: Record<string, unknown>) => void
-  }
-}
 
 function getProductImage(item: any): string {
   const image = item?.selectedColor?.image || item?.selectedVariant?.image || item?.image
@@ -42,11 +34,17 @@ type CheckoutLoyalty = {
 }
 
 export default function CheckoutPage() {
-  const router = useRouter()
   const { isLoaded: isClerkLoaded, user } = useUser()
   const { items, cart, customerName, setCustomerName, isLoaded: isCartLoaded } = useCart()
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [paymentInstruction, setPaymentInstruction] = useState<string | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<'mobile_money' | 'card'>('mobile_money')
+  const [mobileMoneyNetwork, setMobileMoneyNetwork] = useState<'MTN' | 'AIRTEL'>('MTN')
+  const [cardNumber, setCardNumber] = useState('')
+  const [cardExpiryMonth, setCardExpiryMonth] = useState('')
+  const [cardExpiryYear, setCardExpiryYear] = useState('')
+  const [cardCvv, setCardCvv] = useState('')
   const [loyalty, setLoyalty] = useState<CheckoutLoyalty | null>(null)
   const [loyaltyPoints, setLoyaltyPoints] = useState('0')
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', address: '', city: '', country: 'Uganda', notes: '' })
@@ -106,16 +104,7 @@ export default function CheckoutPage() {
       setErrorMessage('Please fill in your name, email, phone, address, and city before continuing.')
       return
     }
-    if (typeof window.FlutterwaveCheckout !== 'function') {
-      setErrorMessage('Flutterwave is still loading. Check your connection and try again.')
-      return
-    }
-
-    const rawPublicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY?.trim().replace(/^['"]|['"]$/g, '')
-    if (!rawPublicKey || !rawPublicKey.startsWith('FLWPUBK')) {
-      setErrorMessage('Payment configuration is incomplete. Please contact support before trying again.')
-      return
-    }
+    setPaymentInstruction(null)
 
     setLoading(true)
     try {
@@ -129,8 +118,14 @@ export default function CheckoutPage() {
           customerName: currentName.trim(),
           phoneNumber: formData.phone.trim(),
           shippingAddress: { name: currentName.trim(), address: formData.address.trim(), city: formData.city.trim(), country: formData.country.trim(), phone: formData.phone.trim(), notes: formData.notes.trim() },
-          loyaltyPoints: selectedLoyaltyPoints,
-          items: items.map((item) => ({
+                      loyaltyPoints: selectedLoyaltyPoints,
+            paymentMethod,
+            mobileMoneyNetwork,
+            cardNumber,
+            cardExpiryMonth,
+            cardExpiryYear,
+            cardCvv,
+            items: items.map((item) => ({
             productId: item.productId,
             name: item.product?.name || 'Product',
             quantity: item.quantity,
@@ -148,30 +143,15 @@ export default function CheckoutPage() {
       if (!response.ok || !data?.txRef) throw new Error(data?.error || 'We could not initialize this order. Please try again.')
 
       setLoading(false)
-      let paymentCallbackReceived = false
-      window.FlutterwaveCheckout({
-        public_key: rawPublicKey,
-        tx_ref: data.txRef,
-        amount: Number(data.amount) || paymentTotal,
-        currency: checkoutCurrency,
-        payment_options: 'card,mobilemoneyuganda,banktransfer',
-        customer: { email: currentEmail.trim(), phone_number: formData.phone.trim(), name: currentName.trim() },
-        customizations: { title: 'The Revamp UG', description: `Order #${data.txRef}${data.discountUgx ? ` · UGX ${data.discountUgx} rewards applied` : ''}` },
-        callback: (result: any) => {
-          paymentCallbackReceived = true
-          router.push(`/checkout/success?tx_ref=${result.tx_ref}&transaction_id=${result.transaction_id}`)
-        },
-        onclose: () => {
-          if (!paymentCallbackReceived) {
-            void fetch('/api/checkout/release-points', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ txRef: data.txRef }),
-            })
-          }
-          setLoading(false)
-        },
-      })
+      if (typeof data.paymentUrl === 'string' && data.paymentUrl) {
+        window.location.assign(data.paymentUrl)
+        return
+      }
+      if (typeof data.paymentInstruction === 'string' && data.paymentInstruction) {
+        setPaymentInstruction(data.paymentInstruction)
+        return
+      }
+      throw new Error('Flutterwave did not return a payment authorization step. Please try again.')
     } catch (error) {
       console.error('Checkout error:', error)
       setErrorMessage(error instanceof Error ? error.message : 'An unexpected checkout error occurred. Please try again.')
@@ -189,7 +169,6 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Script src="https://checkout.flutterwave.com/v3.js" strategy="afterInteractive" />
       <SiteHeader />
       <main className="px-4 pb-24 pt-28 sm:px-6 md:px-10 md:pt-36">
         <div className="mx-auto max-w-7xl">
@@ -214,8 +193,9 @@ export default function CheckoutPage() {
                 </div>
               </section>
 
-              <section className="rounded-xl border border-border/70 bg-card p-5 shadow-lift sm:p-7"><div className="border-b border-border/70 pb-5"><p className="text-[10px] uppercase tracking-[0.24em] text-primary">02</p><h2 className="mt-2 font-serif text-3xl">Payment method</h2></div><div className="mt-6 flex items-start gap-4 rounded-lg border border-border/70 bg-muted/30 p-4"><CreditCard className="mt-0.5 size-6 shrink-0 text-primary" aria-hidden="true" /><div><p className="text-sm font-medium">Flutterwave secure checkout</p><p className="mt-1 text-xs leading-6 text-muted-foreground">Pay by card, MTN Mobile Money, Airtel Money, or bank transfer through the secure Flutterwave overlay.</p></div></div></section>
+              <section className="rounded-xl border border-border/70 bg-card p-5 shadow-lift sm:p-7"><div className="border-b border-border/70 pb-5"><p className="text-[10px] uppercase tracking-[0.24em] text-primary">02</p><h2 className="mt-2 font-serif text-3xl">Payment method</h2><p className="mt-2 text-xs leading-6 text-muted-foreground">Flutterwave v4 securely processes the payment. Card details are encrypted before they leave this checkout.</p></div><div className="mt-6 grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => setPaymentMethod('mobile_money')} aria-pressed={paymentMethod === 'mobile_money'} className={`flex min-h-12 items-center gap-3 rounded-md border px-4 text-left text-sm transition-colors ${paymentMethod === 'mobile_money' ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-primary/60'}`}><Smartphone className="size-4" aria-hidden="true" /><span><span className="block font-medium">Mobile Money</span><span className="text-xs opacity-70">MTN or Airtel</span></span></button><button type="button" onClick={() => setPaymentMethod('card')} aria-pressed={paymentMethod === 'card'} className={`flex min-h-12 items-center gap-3 rounded-md border px-4 text-left text-sm transition-colors ${paymentMethod === 'card' ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-primary/60'}`}><CreditCard className="size-4" aria-hidden="true" /><span><span className="block font-medium">Card</span><span className="text-xs opacity-70">Visa or Mastercard</span></span></button></div><div className="mt-5 grid gap-4 sm:grid-cols-2"><div className="sm:col-span-2"><Label htmlFor="payment-phone">Phone number</Label><Input id="payment-phone" type="tel" required value={formData.phone} onChange={handleInputChange} placeholder="0772 000 000" className="mt-2 min-h-12 rounded-md bg-background" /></div>{paymentMethod === 'mobile_money' ? <div className="sm:col-span-2"><Label htmlFor="mobile-network">Mobile-money network</Label><select id="mobile-network" value={mobileMoneyNetwork} onChange={(event) => setMobileMoneyNetwork(event.target.value as 'MTN' | 'AIRTEL')} className="mt-2 min-h-12 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"><option value="MTN">MTN Mobile Money</option><option value="AIRTEL">Airtel Money</option></select></div> : <><div className="sm:col-span-2"><Label htmlFor="card-number">Card number</Label><Input id="card-number" inputMode="numeric" autoComplete="cc-number" required value={cardNumber} onChange={(event) => setCardNumber(event.target.value)} placeholder="0000 0000 0000 0000" className="mt-2 min-h-12 rounded-md bg-background" /></div><div><Label htmlFor="card-month">Expiry month</Label><Input id="card-month" inputMode="numeric" autoComplete="cc-exp-month" required value={cardExpiryMonth} onChange={(event) => setCardExpiryMonth(event.target.value)} placeholder="MM" className="mt-2 min-h-12 rounded-md bg-background" /></div><div><Label htmlFor="card-year">Expiry year</Label><Input id="card-year" inputMode="numeric" autoComplete="cc-exp-year" required value={cardExpiryYear} onChange={(event) => setCardExpiryYear(event.target.value)} placeholder="YY" className="mt-2 min-h-12 rounded-md bg-background" /></div><div><Label htmlFor="card-cvv">CVV</Label><Input id="card-cvv" type="password" inputMode="numeric" autoComplete="cc-csc" required value={cardCvv} onChange={(event) => setCardCvv(event.target.value)} placeholder="123" className="mt-2 min-h-12 rounded-md bg-background" /></div></>}</div></section>
 
+              {paymentInstruction && <div role="status" className="rounded-lg border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50"><p className="font-medium">Authorize the payment on your phone</p><p className="mt-1">{paymentInstruction}</p><p className="mt-2 text-xs">Keep this page open. Flutterwave will notify the store after authorization.</p></div>}
               <Button type="submit" disabled={loading || hasMixedCurrencies || hasUnavailableItems} className="min-h-14 w-full rounded-md bg-primary text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground hover:bg-primary/90">{loading ? <span className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Preparing payment…</span> : <span className="flex items-center gap-2"><Lock className="size-4" aria-hidden="true" /> Pay {formatMoney(paymentTotal, checkoutCurrency)} securely</span>}</Button>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="size-4 text-emerald-600" aria-hidden="true" /> Encrypted payment via Flutterwave</div>
             </div>

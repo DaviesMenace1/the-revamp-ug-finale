@@ -11,8 +11,8 @@ function redirectToBooking(request: Request, params: Record<string, string>) {
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  const txRef = url.searchParams.get('tx_ref')?.trim() || ''
-  const transactionId = url.searchParams.get('transaction_id')?.trim() || ''
+  const txRef = url.searchParams.get('reference')?.trim() || url.searchParams.get('tx_ref')?.trim() || ''
+  const transactionId = url.searchParams.get('id')?.trim() || url.searchParams.get('charge_id')?.trim() || url.searchParams.get('transaction_id')?.trim() || ''
   const status = url.searchParams.get('status')?.trim().toLowerCase() || ''
   if (!txRef) return redirectToBooking(request, { payment: 'failed', message: 'The payment reference was missing.' })
   if (status === 'cancelled' || status === 'failed') return redirectToBooking(request, { payment: 'failed', tx_ref: txRef, message: 'The payment was cancelled or failed. Your time has not been confirmed.' })

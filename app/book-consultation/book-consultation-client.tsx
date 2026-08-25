@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Building2, Check, Clock3, MapPin, Video } from 'lucide-react'
+import { Building2, Check, Clock3, CreditCard, MapPin, Smartphone, Video } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -102,6 +102,13 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
   const [error, setError] = useState('')
   const [promoCode, setPromoCode] = useState('')
   const [promoState, setPromoState] = useState<PromoState>({ status: 'idle' })
+  const [paymentMethod, setPaymentMethod] = useState<'mobile_money' | 'card'>('mobile_money')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [mobileMoneyNetwork, setMobileMoneyNetwork] = useState<'MTN' | 'AIRTEL'>('MTN')
+  const [cardNumber, setCardNumber] = useState('')
+  const [cardExpiryMonth, setCardExpiryMonth] = useState('')
+  const [cardExpiryYear, setCardExpiryYear] = useState('')
+  const [cardCvv, setCardCvv] = useState('')
   const [pricing, setPricing] = useState<Pricing>(DEFAULT_PRICING)
   const [idempotencyKey] = useState(createIdempotencyKey)
 
@@ -213,14 +220,29 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
           mode: selectedSlot.mode,
           promoCode: promoCode.trim(),
           idempotencyKey,
+          paymentMethod,
+          phoneNumber,
+          mobileMoneyNetwork,
+          cardNumber,
+          cardExpiryMonth,
+          cardExpiryYear,
+          cardCvv,
         }),
       })
       const payload = await readResponse(response)
-      if (!response.ok || typeof payload.paymentUrl !== 'string') {
+      if (!response.ok) {
         setError(typeof payload.error === 'string' ? payload.error : 'We could not prepare payment. Please try again.')
         return
       }
-      window.location.assign(payload.paymentUrl)
+      if (typeof payload.paymentUrl === 'string' && payload.paymentUrl) {
+        window.location.assign(payload.paymentUrl)
+        return
+      }
+      if (typeof payload.paymentInstruction === 'string' && payload.paymentInstruction) {
+        setPaymentState({ status: 'pending', message: payload.paymentInstruction })
+        return
+      }
+      setError('Flutterwave did not return a payment authorization step. Please try again.')
     } catch {
       setError('We could not reach payment securely. Please check your connection and try again.')
     } finally {
@@ -277,6 +299,23 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
                 {promoState.status === 'error' && <p role="alert" className="mt-2 text-xs text-rose-700 dark:text-rose-300">{promoState.message}</p>}
                 {promoState.status === 'applied' && <p role="status" className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">Promotion applied. The final amount will be checked again securely before payment.</p>}
               </div>
+
+              <section className="rounded-xl border border-border/70 bg-card p-5 motion-reveal" style={{ animationDelay: '200ms' }}>
+                <div><p className="text-[10px] uppercase tracking-[0.22em] text-primary">04 / Payment method</p><h2 className="mt-2 font-serif text-2xl font-light text-foreground">Choose how to pay.</h2><p className="mt-2 text-xs leading-5 text-muted-foreground">Your payment is processed by Flutterwave. Card details are encrypted before they leave this checkout.</p></div>
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  <button type="button" onClick={() => setPaymentMethod('mobile_money')} aria-pressed={paymentMethod === 'mobile_money'} className={`flex min-h-12 items-center gap-3 rounded-md border px-4 text-left text-sm transition-colors ${paymentMethod === 'mobile_money' ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-primary/60'}`}><Smartphone className="size-4" aria-hidden="true" /><span><span className="block font-medium">Mobile Money</span><span className="text-xs opacity-70">MTN or Airtel</span></span></button>
+                  <button type="button" onClick={() => setPaymentMethod('card')} aria-pressed={paymentMethod === 'card'} className={`flex min-h-12 items-center gap-3 rounded-md border px-4 text-left text-sm transition-colors ${paymentMethod === 'card' ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-primary/60'}`}><CreditCard className="size-4" aria-hidden="true" /><span><span className="block font-medium">Card</span><span className="text-xs opacity-70">Visa or Mastercard</span></span></button>
+                </div>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2"><label htmlFor="payment-phone" className="mb-2 block text-xs font-medium text-foreground">Phone number</label><Input id="payment-phone" type="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} placeholder="0772 000 000" className="min-h-12 rounded-none" required /></div>
+                  {paymentMethod === 'mobile_money' ? <div className="sm:col-span-2"><label htmlFor="mobile-network" className="mb-2 block text-xs font-medium text-foreground">Mobile-money network</label><select id="mobile-network" value={mobileMoneyNetwork} onChange={(event) => setMobileMoneyNetwork(event.target.value as 'MTN' | 'AIRTEL')} className="min-h-12 w-full rounded-none border border-input bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"><option value="MTN">MTN Mobile Money</option><option value="AIRTEL">Airtel Money</option></select></div> : <>
+                    <div className="sm:col-span-2"><label htmlFor="card-number" className="mb-2 block text-xs font-medium text-foreground">Card number</label><Input id="card-number" inputMode="numeric" autoComplete="cc-number" value={cardNumber} onChange={(event) => setCardNumber(event.target.value)} placeholder="0000 0000 0000 0000" className="min-h-12 rounded-none" required /></div>
+                    <div><label htmlFor="card-month" className="mb-2 block text-xs font-medium text-foreground">Expiry month</label><Input id="card-month" inputMode="numeric" autoComplete="cc-exp-month" value={cardExpiryMonth} onChange={(event) => setCardExpiryMonth(event.target.value)} placeholder="MM" className="min-h-12 rounded-none" required /></div>
+                    <div><label htmlFor="card-year" className="mb-2 block text-xs font-medium text-foreground">Expiry year</label><Input id="card-year" inputMode="numeric" autoComplete="cc-exp-year" value={cardExpiryYear} onChange={(event) => setCardExpiryYear(event.target.value)} placeholder="YY" className="min-h-12 rounded-none" required /></div>
+                    <div><label htmlFor="card-cvv" className="mb-2 block text-xs font-medium text-foreground">CVV</label><Input id="card-cvv" inputMode="numeric" autoComplete="cc-csc" type="password" value={cardCvv} onChange={(event) => setCardCvv(event.target.value)} placeholder="123" className="min-h-12 rounded-none" required /></div>
+                  </>}
+                </div>
+              </section>
 
               {paymentState && <p role="status" className="border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50">{paymentState.message}</p>}
               {error && <p role="alert" className="border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-400/40 dark:bg-rose-950/40 dark:text-rose-100">{error}</p>}

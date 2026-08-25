@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { db } from '@/lib/db/client'
 import { consultationPaymentIntents, consultationPromotionRedemptions, consultationSlots } from '@/lib/db/schema'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
-import { flutterwaveConfigurationMessage, getFlutterwaveConfig } from '@/lib/flutterwave-config'
+import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
 import {
   calculatePromotionDiscount,
   getConsultationPricing,
@@ -26,11 +26,19 @@ type BookingBody = {
   mode?: unknown
   promoCode?: unknown
   idempotencyKey?: unknown
+  paymentMethod?: unknown
+  phoneNumber?: unknown
+  mobileMoneyNetwork?: unknown
+  cardNumber?: unknown
+  cardExpiryMonth?: unknown
+  cardExpiryYear?: unknown
+  cardCvv?: unknown
 }
 
 type PaymentIntentResponse = {
   paymentIntentId: string
-  paymentUrl: string
+  paymentUrl?: string
+  paymentInstruction?: string
   txRef: string
   expiresAt: string
   pricing: ConsultationPriceSummary
@@ -45,21 +53,25 @@ function normalizeBaseUrl(request: Request) {
   return configured.replace(/\/$/, '')
 }
 
-function responseForIntent(intent: typeof consultationPaymentIntents.$inferSelect, pricing: ConsultationPriceSummary) {
-  if (!intent.paymentUrl) return null
+function responseForIntent(intent: typeof consultationPaymentIntents.$inferSelect, pricing: ConsultationPriceSummary): PaymentIntentResponse | null {
+  const metadata = (intent.metadata || {}) as Record<string, unknown>
+  const paymentInstruction = typeof metadata.paymentInstruction === 'string' ? metadata.paymentInstruction : undefined
+  if (!intent.paymentUrl && !paymentInstruction) return null
   return {
     paymentIntentId: intent.id,
-    paymentUrl: intent.paymentUrl,
+    paymentUrl: intent.paymentUrl || undefined,
+    paymentInstruction,
     txRef: intent.txRef,
     expiresAt: intent.expiresAt.toISOString(),
     pricing,
-  } satisfies PaymentIntentResponse
+  }
 }
 
 async function releaseFailedIntent(intentId: string, userId: string) {
   await db.transaction(async (transaction) => {
     await transaction.update(consultationPaymentIntents).set({ status: 'failed', failedAt: new Date(), updatedAt: new Date() }).where(and(eq(consultationPaymentIntents.id, intentId), eq(consultationPaymentIntents.userId, userId), eq(consultationPaymentIntents.status, 'pending')))
-    await transaction.update(consultationSlots).set({ holdUntil: null, holdUserId: null }).where(and(eq(consultationSlots.holdUserId, userId), eq(consultationSlots.holdUntil, (await transaction.select({ expiresAt: consultationPaymentIntents.expiresAt }).from(consultationPaymentIntents).where(eq(consultationPaymentIntents.id, intentId)).limit(1))[0]?.expiresAt ?? new Date(0))))
+    const intent = (await transaction.select({ expiresAt: consultationPaymentIntents.expiresAt }).from(consultationPaymentIntents).where(eq(consultationPaymentIntents.id, intentId)).limit(1))[0]
+    await transaction.update(consultationSlots).set({ holdUntil: null, holdUserId: null }).where(and(eq(consultationSlots.holdUserId, userId), eq(consultationSlots.holdUntil, intent?.expiresAt ?? new Date(0))))
     await transaction.update(consultationPromotionRedemptions).set({ status: 'released', releasedAt: new Date(), updatedAt: new Date() }).where(and(eq(consultationPromotionRedemptions.paymentIntentId, intentId), eq(consultationPromotionRedemptions.status, 'reserved')))
   })
 }
@@ -94,53 +106,35 @@ export async function POST(request: Request) {
     const expiresAt = new Date(now.getTime() + pricing.holdMinutes * 60 * 1000)
 
     const existing = await db.query.consultationPaymentIntents.findFirst({ where: eq(consultationPaymentIntents.idempotencyKey, idempotencyKey) })
-    if (existing && existing.userId !== user.id) {
-      return NextResponse.json({ error: 'This payment request cannot be reused. Please refresh and try again.' }, { status: 409 })
-    }
+    if (existing && existing.userId !== user.id) return NextResponse.json({ error: 'This payment request cannot be reused. Please refresh and try again.' }, { status: 409 })
     if (existing && existing.userId === user.id && existing.status === 'pending' && existing.expiresAt > now) {
-      const existingSummary = {
-        baseAmount: Number(existing.baseAmount),
-        discountAmount: Number(existing.discountAmount),
-        taxAmount: Number(existing.taxAmount),
-        amount: Number(existing.amount),
-        currency: existing.currency,
-        taxRate: Number(existing.taxRate),
-        taxInclusive: pricing.taxInclusive,
-        promotionCode: existing.promotionCode,
-        promotionName: promotion?.name || null,
-      } satisfies ConsultationPriceSummary
+      const existingSummary = { baseAmount: Number(existing.baseAmount), discountAmount: Number(existing.discountAmount), taxAmount: Number(existing.taxAmount), amount: Number(existing.amount), currency: existing.currency, taxRate: Number(existing.taxRate), taxInclusive: pricing.taxInclusive, promotionCode: existing.promotionCode, promotionName: promotion?.name || null } satisfies ConsultationPriceSummary
       const response = responseForIntent(existing, existingSummary)
       if (response) return NextResponse.json(response)
     }
-    if (existing && existing.userId === user.id && ['paid', 'paid_review'].includes(existing.status)) {
-      return NextResponse.json({ error: 'This payment request has already been processed. Please check your consultation history.' }, { status: 409 })
-    }
-    // A failed, verification-failed, or expired attempt cannot be inserted again
-    // with the same unique idempotency key. Retrying it gets a fresh server key.
-    const paymentIdempotencyKey = existing ? randomUUID() : idempotencyKey
+    if (existing && existing.userId === user.id && ['paid', 'paid_review'].includes(existing.status)) return NextResponse.json({ error: 'This payment request has already been processed. Please check your consultation history.' }, { status: 409 })
 
+    const paymentIdempotencyKey = existing ? randomUUID() : idempotencyKey
     const flutterwaveConfig = getFlutterwaveConfig()
     if (!flutterwaveConfig.ok) {
-      const insecurePublicSecretConfigured = Boolean(process.env.NEXT_PUBLIC_FLUTTERWAVE_SECRET_KEY?.trim())
-      console.error('[consultation-payment] Flutterwave configuration rejected', { mode: flutterwaveConfig.mode, reason: flutterwaveConfig.reason, insecurePublicSecretConfigured })
-      return NextResponse.json({ error: insecurePublicSecretConfigured && flutterwaveConfig.reason === 'missing' ? 'Payment setup needs one correction: rename the Flutterwave secret variable to FLUTTERWAVE_SECRET_KEY, then redeploy.' : flutterwaveConfigurationMessage(flutterwaveConfig) }, { status: 503 })
+      console.error('[consultation-payment] Flutterwave v4 configuration rejected', { mode: flutterwaveConfig.mode, reason: flutterwaveConfig.reason })
+      return NextResponse.json({ error: flutterwaveConfigurationMessage(flutterwaveConfig) }, { status: 503 })
+    }
+
+    const customerPhone = normalizeUgandaPhone(text(body.phoneNumber, 30))
+    if (!customerPhone) return NextResponse.json({ error: 'Enter a valid Ugandan phone number for payment authorization.' }, { status: 400 })
+
+    let paymentMethod: Awaited<ReturnType<typeof buildFlutterwavePaymentMethod>>
+    try {
+      paymentMethod = await buildFlutterwavePaymentMethod({ method: body.paymentMethod, phoneNumber: body.phoneNumber, mobileMoneyNetwork: body.mobileMoneyNetwork, cardNumber: body.cardNumber, cardExpiryMonth: body.cardExpiryMonth, cardExpiryYear: body.cardExpiryYear, cardCvv: body.cardCvv })
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Choose a valid payment method.' }, { status: 400 })
     }
 
     const txRef = `REV-CONS-${Date.now()}-${randomUUID().slice(0, 8)}`
     const created = await db.transaction(async (transaction) => {
-      const [slot] = await transaction
-        .update(consultationSlots)
-        .set({ holdUntil: expiresAt, holdUserId: user.id })
-        .where(and(
-          eq(consultationSlots.id, slotId),
-          eq(consultationSlots.isBooked, false),
-          gte(consultationSlots.startTime, now),
-          or(isNull(consultationSlots.holdUntil), lt(consultationSlots.holdUntil, now), eq(consultationSlots.holdUserId, user.id)),
-          eq(consultationSlots.mode, mode),
-        ))
-        .returning({ id: consultationSlots.id, startTime: consultationSlots.startTime, durationMinutes: consultationSlots.durationMinutes, mode: consultationSlots.mode })
+      const [slot] = await transaction.update(consultationSlots).set({ holdUntil: expiresAt, holdUserId: user.id }).where(and(eq(consultationSlots.id, slotId), eq(consultationSlots.isBooked, false), gte(consultationSlots.startTime, now), or(isNull(consultationSlots.holdUntil), lt(consultationSlots.holdUntil, now), eq(consultationSlots.holdUserId, user.id)), eq(consultationSlots.mode, mode))).returning({ id: consultationSlots.id, startTime: consultationSlots.startTime, durationMinutes: consultationSlots.durationMinutes, mode: consultationSlots.mode })
       if (!slot) return null
-
       const [intent] = await transaction.insert(consultationPaymentIntents).values({
         slotId: slot.id,
         userId: user.id,
@@ -155,75 +149,44 @@ export async function POST(request: Request) {
         promotionId: promotion?.id || null,
         promotionCode: promotion?.code || null,
         expiresAt,
-        metadata: { title, description, serviceType, budget, mode, slotStartTime: slot.startTime.toISOString(), durationMinutes: slot.durationMinutes, taxInclusive: summary.taxInclusive },
+        metadata: { title, description, serviceType, budget, mode, slotStartTime: slot.startTime.toISOString(), durationMinutes: slot.durationMinutes, taxInclusive: summary.taxInclusive, paymentMethod: paymentMethod.type },
       }).returning()
       if (!intent) return null
-
-      if (promotion) {
-        await transaction.insert(consultationPromotionRedemptions).values({
-          promotionId: promotion.id,
-          paymentIntentId: intent.id,
-          userId: user.id,
-          code: promotion.code,
-          discountAmount: calculatePromotionDiscount(promotion, summary.baseAmount).toFixed(2),
-          status: 'reserved',
-        })
-      }
+      if (promotion) await transaction.insert(consultationPromotionRedemptions).values({ promotionId: promotion.id, paymentIntentId: intent.id, userId: user.id, code: promotion.code, discountAmount: calculatePromotionDiscount(promotion, summary.baseAmount).toFixed(2), status: 'reserved' })
       return intent
     })
 
     if (!created) return NextResponse.json({ error: 'That time has just been reserved by another client. Please choose another slot.' }, { status: 409 })
-
     let baseUrl = normalizeBaseUrl(request)
     if (!/^https?:\/\//i.test(baseUrl)) baseUrl = `https://${baseUrl}`
-    const paymentOptions = 'card,mobilemoneyuganda,banktransfer'
-    const flwResponse = await fetch(`${flutterwaveConfig.baseUrl}/payments`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${flutterwaveConfig.secretKey}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-Idempotency-Key': paymentIdempotencyKey,
-      },
-      body: JSON.stringify({
-        tx_ref: created.txRef,
-        amount: Number(created.amount),
-        currency: created.currency,
-        redirect_url: `${baseUrl}/api/consultations/payment-callback`,
-        payment_options: paymentOptions,
-        customer: {
-          email: user.email,
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Client',
-        },
-        customizations: {
-          title: 'Consultation with The Revamp UG',
-          description: `Consultation booking ${created.txRef}`,
-        },
-        meta: {
-          paymentIntentId: created.id,
-          slotId: created.slotId,
-          promotionCode: created.promotionCode,
-        },
-        configurations: { session_duration: pricing.holdMinutes, max_retry_attempt: 3 },
-      }),
-      cache: 'no-store',
+
+    const flwResponse = await createFlutterwaveCharge({
+      reference: created.txRef,
+      amount: Number(created.amount),
+      currency: created.currency,
+      redirectUrl: `${baseUrl}/api/consultations/payment-callback`,
+      customer: { email: user.email, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Client', phone: { country_code: customerPhone.countryCode, number: customerPhone.number } },
+      paymentMethod,
+      idempotencyKey: paymentIdempotencyKey,
+      meta: { paymentIntentId: created.id, slotId: created.slotId, promotionCode: created.promotionCode || '' },
     })
-    const flwPayload = await flwResponse.json().catch(() => ({})) as { status?: string; message?: string; data?: { link?: string } }
-    if (!flwResponse.ok || flwPayload.status !== 'success' || !flwPayload.data?.link) {
+    const flwPayload = flwResponse.payload || {}
+    const charge = flwPayload.data
+    if (!flwResponse.response?.ok || !['success', 'pending'].includes(String(flwPayload.status || '').toLowerCase()) || !charge?.id) {
       await releaseFailedIntent(created.id, user.id)
-      const providerError = flwResponse.status === 401
-        ? `Flutterwave rejected the ${flutterwaveConfig.mode} server key. Confirm FLUTTERWAVE_SECRET_KEY contains the matching secret key, not the public key.`
-        : flwPayload.message || 'Payment could not be initialized. Please try again.'
-      return NextResponse.json({ error: providerError }, { status: flwResponse.status === 401 ? 503 : 502 })
+      return NextResponse.json({ error: flutterwaveErrorMessage(flwPayload, flwResponse.response?.status || 502) }, { status: flwResponse.response?.status === 401 ? 503 : 502 })
     }
 
-    const [updated] = await db.update(consultationPaymentIntents).set({ paymentUrl: flwPayload.data.link, updatedAt: new Date() }).where(and(eq(consultationPaymentIntents.id, created.id), eq(consultationPaymentIntents.status, 'pending'))).returning()
+    const paymentUrl = charge.next_action?.redirect_url?.url || null
+    const paymentInstruction = charge.next_action?.payment_instruction?.note || null
+    const metadata = { ...((created.metadata || {}) as Record<string, unknown>), flutterwaveChargeId: String(charge.id), paymentInstruction: paymentInstruction || undefined }
+    const [updated] = await db.update(consultationPaymentIntents).set({ paymentUrl, metadata, updatedAt: new Date() }).where(and(eq(consultationPaymentIntents.id, created.id), eq(consultationPaymentIntents.status, 'pending'))).returning()
     if (!updated) return NextResponse.json({ error: 'Payment could not be prepared. Please try again.' }, { status: 500 })
     const response = responseForIntent(updated, summary)
-    if (!response) return NextResponse.json({ error: 'Payment link was not created. Please try again.' }, { status: 500 })
+    if (!response) return NextResponse.json({ error: 'Flutterwave did not return an authorization step. Please try again.' }, { status: 502 })
     return NextResponse.json(response)
   } catch (error) {
-    console.error('[consultation-payment] failed to initialize payment:', error)
+    console.error('[consultation-payment] failed to initialize v4 payment:', error)
     return NextResponse.json({ error: 'We could not prepare consultation payment. Please try again.' }, { status: 500 })
   }
 }

@@ -58,20 +58,57 @@ export default function SubscriptionCheckoutClient({
   const [authorizationCode, setAuthorizationCode] = useState('')
   const [challenge, setChallenge] = useState<AuthorizationChallenge | null>(null)
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    const params = new URLSearchParams(window.location.search)
+    const payment = params.get('payment')
+    const callbackMessage = params.get('message')
+    if (payment === 'success') return 'Payment verified. Your program access is now active.'
+    if (payment === 'pending') return callbackMessage || 'Your payment is still being authorized. We are checking it again automatically.'
+    return null
+  })
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    const params = new URLSearchParams(window.location.search)
+    return params.get('payment') === 'failed' ? params.get('message') || 'The payment could not be verified. Please start again.' : null
+  })
 
   const selectedPlan = useMemo(() => plans.find((plan) => plan.key === selectedPlanKey) || plans[0], [plans, selectedPlanKey])
   const amount = selectedPlan ? (billingPeriod === 'annual' ? selectedPlan.annualAmount : selectedPlan.monthlyAmount) : ''
   const annualSaving = selectedPlan ? savings(selectedPlan) : 0
 
   useEffect(() => {
+    let cancelled = false
     const params = new URLSearchParams(window.location.search)
     const payment = params.get('payment')
-    const callbackMessage = params.get('message')
-    if (payment === 'success') setMessage('Payment verified. Your program access is now active.')
-    if (payment === 'pending') setMessage(callbackMessage || 'Your payment is still being authorized. Please wait and check again.')
-    if (payment === 'failed') setErrorMessage(callbackMessage || 'The payment could not be verified. Please start again.')
+    const txRef = params.get('tx_ref') || params.get('reference')
+
+    async function reconcile() {
+      if (!txRef || !['pending', 'failed'].includes(payment || '')) return
+      for (let attempt = 0; attempt < 6 && !cancelled; attempt += 1) {
+        try {
+          const response = await fetch(`/api/subscriptions/status?tx_ref=${encodeURIComponent(txRef)}`, { cache: 'no-store' })
+          const data = await response.json().catch(() => null)
+          if (cancelled) return
+          if (data?.status === 'active') {
+            setErrorMessage(null)
+            setMessage('Payment verified. Your program access is now active.')
+            return
+          }
+          if (data?.status === 'verification_failed') {
+            setErrorMessage(data.message || 'The subscription payment could not be verified.')
+            return
+          }
+          if (data?.message) setMessage(data.message)
+        } catch {
+          // The page can still be used while the payment provider finishes asynchronously.
+        }
+        if (attempt < 5) await new Promise((resolve) => window.setTimeout(resolve, 2500))
+      }
+    }
+
+    void reconcile()
+    return () => { cancelled = true }
   }, [])
 
   function clearFeedback() {

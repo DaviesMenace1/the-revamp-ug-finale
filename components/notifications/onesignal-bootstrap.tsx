@@ -81,7 +81,7 @@ function OneSignalClientBootstrap() {
           if (!window.__revampOneSignalInitialized) {
             await OneSignal.init({
               appId,
-              serviceWorkerPath: 'OneSignalSDKWorker.js',
+              serviceWorkerPath: '/OneSignalSDKWorker.js',
               serviceWorkerParam: { scope: '/' },
               autoResubscribe: true,
               welcomeNotification: { disable: true },

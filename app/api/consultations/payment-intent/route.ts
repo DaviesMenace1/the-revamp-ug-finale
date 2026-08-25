@@ -170,7 +170,7 @@ export async function POST(request: Request) {
       reference: created.txRef,
       amount: Number(created.amount),
       currency: created.currency,
-      redirectUrl: `${baseUrl}/api/consultations/payment-callback`,
+      redirectUrl: `${baseUrl}/api/consultations/payment-callback?reference=${encodeURIComponent(created.txRef)}&tx_ref=${encodeURIComponent(created.txRef)}`,
       customer: { email: user.email, name: { first: text(user.firstName, 50) || 'Client', last: text(user.lastName, 50) || 'Client' }, phone: { country_code: customerPhone.countryCode, number: customerPhone.number }, address: { line1: 'Consultation booking', city: 'Kampala', state: 'Central', country: 'UG', postal_code: '00000' } },
       paymentMethod,
       idempotencyKey: paymentIdempotencyKey,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { settleConsultationPayment } from '@/lib/consultation-payments'
-import { isValidFlutterwaveWebhookSignature } from '@/lib/flutterwave-config'
+import { isValidFlutterwaveWebhookSignature, retrieveFlutterwaveCharge } from '@/lib/flutterwave-config'
 import { settleOrderPayment } from '@/lib/order-payments'
 import { settleSubscriptionPayment } from '@/lib/subscription-payments'
 
@@ -19,26 +19,40 @@ export async function POST(request: NextRequest) {
     const data = payload.data || {}
     const eventType = payload.type || payload.event
     const paymentStatus = String(data.status || '').toLowerCase()
-    const orderRef = String(data.reference || data.tx_ref || '').trim()
     const chargeId = String(data.id || '').trim()
-    if (eventType !== 'charge.completed' || !['succeeded', 'successful'].includes(paymentStatus) || !orderRef || !chargeId) return NextResponse.json({ status: 'ignored' })
+    let orderRef = String(data.reference || data.tx_ref || '').trim()
+
+    if (eventType !== 'charge.completed' || !['succeeded', 'successful'].includes(paymentStatus) || !chargeId) {
+      return NextResponse.json({ status: 'ignored' })
+    }
+
+    if (!orderRef) {
+      try {
+        const chargeResult = await retrieveFlutterwaveCharge(chargeId)
+        const charge = chargeResult.payload?.data
+        orderRef = String(charge?.reference || charge?.tx_ref || '').trim()
+      } catch (error) {
+        console.error('[flutterwave-webhook] charge lookup for missing reference failed:', error)
+      }
+    }
+    if (!orderRef) return NextResponse.json({ status: 'acknowledged', reason: 'missing_reference' })
 
     if (orderRef.startsWith('REV-CONS-')) {
       const consultationResult = await settleConsultationPayment({ txRef: orderRef, transactionId: chargeId })
       if (consultationResult.success) return NextResponse.json({ status: 'success', scope: 'consultation' })
-      return NextResponse.json({ status: consultationResult.status, error: consultationResult.error }, { status: consultationResult.status === 'verification_failed' ? 400 : 500 })
+      return NextResponse.json({ status: consultationResult.status, error: consultationResult.error })
     }
 
     if (orderRef.startsWith('REV-SUB-')) {
       const subscriptionResult = await settleSubscriptionPayment({ transactionReference: orderRef, chargeId })
       if (subscriptionResult.success) return NextResponse.json({ status: 'success', scope: 'subscription' })
-      return NextResponse.json({ status: subscriptionResult.status, error: subscriptionResult.error }, { status: subscriptionResult.status === 'verification_failed' ? 400 : 500 })
+      return NextResponse.json({ status: subscriptionResult.status, error: subscriptionResult.error })
     }
 
     const orderResult = await settleOrderPayment({ orderRef, chargeId })
     if (orderResult.success) return NextResponse.json({ status: 'success', scope: 'order' })
-    if (orderResult.status === 'not_found') return NextResponse.json({ message: 'Order not found' }, { status: 404 })
-    return NextResponse.json({ status: orderResult.status, error: orderResult.error }, { status: orderResult.status === 'verification_failed' ? 400 : 500 })
+    if (orderResult.status === 'not_found') return NextResponse.json({ status: 'acknowledged', message: 'Order not found' })
+    return NextResponse.json({ status: orderResult.status, error: orderResult.error })
   } catch (error) {
     console.error('Flutterwave v4 webhook error:', error)
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })

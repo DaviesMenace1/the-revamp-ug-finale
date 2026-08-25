@@ -2,6 +2,7 @@
 
 import { PortalLayout } from '@/components/portals/portal-layout'
 import SubscriptionCheckoutClient, { type SubscriptionPlanOption } from '@/components/subscriptions/subscription-checkout-client'
+import BrowserNotificationPrompt from '@/components/notifications/browser-notification-prompt'
 
 const faqs = [
   { q: 'Are there volume discounts?', a: 'Yes, orders over 100,000 UGX may qualify for additional discounts according to your active trade plan.' },
@@ -34,6 +35,7 @@ export default function TradePricingClient({
       ]}
     >
       <div className="space-y-12">
+        <BrowserNotificationPrompt context="trade" />
         <div>
           <p className="text-[10px] uppercase tracking-[0.28em] text-primary">Trade access</p>
           <h1 className="mb-2 mt-3 font-serif text-4xl font-light text-foreground">Trade subscriptions</h1>

@@ -2,7 +2,7 @@ import 'server-only'
 
 import { and, eq, ne } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { orders, paymentRecords, users } from '@/lib/db/schema'
+import { carts, orders, paymentRecords, users } from '@/lib/db/schema'
 import { generateVerifiedPaymentReceipt } from '@/lib/documents/payment-receipt'
 import { notifyUser } from '@/lib/notifications/service'
 import { safelyReleasePointsForOrder, settleSuccessfulOrderRewards } from '@/lib/loyalty/service'
@@ -21,6 +21,10 @@ function parseAddress(value: unknown): { name?: string; [key: string]: unknown }
   return value && typeof value === 'object' ? value as { name?: string; [key: string]: unknown } : {}
 }
 
+function parseMetadata(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? value as Record<string, unknown> : {}
+}
+
 function sameMoney(actual: unknown, expected: unknown) {
   return Number(actual) + 0.001 >= Number(expected)
 }
@@ -28,10 +32,15 @@ function sameMoney(actual: unknown, expected: unknown) {
 export async function settleOrderPayment(input: { orderRef: string; chargeId?: string | null }) {
   const order = await db.query.orders.findFirst({ where: eq(orders.orderNumber, input.orderRef) })
   if (!order) return { success: false as const, status: 'not_found' as const, error: 'Order was not found.' }
-  if (order.paymentStatus === 'completed') return { success: true as const, status: 'paid' as const, orderId: order.id }
 
-  const chargeId = String(input.chargeId || '').trim()
+  let chargeId = String(input.chargeId || '').trim()
+  const storedPayment = await db.query.paymentRecords.findFirst({
+    where: and(eq(paymentRecords.orderId, order.id), eq(paymentRecords.provider, 'flutterwave')),
+    columns: { id: true, transactionReference: true, metadata: true },
+  })
+  if (!chargeId) chargeId = storedPayment?.transactionReference || ''
   if (!chargeId) return { success: false as const, status: 'pending' as const, error: 'The payment is still awaiting authorization.' }
+
   const result = await retrieveFlutterwaveCharge(chargeId)
   const payload = result.payload || {}
   const charge = payload.data
@@ -47,28 +56,46 @@ export async function settleOrderPayment(input: { orderRef: string; chargeId?: s
 
   const now = new Date()
   const [settledOrder] = await db.update(orders).set({ status: 'confirmed', paymentStatus: 'completed', updatedAt: now }).where(and(eq(orders.id, order.id), ne(orders.paymentStatus, 'completed'))).returning({ id: orders.id })
-  if (!settledOrder) return { success: true as const, status: 'paid' as const, orderId: order.id }
+  const newlySettled = Boolean(settledOrder)
 
   const customer = await db.query.users.findFirst({ where: eq(users.clerkId, order.userId) })
   const method = charge.payment_method_details?.type || charge.payment_method?.type || null
   const transactionReference = String(charge.id || chargeId)
-  const existingPayment = await db.query.paymentRecords.findFirst({ where: and(eq(paymentRecords.provider, 'flutterwave'), eq(paymentRecords.transactionReference, transactionReference)), columns: { id: true } })
-  let paymentId = existingPayment?.id || null
+  const existingPayment = await db.query.paymentRecords.findFirst({ where: and(eq(paymentRecords.provider, 'flutterwave'), eq(paymentRecords.transactionReference, transactionReference)), columns: { id: true, metadata: true } })
+  const originalPaymentMetadata = parseMetadata(existingPayment?.metadata || storedPayment?.metadata)
+  let paymentId = existingPayment?.id || storedPayment?.id || null
+  const completedMetadata = { ...originalPaymentMetadata, txRef: order.orderNumber, chargeId: transactionReference, paymentType: method }
+
   if (existingPayment) {
-    await db.update(paymentRecords).set({ userId: customer?.id || undefined, orderId: order.id, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), method, status: 'completed', metadata: { txRef: order.orderNumber, chargeId: transactionReference, paymentType: method }, paidAt: now, updatedAt: now }).where(eq(paymentRecords.id, existingPayment.id))
+    await db.update(paymentRecords).set({ userId: customer?.id || undefined, orderId: order.id, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), method, status: 'completed', metadata: completedMetadata, paidAt: now, updatedAt: now }).where(eq(paymentRecords.id, existingPayment.id))
+  } else if (storedPayment) {
+    await db.update(paymentRecords).set({ userId: customer?.id || undefined, orderId: order.id, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), method, status: 'completed', metadata: completedMetadata, paidAt: now, updatedAt: now }).where(eq(paymentRecords.id, storedPayment.id))
   } else if (customer) {
-    const [payment] = await db.insert(paymentRecords).values({ userId: customer.id, orderId: order.id, provider: 'flutterwave', transactionReference, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), method, status: 'completed', metadata: { txRef: order.orderNumber, chargeId: transactionReference, paymentType: method }, paidAt: now }).onConflictDoNothing({ target: [paymentRecords.provider, paymentRecords.transactionReference] }).returning({ id: paymentRecords.id })
+    const [payment] = await db.insert(paymentRecords).values({ userId: customer.id, orderId: order.id, provider: 'flutterwave', transactionReference, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), method, status: 'completed', metadata: completedMetadata, paidAt: now }).onConflictDoNothing({ target: [paymentRecords.provider, paymentRecords.transactionReference] }).returning({ id: paymentRecords.id })
     paymentId = payment?.id || null
   }
 
   if (customer) {
-    await settleSuccessfulOrderRewards(customer.id, order.id, order.subtotal)
-    if (paymentId) {
-      void generateVerifiedPaymentReceipt({ paymentId, userId: customer.id, clientName: `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() || customer.email, clientEmail: customer.email, orderNumber: order.orderNumber, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), paymentMethod: method, transactionReference })
+    if (newlySettled) {
+      await settleSuccessfulOrderRewards(customer.id, order.id, order.subtotal)
+      if (paymentId) {
+        void generateVerifiedPaymentReceipt({ paymentId, userId: customer.id, clientName: `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() || customer.email, clientEmail: customer.email, orderNumber: order.orderNumber, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), paymentMethod: method, transactionReference })
+      }
+      void notifyUser({ userId: customer.id, type: 'payment_completed', priority: 'important', title: 'Payment confirmed', message: `Payment for order ${order.orderNumber} was confirmed.`, actionUrl: '/client/orders', channels: ['in_app', 'push'] })
     }
-    void notifyUser({ userId: customer.id, type: 'payment_completed', priority: 'important', title: 'Payment confirmed', message: `Payment for order ${order.orderNumber} was confirmed.`, actionUrl: '/client/orders', channels: ['in_app', 'push'] })
-    const address = parseAddress(order.deliveryAddress)
-    if (customer.email) await sendOrderVerificationEmail({ toEmail: customer.email, orderNumber: order.orderNumber, amount: String(order.total), currency: expectedCurrency, customerName: typeof address.name === 'string' ? address.name : 'Valued Customer' })
+
+    await db.update(carts).set({ items: [], subtotal: '0', updatedAt: now }).where(eq(carts.userId, customer.id))
+
+    const emailAlreadySent = originalPaymentMetadata.verifiedOrderEmailSent === true
+    if (!emailAlreadySent && customer.email) {
+      const address = parseAddress(order.deliveryAddress)
+      const emailResult = await sendOrderVerificationEmail({ toEmail: customer.email, orderNumber: order.orderNumber, amount: String(order.total), currency: expectedCurrency, customerName: typeof address.name === 'string' ? address.name : 'Valued Customer' })
+      if (emailResult.success) {
+        if (paymentId) await db.update(paymentRecords).set({ metadata: { ...completedMetadata, verifiedOrderEmailSent: true }, updatedAt: now }).where(eq(paymentRecords.id, paymentId))
+      } else {
+        console.error('[order-payment] verified order email was not sent:', emailResult.error)
+      }
+    }
   }
 
   return { success: true as const, status: 'paid' as const, orderId: order.id }

@@ -30,11 +30,13 @@ function SuccessContent() {
 
   // Fetch the order first; the cart is cleared only after the server confirms payment.
   useEffect(() => {
-    if (!orderRef) return
+    const reference = orderRef || ''
+    if (!reference) return
 
     async function fetchOrderDetails() {
       try {
-        const res = await fetch(`/api/orders/details?ref=${orderRef}`)
+        await fetch(`/api/orders/reconcile?ref=${encodeURIComponent(reference)}`, { cache: 'no-store' })
+        const res = await fetch(`/api/orders/details?ref=${encodeURIComponent(reference)}`, { cache: 'no-store' })
         if (res.ok) {
           const data = await res.json()
           setOrder(data.order)

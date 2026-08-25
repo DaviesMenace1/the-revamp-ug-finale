@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { and, eq, ne } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { orders } from '@/lib/db/schema'
+import { orders, paymentRecords } from '@/lib/db/schema'
 import { safelyReleasePointsForOrder } from '@/lib/loyalty/service'
 import { settleOrderPayment } from '@/lib/order-payments'
 import { retrieveFlutterwaveCharge } from '@/lib/flutterwave-config'
@@ -33,11 +33,19 @@ export async function GET(request: NextRequest) {
     }
     return NextResponse.redirect(`${baseUrl}/checkout/failed?orderRef=${encodeURIComponent(resolvedOrderRef)}&reason=cancelled`)
   }
-  if (!chargeId) return NextResponse.redirect(`${baseUrl}/checkout/failed?orderRef=${encodeURIComponent(resolvedOrderRef)}&error=no_charge_id`)
+  let effectiveChargeId = chargeId
+  if (!effectiveChargeId) {
+    const pendingOrder = await db.query.orders.findFirst({ where: eq(orders.orderNumber, resolvedOrderRef), columns: { id: true } })
+    if (pendingOrder) {
+      const pendingPayment = await db.query.paymentRecords.findFirst({ where: and(eq(paymentRecords.orderId, pendingOrder.id), eq(paymentRecords.status, 'pending')), columns: { transactionReference: true } })
+      effectiveChargeId = pendingPayment?.transactionReference || ''
+    }
+  }
+  if (!effectiveChargeId) return NextResponse.redirect(`${baseUrl}/checkout/pending?orderRef=${encodeURIComponent(resolvedOrderRef)}&message=The%20payment%20is%20still%20being%20authorized.`)
 
   try {
-    const result = await settleOrderPayment({ orderRef: resolvedOrderRef, chargeId })
-    if (result.success) return NextResponse.redirect(`${baseUrl}/checkout/success?orderRef=${encodeURIComponent(resolvedOrderRef)}&charge_id=${encodeURIComponent(chargeId)}`)
+    const result = await settleOrderPayment({ orderRef: resolvedOrderRef, chargeId: effectiveChargeId })
+    if (result.success) return NextResponse.redirect(`${baseUrl}/checkout/success?orderRef=${encodeURIComponent(resolvedOrderRef)}&charge_id=${encodeURIComponent(effectiveChargeId)}`)
     if (result.status === 'pending') return NextResponse.redirect(`${baseUrl}/checkout/pending?orderRef=${encodeURIComponent(resolvedOrderRef)}`)
     return NextResponse.redirect(`${baseUrl}/checkout/failed?orderRef=${encodeURIComponent(resolvedOrderRef)}&error=payment_unverified`)
   } catch (error) {

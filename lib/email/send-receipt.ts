@@ -17,9 +17,9 @@ export async function sendOrderVerificationEmail({
   currency = 'UGX',
   customerName = 'Valued Customer',
 }: SendReceiptOptions) {
-  const apiKey = process.env.BREVO_API_KEY
-  const senderEmail = process.env.SENDER_EMAIL || 'orders@yourdomain.com'
-  const senderName = process.env.SENDER_NAME || 'Store Admin'
+  const apiKey = process.env.BREVO_API_KEY?.trim()
+  const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim() || process.env.SENDER_EMAIL?.trim() || 'info@therevampug.com'
+  const senderName = process.env.BREVO_SENDER_NAME?.trim() || process.env.SENDER_NAME?.trim() || 'The Revamp UG'
   const safeCustomerName = escapeEmailHtml(customerName)
   const safeOrderNumber = escapeEmailHtml(orderNumber)
   const safeAmount = escapeEmailHtml(amount)
@@ -83,7 +83,7 @@ export async function sendOrderVerificationEmail({
       },
       body: JSON.stringify({
         sender: { name: senderName, email: senderEmail },
-        to: [{ email: toEmail, name: customerName }],
+        to: [{ email: toEmail.trim(), name: customerName }],
         subject: `Order verified #${orderNumber}`,
         htmlContent,
       }),
@@ -91,13 +91,13 @@ export async function sendOrderVerificationEmail({
 
     const data = await response.json().catch(() => ({})) as { messageId?: string; message?: string }
     if (!response.ok) {
-      console.error('Brevo API error:', data)
+      console.error('[brevo] verified order email rejected:', { status: response.status, message: data.message || 'Unknown Brevo error', senderEmail, recipient: toEmail.trim() })
       return { success: false, error: data.message || 'Failed to send email' }
     }
 
     return { success: true, messageId: data.messageId }
   } catch (error) {
-    console.error('Failed to trigger Brevo email:', error)
+    console.error('[brevo] verified order email request failed:', error)
     return { success: false, error: error instanceof Error ? error.message : 'Server error' }
   }
 }

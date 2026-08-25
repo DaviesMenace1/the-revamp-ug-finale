@@ -118,7 +118,7 @@ export async function POST(request: Request) {
       reference: transactionReference,
       amount,
       currency: 'UGX',
-      redirectUrl: `${baseUrl}/api/subscriptions/payment-callback`,
+      redirectUrl: `${baseUrl}/api/subscriptions/payment-callback?program=${encodeURIComponent(program)}&reference=${encodeURIComponent(transactionReference)}&tx_ref=${encodeURIComponent(transactionReference)}`,
       customer: { email: user.email, name: { first: text(user.firstName, 50) || 'Client', last: text(user.lastName, 50) || 'Client' }, phone: { country_code: phone.countryCode, number: phone.number }, address: { line1: 'Subscription payment', city: 'Kampala', state: 'Central', country: 'UG', postal_code: '00000' } },
       paymentMethod,
       idempotencyKey,

@@ -3,6 +3,7 @@
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Check, Zap, Gift } from 'lucide-react'
 import SubscriptionCheckoutClient, { type SubscriptionPlanOption } from '@/components/subscriptions/subscription-checkout-client'
+import BrowserNotificationPrompt from '@/components/notifications/browser-notification-prompt'
 
 const perks = [
   {
@@ -40,6 +41,7 @@ export default function MembershipBenefitsClient({
       ]}
     >
       <div className="space-y-16">
+        <BrowserNotificationPrompt context="membership" />
         <div>
           <h1 className="mb-2 font-serif text-4xl font-light text-foreground">Membership Benefits</h1>
           <p className="text-lg text-muted-foreground">Choose the tier that fits your design practice.</p>

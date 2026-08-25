@@ -134,7 +134,7 @@ export async function POST(request: Request) {
     const customer: Record<string, unknown> = { email, name: customerNameParts(customerName), address: addressForFlutterwave(shippingAddress) }
     if (phone) customer.phone = { country_code: phone.countryCode, number: phone.number }
     const baseUrl = normalizeBaseUrl(request)
-    const flwResponse = await createFlutterwaveCharge({ reference: txRef, amount: amountAfterPoints, currency: expectedCurrency, redirectUrl: `${baseUrl}/api/checkout/callback`, customer, paymentMethod, idempotencyKey: randomUUID(), meta: { orderId: createdOrder.id, txRef } })
+    const flwResponse = await createFlutterwaveCharge({ reference: txRef, amount: amountAfterPoints, currency: expectedCurrency, redirectUrl: `${baseUrl}/api/checkout/callback?reference=${encodeURIComponent(txRef)}&tx_ref=${encodeURIComponent(txRef)}`, customer, paymentMethod, idempotencyKey: randomUUID(), meta: { orderId: createdOrder.id, txRef } })
     const flwPayload = flwResponse.payload || {}
     const charge = flwPayload.data
     if (!flwResponse.response?.ok || !['success', 'pending'].includes(String(flwPayload.status || '').toLowerCase()) || !charge?.id) {

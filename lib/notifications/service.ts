@@ -54,11 +54,17 @@ async function sendOneSignalPush(externalId: string, input: NotificationInput) {
       }),
       signal: controller.signal,
     })
-    const payload = await response.json().catch(() => ({})) as { id?: string; errors?: unknown }
+    const payload = await response.json().catch(() => ({})) as { id?: string; recipients?: number; errors?: unknown; warnings?: unknown }
     if (!response.ok) {
       return { status: 'failed' as const, providerMessageId: null, error: JSON.stringify(payload.errors || `HTTP ${response.status}`) }
     }
-    return { status: 'sent' as const, providerMessageId: payload.id || null, error: null }
+    if (!payload.id) {
+      return { status: 'failed' as const, providerMessageId: null, error: JSON.stringify(payload.errors || payload.warnings || 'OneSignal accepted the request but returned no notification id; the recipient may not have an active browser subscription.') }
+    }
+    if (payload.recipients === 0) {
+      return { status: 'failed' as const, providerMessageId: payload.id, error: 'OneSignal found no active browser subscription for this user.' }
+    }
+    return { status: 'sent' as const, providerMessageId: payload.id, error: null }
   } catch (error) {
     return { status: 'failed' as const, providerMessageId: null, error: error instanceof Error ? error.message : 'OneSignal request failed' }
   } finally {

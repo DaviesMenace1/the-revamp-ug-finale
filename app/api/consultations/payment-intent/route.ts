@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { db } from '@/lib/db/client'
 import { consultationPaymentIntents, consultationPromotionRedemptions, consultationSlots } from '@/lib/db/schema'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
-import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
+import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveAuthorizationType, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
 import {
   calculatePromotionDiscount,
   getConsultationPricing,
@@ -39,6 +39,8 @@ type PaymentIntentResponse = {
   paymentIntentId: string
   paymentUrl?: string
   paymentInstruction?: string
+  chargeId?: string
+  authorizationType?: string
   txRef: string
   expiresAt: string
   pricing: ConsultationPriceSummary
@@ -56,11 +58,15 @@ function normalizeBaseUrl(request: Request) {
 function responseForIntent(intent: typeof consultationPaymentIntents.$inferSelect, pricing: ConsultationPriceSummary): PaymentIntentResponse | null {
   const metadata = (intent.metadata || {}) as Record<string, unknown>
   const paymentInstruction = typeof metadata.paymentInstruction === 'string' ? metadata.paymentInstruction : undefined
-  if (!intent.paymentUrl && !paymentInstruction) return null
+  const chargeId = typeof metadata.flutterwaveChargeId === 'string' ? metadata.flutterwaveChargeId : undefined
+  const authorizationType = typeof metadata.authorizationType === 'string' ? metadata.authorizationType : undefined
+  if (!intent.paymentUrl && !paymentInstruction && !authorizationType) return null
   return {
     paymentIntentId: intent.id,
     paymentUrl: intent.paymentUrl || undefined,
     paymentInstruction,
+    chargeId,
+    authorizationType,
     txRef: intent.txRef,
     expiresAt: intent.expiresAt.toISOString(),
     pricing,
@@ -165,7 +171,7 @@ export async function POST(request: Request) {
       amount: Number(created.amount),
       currency: created.currency,
       redirectUrl: `${baseUrl}/api/consultations/payment-callback`,
-      customer: { email: user.email, name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Client', phone: { country_code: customerPhone.countryCode, number: customerPhone.number } },
+      customer: { email: user.email, name: { first: text(user.firstName, 50) || 'Client', last: text(user.lastName, 50) || 'Client' }, phone: { country_code: customerPhone.countryCode, number: customerPhone.number }, address: { line1: 'Consultation booking', city: 'Kampala', state: 'Central', country: 'UG', postal_code: '00000' } },
       paymentMethod,
       idempotencyKey: paymentIdempotencyKey,
       meta: { paymentIntentId: created.id, slotId: created.slotId, promotionCode: created.promotionCode || '' },
@@ -179,7 +185,8 @@ export async function POST(request: Request) {
 
     const paymentUrl = charge.next_action?.redirect_url?.url || null
     const paymentInstruction = charge.next_action?.payment_instruction?.note || null
-    const metadata = { ...((created.metadata || {}) as Record<string, unknown>), flutterwaveChargeId: String(charge.id), paymentInstruction: paymentInstruction || undefined }
+    const authorizationType = getFlutterwaveAuthorizationType(charge)
+    const metadata = { ...((created.metadata || {}) as Record<string, unknown>), flutterwaveChargeId: String(charge.id), paymentInstruction: paymentInstruction || undefined, authorizationType: authorizationType || undefined }
     const [updated] = await db.update(consultationPaymentIntents).set({ paymentUrl, metadata, updatedAt: new Date() }).where(and(eq(consultationPaymentIntents.id, created.id), eq(consultationPaymentIntents.status, 'pending'))).returning()
     if (!updated) return NextResponse.json({ error: 'Payment could not be prepared. Please try again.' }, { status: 500 })
     const response = responseForIntent(updated, summary)

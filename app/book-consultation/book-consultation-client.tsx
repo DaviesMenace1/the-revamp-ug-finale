@@ -58,6 +58,7 @@ type PromoState =
   | { status: 'applied'; quote: Quote }
 
 type PaymentState = { status: 'success' | 'review' | 'pending'; consultationId?: string; message?: string } | null
+type AuthorizationChallenge = { chargeId: string; paymentIntentId: string; authorizationType: 'pin' | 'otp' }
 
 const DEFAULT_PRICING: Pricing = {
   baseFee: 200000,
@@ -99,6 +100,8 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isApplyingPromo, setIsApplyingPromo] = useState(false)
   const [paymentState, setPaymentState] = useState<PaymentState>(null)
+  const [authorizationChallenge, setAuthorizationChallenge] = useState<AuthorizationChallenge | null>(null)
+  const [authorizationCode, setAuthorizationCode] = useState('')
   const [error, setError] = useState('')
   const [promoCode, setPromoCode] = useState('')
   const [promoState, setPromoState] = useState<PromoState>({ status: 'idle' })
@@ -198,6 +201,41 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
     }
   }
 
+  async function submitAuthorization() {
+    if (!authorizationChallenge || !authorizationCode.trim()) return
+    setError('')
+    setIsSubmitting(true)
+    try {
+      const response = await fetch('/api/consultations/payment-authorize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentIntentId: authorizationChallenge.paymentIntentId, authorizationType: authorizationChallenge.authorizationType, code: authorizationCode.trim() }) })
+      const payload = await readResponse(response)
+      if (!response.ok) {
+        setError(typeof payload.error === 'string' ? payload.error : 'The payment authorization was not accepted.')
+        return
+      }
+      if (typeof payload.paymentUrl === 'string' && payload.paymentUrl) {
+        window.location.assign(payload.paymentUrl)
+        return
+      }
+      if (payload.status === 'paid' || payload.status === 'paid_review') {
+        setAuthorizationChallenge(null)
+        setPaymentState({ status: payload.status === 'paid_review' ? 'review' : 'success', consultationId: typeof payload.consultationId === 'string' ? payload.consultationId : undefined, message: payload.status === 'paid_review' ? 'Your payment was verified and the studio will confirm the selected time shortly.' : undefined })
+        return
+      }
+      const nextAuthorizationType = payload.authorizationType === 'pin' || payload.authorizationType === 'otp' ? payload.authorizationType : null
+      if (nextAuthorizationType) {
+        setAuthorizationChallenge((current) => current ? { ...current, authorizationType: nextAuthorizationType } : current)
+        setAuthorizationCode('')
+        setPaymentState({ status: 'pending', message: nextAuthorizationType === 'pin' ? 'Enter the Sandbox card PIN to continue.' : 'Enter the Sandbox OTP to complete the card payment.' })
+      } else {
+        setPaymentState({ status: 'pending', message: typeof payload.paymentInstruction === 'string' ? payload.paymentInstruction : 'The payment is still being authorized. Please wait a moment and try again.' })
+      }
+    } catch {
+      setError('We could not reach payment authorization securely. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
@@ -240,6 +278,11 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
       }
       if (typeof payload.paymentInstruction === 'string' && payload.paymentInstruction) {
         setPaymentState({ status: 'pending', message: payload.paymentInstruction })
+        return
+      }
+      if (typeof payload.chargeId === 'string' && (payload.authorizationType === 'pin' || payload.authorizationType === 'otp')) {
+        setAuthorizationChallenge({ chargeId: payload.chargeId, paymentIntentId: typeof payload.paymentIntentId === 'string' ? payload.paymentIntentId : '', authorizationType: payload.authorizationType })
+        setPaymentState({ status: 'pending', message: payload.authorizationType === 'pin' ? 'Flutterwave requires the card PIN, followed by the Sandbox OTP.' : 'Flutterwave requires the Sandbox OTP to complete this card payment.' })
         return
       }
       setError('Flutterwave did not return a payment authorization step. Please try again.')
@@ -318,6 +361,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
               </section>
 
               {paymentState && <p role="status" className="border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50">{paymentState.message}</p>}
+              {authorizationChallenge && <div className="space-y-4 rounded-xl border border-primary/30 bg-primary/5 p-5"><div><p className="text-sm font-medium text-foreground">Complete card authorization</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Enter the {authorizationChallenge.authorizationType === 'pin' ? 'Sandbox card PIN' : 'Sandbox OTP'}.</p></div><div className="flex flex-col gap-2 sm:flex-row"><Input aria-label={authorizationChallenge.authorizationType === 'pin' ? 'Card PIN or OTP' : 'Card OTP'} inputMode="numeric" type="password" value={authorizationCode} onChange={(event) => setAuthorizationCode(event.target.value)} placeholder={authorizationChallenge.authorizationType === 'pin' ? 'PIN or OTP' : 'OTP'} className="min-h-11 rounded-none" /><Button type="button" onClick={submitAuthorization} disabled={isSubmitting || !authorizationCode.trim()} className="min-h-11 rounded-none px-5 text-xs uppercase tracking-[0.12em]">{isSubmitting ? 'Authorizing…' : 'Authorize payment'}</Button></div></div>}
               {error && <p role="alert" className="border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-400/40 dark:bg-rose-950/40 dark:text-rose-100">{error}</p>}
               {slots.length === 0 ? <Button type="button" onClick={() => router.push('/contact')} className="motion-reveal min-h-12 w-full rounded-none text-xs uppercase tracking-[0.18em]" style={{ animationDelay: '220ms' }}>Request a consultation window</Button> : <Button type="submit" disabled={isSubmitting} className="motion-reveal min-h-12 w-full rounded-none text-xs uppercase tracking-[0.18em]" style={{ animationDelay: '220ms' }}>{isSubmitting ? `Preparing ${money(totalAmount, appliedQuote?.currency || pricing.currency)} payment…` : `Pay ${money(totalAmount, appliedQuote?.currency || pricing.currency)} & confirm`}</Button>}
               <p className="text-center text-xs leading-5 text-muted-foreground">You will continue to Flutterwave’s secure checkout. Your slot is held briefly while payment is completed.</p>

@@ -19,8 +19,10 @@ type FlutterwaveResponse<T> = {
   status?: string
   message?: string
   data?: T
-  error?: { message?: string; type?: string; code?: string }
+  error?: { message?: string; type?: string; code?: string; validation_errors?: Array<{ field_name?: string; message?: string }> }
 }
+
+export type FlutterwaveAuthorizationType = 'pin' | 'otp' | 'redirect_url' | 'payment_instruction' | 'requires_additional_fields'
 
 type FlutterwaveCharge = {
   id?: string
@@ -31,8 +33,10 @@ type FlutterwaveCharge = {
   status?: string
   next_action?: {
     type?: string
+    authorization?: { type?: string }
     redirect_url?: { url?: string }
     payment_instruction?: { note?: string }
+    requires_additional_fields?: { fields?: string[] }
   }
   payment_method_details?: { type?: string }
   payment_method?: { type?: string }
@@ -187,6 +191,26 @@ export async function retrieveFlutterwaveCharge(chargeId: string) {
   return flutterwaveRequest<FlutterwaveCharge>(`/charges/${encodeURIComponent(chargeId)}`, { method: 'GET' })
 }
 
+export function getFlutterwaveAuthorizationType(charge: FlutterwaveCharge | undefined): FlutterwaveAuthorizationType | null {
+  const nextAction = String(charge?.next_action?.type || '').toLowerCase()
+  const authorization = String(charge?.next_action?.authorization?.type || '').toLowerCase()
+  if (nextAction === 'redirect_url') return 'redirect_url'
+  if (nextAction === 'payment_instruction' || nextAction === 'payment_instructions') return 'payment_instruction'
+  if (authorization === 'pin' || nextAction === 'requires_pin' || nextAction === 'authorize_pin') return 'pin'
+  if (authorization === 'otp' || nextAction === 'requires_otp' || nextAction === 'authorize_otp') return 'otp'
+  if (nextAction === 'requires_additional_fields') return 'requires_additional_fields'
+  return null
+}
+
+export async function updateFlutterwaveCharge(chargeId: string, authorization: Record<string, unknown>, idempotencyKey?: string) {
+  return flutterwaveRequest<FlutterwaveCharge>(`/charges/${encodeURIComponent(chargeId)}`, { method: 'PUT', headers: idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : undefined, body: JSON.stringify({ authorization }) })
+}
+
+export async function encryptFlutterwavePin(pin: string) {
+  const nonce = randomBytes(9).toString('base64url').replace(/[^A-Za-z0-9]/g, 'A').slice(0, 12)
+  return { nonce, encrypted_pin: await encryptFlutterwaveCardField(pin, nonce) }
+}
+
 export function isValidFlutterwaveWebhookSignature(rawBody: string, signature: string | null, secretHash: string | undefined) {
   const secret = clean(secretHash)
   if (!secret || !signature) return false
@@ -241,5 +265,6 @@ export async function buildFlutterwavePaymentMethod(input: {
 export function flutterwaveErrorMessage(payload: FlutterwaveResponse<unknown>, status: number) {
   if (status === 401) return 'Flutterwave rejected the v4 credentials. Confirm the Client ID and Client Secret belong to the same Sandbox account.'
   if (status === 403) return 'Flutterwave does not allow this payment operation for the current Sandbox account.'
-  return payload.error?.message || payload.message || 'Flutterwave could not initialize this payment.'
+  const validation = payload.error?.validation_errors?.map((item) => item.field_name && item.message ? `${item.field_name}: ${item.message}` : item.field_name || item.message).filter(Boolean).join('; ')
+  return validation || payload.error?.message || payload.message || 'Flutterwave could not initialize this payment.'
 }

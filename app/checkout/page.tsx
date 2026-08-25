@@ -25,6 +25,8 @@ function itemUnitPrice(item: any) {
   return Number.isFinite(value) ? value : 0
 }
 
+type AuthorizationChallenge = { orderRef: string; chargeId: string; authorizationType: 'pin' | 'otp' }
+
 type CheckoutLoyalty = {
   balancePoints: number
   rules: {
@@ -39,6 +41,8 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [paymentInstruction, setPaymentInstruction] = useState<string | null>(null)
+  const [authorizationChallenge, setAuthorizationChallenge] = useState<AuthorizationChallenge | null>(null)
+  const [authorizationCode, setAuthorizationCode] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'mobile_money' | 'card'>('mobile_money')
   const [mobileMoneyNetwork, setMobileMoneyNetwork] = useState<'MTN' | 'AIRTEL'>('MTN')
   const [cardNumber, setCardNumber] = useState('')
@@ -86,6 +90,36 @@ export default function CheckoutPage() {
     const { name, value } = event.target
     setFormData((previous) => ({ ...previous, [name]: value }))
     if (name === 'name') setCustomerName(value)
+  }
+
+  const submitAuthorization = async () => {
+    if (!authorizationChallenge || !authorizationCode.trim()) return
+    setErrorMessage(null)
+    setLoading(true)
+    try {
+      const response = await fetch('/api/checkout/authorize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderRef: authorizationChallenge.orderRef, chargeId: authorizationChallenge.chargeId, authorizationType: authorizationChallenge.authorizationType, code: authorizationCode.trim() }) })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(data?.error || 'The payment authorization was not accepted.')
+      if (typeof data?.paymentUrl === 'string' && data.paymentUrl) {
+        window.location.assign(data.paymentUrl)
+        return
+      }
+      if (data?.status === 'paid') {
+        window.location.assign(`/checkout/success?orderRef=${encodeURIComponent(authorizationChallenge.orderRef)}`)
+        return
+      }
+      if (data?.authorizationType === 'pin' || data?.authorizationType === 'otp') {
+        setAuthorizationChallenge((current) => current ? { ...current, authorizationType: data.authorizationType } : current)
+        setAuthorizationCode('')
+        setPaymentInstruction(data.authorizationType === 'pin' ? 'Enter the Sandbox card PIN to continue.' : 'Enter the Sandbox OTP to complete the card payment.')
+      } else {
+        setPaymentInstruction(typeof data?.paymentInstruction === 'string' ? data.paymentInstruction : 'The payment is still being authorized. Please wait a moment and try again.')
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'We could not authorize the payment. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handlePayWithFlutterwave = async (event: React.FormEvent) => {
@@ -151,6 +185,11 @@ export default function CheckoutPage() {
         setPaymentInstruction(data.paymentInstruction)
         return
       }
+      if (typeof data.chargeId === 'string' && (data.authorizationType === 'pin' || data.authorizationType === 'otp')) {
+        setAuthorizationChallenge({ orderRef: data.txRef, chargeId: data.chargeId, authorizationType: data.authorizationType })
+        setPaymentInstruction(data.authorizationType === 'pin' ? 'Enter the Sandbox card PIN to continue.' : 'Enter the Sandbox OTP to complete the card payment.')
+        return
+      }
       throw new Error('Flutterwave did not return a payment authorization step. Please try again.')
     } catch (error) {
       console.error('Checkout error:', error)
@@ -195,7 +234,8 @@ export default function CheckoutPage() {
 
               <section className="rounded-xl border border-border/70 bg-card p-5 shadow-lift sm:p-7"><div className="border-b border-border/70 pb-5"><p className="text-[10px] uppercase tracking-[0.24em] text-primary">02</p><h2 className="mt-2 font-serif text-3xl">Payment method</h2><p className="mt-2 text-xs leading-6 text-muted-foreground">Flutterwave v4 securely processes the payment. Card details are encrypted before they leave this checkout.</p></div><div className="mt-6 grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => setPaymentMethod('mobile_money')} aria-pressed={paymentMethod === 'mobile_money'} className={`flex min-h-12 items-center gap-3 rounded-md border px-4 text-left text-sm transition-colors ${paymentMethod === 'mobile_money' ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-primary/60'}`}><Smartphone className="size-4" aria-hidden="true" /><span><span className="block font-medium">Mobile Money</span><span className="text-xs opacity-70">MTN or Airtel</span></span></button><button type="button" onClick={() => setPaymentMethod('card')} aria-pressed={paymentMethod === 'card'} className={`flex min-h-12 items-center gap-3 rounded-md border px-4 text-left text-sm transition-colors ${paymentMethod === 'card' ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-primary/60'}`}><CreditCard className="size-4" aria-hidden="true" /><span><span className="block font-medium">Card</span><span className="text-xs opacity-70">Visa or Mastercard</span></span></button></div><div className="mt-5 grid gap-4 sm:grid-cols-2"><div className="sm:col-span-2"><Label htmlFor="payment-phone">Phone number</Label><Input id="payment-phone" type="tel" required value={formData.phone} onChange={handleInputChange} placeholder="0772 000 000" className="mt-2 min-h-12 rounded-md bg-background" /></div>{paymentMethod === 'mobile_money' ? <div className="sm:col-span-2"><Label htmlFor="mobile-network">Mobile-money network</Label><select id="mobile-network" value={mobileMoneyNetwork} onChange={(event) => setMobileMoneyNetwork(event.target.value as 'MTN' | 'AIRTEL')} className="mt-2 min-h-12 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"><option value="MTN">MTN Mobile Money</option><option value="AIRTEL">Airtel Money</option></select></div> : <><div className="sm:col-span-2"><Label htmlFor="card-number">Card number</Label><Input id="card-number" inputMode="numeric" autoComplete="cc-number" required value={cardNumber} onChange={(event) => setCardNumber(event.target.value)} placeholder="0000 0000 0000 0000" className="mt-2 min-h-12 rounded-md bg-background" /></div><div><Label htmlFor="card-month">Expiry month</Label><Input id="card-month" inputMode="numeric" autoComplete="cc-exp-month" required value={cardExpiryMonth} onChange={(event) => setCardExpiryMonth(event.target.value)} placeholder="MM" className="mt-2 min-h-12 rounded-md bg-background" /></div><div><Label htmlFor="card-year">Expiry year</Label><Input id="card-year" inputMode="numeric" autoComplete="cc-exp-year" required value={cardExpiryYear} onChange={(event) => setCardExpiryYear(event.target.value)} placeholder="YY" className="mt-2 min-h-12 rounded-md bg-background" /></div><div><Label htmlFor="card-cvv">CVV</Label><Input id="card-cvv" type="password" inputMode="numeric" autoComplete="cc-csc" required value={cardCvv} onChange={(event) => setCardCvv(event.target.value)} placeholder="123" className="mt-2 min-h-12 rounded-md bg-background" /></div></>}</div></section>
 
-              {paymentInstruction && <div role="status" className="rounded-lg border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50"><p className="font-medium">Authorize the payment on your phone</p><p className="mt-1">{paymentInstruction}</p><p className="mt-2 text-xs">Keep this page open. Flutterwave will notify the store after authorization.</p></div>}
+              {paymentInstruction && <div role="status" className="rounded-lg border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50"><p className="font-medium">{authorizationChallenge ? 'Complete payment authorization' : 'Authorize the payment on your phone'}</p><p className="mt-1">{paymentInstruction}</p><p className="mt-2 text-xs">Keep this page open. Flutterwave will notify the store after authorization.</p></div>}
+              {authorizationChallenge && <div className="space-y-4 rounded-lg border border-primary/30 bg-primary/5 p-4"><label htmlFor="checkout-authorization-code" className="block text-sm font-medium text-foreground">{authorizationChallenge.authorizationType === 'pin' ? 'Sandbox card PIN' : 'Sandbox OTP'}</label><div className="flex flex-col gap-2 sm:flex-row"><Input id="checkout-authorization-code" type="password" inputMode="numeric" value={authorizationCode} onChange={(event) => setAuthorizationCode(event.target.value)} placeholder={authorizationChallenge.authorizationType === 'pin' ? 'Enter PIN' : 'Enter OTP'} className="min-h-11 rounded-md bg-background" /><Button type="button" onClick={submitAuthorization} disabled={loading || !authorizationCode.trim()} className="min-h-11 rounded-md px-5 text-xs uppercase tracking-[0.12em]">{loading ? 'Authorizing…' : 'Authorize payment'}</Button></div></div>}
               <Button type="submit" disabled={loading || hasMixedCurrencies || hasUnavailableItems} className="min-h-14 w-full rounded-md bg-primary text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground hover:bg-primary/90">{loading ? <span className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Preparing payment…</span> : <span className="flex items-center gap-2"><Lock className="size-4" aria-hidden="true" /> Pay {formatMoney(paymentTotal, checkoutCurrency)} securely</span>}</Button>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="size-4 text-emerald-600" aria-hidden="true" /> Encrypted payment via Flutterwave</div>
             </div>

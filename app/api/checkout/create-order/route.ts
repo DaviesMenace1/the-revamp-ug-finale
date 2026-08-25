@@ -36,13 +36,15 @@ function normalizeBaseUrl(request: Request) {
 
 function customerNameParts(value: string) {
   const parts = value.split(/\s+/).filter(Boolean)
-  return { first: parts[0] || 'Customer', middle: parts.length > 2 ? parts.slice(1, -1).join(' ') : '', last: parts.length > 1 ? parts[parts.length - 1] : 'Customer' }
+  const name: Record<string, string> = { first: parts[0] || 'Customer', last: parts.length > 1 ? parts[parts.length - 1] : 'Customer' }
+  if (parts.length > 2) name.middle = parts.slice(1, -1).join(' ')
+  return name
 }
 
 function addressForFlutterwave(value: unknown) {
   const address = value && typeof value === 'object' ? value as Record<string, unknown> : {}
   const city = text(address.city, 'Kampala', 100)
-  return { line1: text(address.address, 'Address provided at checkout', 255), line2: '', city, state: city, country: 'UG', postal_code: '00000' }
+  return { line1: text(address.address, 'Address provided at checkout', 255), city, state: city, country: 'UG', postal_code: '00000' }
 }
 
 export async function POST(request: Request) {

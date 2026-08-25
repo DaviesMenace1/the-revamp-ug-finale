@@ -178,7 +178,11 @@ export async function createFlutterwaveCharge(input: {
   idempotencyKey: string
   meta?: Record<string, string>
 }) {
-  const headers = { 'X-Idempotency-Key': input.idempotencyKey }
+  const headers: Record<string, string> = { 'X-Idempotency-Key': input.idempotencyKey }
+  const config = getFlutterwaveConfig()
+  if (config.ok && config.mode === 'sandbox' && input.paymentMethod.type === 'mobile_money' && clean(process.env.FLUTTERWAVE_SANDBOX_MOBILE_MONEY_FLOW).toLowerCase() !== 'instruction') {
+    headers['X-Scenario-Key'] = 'scenario:auth_redirect'
+  }
   const result = await flutterwaveRequest<FlutterwaveCharge>('/orchestration/direct-charges', {
     method: 'POST',
     headers,

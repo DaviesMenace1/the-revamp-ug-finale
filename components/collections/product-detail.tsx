@@ -229,9 +229,11 @@ export function ProductDetail({ product }: { product: any }) {
           </span>
           {/* Share Button Trigger */}
           <button
-            onClick={() => setIsShareOpen(!isShareOpen)}
-            className="flex min-h-11 items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            title="Share Product"
+            type="button"
+            onClick={() => setIsShareOpen((open) => !open)}
+            aria-label={`Share ${product?.name || 'this product'}`}
+            className="flex min-h-11 items-center gap-2 rounded-full px-3 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            title="Share product"
           >
             <Share2 size={14} />
             <span className="uppercase text-[10px] tracking-wider font-medium">Share</span>

@@ -25,11 +25,6 @@ type AssetPayload = {
   storageKey?: unknown
 }
 
-async function requireStaff() {
-  const authorization = await getCurrentUserWithRole([...STAFF_ROLES])
-  return authorization.authorized ? authorization.user : null
-}
-
 function extensionOf(filename: string) {
   const index = filename.lastIndexOf('.')
   return index >= 0 ? filename.slice(index).toLowerCase() : ''
@@ -45,7 +40,7 @@ function contentTypeFor(filename: string, contentType: string) {
 }
 
 function errorResponse(message: string, status: number) {
-  return NextResponse.json({ success: false, error: message }, { status })
+  return NextResponse.json({ success: false, error: message }, { status, headers: { 'Cache-Control': 'no-store' } })
 }
 
 async function readJson(request: Request) {
@@ -57,8 +52,13 @@ async function readJson(request: Request) {
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
-  const staff = await requireStaff()
-  if (!staff) return errorResponse('Forbidden.', 403)
+  const authorization = await getCurrentUserWithRole([...STAFF_ROLES])
+  if (!authorization.authorized || !authorization.user) {
+    if (authorization.reason === 'error') return errorResponse('Authentication is temporarily unavailable. Refresh and try again.', 503)
+    if (authorization.reason === 'unauthenticated') return errorResponse('Your session has expired. Sign in again and retry the upload.', 401)
+    return errorResponse('You do not have permission to upload project assets.', 403)
+  }
+  const staff = authorization.user
 
   const { id: projectId } = await context.params
   if (!isUuid(projectId)) return errorResponse('Invalid project ID.', 400)

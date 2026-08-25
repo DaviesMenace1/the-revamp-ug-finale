@@ -52,6 +52,30 @@ const ASSET_TYPES = [
 ]
 
 const DOCUMENT_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.rtf', '.odt', '.ods', '.odp'])
+const STORAGE_UPLOAD_TIMEOUT_MS = 5 * 60 * 1000
+
+async function uploadToStorage(uploadUrl: string, file: File, contentType: string) {
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), STORAGE_UPLOAD_TIMEOUT_MS)
+  try {
+    return await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body: file,
+      signal: controller.signal,
+    })
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('The storage upload timed out. Check your connection and R2 CORS settings, then try again.')
+    }
+    if (error instanceof TypeError) {
+      throw new Error('The browser could not reach storage. Add this site and its preview domain to the R2 bucket CORS origins, allow PUT, and allow the Content-Type header.')
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
+}
 
 const APPROVAL_BADGE: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800',
@@ -190,11 +214,7 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
         throw new Error(prepared.error || 'The asset upload could not be prepared.')
       }
 
-      const uploadResponse = await fetch(prepared.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': prepared.contentType || file.type || 'application/octet-stream' },
-        body: file,
-      })
+      const uploadResponse = await uploadToStorage(prepared.uploadUrl, file, prepared.contentType || file.type || 'application/octet-stream')
       if (!uploadResponse.ok) throw new Error(`The file could not be sent to storage (HTTP ${uploadResponse.status}). Check the R2 bucket CORS settings and try again.`)
 
       const completeResponse = await fetch(`/api/admin/projects/${project.id}/assets/upload`, {
@@ -258,11 +278,7 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
         throw new Error(prepared.error || 'The document upload could not be prepared.')
       }
 
-      const uploadResponse = await fetch(prepared.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': prepared.contentType || file.type || 'application/octet-stream' },
-        body: file,
-      })
+      const uploadResponse = await uploadToStorage(prepared.uploadUrl, file, prepared.contentType || file.type || 'application/octet-stream')
       if (!uploadResponse.ok) {
         throw new Error(`The file could not be sent to storage (HTTP ${uploadResponse.status}). Check the R2 bucket CORS settings and try again.`)
       }
@@ -511,7 +527,8 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
               </div>
                             <input ref={assetFileRef} type="file" accept={['3d_model', 'glb', 'gltf'].includes(assetForm.assetType) ? '.glb,.gltf,model/gltf-binary,model/gltf+json' : undefined} className="text-sm" />
 
-              <Button size="sm" disabled={uploadingAsset} onClick={handleUploadAsset} className="rounded-none">
+              <p className="text-xs leading-5 text-muted-foreground">3D models must be GLB or GLTF. Maximum file size: 100 MB.</p>
+              <Button type="button" size="sm" disabled={uploadingAsset} onClick={handleUploadAsset} className="rounded-none">
                 {uploadingAsset ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Upload className="h-3.5 w-3.5 mr-2" />}
                 Upload Asset
               </Button>

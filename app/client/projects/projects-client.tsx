@@ -1,6 +1,8 @@
 'use client'
 
+import Image from 'next/image'
 import { PortalLayout } from '@/components/portals/portal-layout'
+
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
 import { FolderOpen } from 'lucide-react'
@@ -15,7 +17,17 @@ const clientNavItems = [
   { label: 'Documents', href: '/client/documents' },
 ]
 
+const PROJECT_STATUS_LABELS: Record<string, string> = {
+  consultation_scheduled: 'Briefing & discovery',
+  design_phase: 'Design development',
+  procurement_phase: 'Procurement',
+  installation_phase: 'Installation',
+  completed: 'Completed',
+  on_hold: 'On hold',
+}
+
 type Project = {
+
   id: string
   slug: string
   title: string
@@ -52,12 +64,13 @@ export default function ProjectsClient({ projects = [], loadError = null }: { pr
             <Link key={project.id} href={`/client/projects/${project.slug}`}>
               <Card className="overflow-hidden hover:border-primary/40 transition-colors">
                 {project.thumbnailImage && (
-                  <img src={project.thumbnailImage} alt="" className="h-48 w-full object-cover" />
+                  <Image src={project.thumbnailImage} alt="" width={960} height={540} unoptimized className="h-48 w-full object-cover" />
                 )}
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-medium text-foreground">{project.title}</p>
-                    <span className="text-xs text-muted-foreground">{project.status}</span>
+                                        <span className="text-right text-xs text-muted-foreground">{PROJECT_STATUS_LABELS[project.status ?? ''] ?? 'Project in progress'}</span>
+
                   </div>
 
                   <div className="mt-3">

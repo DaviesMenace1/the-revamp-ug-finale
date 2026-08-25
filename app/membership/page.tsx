@@ -1,7 +1,7 @@
 import { requirePortalUser } from '@/lib/auth/portal-auth'
 import { db } from '@/lib/db/client'
 import { memberships, membershipEvents } from '@/lib/db/schema'
-import { eq, gte, asc } from 'drizzle-orm'
+import { and, asc, eq, gte, isNull, or } from 'drizzle-orm'
 import MembershipDashboardClient from './membership-dashboard-client'
 import { safeQuery } from '@/lib/server/safe-query'
 
@@ -19,7 +19,7 @@ export default async function MembershipDashboard() {
     db
       .select()
       .from(membershipEvents)
-      .where(gte(membershipEvents.eventDate, new Date()))
+      .where(and(eq(membershipEvents.status, 'published'), gte(membershipEvents.eventDate, new Date()), or(eq(membershipEvents.membershipTier, 'all'), eq(membershipEvents.membershipTier, 'membership'), isNull(membershipEvents.membershipTier))))
       .orderBy(asc(membershipEvents.eventDate))
       .limit(3),
     'membership events',

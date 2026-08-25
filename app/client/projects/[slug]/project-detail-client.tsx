@@ -1,14 +1,18 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
+
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, FileText, Download, ExternalLink, Check, MessageSquare, Clock, CheckSquare, Square } from 'lucide-react'
+import { ArrowLeft, Check, CheckSquare, Clock, Download, ExternalLink, FileText, Loader2, MessageSquare, Square, Upload } from 'lucide-react'
 
+import Image from 'next/image'
 import Link from 'next/link'
+
 import { approveAsset, requestAssetChanges } from '@/lib/actions/project-assets'
 import { toggleClientTask } from '@/lib/actions/tasks'
+import ProjectNotesPanel from '@/components/projects/project-notes-panel'
 
 const clientNavItems = [
   { label: 'Dashboard', href: '/client' },
@@ -30,6 +34,17 @@ const PHASE_STEPS = [
   'installation',
   'handover',
 ]
+
+const PHASE_LABELS: Record<string, string> = {
+  consultation: 'Briefing & discovery',
+  concept: 'Concept direction',
+  design: 'Design development',
+  visualization: '3D visualization',
+  approval: 'Client approval',
+  procurement: 'Procurement',
+  installation: 'Installation',
+  handover: 'Handover',
+}
 
 const APPROVAL_BADGE: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800',
@@ -87,6 +102,8 @@ type ProjectDetail = {
   assets: Asset[]
   activity: ActivityItem[]
   tasks: Task[]
+  notes: { id: string; body: string; authorType: string; createdAt: string }[]
+  notesAvailable: boolean
 }
 
 function formatCurrency(value: string | number | null) {
@@ -129,7 +146,7 @@ function AssetCard({ asset, onUpdate }: { asset: Asset; onUpdate: (asset: Asset)
     <Card className="overflow-hidden">
       {isImage && (
         <a href={asset.fileUrl} target="_blank" rel="noreferrer">
-          <img src={asset.thumbnailUrl || asset.fileUrl} alt={asset.title} className="h-48 w-full object-cover" />
+          <Image src={asset.thumbnailUrl || asset.fileUrl} alt={asset.title} width={960} height={540} unoptimized className="h-48 w-full object-cover" />
         </a>
       )}
       {isModel && asset.viewerUrl && (
@@ -197,12 +214,73 @@ function AssetCard({ asset, onUpdate }: { asset: Asset; onUpdate: (asset: Asset)
 export default function ProjectDetailClient({ project }: { project: ProjectDetail }) {
   const [assets, setAssets] = useState(project.assets)
   const [tasks, setTasks] = useState(project.tasks)
+  const [assetTitle, setAssetTitle] = useState('')
+  const [assetType, setAssetType] = useState('image')
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const assetFileRef = useRef<HTMLInputElement>(null)
 
   function updateAsset(updated: Asset) {
     setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
   }
 
+    async function parseApiResponse<T>(response: Response, fallback: string) {
+    const text = await response.text()
+    try {
+      return JSON.parse(text) as T
+    } catch {
+      throw new Error(response.ok ? fallback : `${fallback} (HTTP ${response.status}).`)
+    }
+  }
+
+  async function handleShareAsset() {
+    const file = assetFileRef.current?.files?.[0]
+    if (!file || !assetTitle.trim()) {
+      setUploadError('Add a title and choose a file before sharing it.')
+      return
+    }
+    if (file.size <= 0 || file.size > 100 * 1024 * 1024) {
+      setUploadError('Files must be between 1 byte and 100 MB.')
+      return
+    }
+    setUploadError(null)
+    setUploading(true)
+    try {
+      const prepareResponse = await fetch(`/api/client/projects/${project.slug}/assets/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'presign', filename: file.name, assetType, contentType: file.type }),
+      })
+      const prepared = await parseApiResponse<{ success?: boolean; uploadUrl?: string; storageKey?: string; contentType?: string; error?: string }>(prepareResponse, 'The file-sharing request could not be prepared.')
+      if (!prepareResponse.ok || !prepared.success || !prepared.uploadUrl || !prepared.storageKey) throw new Error(prepared.error || 'The file-sharing request could not be prepared.')
+
+      const uploadResponse = await fetch(prepared.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': prepared.contentType || file.type || 'application/octet-stream' },
+        body: file,
+      })
+      if (!uploadResponse.ok) throw new Error(`The file could not be sent to storage (HTTP ${uploadResponse.status}). Check the R2 bucket CORS settings and try again.`)
+
+      const completeResponse = await fetch(`/api/client/projects/${project.slug}/assets/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'complete', title: assetTitle, assetType, filename: file.name, contentType: file.type, storageKey: prepared.storageKey }),
+      })
+      const completed = await parseApiResponse<{ success?: boolean; asset?: Asset; error?: string }>(completeResponse, 'The file was uploaded but could not be shared.')
+      if (!completeResponse.ok || !completed.success || !completed.asset) throw new Error(completed.error || 'The file was uploaded but could not be shared.')
+
+      setAssets((current) => [completed.asset as Asset, ...current])
+      setAssetTitle('')
+      if (assetFileRef.current) assetFileRef.current.value = ''
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'The file could not be shared.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   function handleToggleTask(task: Task) {
+
     const done = task.status !== 'done'
     setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: done ? 'done' : 'pending' } : t)))
     toggleClientTask(task.id, done)
@@ -245,7 +323,8 @@ export default function ProjectDetailClient({ project }: { project: ProjectDetai
                       idx === currentPhaseIdx ? 'text-foreground font-medium' : 'text-muted-foreground'
                     }`}
                   >
-                    {phase.replace('_', ' ')}
+                                        {PHASE_LABELS[phase] ?? phase.replace('_', ' ')}
+
                   </span>
                 </div>
                 {idx < PHASE_STEPS.length - 1 && (
@@ -317,18 +396,33 @@ export default function ProjectDetailClient({ project }: { project: ProjectDetai
               </Card>
             )}
 
-            {assets.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="font-serif text-xl font-light text-foreground">3D Plans & Renders</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {assets.map((asset) => (
-                    <AssetCard key={asset.id} asset={asset} onUpdate={updateAsset} />
-                  ))}
+                        <Card className="border-border/20 p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="font-serif text-2xl font-light text-foreground">Shared files & visual references</h2>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">Share images, moodboards, plans, renders, or 3D files with the studio. Large files upload directly to secure storage.</p>
                 </div>
+                <Upload className="mt-1 size-5 shrink-0 text-primary" aria-hidden="true" />
               </div>
-            )}
+              {assets.length > 0 ? <div className="mt-5 grid gap-4 sm:grid-cols-2">{assets.map((asset) => <AssetCard key={asset.id} asset={asset} onUpdate={updateAsset} />)}</div> : <p className="mt-5 rounded-lg border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">No shared references yet. Add the first one below.</p>}
+              <div className="mt-5 grid gap-3 rounded-lg border border-dashed border-border/60 p-4">
+                <label htmlFor={`client-asset-title-${project.id}`} className="text-sm font-medium text-foreground">Share a file</label>
+                <input id={`client-asset-title-${project.id}`} value={assetTitle} onChange={(event) => setAssetTitle(event.target.value)} placeholder="Title, e.g. Living room inspiration" className="min-h-11 rounded border border-input bg-background px-3 text-sm text-foreground outline-none ring-primary/30 focus:ring-2" />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <select value={assetType} onChange={(event) => setAssetType(event.target.value)} className="min-h-11 rounded border border-input bg-background px-3 text-sm text-foreground">
+                    <option value="image">Image</option><option value="moodboard">Moodboard</option><option value="3d_render">3D render</option><option value="glb">3D model (.glb)</option><option value="gltf">3D model (.gltf)</option><option value="floor_plan">Floor plan</option><option value="pdf">PDF</option>
+                  </select>
+                  <input ref={assetFileRef} type="file" accept={['glb', 'gltf'].includes(assetType) ? '.glb,.gltf,model/gltf-binary,model/gltf+json' : undefined} className="min-h-11 w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground file:mr-3 file:border-0 file:bg-muted file:px-2 file:py-1" />
+                </div>
+                {uploadError && <p className="text-sm text-destructive" role="alert">{uploadError}</p>}
+                <Button type="button" onClick={handleShareAsset} disabled={uploading} className="min-h-11 w-full gap-2 rounded-none sm:w-fit"><Upload className="size-4" aria-hidden="true" />{uploading ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Sharing…</> : 'Share with studio'}</Button>
+              </div>
+            </Card>
+
+            <ProjectNotesPanel projectId={project.id} initialNotes={project.notes} available={project.notesAvailable} />
 
             <Card className="p-6 border-border/20">
+
               <h2 className="font-serif text-xl font-light text-foreground mb-3 flex items-center gap-2">
                 <FileText className="w-5 h-5" />
                 Documents

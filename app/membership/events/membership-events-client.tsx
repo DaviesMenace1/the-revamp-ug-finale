@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Image from 'next/image'
 import { PortalLayout } from '@/components/portals/portal-layout'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -67,7 +69,7 @@ export default function MembershipEventsClient({ events = [] }: { events: Event[
               <Card key={event.id} className="overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   {event.image && (
-                    <img src={event.image} alt="" className="h-48 md:w-64 w-full object-cover" />
+                    <Image src={event.image} alt="" width={640} height={360} unoptimized className="h-48 w-full object-cover md:w-64" />
                   )}
                   <div className="flex-1 p-6">
                     <div className="flex items-start justify-between">

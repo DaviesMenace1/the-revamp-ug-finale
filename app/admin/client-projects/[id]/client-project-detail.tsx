@@ -4,9 +4,11 @@ import { useState, useTransition, useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, Upload, Trash2, Loader2, FileText, Clock, Plus, CheckSquare, Square } from 'lucide-react'
 import { updateClientProject } from '@/lib/actions/client-projects'
+import ProjectNotesPanel from '@/components/projects/project-notes-panel'
 import { createTask, updateTaskStatus, deleteTask } from '@/lib/actions/tasks'
 
 const PHASE_STEPS = [
@@ -19,6 +21,17 @@ const PHASE_STEPS = [
   'installation',
   'handover',
 ]
+
+const PHASE_LABELS: Record<string, string> = {
+  consultation: 'Briefing & discovery',
+  concept: 'Concept direction',
+  design: 'Design development',
+  visualization: '3D visualization',
+  approval: 'Client approval',
+  procurement: 'Procurement',
+  installation: 'Installation',
+  handover: 'Handover',
+}
 
 const ASSET_TYPES = [
     '3d_render',
@@ -102,6 +115,8 @@ type Project = {
   documents: Document[]
   tasks: Task[]
   activity: ActivityItem[]
+  notes: { id: string; body: string; authorType: string; createdAt: string }[]
+  notesAvailable: boolean
 }
 
 export default function ClientProjectDetailClient({ project: initialProject }: { project: Project }) {
@@ -134,10 +149,23 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
     })
   }
 
+  async function parseApiResponse<T>(response: Response, fallback: string) {
+    const text = await response.text()
+    try {
+      return JSON.parse(text) as T
+    } catch {
+      throw new Error(response.ok ? fallback : `${fallback} (HTTP ${response.status}).`)
+    }
+  }
+
   async function handleUploadAsset() {
     const file = assetFileRef.current?.files?.[0]
     if (!file || !assetForm.title.trim()) {
       setError('Title and file are required.')
+      return
+    }
+    if (file.size <= 0 || file.size > 100 * 1024 * 1024) {
+      setError('Assets must be between 1 byte and 100 MB.')
       return
     }
 
@@ -145,23 +173,45 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
     setUploadingAsset(true)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('title', assetForm.title)
-      formData.append('assetType', assetForm.assetType)
-      formData.append('visibility', assetForm.visibility)
-
-      const res = await fetch(`/api/admin/projects/${project.id}/assets`, {
+      const prepareResponse = await fetch(`/api/admin/projects/${project.id}/assets/upload`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'presign',
+          filename: file.name,
+          assetType: assetForm.assetType,
+          contentType: file.type,
+        }),
       })
-      const data = await res.json()
-
-      if (!res.ok || !data.success) {
-        throw new Error(data?.error || 'Failed to upload asset.')
+      const prepared = await parseApiResponse<{ success?: boolean; uploadUrl?: string; storageKey?: string; contentType?: string; error?: string }>(prepareResponse, 'The asset upload could not be prepared.')
+      if (!prepareResponse.ok || !prepared.success || !prepared.uploadUrl || !prepared.storageKey) {
+        throw new Error(prepared.error || 'The asset upload could not be prepared.')
       }
 
-      setProject((p) => ({ ...p, assets: [data.asset, ...p.assets] }))
+      const uploadResponse = await fetch(prepared.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': prepared.contentType || file.type || 'application/octet-stream' },
+        body: file,
+      })
+      if (!uploadResponse.ok) throw new Error(`The file could not be sent to storage (HTTP ${uploadResponse.status}). Check the R2 bucket CORS settings and try again.`)
+
+      const completeResponse = await fetch(`/api/admin/projects/${project.id}/assets/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'complete',
+          title: assetForm.title,
+          assetType: assetForm.assetType,
+          visibility: assetForm.visibility,
+          filename: file.name,
+          contentType: file.type,
+          storageKey: prepared.storageKey,
+        }),
+      })
+      const data = await parseApiResponse<{ success?: boolean; asset?: Asset; error?: string }>(completeResponse, 'The asset was uploaded but could not be added to the project.')
+      if (!completeResponse.ok || !data.success || !data.asset) throw new Error(data.error || 'The asset was uploaded but could not be added to the project.')
+
+      setProject((p) => ({ ...p, assets: [data.asset as Asset, ...p.assets] }))
       setAssetForm({ title: '', assetType: '3d_render', visibility: 'client' })
       if (assetFileRef.current) assetFileRef.current.value = ''
     } catch (err) {
@@ -193,13 +243,14 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
         method: 'POST',
         body: formData,
       })
-      const data = await res.json()
+      const data = await parseApiResponse<{ success?: boolean; document?: Document; error?: string }>(res, 'The document upload returned an invalid response.')
 
-      if (!res.ok || !data.success) {
-        throw new Error(data?.error || 'Failed to upload document.')
+      const document = data.document
+      if (!res.ok || !data.success || !document) {
+        throw new Error(data.error || 'Failed to upload document.')
       }
 
-      setProject((p) => ({ ...p, documents: [data.document, ...p.documents] }))
+      setProject((p) => ({ ...p, documents: [document, ...p.documents] }))
       setDocForm({ name: '', category: 'general', visibility: 'client', signatureStatus: 'n/a' })
       if (docFileRef.current) docFileRef.current.value = ''
     } catch (err) {
@@ -295,7 +346,7 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
   }
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8 p-5 sm:p-8">
       <Link
         href="/admin/client-projects"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
@@ -329,7 +380,7 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
           >
             {PHASE_STEPS.map((phase) => (
               <option key={phase} value={phase}>
-                {phase.replace('_', ' ')}
+                {PHASE_LABELS[phase] ?? phase.replace('_', ' ')}
               </option>
             ))}
           </select>
@@ -358,9 +409,12 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
             <div className="grid gap-4 sm:grid-cols-2 mb-6">
               {project.assets.map((asset) => (
                 <div key={asset.id} className="rounded-lg border border-border/20 overflow-hidden">
-                  <img
+                  <Image
                     src={asset.thumbnailUrl || asset.fileUrl}
                     alt={asset.title}
+                    width={640}
+                    height={360}
+                    unoptimized
                     className="h-32 w-full object-cover bg-muted"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none'
@@ -426,6 +480,8 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
               </Button>
             </div>
           </Card>
+
+          <ProjectNotesPanel projectId={project.id} initialNotes={project.notes} available={project.notesAvailable} />
 
           {/* Documents */}
           <Card className="p-6">

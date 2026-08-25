@@ -1,6 +1,6 @@
 import { requirePortalUser } from '@/lib/auth/portal-auth'
 import { db } from '@/lib/db/client'
-import { projects, clientDocuments, projectAssets, projectDocuments, projectActivity, projectTasks } from '@/lib/db/schema'
+import { projects, clientDocuments, projectAssets, projectDocuments, projectActivity, projectNotes, projectTasks } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import ProjectDetailClient from './project-detail-client'
@@ -46,52 +46,56 @@ export default async function ProjectDetailPage({
 
   const project = projectResult.data
   const canonicalSlug = project.slug?.trim() || project.id
-  const [legacyDocumentsResult, assetsResult, docsResult, activityResult, tasksResult] = await Promise.all([
-    safeQuery(
-      db.select().from(clientDocuments).where(eq(clientDocuments.projectId, project.id)).orderBy(desc(clientDocuments.createdAt)),
-      'client project legacy documents',
-      [],
-    ),
-    safeQuery(
-      db
-        .select()
-        .from(projectAssets)
-        .where(and(eq(projectAssets.projectId, project.id), eq(projectAssets.visibility, 'client'), eq(projectAssets.isCurrentVersion, true)))
-        .orderBy(desc(projectAssets.createdAt)),
-      'client project assets',
-      [],
-    ),
-    safeQuery(
-      db
-        .select()
-        .from(projectDocuments)
-        .where(and(eq(projectDocuments.projectId, project.id), eq(projectDocuments.visibility, 'client')))
-        .orderBy(desc(projectDocuments.createdAt)),
-      'client project documents',
-      [],
-    ),
-    safeQuery(
-      db
-        .select()
-        .from(projectActivity)
-        .where(eq(projectActivity.projectId, project.id))
-        .orderBy(desc(projectActivity.createdAt))
-        .limit(20),
-      'client project activity',
-      [],
-    ),
-    safeQuery(
-      db.select().from(projectTasks).where(eq(projectTasks.projectId, project.id)).orderBy(desc(projectTasks.createdAt)),
-      'client project tasks',
-      [],
-    ),
-  ])
+  const legacyDocumentsResult = await safeQuery(
+    db.select().from(clientDocuments).where(eq(clientDocuments.projectId, project.id)).orderBy(desc(clientDocuments.createdAt)),
+    'client project legacy documents',
+    [],
+  )
+  const assetsResult = await safeQuery(
+    db
+      .select()
+      .from(projectAssets)
+      .where(and(eq(projectAssets.projectId, project.id), eq(projectAssets.visibility, 'client'), eq(projectAssets.isCurrentVersion, true)))
+      .orderBy(desc(projectAssets.createdAt)),
+    'client project assets',
+    [],
+  )
+  const docsResult = await safeQuery(
+    db
+      .select()
+      .from(projectDocuments)
+      .where(and(eq(projectDocuments.projectId, project.id), eq(projectDocuments.visibility, 'client')))
+      .orderBy(desc(projectDocuments.createdAt)),
+    'client project documents',
+    [],
+  )
+  const activityResult = await safeQuery(
+    db
+      .select()
+      .from(projectActivity)
+      .where(eq(projectActivity.projectId, project.id))
+      .orderBy(desc(projectActivity.createdAt))
+      .limit(20),
+    'client project activity',
+    [],
+  )
+  const tasksResult = await safeQuery(
+    db.select().from(projectTasks).where(eq(projectTasks.projectId, project.id)).orderBy(desc(projectTasks.createdAt)),
+    'client project tasks',
+    [],
+  )
+  const notesResult = await safeQuery(
+    db.select().from(projectNotes).where(eq(projectNotes.projectId, project.id)).orderBy(desc(projectNotes.createdAt)).limit(100),
+    'client project notes',
+    [],
+  )
 
   const legacyDocuments = legacyDocumentsResult.data
   const assets = assetsResult.data
   const docs = docsResult.data
   const activity = activityResult.data
   const tasks = tasksResult.data
+  const notes = notesResult.data
 
   const formatted = {
     id: project.id,
@@ -152,6 +156,13 @@ export default async function ProjectDetailPage({
       actorType: a.actorType,
       createdAt: a.createdAt.toISOString(),
     })),
+    notes: notes.map((note) => ({
+      id: note.id,
+      body: note.body,
+      authorType: note.authorType,
+      createdAt: note.createdAt.toISOString(),
+    })),
+    notesAvailable: !notesResult.error,
   }
 
   return <ProjectDetailClient project={formatted} />

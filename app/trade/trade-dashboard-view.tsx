@@ -8,8 +8,10 @@ import { DollarSign, Package, Download } from 'lucide-react'
 const tradeNavItems = [
   { label: 'Dashboard', href: '/trade' },
   { label: 'Collections', href: '/trade/collections' },
-  { label: 'Wholesale Pricing', href: '/trade/pricing' },
+    { label: 'Wholesale Pricing', href: '/trade/pricing' },
+  { label: 'Events', href: '/trade/events' },
   { label: 'Orders', href: '/trade/orders' },
+
   { label: 'Resources', href: '/trade/resources' },
 ]
 
@@ -57,7 +59,7 @@ export default function TradeDashboardView({ member, stats }: { member: Member; 
         {!member && (
           <Card className="p-6 border-border/20 border-dashed">
             <p className="text-sm text-muted-foreground">
-              You haven't submitted a trade application yet. Contact us to get set up with a trade account.
+              You have not submitted a trade application yet. Contact us to get set up with a trade account.
             </p>
           </Card>
         )}

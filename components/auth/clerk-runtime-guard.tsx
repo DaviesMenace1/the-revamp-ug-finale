@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuth, useClerk } from '@clerk/nextjs'
+import { useAuth } from '@clerk/nextjs'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -15,24 +15,18 @@ function isAuthRoute(pathname: string | null) {
 export default function ClerkRuntimeGuard({ children, configured }: { children: React.ReactNode; configured: boolean }) {
   const pathname = usePathname()
   const { isLoaded } = useAuth()
-  const { status } = useClerk()
   const authRoute = isAuthRoute(pathname)
-  const clerkUnavailable = status === 'degraded' || status === 'error'
   const [timedOutPath, setTimedOutPath] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!authRoute || !configured || isLoaded || clerkUnavailable || timedOutPath === pathname) return
+    if (!authRoute || !configured || isLoaded || timedOutPath === pathname) return
 
     const timeout = window.setTimeout(() => setTimedOutPath(pathname), AUTH_LOAD_TIMEOUT_MS)
     return () => window.clearTimeout(timeout)
-  }, [authRoute, clerkUnavailable, configured, isLoaded, pathname, timedOutPath])
+  }, [authRoute, configured, isLoaded, pathname, timedOutPath])
 
   if (authRoute && !configured) {
     return <AuthRuntimeMessage title="Authentication is not configured yet." message="The secure account service needs a valid Clerk publishable key before sign-in and sign-up can start. Please contact the studio administrator." />
-  }
-
-  if (authRoute && clerkUnavailable) {
-    return <AuthRuntimeMessage title="Authentication service needs another try." message="The secure account service is reachable but is not fully operational right now. Retry this page; if it continues, the site administrator should check the Clerk production instance and custom domain configuration." retry />
   }
 
   if (authRoute && timedOutPath === pathname && !isLoaded) {

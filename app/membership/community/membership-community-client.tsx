@@ -1,9 +1,11 @@
 'use client'
 
+import Image from 'next/image'
 import { PortalLayout } from '@/components/portals/portal-layout'
+
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Users } from 'lucide-react'
+import { Megaphone, Users } from 'lucide-react'
 
 const membershipNavItems = [
   { label: 'Dashboard', href: '/membership' },
@@ -13,7 +15,17 @@ const membershipNavItems = [
   { label: 'Benefits', href: '/membership/benefits' },
 ]
 
+type CommunityPost = {
+  id: string
+  title: string
+  body: string
+  image: string | null
+  category: string
+  createdAt: string
+}
+
 type Member = {
+
   id: string
   name: string
   tier: string
@@ -22,7 +34,8 @@ type Member = {
   memberSince: string
 }
 
-export default function MembershipCommunityClient({ members = [] }: { members: Member[] }) {
+export default function MembershipCommunityClient({ members = [], posts = [] }: { members: Member[]; posts?: CommunityPost[] }) {
+
   return (
     <PortalLayout portalName="VIP Membership" portalSlug="membership" navItems={membershipNavItems}>
       <div className="space-y-8">
@@ -31,7 +44,10 @@ export default function MembershipCommunityClient({ members = [] }: { members: M
           <p className="text-muted-foreground">Connect with fellow members of The Revamp UG.</p>
         </div>
 
+                {posts.length > 0 && <section className="space-y-4"><div className="flex items-center gap-2"><Megaphone className="size-5 text-primary" aria-hidden="true" /><h2 className="font-serif text-2xl font-light text-foreground">From the studio</h2></div><div className="grid gap-4 lg:grid-cols-2">{posts.map((post) => <article key={post.id} className="overflow-hidden rounded-lg border border-border/40 bg-card">{post.image && <Image src={post.image} alt="" width={960} height={540} unoptimized className="h-44 w-full object-cover" />}{<div className="p-5"><p className="text-[10px] uppercase tracking-[0.16em] text-primary">{post.category}</p><h3 className="mt-2 font-serif text-xl text-foreground">{post.title}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{post.body}</p><time dateTime={post.createdAt} className="mt-4 block text-xs text-muted-foreground">{new Date(post.createdAt).toLocaleDateString('en-UG', { year: 'numeric', month: 'long', day: 'numeric' })}</time></div>}</article>)}</div></section>}
+
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
           {members.map((member) => (
             <Card key={member.id} className="p-5">
               <div className="flex items-center justify-between mb-2">

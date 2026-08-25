@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Check, Gift, RefreshCw, Save, SlidersHorizontal, Users } from 'lucide-react'
+import { Check, ClipboardCheck, Gift, RefreshCw, Save, SlidersHorizontal, Users } from 'lucide-react'
 import { adjustPointsAsAdmin, updateLoyaltyRules } from '@/lib/actions/loyalty'
 
  type AdminData = {
@@ -46,7 +46,7 @@ import { adjustPointsAsAdmin, updateLoyaltyRules } from '@/lib/actions/loyalty'
   }>
 }
 
-export default function LoyaltyAdminClient({ initialData, loadError }: { initialData: AdminData | null; loadError: string | null }) {
+export default function LoyaltyAdminClient({ initialData, loadError, migrationRequired = false }: { initialData: AdminData | null; loadError: string | null; migrationRequired?: boolean }) {
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -57,6 +57,34 @@ export default function LoyaltyAdminClient({ initialData, loadError }: { initial
   const format = new Intl.NumberFormat('en-UG')
 
   if (!initialData || !rules) {
+    if (migrationRequired) {
+      return (
+        <main className="min-w-0 p-5 sm:p-8">
+          <section className="mx-auto w-full max-w-3xl border border-amber-300/60 bg-amber-50 p-6 text-amber-950 shadow-sm dark:border-amber-400/30 dark:bg-amber-950/30 dark:text-amber-50 sm:p-8" role="status">
+            <div className="flex items-start gap-4">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-amber-200/70 text-amber-900 dark:bg-amber-400/20 dark:text-amber-100"><ClipboardCheck className="size-5" aria-hidden="true" /></span>
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber-800 dark:text-amber-200">Revamp Rewards setup</p>
+                <h1 className="mt-2 font-serif text-3xl leading-tight sm:text-4xl">One database step is still pending.</h1>
+                <p className="mt-4 max-w-2xl text-sm leading-6 text-amber-900/80 dark:text-amber-50/80">The loyalty code is in this branch, but the live database does not yet have its ledger tables. Nothing is broken or lost; rewards controls will appear after the owner-approved migration is applied.</p>
+              </div>
+            </div>
+            <div className="mt-7 border-t border-amber-900/15 pt-6 dark:border-amber-100/15">
+              <p className="text-sm font-semibold">Apply this file through your normal database migration process:</p>
+              <code className="mt-3 block overflow-x-auto rounded bg-amber-950 px-3 py-3 text-xs text-amber-50">drizzle/0007_loyalty_points.sql</code>
+              <ol className="mt-5 grid gap-3 pl-5 text-sm leading-6 marker:font-semibold">
+                <li>Review the SQL in the `fixes` branch.</li>
+                <li>Apply it once to the intended production Supabase project.</li>
+                <li>Return here and refresh this page to load the rewards controls.</li>
+              </ol>
+              <p className="mt-5 text-xs leading-5 text-amber-900/75 dark:text-amber-50/75">Do not use an ad-hoc schema push for this step. The migration is intentionally not run by the application and no database changes were made automatically.</p>
+            </div>
+            <button type="button" onClick={() => window.location.reload()} className="mt-7 inline-flex min-h-11 items-center justify-center gap-2 bg-amber-950 px-5 text-xs font-semibold uppercase tracking-[0.14em] text-amber-50 dark:bg-amber-200 dark:text-amber-950"><RefreshCw className="size-4" aria-hidden="true" /> Check again</button>
+          </section>
+        </main>
+      )
+    }
+
     return <div className="p-5 sm:p-8"><div className="border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive" role="alert">{loadError || 'The loyalty workspace is not available yet.'}<button type="button" onClick={() => window.location.reload()} className="ml-3 min-h-11 font-medium underline underline-offset-4">Retry</button></div></div>
   }
 

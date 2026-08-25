@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { X, CheckCircle2, Download, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -8,6 +9,8 @@ const NEWSLETTER_DELAY_MS = 2 * 60 * 1000
 const NEWSLETTER_DISMISSED_KEY = 'revamp-newsletter-dismissed'
 
 export function NewsletterPopup() {
+  const pathname = usePathname()
+  const isAuthRoute = pathname === '/sign-in' || pathname.startsWith('/sign-in/') || pathname === '/sign-up' || pathname.startsWith('/sign-up/') || pathname === '/reset-password'
   const [isOpen, setIsOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -15,6 +18,7 @@ export function NewsletterPopup() {
   const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
+    if (isAuthRoute) return
     const hasSeenPopup = window.localStorage.getItem(NEWSLETTER_DISMISSED_KEY)
 
     if (hasSeenPopup) return
@@ -24,7 +28,7 @@ export function NewsletterPopup() {
     }, NEWSLETTER_DELAY_MS)
 
     return () => window.clearTimeout(timer)
-  }, [])
+  }, [isAuthRoute])
 
   const handleClose = () => {
     setIsOpen(false)
@@ -63,7 +67,7 @@ export function NewsletterPopup() {
     }
   }
 
-  if (!isOpen) return null
+  if (isAuthRoute || !isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-opacity duration-300">
@@ -143,7 +147,7 @@ export function NewsletterPopup() {
             <div className="space-y-2">
               <h3 className="font-serif text-3xl font-bold">Check Your Inbox!</h3>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                We've sent your complimentary <strong className="text-foreground">2026 Interior Styling Guide PDF</strong> directly to <span className="text-foreground font-medium">{email}</span>.
+                We have sent your complimentary <strong className="text-foreground">2026 Interior Styling Guide PDF</strong> directly to <span className="text-foreground font-medium">{email}</span>.
               </p>
             </div>
 

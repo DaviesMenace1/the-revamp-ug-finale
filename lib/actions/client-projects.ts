@@ -7,7 +7,19 @@ import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
 
+const PHASE_LABELS: Record<string, string> = {
+  consultation: 'Briefing & discovery',
+  concept: 'Concept direction',
+  design: 'Design development',
+  visualization: '3D visualization',
+  approval: 'Client approval',
+  procurement: 'Procurement',
+  installation: 'Installation',
+  handover: 'Handover',
+}
+
 function slugify(input: string) {
+
   return input
     .toLowerCase()
     .trim()
@@ -100,7 +112,8 @@ export async function updateClientProject(
         actorUserId: admin?.id || null,
         actorType: 'admin',
         action: 'phase_changed',
-        summary: `Project phase moved to ${data.currentPhase.replace('_', ' ')}`,
+                summary: `Project phase moved to ${PHASE_LABELS[data.currentPhase] ?? data.currentPhase.replaceAll('_', ' ')}`,
+
       })
     }
 

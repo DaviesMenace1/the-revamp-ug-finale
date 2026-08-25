@@ -1489,6 +1489,26 @@ export const eventRsvps = pgTable(
   (table) => ({
     eventIdx: index("event_rsvps_event_idx").on(table.eventId),
     userIdx: index("event_rsvps_user_idx").on(table.userId),
+    eventUserUnique: uniqueIndex("event_rsvps_event_user_unique").on(table.eventId, table.userId),
+  }),
+)
+
+export const communityPosts = pgTable(
+  "community_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: varchar("title", { length: 255 }).notNull(),
+    body: text("body").notNull(),
+    image: text("image"),
+    category: varchar("category", { length: 50 }).notNull().default("announcement"),
+    status: varchar("status", { length: 20 }).notNull().default("published"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    statusIdx: index("community_posts_status_idx").on(table.status, table.createdAt),
+    categoryIdx: index("community_posts_category_idx").on(table.category),
   }),
 )
 
@@ -1641,6 +1661,27 @@ export const projectAssetComments = pgTable(
   },
   (table) => ({
     assetIdx: index("project_asset_comments_asset_idx").on(table.assetId),
+  }),
+)
+
+export const projectNotes = pgTable(
+  "project_notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    authorType: varchar("author_type", { length: 20 }).notNull().default("client"),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    projectIdx: index("project_notes_project_idx").on(table.projectId, table.createdAt),
+    userIdx: index("project_notes_user_idx").on(table.userId),
   }),
 )
 

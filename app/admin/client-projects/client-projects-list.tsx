@@ -28,7 +28,8 @@ type ClientOption = {
 }
 
 const PHASE_LABELS: Record<string, string> = {
-  consultation: 'Consultation',
+    consultation: 'Briefing & discovery',
+
   concept: 'Concept',
   design: 'Design',
   visualization: '3D Visualization',

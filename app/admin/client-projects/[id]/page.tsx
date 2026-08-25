@@ -1,5 +1,6 @@
 import { db } from '@/lib/db/client'
-import { projects, users, projectAssets, projectDocuments, projectActivity, projectTasks } from '@/lib/db/schema'
+import { projects, users, projectAssets, projectDocuments, projectActivity, projectNotes, projectTasks } from '@/lib/db/schema'
+
 import { eq, and, desc } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import ClientProjectDetailClient from './client-project-detail'
@@ -61,12 +62,18 @@ export default async function AdminClientProjectDetail({
     'client project tasks',
     [],
   )
+  const notesResult = await safeQuery(
+    db.select().from(projectNotes).where(eq(projectNotes.projectId, id)).orderBy(desc(projectNotes.createdAt)).limit(100),
+    'client project notes',
+    [],
+  )
 
   const client = clientResult.data
   const assets = assetsResult.data
   const documents = documentsResult.data
   const activity = activityResult.data
   const tasks = tasksResult.data
+  const notes = notesResult.data
 
   const formatted = {
 
@@ -117,13 +124,21 @@ export default async function AdminClientProjectDetail({
       dueDate: t.dueDate ? t.dueDate.toISOString() : null,
       createdAt: t.createdAt.toISOString(),
     })),
-    activity: activity.map((a) => ({
+        activity: activity.map((a) => ({
       id: a.id,
       action: a.action,
       summary: a.summary,
       actorType: a.actorType,
       createdAt: a.createdAt.toISOString(),
     })),
+    notes: notes.map((note) => ({
+      id: note.id,
+      body: note.body,
+      authorType: note.authorType,
+      createdAt: note.createdAt.toISOString(),
+    })),
+    notesAvailable: !notesResult.error,
+
   }
 
   return <ClientProjectDetailClient project={formatted} />

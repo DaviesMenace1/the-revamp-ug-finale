@@ -3,7 +3,8 @@
 // — this is deliberately scoped to project workspace files only, to avoid
 // re-plumbing everything that already works.
 
-import { GetObjectCommand, S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { randomUUID } from 'crypto'
 
 export class R2ConfigError extends Error {}
@@ -85,8 +86,30 @@ export async function uploadClientDocToR2(
   return { url: `${publicUrl}/${key}`, key, size: file.length }
 }
 
+/** Creates a short-lived browser upload URL for a project-scoped object. */
+export async function createProjectUploadUrl(
+  options: { projectId: string; category: string; filename: string; contentType: string },
+): Promise<{ url: string; key: string; expiresAt: string }> {
+  const bucket = getEnv('R2_BUCKET_NAME')
+  const safeFilename = options.filename.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+  const key = `projects/${options.projectId}/${options.category}/${randomUUID()}-${safeFilename}`
+  const url = await getSignedUrl(
+    getClient(),
+    new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: options.contentType }),
+    { expiresIn: 10 * 60 },
+  )
+  return { url, key, expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() }
+}
+
+/** Reads object metadata from R2 without downloading the file. */
+export async function headFromR2(key: string) {
+  const bucket = getEnv('R2_BUCKET_NAME')
+  return getClient().send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
+}
+
 /** Reads an object from R2 by key for an authenticated application route. */
 export async function getFromR2(key: string) {
+
   const bucket = getEnv('R2_BUCKET_NAME')
   return getClient().send(new GetObjectCommand({ Bucket: bucket, Key: key }))
 }
@@ -98,7 +121,13 @@ export async function deleteFromR2(key: string): Promise<void> {
 }
 
 /** Extracts the R2 object key from a full public URL produced by this helper. */
+export function publicR2Url(key: string): string {
+  const publicUrl = getEnv('R2_PUBLIC_URL').replace(/\/+$/, '')
+  return `${publicUrl}/${key}`
+}
+
 export function keyFromR2Url(url: string): string | null {
+
   const publicUrl = process.env.R2_PUBLIC_URL?.replace(/\/+$/, '')
   if (!publicUrl || !url.startsWith(publicUrl)) return null
   return url.slice(publicUrl.length + 1)

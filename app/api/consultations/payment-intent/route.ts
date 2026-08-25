@@ -94,6 +94,9 @@ export async function POST(request: Request) {
     const expiresAt = new Date(now.getTime() + pricing.holdMinutes * 60 * 1000)
 
     const existing = await db.query.consultationPaymentIntents.findFirst({ where: eq(consultationPaymentIntents.idempotencyKey, idempotencyKey) })
+    if (existing && existing.userId !== user.id) {
+      return NextResponse.json({ error: 'This payment request cannot be reused. Please refresh and try again.' }, { status: 409 })
+    }
     if (existing && existing.userId === user.id && existing.status === 'pending' && existing.expiresAt > now) {
       const existingSummary = {
         baseAmount: Number(existing.baseAmount),
@@ -109,6 +112,12 @@ export async function POST(request: Request) {
       const response = responseForIntent(existing, existingSummary)
       if (response) return NextResponse.json(response)
     }
+    if (existing && existing.userId === user.id && ['paid', 'paid_review'].includes(existing.status)) {
+      return NextResponse.json({ error: 'This payment request has already been processed. Please check your consultation history.' }, { status: 409 })
+    }
+    // A failed, verification-failed, or expired attempt cannot be inserted again
+    // with the same unique idempotency key. Retrying it gets a fresh server key.
+    const paymentIdempotencyKey = existing ? randomUUID() : idempotencyKey
 
     const flutterwaveConfig = getFlutterwaveConfig()
     if (!flutterwaveConfig.ok) {
@@ -136,7 +145,7 @@ export async function POST(request: Request) {
         slotId: slot.id,
         userId: user.id,
         txRef,
-        idempotencyKey,
+        idempotencyKey: paymentIdempotencyKey,
         baseAmount: summary.baseAmount.toFixed(2),
         discountAmount: summary.discountAmount.toFixed(2),
         taxAmount: summary.taxAmount.toFixed(2),
@@ -174,7 +183,7 @@ export async function POST(request: Request) {
         Authorization: `Bearer ${flutterwaveConfig.secretKey}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        'X-Idempotency-Key': idempotencyKey,
+        'X-Idempotency-Key': paymentIdempotencyKey,
       },
       body: JSON.stringify({
         tx_ref: created.txRef,

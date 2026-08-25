@@ -109,8 +109,10 @@ export async function POST(request: Request) {
       if (response) return NextResponse.json(response)
     }
 
-    if (!process.env.FLUTTERWAVE_SECRET_KEY?.trim()) {
-      return NextResponse.json({ error: 'Payment is temporarily unavailable. Please contact the studio.' }, { status: 503 })
+    const flutterwaveSecret = process.env.FLUTTERWAVE_SECRET_KEY?.trim()
+    if (!flutterwaveSecret) {
+      console.error('[consultation-payment] FLUTTERWAVE_SECRET_KEY is not configured')
+      return NextResponse.json({ error: 'Consultation payment is not configured yet. Please contact the studio while payment setup is completed.' }, { status: 503 })
     }
 
     const txRef = `REV-CONS-${Date.now()}-${randomUUID().slice(0, 8)}`
@@ -167,7 +169,7 @@ export async function POST(request: Request) {
     const flwResponse = await fetch('https://api.flutterwave.com/v3/payments', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY.trim()}`,
+        Authorization: `Bearer ${flutterwaveSecret}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
         'X-Idempotency-Key': idempotencyKey,

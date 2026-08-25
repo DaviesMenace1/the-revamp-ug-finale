@@ -27,6 +27,9 @@ export default function NotificationBell({ className }: NotificationBellProps) {
   const { isLoaded: authLoaded, isSignedIn } = useAuth()
   const [apiAuthenticated, setApiAuthenticated] = useState<boolean | null>(null)
   const [error, setError] = useState('')
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unavailable'>(() => typeof Notification === 'undefined' ? 'unavailable' : Notification.permission)
+  const [pushRequesting, setPushRequesting] = useState(false)
+  const [pushMessage, setPushMessage] = useState('')
   const loadingRef = useRef(false)
 
   const load = useCallback(async () => {
@@ -75,6 +78,33 @@ export default function NotificationBell({ className }: NotificationBellProps) {
     }
   }, [apiAuthenticated, authLoaded, isSignedIn, load])
 
+  async function requestPushPermission() {
+    if (typeof Notification === 'undefined') {
+      setPushPermission('unavailable')
+      setPushMessage('This browser does not support web notifications.')
+      return
+    }
+    if (Notification.permission === 'denied') {
+      setPushPermission('denied')
+      setPushMessage('Notifications are blocked. Open this site’s browser settings and change Notifications to Allow, then try again.')
+      return
+    }
+
+    setPushRequesting(true)
+    setPushMessage('')
+    try {
+      const request = window.__revampRequestNotificationPermission
+      if (!request) throw new Error('Notification setup is still loading. Try again in a moment.')
+      const permission = await request()
+      setPushPermission(permission)
+      setPushMessage(permission === 'granted' ? 'Browser notifications are enabled on this device.' : permission === 'denied' ? 'Notifications are blocked. Allow them in this site’s browser settings.' : 'Permission was not granted. You can try again when ready.')
+    } catch (requestError) {
+      setPushMessage(requestError instanceof Error ? requestError.message : 'Notifications could not be enabled. Try again.')
+    } finally {
+      setPushRequesting(false)
+    }
+  }
+
   async function markRead(id?: string) {
     const response = await fetch('/api/notifications', {
       method: 'PATCH',
@@ -99,6 +129,7 @@ export default function NotificationBell({ className }: NotificationBellProps) {
       </button>
       {open && <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border bg-background p-4 text-foreground shadow-xl" role="dialog" aria-label="Notifications">
         <div className="flex items-center justify-between gap-3"><p className="font-serif text-xl">Notifications</p>{unreadCount > 0 && <button type="button" onClick={() => void markRead()} className="inline-flex min-h-10 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"><CheckCheck className="size-3.5" />Mark all read</button>}</div>
+        <div className="mt-4 rounded-lg border border-border/70 bg-muted/30 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-foreground">Browser alerts</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Get reminders and important account updates even when this page is closed.</p></div>{pushPermission === 'granted' ? <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700">Enabled</span> : pushPermission === 'denied' ? <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-rose-700">Blocked</span> : pushPermission === 'unavailable' ? <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Unavailable</span> : <button type="button" onClick={() => void requestPushPermission()} disabled={pushRequesting} className="min-h-10 shrink-0 rounded bg-foreground px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-background disabled:opacity-60">{pushRequesting ? 'Enabling…' : 'Allow alerts'}</button>}</div>{pushMessage && <p role="status" aria-live="polite" className="mt-2 text-xs leading-relaxed text-muted-foreground">{pushMessage}</p>}{pushPermission === 'denied' && !pushMessage && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Allow notifications from this site in your browser’s address-bar settings.</p>}</div>
         {!authLoaded || loading || (isSignedIn && apiAuthenticated === null) ? <div className="flex justify-center py-8"><Loader2 className="size-5 animate-spin text-primary" aria-label="Loading notifications" /></div> : (!isSignedIn || apiAuthenticated === false) ? <div className="py-6 text-center"><p className="text-sm text-muted-foreground">Sign in to view your notifications.</p><Link href="/sign-in?redirect_url=%2Faccount" onClick={() => setOpen(false)} className="mt-3 inline-flex min-h-10 items-center justify-center rounded bg-foreground px-4 text-xs uppercase tracking-[0.14em] text-background">Sign in</Link></div> : error ? <div className="py-5 text-center"><p role="alert" className="text-sm text-muted-foreground">{error}</p><button type="button" onClick={() => void load()} className="mt-3 inline-flex min-h-10 items-center gap-2 text-xs uppercase tracking-[0.14em] text-primary"><RefreshCw className="size-3.5" />Retry</button></div> : notifications.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">You are all caught up.</p> : <div className="mt-3 max-h-80 space-y-1 overflow-y-auto">{notifications.slice(0, 20).map((notification) => { const content = <div className={`rounded-lg p-3 text-left transition-colors hover:bg-muted/70 ${notification.readAt ? 'opacity-65' : 'bg-primary/5'}`}><p className="text-sm font-medium text-foreground">{notification.title}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{notification.message}</p><p className="mt-2 text-[10px] text-muted-foreground">{new Date(notification.createdAt).toLocaleString()}</p></div>; return notification.actionUrl ? <Link key={notification.id} href={notification.actionUrl} onClick={() => { void markRead(notification.id); setOpen(false) }}>{content}</Link> : <button key={notification.id} type="button" onClick={() => void markRead(notification.id)} className="block w-full">{content}</button> })}</div>}
       </div>}
     </div>

@@ -17,9 +17,9 @@ export async function POST(request: Request) {
   const contentLength = Number(request.headers.get('content-length') || 0)
   if (contentLength > MAX_BODY_BYTES) return errorResponse('The slot request is too large.', 413)
 
-  let body: { startTimes?: unknown; durationMinutes?: unknown; mode?: unknown }
+  let body: { startTimes?: unknown; durationMinutes?: unknown; mode?: unknown; location?: unknown }
   try {
-    body = await request.json() as { startTimes?: unknown; durationMinutes?: unknown; mode?: unknown }
+    body = await request.json() as { startTimes?: unknown; durationMinutes?: unknown; mode?: unknown; location?: unknown }
   } catch {
     return errorResponse('A JSON slot request is required.', 400)
   }
@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       startTimes: body.startTimes,
       durationMinutes: Number(body.durationMinutes),
       mode: body.mode,
+      location: typeof body.location === 'string' ? body.location : undefined,
     })
     return NextResponse.json(result, { status: result.success ? 200 : 400, headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {

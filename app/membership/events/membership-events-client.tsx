@@ -23,8 +23,10 @@ type Event = {
   title: string
   description: string | null
   image: string | null
-  location: string | null
+    location: string | null
+  meetingUrl: string | null
   eventDate: string
+
   capacity: number | null
   rsvpCount: number
   isRegistered: boolean
@@ -105,8 +107,10 @@ export default function MembershipEventsClient({ events = [] }: { events: Event[
                       )}
                     </div>
 
+                                        {event.meetingUrl && <a href={event.meetingUrl} target="_blank" rel="noreferrer" className="mt-4 inline-block text-sm font-medium text-primary underline">Join Google Meet</a>}
                     <Button
                       className="mt-4 rounded-none"
+
                       disabled={isPending || (full && !event.isRegistered)}
                       variant={event.isRegistered ? 'outline' : 'default'}
                       onClick={() => handleToggleRsvp(event)}

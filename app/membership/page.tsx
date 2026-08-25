@@ -44,6 +44,7 @@ export default async function MembershipDashboard() {
         title: e.title,
         eventDate: e.eventDate.toISOString(),
         location: e.location,
+        meetingUrl: e.meetingUrl,
       }))}
     />
   )

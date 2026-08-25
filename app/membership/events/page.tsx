@@ -38,6 +38,7 @@ export default async function MembershipEvents() {
     description: e.description,
     image: e.image,
     location: e.location,
+    meetingUrl: e.meetingUrl,
     eventDate: e.eventDate.toISOString(),
     capacity: e.capacity,
     rsvpCount: rsvpCounts[e.id] ?? 0,

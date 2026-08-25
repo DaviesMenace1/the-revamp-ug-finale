@@ -34,6 +34,7 @@
     "drizzle-orm": "^0.45.2",
     "file-saver": "^2.0.5",
     "flutterwave-node-v3": "^1.4.1",
+    "google-auth-library": "^11.0.2",
     "jszip": "^3.10.1",
     "lucide-react": "^1.16.0",
     "next": "16.2.6",

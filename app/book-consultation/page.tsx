@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 async function getAvailableConsultationSlots() {
   return db
-    .select({ id: consultationSlots.id, startTime: consultationSlots.startTime, durationMinutes: consultationSlots.durationMinutes, mode: consultationSlots.mode })
+    .select({ id: consultationSlots.id, startTime: consultationSlots.startTime, durationMinutes: consultationSlots.durationMinutes, mode: consultationSlots.mode, location: consultationSlots.location, meetingUrl: consultationSlots.meetingUrl })
     .from(consultationSlots)
     .where(and(eq(consultationSlots.isBooked, false), gte(consultationSlots.startTime, new Date()), or(isNull(consultationSlots.holdUntil), lt(consultationSlots.holdUntil, new Date()))))
     .orderBy(asc(consultationSlots.startTime))
@@ -22,6 +22,8 @@ export default async function BookConsultationPage() {
     startTime: slot.startTime.toISOString(),
     durationMinutes: slot.durationMinutes,
     mode: slot.mode,
+    location: slot.location,
+    meetingUrl: slot.meetingUrl,
   }))
 
   return <BookConsultationClient slots={formatted} loadError={result.error} />

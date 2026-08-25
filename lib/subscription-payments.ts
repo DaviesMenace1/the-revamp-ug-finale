@@ -5,6 +5,7 @@ import { db } from '@/lib/db/client'
 import { memberships, paymentRecords, programSubscriptions, tradeMembers, users } from '@/lib/db/schema'
 import { flutterwaveErrorMessage, retrieveFlutterwaveCharge } from '@/lib/flutterwave-config'
 import { subscriptionEndDate, type SubscriptionBillingPeriod, type SubscriptionProgram } from '@/lib/subscriptions'
+import { notifyUser } from '@/lib/notifications/service'
 
 function sameMoney(actual: unknown, expected: unknown) {
   return Number(actual) + 0.001 >= Number(expected)
@@ -61,6 +62,22 @@ export async function settleSubscriptionPayment(input: { transactionReference: s
     } else if (customer) {
       await db.insert(tradeMembers).values({ userId: subscription.userId, businessName: customer.email, status: 'active', tier: subscription.planKey, discountRate: Number.isFinite(discountRate) ? discountRate.toFixed(2) : '10.00', approvedAt: now })
     }
+  }
+
+  try {
+    const programName = subscription.program === 'membership' ? 'Membership' : 'Trade'
+    await notifyUser({
+      userId: subscription.userId,
+      type: 'subscription_payment_confirmed',
+      priority: 'important',
+      title: `${programName} access activated`,
+      message: `Your ${programName} ${subscription.planKey} subscription is active until ${endDate.toLocaleDateString('en-UG')}.`,
+      actionUrl: subscription.program === 'membership' ? '/membership/benefits' : '/trade/pricing',
+      metadata: { subscriptionId: subscription.id, program: subscription.program, planKey: subscription.planKey, billingPeriod: subscription.billingPeriod, chargeId },
+      channels: ['in_app', 'push', 'email'],
+    })
+  } catch (error) {
+    console.error('[subscription-payment] post-activation notification failed:', error)
   }
 
   return { success: true as const, status: 'active' as const, subscriptionId: subscription.id }

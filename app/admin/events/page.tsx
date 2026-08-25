@@ -7,5 +7,5 @@ export const dynamic = 'force-dynamic'
 
 export default async function AdminEventsPage() {
   const events = await db.select().from(membershipEvents).orderBy(asc(membershipEvents.eventDate)).limit(100)
-  return <EventsAdminClient events={events.map((event) => ({ ...event, eventDate: event.eventDate.toISOString(), createdAt: event.createdAt.toISOString(), updatedAt: event.updatedAt.toISOString() }))} />
+  return <EventsAdminClient events={events.map((event) => ({ ...event, meetingMode: event.meetingProvider === 'google_meet' ? 'virtual' as const : 'in_person' as const, eventDate: event.eventDate.toISOString(), createdAt: event.createdAt.toISOString(), updatedAt: event.updatedAt.toISOString() }))} />
 }

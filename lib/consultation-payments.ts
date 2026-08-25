@@ -98,7 +98,7 @@ export async function settleConsultationPayment(input: {
       .update(consultationSlots)
       .set({ isBooked: true, holdUntil: null, holdUserId: null })
       .where(and(eq(consultationSlots.id, intent.slotId), eq(consultationSlots.isBooked, false), eq(consultationSlots.holdUserId, intent.userId), gte(consultationSlots.startTime, now)))
-      .returning({ id: consultationSlots.id, startTime: consultationSlots.startTime, durationMinutes: consultationSlots.durationMinutes, mode: consultationSlots.mode })
+      .returning({ id: consultationSlots.id, startTime: consultationSlots.startTime, durationMinutes: consultationSlots.durationMinutes, mode: consultationSlots.mode, location: consultationSlots.location, meetingUrl: consultationSlots.meetingUrl })
     if (!slot) return { kind: 'review' as const }
 
     const [consultation] = await transaction.insert(consultations).values({
@@ -113,6 +113,8 @@ export async function settleConsultationPayment(input: {
       preferredDate: slot.startTime,
       mode: slot.mode,
       durationMinutes: slot.durationMinutes,
+      meetingLink: slot.meetingUrl,
+      location: slot.location,
       status: 'scheduled',
       paymentStatus: 'paid',
       paymentAmount: intent.amount,
@@ -189,9 +191,9 @@ export async function settleConsultationPayment(input: {
     type: 'consultation_payment_confirmed',
     priority: 'important',
     title: 'Consultation payment confirmed',
-    message: `Your consultation payment of ${Number(intent.amount).toLocaleString('en-UG')} ${intent.currency} was verified. Your appointment and documents are ready in the client portal.`,
+    message: `Your consultation payment of ${Number(intent.amount).toLocaleString('en-UG')} ${intent.currency} was verified. Your appointment and documents are ready in the client portal.${booking.slot.meetingUrl ? ` Join here: ${booking.slot.meetingUrl}` : booking.slot.location ? ` Venue: ${booking.slot.location}` : ''}`,
     actionUrl: '/client/consultations',
-    metadata: { consultationId: booking.consultation.id, paymentIntentId: intent.id, paymentRecordId: booking.paymentId, txRef: intent.txRef },
+    metadata: { consultationId: booking.consultation.id, paymentIntentId: intent.id, paymentRecordId: booking.paymentId, txRef: intent.txRef, meetingUrl: booking.slot.meetingUrl || '', location: booking.slot.location || '' },
     channels: documentResult.email ? ['in_app', 'push'] : ['in_app', 'push', 'email'],
   })
   revalidatePath('/client/consultations')

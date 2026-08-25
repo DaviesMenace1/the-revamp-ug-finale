@@ -147,6 +147,8 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     price: initialData?.price || '',
     originalPrice: initialData?.originalPrice || '',
     currency: initialData?.currency || 'UGX',
+    weight: initialData?.weight || '',
+    weightUnit: initialData?.weightUnit || 'kg',
     
     condition: initialData?.condition || 'new',
     availability: initialData?.availability || 'in_stock',
@@ -193,9 +195,11 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     if (formData.name) score += 15
     if (formData.description) score += 15
     if (formData.price) score += 15
-    if (formData.thumbnailImage) score += 20
-    if (formData.sku) score += 15
-    if (formData.googleProductCategory) score += 20
+    if (formData.thumbnailImage) score += 15
+    if (formData.weight && Number(formData.weight) > 0) score += 10
+    if (formData.sku) score += 10
+    if (formData.brand) score += 5
+    if (formData.googleProductCategory) score += 15
     return score
   }
 
@@ -465,6 +469,19 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     />
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700">Shipping weight *</label>
+                    <input type="number" min="0.001" step="0.001" value={formData.weight} onChange={(e) => setFormData({ ...formData, weight: e.target.value })} placeholder="e.g. 12.500" className="mt-1.5 w-full rounded-lg border border-stone-300 p-2.5 text-sm font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700">Weight unit *</label>
+                    <select value={formData.weightUnit} onChange={(e) => setFormData({ ...formData, weightUnit: e.target.value })} className="mt-1.5 w-full rounded-lg border border-stone-300 bg-white p-2.5 text-sm">
+                      <option value="kg">Kilograms (kg)</option><option value="g">Grams (g)</option><option value="lb">Pounds (lb)</option><option value="oz">Ounces (oz)</option>
+                    </select>
+                  </div>
+                </div>
+                <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">Google Merchant readiness: {googleScore}%. A real cover image, valid shipping weight, brand, SKU, category, description, and price are required before API sync.</p>
               </div>
             )}
 

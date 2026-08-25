@@ -427,7 +427,18 @@ function AuthenticatedCartProvider({
 
   const clearCart = useCallback(() => {
     setItems([])
-  }, [])
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(cartStorageKey, '[]')
+      localStorage.removeItem(LEGACY_CART_KEY)
+    }
+
+    if (userId) {
+      void fetch('/api/cart/clear', { method: 'POST' }).catch((error) => {
+        console.error('Failed to clear the server cart after payment:', error)
+      })
+    }
+  }, [cartStorageKey, userId])
 
   const totals = useMemo(() => {
     const subtotal = items.reduce(

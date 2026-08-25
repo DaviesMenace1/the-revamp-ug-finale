@@ -1,22 +1,17 @@
-// Maps our `products` row (plus its images/subCategory) to a Google Merchant
-// Content API v2.1 product resource.
-//
-// Scope note: this syncs the *base* product as a single offer. It does not
-// yet create Merchant Center item groups for per-variant offers (color/fabric
-// combinations) — offerId is the product SKU. Extending to per-variant offers
-// is a reasonable next step but needs a decision on how variants should be
-// priced/imaged individually first.
+// Maps a product row to the Google Merchant API ProductInput contract.
+// The Merchant API separates ProductInput writes from processed Product reads;
+// all offer attributes therefore live under `productAttributes`.
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://therevampug.com"
-const CONTENT_LANGUAGE = process.env.GOOGLE_MERCHANT_CONTENT_LANGUAGE || "en"
-const TARGET_COUNTRY = process.env.GOOGLE_MERCHANT_TARGET_COUNTRY || "UG"
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://therevampug.com'
+const CONTENT_LANGUAGE = process.env.GOOGLE_MERCHANT_CONTENT_LANGUAGE || 'en'
+const FEED_LABEL = process.env.GOOGLE_MERCHANT_FEED_LABEL || process.env.GOOGLE_MERCHANT_TARGET_COUNTRY || 'UG'
 
 const AVAILABILITY_MAP: Record<string, string> = {
-  in_stock: "in_stock",
-  out_of_stock: "out_of_stock",
-  made_to_order: "backorder",
-  pre_order: "preorder",
-  available_on_request: "backorder",
+  in_stock: 'IN_STOCK',
+  out_of_stock: 'OUT_OF_STOCK',
+  made_to_order: 'BACKORDER',
+  pre_order: 'PREORDER',
+  available_on_request: 'BACKORDER',
 }
 
 export interface MappableProduct {
@@ -33,6 +28,8 @@ export interface MappableProduct {
   currency: string
   availability: string
   condition: string
+  weight: string | number | null
+  weightUnit: string | null
   canonicalUrl: string | null
   googleProductCategoryId: string | null
   googleProductCategoryPath: string | null
@@ -44,85 +41,51 @@ export interface ProductMappingResult {
   warnings: string[]
 }
 
-export function mapProductToMerchantResource(
-  product: MappableProduct,
-): ProductMappingResult {
+export function mapProductToMerchantResource(product: MappableProduct): ProductMappingResult {
   const warnings: string[] = []
-
   const images = Array.isArray(product.productImages)
-    ? [...product.productImages].sort((a, b) =>
-        a.isPrimary === b.isPrimary ? 0 : a.isPrimary ? -1 : 1,
-      )
+    ? [...product.productImages].sort((a, b) => a.isPrimary === b.isPrimary ? 0 : a.isPrimary ? -1 : 1)
     : []
+  const imageLink = images[0]?.url?.trim()
+  if (!imageLink) warnings.push('Product has no real product image — Google requires a crawlable imageLink. Add a product image before syncing.')
 
-  const imageLink = images[0]?.url
-  if (!imageLink) {
-    warnings.push(
-      "Product has no images — Google requires at least one imageLink. Add a product image before syncing.",
-    )
-  }
-
-  const additionalImageLinks = images
-    .slice(1, 11)
-    .map((img) => img.url)
-    .filter(Boolean)
+  const weightValue = typeof product.weight === 'string' ? parseFloat(product.weight) : product.weight
+  const weightUnit = (product.weightUnit || 'kg').trim().toLowerCase()
+  if (!Number.isFinite(weightValue) || Number(weightValue) <= 0) warnings.push('Product has no valid shipping weight. Set weight and weight unit before syncing.')
 
   const description = product.longDescription?.trim() || product.description?.trim()
-  if (!description) {
-    warnings.push("Product has no description set.")
-  }
+  if (!description) warnings.push('Product has no description set.')
+  if (!product.brand) warnings.push('Product has no brand set — Google requires a brand for most categories.')
+  if (!product.googleProductCategoryId && !product.googleProductCategoryPath) warnings.push('No Google product category is set on this product\'s subcategory. Sync may be rejected without one.')
 
-  const availability = AVAILABILITY_MAP[product.availability] || "out_of_stock"
-
-  const priceValue =
-    typeof product.price === "string" ? parseFloat(product.price) : product.price
-
-  if (!product.brand) {
-    warnings.push("Product has no brand set — Google requires a brand for most categories.")
-  }
-
-  if (!product.googleProductCategoryId && !product.googleProductCategoryPath) {
-    warnings.push(
-      "No Google product category is set on this product's subcategory. Sync may be rejected without one.",
-    )
-  }
-
-  const resource: Record<string, unknown> = {
-    offerId: product.sku,
+  const priceValue = typeof product.price === 'string' ? parseFloat(product.price) : product.price
+  const amountMicros = Number.isFinite(priceValue) && Number(priceValue) >= 0 ? Math.round(Number(priceValue) * 1_000_000).toString() : '0'
+  const productAttributes: Record<string, unknown> = {
     title: product.name,
     description: description || product.name,
-    link:
-      product.canonicalUrl?.trim() || `${SITE_URL}/collections/${product.slug}`,
-    imageLink: imageLink || `${SITE_URL}/default-thumb.png`,
-    additionalImageLinks:
-      additionalImageLinks.length > 0 ? additionalImageLinks : undefined,
-    contentLanguage: CONTENT_LANGUAGE,
-    targetCountry: TARGET_COUNTRY,
-    channel: "online",
-    availability,
-    condition: product.condition || "new",
-    price: {
-      value: Number.isFinite(priceValue) ? priceValue.toFixed(2) : "0.00",
-      currency: product.currency || "UGX",
+    link: product.canonicalUrl?.trim() || `${SITE_URL}/collections/${product.slug}`,
+    imageLink: imageLink || undefined,
+    additionalImageLinks: images.slice(1, 11).map((img) => img.url.trim()).filter(Boolean),
+    availability: AVAILABILITY_MAP[product.availability] || 'OUT_OF_STOCK',
+    condition: (product.condition || 'new').toUpperCase(),
+    price: { amountMicros, currencyCode: product.currency || 'UGX' },
+  }
+
+  if (product.brand) productAttributes.brand = product.brand
+  if (product.mpn) productAttributes.mpn = product.mpn
+  if (product.gtin) productAttributes.gtins = [product.gtin]
+  if (Number.isFinite(weightValue) && Number(weightValue) > 0) productAttributes.shippingWeight = { value: Number(weightValue).toFixed(3), unit: weightUnit }
+  if (product.googleProductCategoryId) productAttributes.googleProductCategory = product.googleProductCategoryId
+  else if (product.googleProductCategoryPath) productAttributes.googleProductCategory = product.googleProductCategoryPath
+  if (product.googleProductCategoryPath) productAttributes.productTypes = [product.googleProductCategoryPath]
+
+  return {
+    resource: {
+      offerId: product.sku,
+      contentLanguage: CONTENT_LANGUAGE,
+      feedLabel: FEED_LABEL,
+      productAttributes,
     },
+    warnings,
   }
-
-  if (product.brand) resource.brand = product.brand
-  if (product.mpn) resource.mpn = product.mpn
-  if (product.gtin) resource.gtin = product.gtin
-
-  // Google accepts either the numeric taxonomy id (googleProductCategory) or
-  // a free-text category path — prefer the id when we have it.
-  if (product.googleProductCategoryId) {
-    resource.googleProductCategory = product.googleProductCategoryId
-  } else if (product.googleProductCategoryPath) {
-    resource.googleProductCategory = product.googleProductCategoryPath
-  }
-
-  if (product.googleProductCategoryPath) {
-    resource.productTypes = [product.googleProductCategoryPath]
-  }
-
-  return { resource, warnings }
 }
-  

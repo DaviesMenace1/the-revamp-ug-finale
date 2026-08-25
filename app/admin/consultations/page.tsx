@@ -32,6 +32,8 @@ export default async function AdminConsultationsPage() {
       startTime: consultationSlots.startTime,
       durationMinutes: consultationSlots.durationMinutes,
       mode: consultationSlots.mode,
+      location: consultationSlots.location,
+      meetingUrl: consultationSlots.meetingUrl,
       isBooked: consultationSlots.isBooked,
       consultationId: consultationSlots.consultationId,
     })

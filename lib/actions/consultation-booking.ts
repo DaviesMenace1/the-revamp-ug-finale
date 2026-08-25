@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
 import { notifyUser } from '@/lib/notifications/service'
+import { createGoogleMeetEvent } from '@/lib/google-calendar'
 
 const VALID_MODES = new Set(['virtual', 'in_person', 'showroom'])
 const BUDGET_LABELS: Record<string, string> = {
@@ -36,6 +37,7 @@ export async function createSlots(data: {
   startTimes: string[]
   durationMinutes: number
   mode: string
+  location?: string
 }) {
   try {
     const authorization = await getCurrentUserWithRole(['admin'])
@@ -49,13 +51,35 @@ export async function createSlots(data: {
     if (dates.length === 0) return { success: false, error: 'Pick at least one future time.' }
     if (!Number.isInteger(durationMinutes) || durationMinutes < 15 || durationMinutes > 240) return { success: false, error: 'Duration must be between 15 and 240 minutes.' }
     if (!VALID_MODES.has(data.mode)) return { success: false, error: 'Choose a valid meeting format.' }
+    const location = data.location?.trim().slice(0, 255) || null
+    if (data.mode !== 'virtual' && !location) return { success: false, error: 'Enter the venue location for an in-person or showroom slot.' }
 
-    const rows = dates.map((startTime) => ({ startTime, durationMinutes, mode: data.mode }))
+    const meetingEvents = data.mode === 'virtual'
+      ? await Promise.all(dates.map((startTime) => createGoogleMeetEvent({
+          summary: 'The Revamp UG consultation',
+          description: 'Consultation availability created by The Revamp UG.',
+          start: startTime,
+          durationMinutes,
+        })))
+      : dates.map(() => null)
+    const rows = dates.map((startTime, index) => ({
+      startTime,
+      durationMinutes,
+      mode: data.mode,
+      location,
+      meetingProvider: meetingEvents[index] ? 'google_meet' : null,
+      meetingUrl: meetingEvents[index]?.meetUrl || null,
+      calendarEventId: meetingEvents[index]?.calendarEventId || null,
+    }))
     const created = await db.insert(consultationSlots).values(rows).returning({
       id: consultationSlots.id,
       startTime: consultationSlots.startTime,
       durationMinutes: consultationSlots.durationMinutes,
       mode: consultationSlots.mode,
+      location: consultationSlots.location,
+      meetingProvider: consultationSlots.meetingProvider,
+      meetingUrl: consultationSlots.meetingUrl,
+      calendarEventId: consultationSlots.calendarEventId,
       isBooked: consultationSlots.isBooked,
       consultationId: consultationSlots.consultationId,
     })

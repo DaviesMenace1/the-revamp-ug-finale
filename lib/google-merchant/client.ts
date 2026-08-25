@@ -1,23 +1,9 @@
-// Minimal Google Merchant Content API (v2.1) client.
-//
-// Deliberately dependency-free: signs its own service-account JWT with
-// Node's built-in `crypto` instead of pulling in `googleapis`/`google-auth-library`.
-//
-// Required environment variables:
-//   GOOGLE_MERCHANT_ID                 — numeric Merchant Center account id
-//   GOOGLE_MERCHANT_CLIENT_EMAIL       — service account email
-//   GOOGLE_MERCHANT_PRIVATE_KEY        — service account private key (PEM,
-//                                        with literal \n escapes if set via
-//                                        a single-line env var)
-//
-// The service account must be added as a user on the Merchant Center
-// account (Settings → Account access) with Admin or Standard access.
+import 'server-only'
 
-import crypto from "crypto"
+import { JWT } from 'google-auth-library'
 
-const TOKEN_URL = "https://oauth2.googleapis.com/token"
-const CONTENT_API_BASE = "https://shoppingcontent.googleapis.com/content/v2.1"
-const SCOPE = "https://www.googleapis.com/auth/content"
+const MERCHANT_API_BASE = 'https://merchantapi.googleapis.com/products/v1'
+const CONTENT_SCOPE = 'https://www.googleapis.com/auth/content'
 
 export class GoogleMerchantConfigError extends Error {}
 export class GoogleMerchantApiError extends Error {
@@ -30,146 +16,71 @@ export class GoogleMerchantApiError extends Error {
   }
 }
 
-function getEnv(name: string): string {
-  const value = process.env[name]
-  if (!value) {
-    throw new GoogleMerchantConfigError(
-      `Missing required environment variable: ${name}. Google Merchant sync is not configured.`,
-    )
+function env(name: string) {
+  return process.env[name]?.trim() || ''
+}
+
+function required(name: string) {
+  const value = env(name)
+  if (!value) throw new GoogleMerchantConfigError(`Missing required environment variable: ${name}. Google Merchant API sync is not configured.`)
+  return value
+}
+
+function privateKey() {
+  return required('GOOGLE_MERCHANT_PRIVATE_KEY').replace(/\\n/g, '\n')
+}
+
+function accountId() {
+  return required('GOOGLE_MERCHANT_ID')
+}
+
+function dataSource() {
+  const value = required('GOOGLE_MERCHANT_DATA_SOURCE')
+  const expectedPrefix = `accounts/${accountId()}/dataSources/`
+  if (!value.startsWith(expectedPrefix)) {
+    throw new GoogleMerchantConfigError(`GOOGLE_MERCHANT_DATA_SOURCE must use the full resource name ${expectedPrefix}{dataSourceId}.`)
   }
   return value
 }
 
-function base64url(input: Buffer | string) {
-  return Buffer.from(input)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "")
+async function getAccessToken() {
+  const auth = new JWT({ email: required('GOOGLE_MERCHANT_CLIENT_EMAIL'), key: privateKey(), scopes: [CONTENT_SCOPE] })
+  const token = await auth.getAccessToken()
+  if (!token.token) throw new GoogleMerchantApiError('Google Merchant API authorization did not return an access token.', 401, null)
+  return token.token
 }
 
-let cachedToken: { token: string; expiresAt: number } | null = null
-
-async function getAccessToken(): Promise<string> {
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) {
-    return cachedToken.token
-  }
-
-  const clientEmail = getEnv("GOOGLE_MERCHANT_CLIENT_EMAIL")
-  const privateKeyRaw = getEnv("GOOGLE_MERCHANT_PRIVATE_KEY")
-  const privateKey = privateKeyRaw.includes("\\n")
-    ? privateKeyRaw.replace(/\\n/g, "\n")
-    : privateKeyRaw
-
-  const now = Math.floor(Date.now() / 1000)
-  const header = { alg: "RS256", typ: "JWT" }
-  const claimSet = {
-    iss: clientEmail,
-    scope: SCOPE,
-    aud: TOKEN_URL,
-    iat: now,
-    exp: now + 3600,
-  }
-
-  const unsigned = `${base64url(JSON.stringify(header))}.${base64url(
-    JSON.stringify(claimSet),
-  )}`
-
-  const signer = crypto.createSign("RSA-SHA256")
-  signer.update(unsigned)
-  signer.end()
-  const signature = base64url(signer.sign(privateKey))
-
-  const assertion = `${unsigned}.${signature}`
-
-  const response = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion,
-    }),
-  })
-
-  const data = await response.json()
-
-  if (!response.ok) {
-    throw new GoogleMerchantApiError(
-      `Failed to obtain Google access token: ${data?.error_description || data?.error || response.statusText}`,
-      response.status,
-      data,
-    )
-  }
-
-  cachedToken = {
-    token: data.access_token,
-    expiresAt: Date.now() + data.expires_in * 1000,
-  }
-
-  return cachedToken.token
-}
-
-function getMerchantId(): string {
-  return getEnv("GOOGLE_MERCHANT_ID")
-}
-
-async function request(
-  method: "GET" | "POST" | "PUT" | "DELETE",
-  path: string,
-  body?: unknown,
-) {
+async function request(path: string, init: RequestInit = {}) {
   const token = await getAccessToken()
-  const merchantId = getMerchantId()
-
-  const response = await fetch(
-    `${CONTENT_API_BASE}/${merchantId}/${path}`,
-    {
-      method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    },
-  )
-
-  const isJson = response.headers
-    .get("content-type")
-    ?.includes("application/json")
-  const data = isJson ? await response.json() : await response.text()
-
+  const response = await fetch(`${MERCHANT_API_BASE}/${path}`, {
+    ...init,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(init.headers || {}) },
+  })
+  const contentType = response.headers.get('content-type') || ''
+  const body = contentType.includes('application/json') ? await response.json() : await response.text()
   if (!response.ok) {
-    const message =
-      (data && typeof data === "object" && (data as any).error?.message) ||
-      response.statusText
-    throw new GoogleMerchantApiError(message, response.status, data)
+    const message = body && typeof body === 'object' && (body as { error?: { message?: string } }).error?.message
+      ? (body as { error: { message: string } }).error.message
+      : response.statusText
+    throw new GoogleMerchantApiError(message, response.status, body)
   }
-
-  return data
+  return body
 }
 
-/** Insert or fully replace a product in Merchant Center. Returns the API's product resource. */
-export async function upsertMerchantProduct(product: Record<string, unknown>) {
-  // The Content API's `products.insert` is idempotent per offerId/channel/
-  // contentLanguage/targetCountry — calling it again updates the existing product.
-  return request("POST", "products", product)
+export async function upsertMerchantProduct(productInput: Record<string, unknown>) {
+  const parent = `accounts/${accountId()}`
+  const query = new URLSearchParams({ dataSource: dataSource() })
+  return request(`${parent}/productInputs:insert?${query.toString()}`, { method: 'POST', body: JSON.stringify(productInput) }) as Promise<Record<string, unknown>>
 }
 
-export async function deleteMerchantProduct(merchantProductId: string) {
-  return request(
-    "DELETE",
-    `products/${encodeURIComponent(merchantProductId)}`,
-  )
+export async function deleteMerchantProduct(productInputName: string) {
+  return request(`${productInputName.replace(/^\//, '')}`, { method: 'DELETE' })
 }
 
-export async function getMerchantProduct(merchantProductId: string) {
-  return request("GET", `products/${encodeURIComponent(merchantProductId)}`)
+export async function getMerchantProduct(productName: string) {
+  return request(`${productName.replace(/^\//, '')}`)
 }
 
-export function isGoogleMerchantConfigured(): boolean {
-  return Boolean(
-    process.env.GOOGLE_MERCHANT_ID &&
-      process.env.GOOGLE_MERCHANT_CLIENT_EMAIL &&
-      process.env.GOOGLE_MERCHANT_PRIVATE_KEY,
-  )
+export function isGoogleMerchantConfigured() {
+  return Boolean(env('GOOGLE_MERCHANT_ID') && env('GOOGLE_MERCHANT_CLIENT_EMAIL') && env('GOOGLE_MERCHANT_PRIVATE_KEY') && env('GOOGLE_MERCHANT_DATA_SOURCE'))
 }

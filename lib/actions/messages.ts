@@ -1,8 +1,9 @@
 'use server'
 
 import { db } from '@/lib/db/client'
-import { conversations, conversationMessages } from '@/lib/db/schema'
+import { conversations, conversationMessages, users } from '@/lib/db/schema'
 import { eq, desc, sql } from 'drizzle-orm'
+import { notifyUser } from '@/lib/notifications/service'
 import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
@@ -52,6 +53,18 @@ export async function sendClientMessage(body: string) {
         updatedAt: new Date(),
       })
       .where(eq(conversations.id, conversation.id))
+
+    const admins = await db.query.users.findMany({ where: eq(users.role, 'admin'), columns: { id: true } })
+    await Promise.all(admins.map((admin) => notifyUser({
+      userId: admin.id,
+      type: 'new_client_message',
+      priority: 'important',
+      title: 'New client message',
+      message: `${user.firstName || user.email} sent a new message.`,
+      actionUrl: '/admin/messages',
+      metadata: { conversationId: conversation.id, messageId: message.id },
+      channels: ['in_app', 'push', 'email'],
+    })))
 
     revalidatePath('/client/messages')
     revalidatePath('/admin/messages')
@@ -132,6 +145,20 @@ export async function sendAdminReply(conversationId: string, body: string, admin
         updatedAt: new Date(),
       })
       .where(eq(conversations.id, conversationId))
+
+    const conversation = await db.query.conversations.findFirst({ where: eq(conversations.id, conversationId), columns: { userId: true } })
+    if (conversation) {
+      await notifyUser({
+        userId: conversation.userId,
+        type: 'new_admin_message',
+        priority: 'important',
+        title: 'New message from The Revamp UG',
+        message: 'The Revamp UG team replied to your conversation.',
+        actionUrl: '/client/messages',
+        metadata: { conversationId, messageId: message.id },
+        channels: ['in_app', 'push', 'email'],
+      })
+    }
 
     revalidatePath('/admin/messages')
     revalidatePath('/client/messages')

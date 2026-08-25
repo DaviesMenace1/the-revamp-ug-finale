@@ -16,5 +16,6 @@ export default async function TradeEventsPage() {
     const [result] = await db.select({ value: count() }).from(eventRsvps).where(eq(eventRsvps.eventId, event.id))
     rsvpCounts[event.id] = Number(result?.value ?? 0)
   }
-  return <TradeEventsClient events={events.map((event) => ({ id: event.id, title: event.title, description: event.description, image: event.image, location: event.location, eventDate: event.eventDate.toISOString(), capacity: event.capacity, rsvpCount: rsvpCounts[event.id] ?? 0, isRegistered: registered.has(event.id) }))} />
+  return <TradeEventsClient events={events.map((event) => ({ id: event.id, title: event.title, description: event.description, image: event.image, location: event.location, meetingUrl: event.meetingUrl, eventDate: event.eventDate.toISOString(), capacity: event.capacity,
+ rsvpCount: rsvpCounts[event.id] ?? 0, isRegistered: registered.has(event.id) }))} />
 }

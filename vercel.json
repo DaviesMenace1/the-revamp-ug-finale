@@ -4,12 +4,6 @@
   "installCommand": "pnpm install",
   "framework": "nextjs",
   "regions": ["iad1"],
-  "crons": [
-    {
-      "path": "/api/cron/consultation-reminders",
-      "schedule": "*/15 * * * *"
-    }
-  ],
   "git": {
     "deploymentEnabled": {
       "main": true

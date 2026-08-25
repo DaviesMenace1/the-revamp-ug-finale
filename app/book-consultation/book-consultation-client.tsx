@@ -6,6 +6,7 @@ import { Building2, Check, Clock3, MapPin, Video } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
+import ConsultationNotificationPrompt from '@/components/notifications/consultation-notification-prompt'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -105,6 +106,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
           </div>
         </main>
         <SiteFooter />
+        <ConsultationNotificationPrompt />
       </>
     )
   }

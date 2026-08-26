@@ -6,6 +6,8 @@ import { safeQuery } from '@/lib/server/safe-query'
 import PageLoadError from '@/components/system/page-load-error'
 import { SiteHeader } from '@/components/site-header'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'My Account | The Revamp UG',
   description: 'Your personal account hub for The Revamp UG.',

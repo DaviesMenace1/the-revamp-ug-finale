@@ -45,14 +45,17 @@ export default function NotificationBell({ className }: NotificationBellProps) {
   const [pushRequesting, setPushRequesting] = useState(false)
   const [pushMessage, setPushMessage] = useState('')
   const loadingRef = useRef(false)
+  const lastLoadedAtRef = useRef(0)
 
-  const load = useCallback(async () => {
-    if (loadingRef.current) return
+  const load = useCallback(async (force = false) => {
+    if (loadingRef.current || (!force && Date.now() - lastLoadedAtRef.current < 10_000)) return
     loadingRef.current = true
     setLoading(true)
     setError('')
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 8_000)
     try {
-      const response = await fetch('/api/notifications', { cache: 'no-store' })
+      const response = await fetch('/api/notifications', { cache: 'no-store', signal: controller.signal })
       const payload = await response.json() as { success?: boolean; notifications?: Notification[]; unreadCount?: number; error?: string }
       if (response.status === 401) {
         setApiAuthenticated(false)
@@ -64,9 +67,11 @@ export default function NotificationBell({ className }: NotificationBellProps) {
       setApiAuthenticated(true)
       setNotifications(payload.notifications || [])
       setUnreadCount(Number(payload.unreadCount) || 0)
+      lastLoadedAtRef.current = Date.now()
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Notifications are temporarily unavailable.')
+      setError(loadError instanceof DOMException && loadError.name === 'AbortError' ? 'Notifications took too long to respond. Please retry.' : loadError instanceof Error ? loadError.message : 'Notifications are temporarily unavailable.')
     } finally {
+      window.clearTimeout(timeout)
       loadingRef.current = false
       setLoading(false)
     }
@@ -167,7 +172,7 @@ export default function NotificationBell({ className }: NotificationBellProps) {
       {open && <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border bg-background p-4 text-foreground shadow-xl" role="dialog" aria-label="Notifications">
         <div className="flex items-center justify-between gap-3"><p className="font-serif text-xl">Notifications</p>{unreadCount > 0 && <button type="button" onClick={() => void markRead()} className="inline-flex min-h-10 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"><CheckCheck className="size-3.5" />Mark all read</button>}</div>
         <div className="mt-4 rounded-lg border border-border/70 bg-muted/30 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-foreground">Browser alerts</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Get reminders and important account updates even when this page is closed.</p></div>{pushStatus.optedIn && pushStatus.hasToken ? <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700">Enabled</span> : pushStatus.permission === 'denied' ? <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-rose-700">Blocked</span> : pushStatus.permission === 'unavailable' ? <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Unavailable</span> : <button type="button" onClick={() => void requestPushPermission()} disabled={pushRequesting} className="min-h-10 shrink-0 rounded bg-foreground px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-background disabled:opacity-60">{pushRequesting ? 'Enabling…' : pushStatus.permission === 'granted' ? 'Enable device' : 'Allow alerts'}</button>}</div>{pushMessage && <p role="status" aria-live="polite" className="mt-2 text-xs leading-relaxed text-muted-foreground">{pushMessage}</p>}{pushStatus.permission === 'granted' && !pushStatus.optedIn && !pushMessage && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Browser permission is allowed, but this device is not currently subscribed to OneSignal push.</p>}{pushStatus.permission === 'denied' && !pushMessage && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Allow notifications from this site in your browser’s address-bar settings.</p>}</div>
-        {!authLoaded || loading || (isSignedIn && apiAuthenticated === null) ? <div className="flex justify-center py-8"><Loader2 className="size-5 animate-spin text-primary" aria-label="Loading notifications" /></div> : (!isSignedIn || apiAuthenticated === false) ? <div className="py-6 text-center"><p className="text-sm text-muted-foreground">Sign in to view your notifications.</p><Link href="/sign-in?redirect_url=%2Faccount" onClick={() => setOpen(false)} className="mt-3 inline-flex min-h-10 items-center justify-center rounded bg-foreground px-4 text-xs uppercase tracking-[0.14em] text-background">Sign in</Link></div> : error ? <div className="py-5 text-center"><p role="alert" className="text-sm text-muted-foreground">{error}</p><button type="button" onClick={() => void load()} className="mt-3 inline-flex min-h-10 items-center gap-2 text-xs uppercase tracking-[0.14em] text-primary"><RefreshCw className="size-3.5" />Retry</button></div> : notifications.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">You are all caught up.</p> : <div className="mt-3 max-h-80 space-y-1 overflow-y-auto">{notifications.slice(0, 20).map((notification) => { const content = <div className={`rounded-lg p-3 text-left transition-colors hover:bg-muted/70 ${notification.readAt ? 'opacity-65' : 'bg-primary/5'}`}><p className="text-sm font-medium text-foreground">{notification.title}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{notification.message}</p><p className="mt-2 text-[10px] text-muted-foreground">{new Date(notification.createdAt).toLocaleString()}</p></div>; return notification.actionUrl ? <Link key={notification.id} href={notification.actionUrl} onClick={() => { void markRead(notification.id); setOpen(false) }}>{content}</Link> : <button key={notification.id} type="button" onClick={() => void markRead(notification.id)} className="block w-full">{content}</button> })}</div>}
+        {!authLoaded || loading || (isSignedIn && apiAuthenticated === null) ? <div className="flex justify-center py-8"><Loader2 className="size-5 animate-spin text-primary" aria-label="Loading notifications" /></div> : (!isSignedIn || apiAuthenticated === false) ? <div className="py-6 text-center"><p className="text-sm text-muted-foreground">Sign in to view your notifications.</p><Link href="/sign-in?redirect_url=%2Faccount" onClick={() => setOpen(false)} className="mt-3 inline-flex min-h-10 items-center justify-center rounded bg-foreground px-4 text-xs uppercase tracking-[0.14em] text-background">Sign in</Link></div> : error ? <div className="py-5 text-center"><p role="alert" className="text-sm text-muted-foreground">{error}</p><button type="button" onClick={() => void load(true)} className="mt-3 inline-flex min-h-10 items-center gap-2 text-xs uppercase tracking-[0.14em] text-primary"><RefreshCw className="size-3.5" />Retry</button></div> : notifications.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">You are all caught up.</p> : <div className="mt-3 max-h-80 space-y-1 overflow-y-auto">{notifications.slice(0, 20).map((notification) => { const content = <div className={`rounded-lg p-3 text-left transition-colors hover:bg-muted/70 ${notification.readAt ? 'opacity-65' : 'bg-primary/5'}`}><p className="text-sm font-medium text-foreground">{notification.title}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{notification.message}</p><p className="mt-2 text-[10px] text-muted-foreground">{new Date(notification.createdAt).toLocaleString()}</p></div>; return notification.actionUrl ? <Link key={notification.id} href={notification.actionUrl} onClick={() => { void markRead(notification.id); setOpen(false) }}>{content}</Link> : <button key={notification.id} type="button" onClick={() => void markRead(notification.id)} className="block w-full">{content}</button> })}</div>}
       </div>}
     </div>
   )

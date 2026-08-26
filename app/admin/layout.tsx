@@ -5,6 +5,8 @@ import NotificationBell from '@/components/notifications/notification-bell'
 import PageLoadError from '@/components/system/page-load-error'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Admin Portal | The Revamp UG',
   description: 'Administration dashboard for The Revamp UG',

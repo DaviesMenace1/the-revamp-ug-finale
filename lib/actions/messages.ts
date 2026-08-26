@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db/client'
 import { conversations, conversationMessages, users } from '@/lib/db/schema'
-import { eq, desc, sql } from 'drizzle-orm'
+import { eq, desc, asc, sql } from 'drizzle-orm'
 import { notifyUser } from '@/lib/notifications/service'
 import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
@@ -25,6 +25,34 @@ async function getOrCreateConversation(userId: string, subject = 'General') {
 }
 
 // --- Client-side actions ---
+
+export async function getClientConversationMessages() {
+  const user = await getOrCreateCurrentUser()
+  if (!user) return { success: false, error: 'Not signed in.', conversationId: null, messages: [] }
+
+  try {
+    const conversation = await db.query.conversations.findFirst({
+      where: eq(conversations.userId, user.id),
+      orderBy: desc(conversations.lastMessageAt),
+    })
+    if (!conversation) return { success: true, conversationId: null, messages: [] }
+
+    const messages = await db
+      .select()
+      .from(conversationMessages)
+      .where(eq(conversationMessages.conversationId, conversation.id))
+      .orderBy(asc(conversationMessages.createdAt))
+
+    return {
+      success: true,
+      conversationId: conversation.id,
+      messages: messages.map((message) => ({ ...message, createdAt: message.createdAt.toISOString() })),
+    }
+  } catch (error) {
+    console.error('Failed to refresh client messages:', error)
+    return { success: false, error: 'Failed to refresh messages.', conversationId: null, messages: [] }
+  }
+}
 
 export async function sendClientMessage(body: string) {
   const user = await getOrCreateCurrentUser()
@@ -99,6 +127,35 @@ export async function markClientMessagesRead() {
 }
 
 // --- Admin-side actions ---
+
+export async function getAdminConversationSummaries() {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to view messages.', conversations: [] }
+
+  try {
+    const rows = await db
+      .select({
+        id: conversations.id,
+        subject: conversations.subject,
+        status: conversations.status,
+        lastMessageAt: conversations.lastMessageAt,
+        adminUnreadCount: conversations.adminUnreadCount,
+        clientEmail: users.email,
+        clientFirstName: users.firstName,
+        clientLastName: users.lastName,
+      })
+      .from(conversations)
+      .leftJoin(users, eq(conversations.userId, users.id))
+      .orderBy(desc(conversations.lastMessageAt))
+
+    return {
+      success: true,
+      conversations: rows.map((row) => ({ ...row, lastMessageAt: row.lastMessageAt.toISOString() })),
+    }
+  } catch (error) {
+    console.error('Failed to refresh admin conversations:', error)
+    return { success: false, error: 'Failed to refresh conversations.', conversations: [] }
+  }
+}
 
 export async function getConversationMessages(conversationId: string) {
   if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to view messages.', messages: [] }

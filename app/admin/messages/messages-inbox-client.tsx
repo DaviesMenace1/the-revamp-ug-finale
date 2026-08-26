@@ -83,7 +83,7 @@ function deliveryLabel(message: Message) {
   return 'Sent'
 }
 
-export default function MessagesInboxClient({ initialConversations = [] }: { initialConversations: ConversationSummary[] }) {
+export default function MessagesInboxClient({ initialConversations = [], initialLoadError = null }: { initialConversations: ConversationSummary[]; initialLoadError?: string | null }) {
   const [conversationsList, setConversationsList] = useState(initialConversations)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -95,9 +95,10 @@ export default function MessagesInboxClient({ initialConversations = [] }: { ini
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'resolved' | 'archived'>('all')
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(initialLoadError || '')
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const refreshInFlightRef = useRef(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
 
@@ -114,6 +115,8 @@ export default function MessagesInboxClient({ initialConversations = [] }: { ini
   const selected = conversationsList.find((conversation) => conversation.id === selectedId)
 
   async function refreshConversations(silent = false) {
+    if (refreshInFlightRef.current) return
+    refreshInFlightRef.current = true
     if (!silent) setRefreshing(true)
     const result = await getAdminConversationSummaries()
     if (result.success) {
@@ -124,6 +127,7 @@ export default function MessagesInboxClient({ initialConversations = [] }: { ini
       setError(result.error || 'Failed to refresh conversations.')
     }
     if (!silent) setRefreshing(false)
+    refreshInFlightRef.current = false
   }
 
   useEffect(() => {

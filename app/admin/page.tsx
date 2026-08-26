@@ -5,7 +5,34 @@ import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
 
-type QueryRow = Record<string, unknown>
+ type QueryRow = Record<string, unknown>
+
+function rows(value: unknown): QueryRow[] {
+  if (Array.isArray(value)) return value as QueryRow[]
+  if (value && typeof value === 'object' && 'rows' in value && Array.isArray(value.rows)) return value.rows as QueryRow[]
+  return []
+}
+
+function objectValue(value: unknown): QueryRow {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as QueryRow : {}
+}
+
+function arrayValue(value: unknown): QueryRow[] {
+  if (Array.isArray(value)) return value as QueryRow[]
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed as QueryRow[] : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+function numeric(value: unknown) {
+  return Number(value ?? 0)
+}
 
 async function getDashboardData() {
   const sixMonthsAgo = new Date()
@@ -13,20 +40,9 @@ async function getDashboardData() {
   const fourWeeksAgo = new Date()
   fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28)
 
-  const [kpiResult, chartResult, categoryResult, activityResult] = await Promise.all([
-    safeQuery(
-      db.execute(sql`
-        SELECT
-          (SELECT COALESCE(SUM(total), 0) FROM orders) AS total_revenue,
-          (SELECT COUNT(*) FROM orders) AS total_orders,
-          (SELECT COUNT(DISTINCT user_id) FROM orders) AS active_clients,
-          (SELECT COUNT(*) FROM projects WHERE COALESCE(progress, 0) < 100 AND project_kind = 'client') AS pending_projects
-      `),
-      'admin KPI report',
-      null,
-    ),
-    safeQuery(
-      db.execute(sql`
+  const result = await safeQuery(
+    db.execute(sql`
+      WITH chart AS (
         SELECT 'revenue' AS series,
                to_char(date_trunc('month', created_at), 'Mon') AS label,
                date_trunc('month', created_at) AS period_start,
@@ -34,9 +50,7 @@ async function getDashboardData() {
         FROM orders
         WHERE created_at >= ${sixMonthsAgo.toISOString()}
         GROUP BY period_start, label
-
         UNION ALL
-
         SELECT 'orders' AS series,
                to_char(date_trunc('week', created_at), 'Mon DD') AS label,
                date_trunc('week', created_at) AS period_start,
@@ -44,61 +58,59 @@ async function getDashboardData() {
         FROM orders
         WHERE created_at >= ${fourWeeksAgo.toISOString()}
         GROUP BY period_start, label
-
-        ORDER BY series, period_start ASC
-      `),
-      'admin chart report',
-      null,
-    ),
-    safeQuery(
-      db.execute(sql`
-        SELECT c.name AS category, COUNT(p.id) AS count
+      ),
+      categories AS (
+        SELECT c.name AS category, COUNT(p.id) AS product_count
         FROM products p
         JOIN sub_categories sc ON sc.id = p.sub_category_id
         JOIN categories c ON c.id = sc.category_id
         WHERE p.status = 'published'
         GROUP BY c.name
-        ORDER BY count DESC
-      `),
-      'admin category report',
-      null,
-    ),
-    safeQuery(
-      db.execute(sql`
-        (SELECT 'order' AS kind, order_number AS label, created_at FROM orders ORDER BY created_at DESC LIMIT 3)
-        UNION ALL
-        (SELECT 'project' AS kind, title AS label, created_at FROM projects ORDER BY created_at DESC LIMIT 3)
-        UNION ALL
-        (SELECT 'consultation' AS kind, title AS label, created_at FROM consultations ORDER BY created_at DESC LIMIT 3)
-        ORDER BY created_at DESC
-        LIMIT 5
-      `),
-      'admin activity report',
-      null,
-    ),
-  ])
+      ),
+      activity AS (
+        SELECT kind, label, created_at
+        FROM (
+          (SELECT 'order' AS kind, order_number AS label, created_at FROM orders ORDER BY created_at DESC LIMIT 3)
+          UNION ALL
+          (SELECT 'project' AS kind, title AS label, created_at FROM projects ORDER BY created_at DESC LIMIT 3)
+          UNION ALL
+          (SELECT 'consultation' AS kind, title AS label, created_at FROM consultations ORDER BY created_at DESC LIMIT 3)
+        ) recent
+      )
+      SELECT
+        json_build_object(
+          'totalRevenue', (SELECT COALESCE(SUM(total), 0) FROM orders),
+          'totalOrders', (SELECT COUNT(*) FROM orders),
+          'activeClients', (SELECT COUNT(DISTINCT user_id) FROM orders),
+          'pendingProjects', (SELECT COUNT(*) FROM projects WHERE COALESCE(progress, 0) < 100 AND project_kind = 'client')
+        ) AS kpis,
+        COALESCE((SELECT json_agg(json_build_object('series', series, 'label', label, 'value', value) ORDER BY series, period_start) FROM chart), '[]'::json) AS chart,
+        COALESCE((SELECT json_agg(json_build_object('category', category, 'count', product_count) ORDER BY product_count DESC) FROM categories), '[]'::json) AS categories,
+        COALESCE((SELECT json_agg(json_build_object('kind', kind, 'label', label, 'created_at', created_at) ORDER BY created_at DESC) FROM activity), '[]'::json) AS activity
+    `),
+    'admin dashboard report',
+    null,
+  )
 
-  const rows = (value: unknown): QueryRow[] => Array.isArray(value) ? value as QueryRow[] : (value && typeof value === 'object' && 'rows' in value && Array.isArray(value.rows)) ? value.rows as QueryRow[] : []
-  const kpiRow = rows(kpiResult.data)[0] || {}
-  const chartRows = rows(chartResult.data)
-  const categoryRows = rows(categoryResult.data)
-  const activityRows = rows(activityResult.data)
+  const row = rows(result.data)[0] || {}
+  const kpis = objectValue(row.kpis)
+  const chartRows = arrayValue(row.chart)
+  const categoryRows = arrayValue(row.categories)
+  const activityRows = arrayValue(row.activity)
   const activityLabels: Record<string, string> = { order: 'New order placed', project: 'Project updated', consultation: 'New consultation booked' }
 
   return {
     kpis: {
-      totalRevenue: Number(kpiRow.total_revenue ?? 0),
-      totalOrders: Number(kpiRow.total_orders ?? 0),
-      activeClients: Number(kpiRow.active_clients ?? 0),
-      pendingProjects: Number(kpiRow.pending_projects ?? 0),
+      totalRevenue: numeric(kpis.totalRevenue),
+      totalOrders: numeric(kpis.totalOrders),
+      activeClients: numeric(kpis.activeClients),
+      pendingProjects: numeric(kpis.pendingProjects),
     },
-    revenueByMonth: chartRows.filter((row) => row.series === 'revenue').map((row) => ({ month: String(row.label ?? ''), revenue: Number(row.value ?? 0) })),
-    ordersByWeek: chartRows.filter((row) => row.series === 'orders').map((row, index) => ({ week: `Week ${index + 1}`, orders: Number(row.value ?? 0) })),
-    productsByCategory: categoryRows.map((row) => ({ category: String(row.category ?? ''), count: Number(row.count ?? 0) })),
-    activity: activityRows.map((row) => ({ action: activityLabels[String(row.kind)] ?? 'Update', detail: String(row.label ?? ''), time: new Date(String(row.created_at)).toISOString() })),
-    loadError: [kpiResult, chartResult, categoryResult, activityResult].some((result) => result.error)
-      ? 'Some dashboard reports are temporarily unavailable. The workspace remains usable; retry the page when the database is responsive.'
-      : null,
+    revenueByMonth: chartRows.filter((report) => report.series === 'revenue').map((report) => ({ month: String(report.label ?? ''), revenue: numeric(report.value) })),
+    ordersByWeek: chartRows.filter((report) => report.series === 'orders').map((report, index) => ({ week: `Week ${index + 1}`, orders: numeric(report.value) })),
+    productsByCategory: categoryRows.map((report) => ({ category: String(report.category ?? ''), count: numeric(report.count) })),
+    activity: activityRows.slice(0, 5).map((report) => ({ action: activityLabels[String(report.kind)] ?? 'Update', detail: String(report.label ?? ''), time: new Date(String(report.created_at)).toISOString() })),
+    loadError: result.error ? 'The dashboard reports are temporarily unavailable. The workspace remains usable; retry the page when the database is responsive.' : null,
   }
 }
 

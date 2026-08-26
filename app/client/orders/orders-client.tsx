@@ -1,8 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { PortalLayout } from '@/components/portals/portal-layout'
+
 import { Card } from '@/components/ui/card'
-import { ArrowUpRight, Package } from 'lucide-react'
+import { Package, Truck } from 'lucide-react'
 import { formatMoney } from '@/lib/utils'
 
 const clientNavItems = [
@@ -80,7 +82,7 @@ export default function OrdersClient({ orders = [], loadError = null }: { orders
                 {Array.isArray(order.items) ? order.items.length : 0} item(s)
               </div>
 
-                            <div className="mt-4 flex items-end justify-between gap-4 border-t border-border/70 pt-4"><div><p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Order total</p><p className="mt-1 font-serif text-3xl text-foreground">{formatMoney(order.total, 'UGX')}</p></div><ArrowUpRight className="size-4 text-primary" /></div>
+                            <div className="mt-4 flex flex-wrap items-end justify-between gap-4 border-t border-border/70 pt-4"><div><p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Order total</p><p className="mt-1 font-serif text-3xl text-foreground">{formatMoney(order.total, 'UGX')}</p></div><Link prefetch={false} href={`/track-order?ref=${encodeURIComponent(order.orderNumber)}`} className="inline-flex min-h-11 items-center gap-2 rounded border border-border px-4 text-xs font-semibold uppercase tracking-[0.14em] text-foreground hover:border-gold hover:text-primary">Track order <Truck className="size-4" /></Link></div>
 
             </Card>
           ))}
@@ -89,7 +91,7 @@ export default function OrdersClient({ orders = [], loadError = null }: { orders
                         <div className="flex flex-col items-center rounded-xl border border-dashed border-border/40 p-12 text-center">
 
               <Package className="mb-3 h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">You haven't placed any orders yet.</p>
+              <p className="text-sm text-muted-foreground">You have not placed any orders yet.</p>
             </div>
           )}
         </div>

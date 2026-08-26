@@ -7,6 +7,16 @@ import { requirePortalUser } from '@/lib/auth/portal-auth'
 
 export const dynamic = 'force-dynamic'
 
+function humanizeDocumentType(value: string) {
+  return value.replace(/[_-]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function readableDocumentName(value: string | null | undefined, fallback: string) {
+  const raw = value?.trim().split('/').pop()?.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim()
+  if (!raw || /^[a-f0-9-]{20,}$/i.test(raw)) return fallback
+  return raw.replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
 export default async function ClientDocuments() {
   const user = await requirePortalUser(
     ['customer', 'admin', 'designer', 'trade_member', 'architect', 'interior_designer'],
@@ -56,7 +66,8 @@ export default async function ClientDocuments() {
 
   const sharedDocuments = sharedResult.data.map((document) => ({
     id: `shared-${document.id}`,
-    name: document.name,
+    name: readableDocumentName(document.name, 'Shared studio document'),
+    documentType: document.category ? humanizeDocumentType(document.category) : 'Shared file',
     category: document.category || 'Shared file',
     fileUrl: document.fileUrl,
     createdAt: new Date(document.createdAt).toISOString(),
@@ -65,8 +76,9 @@ export default async function ClientDocuments() {
     .filter((document) => Boolean(document.fileUrl))
     .map((document) => ({
       id: `financial-${document.id}`,
-      name: document.name,
-      category: `${document.category.replace(/_/g, ' ')} · ${document.currency}`,
+      name: `${humanizeDocumentType(document.category)} · ${document.name}`,
+      documentType: humanizeDocumentType(document.category),
+      category: `${humanizeDocumentType(document.category)} · ${document.currency}`,
       fileUrl: document.fileUrl as string,
       createdAt: new Date(document.createdAt).toISOString(),
     }))
@@ -74,15 +86,16 @@ export default async function ClientDocuments() {
     .filter((document) => Boolean(document.fileUrl))
     .map((document) => ({
       id: `quote-${document.id}`,
-      name: document.name,
+      name: `Quote · ${document.name}`,
+      documentType: 'Quote',
       category: `Quote · UGX ${Number(document.total || 0).toLocaleString('en-UG')}`,
       fileUrl: document.fileUrl as string,
       createdAt: new Date(document.createdAt).toISOString(),
     }))
   const invoiceDocuments = invoiceResult.data.flatMap((document) => [
-    document.fileUrl ? { id: `invoice-${document.id}`, name: document.name, category: `Invoice · UGX ${Number(document.total || 0).toLocaleString('en-UG')}`, fileUrl: document.fileUrl, createdAt: new Date(document.createdAt).toISOString() } : null,
-    document.receiptUrl ? { id: `receipt-${document.id}`, name: `${document.name} receipt`, category: `Payment receipt · UGX ${Number(document.total || 0).toLocaleString('en-UG')}`, fileUrl: document.receiptUrl, createdAt: new Date(document.createdAt).toISOString() } : null,
-  ].filter((document): document is { id: string; name: string; category: string; fileUrl: string; createdAt: string } => Boolean(document)))
+    document.fileUrl ? { id: `invoice-${document.id}`, name: `Invoice · ${document.name}`, documentType: 'Invoice', category: `Invoice · UGX ${Number(document.total || 0).toLocaleString('en-UG')}`, fileUrl: document.fileUrl, createdAt: new Date(document.createdAt).toISOString() } : null,
+    document.receiptUrl ? { id: `receipt-${document.id}`, name: `Payment receipt · ${document.name}`, documentType: 'Payment receipt', category: `Payment receipt · UGX ${Number(document.total || 0).toLocaleString('en-UG')}`, fileUrl: document.receiptUrl, createdAt: new Date(document.createdAt).toISOString() } : null,
+  ].filter((document): document is { id: string; name: string; documentType: string; category: string; fileUrl: string; createdAt: string } => Boolean(document)))
 
   const documents = [...sharedDocuments, ...generatedDocuments, ...quoteDocuments, ...invoiceDocuments]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())

@@ -80,8 +80,22 @@ export async function settleOrderPayment(input: { orderRef: string; chargeId?: s
       await settleSuccessfulOrderRewards(customer.id, order.id, order.subtotal)
       if (paymentId) {
         void generateVerifiedPaymentReceipt({ paymentId, userId: customer.id, clientName: `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() || customer.email, clientEmail: customer.email, orderNumber: order.orderNumber, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), paymentMethod: method, transactionReference })
+          .then((receipt) => {
+            if (!receipt) return
+            return notifyUser({
+              userId: customer.id,
+              type: 'order_receipt_ready',
+              priority: 'important',
+              title: 'Your order receipt is ready',
+              message: `Your payment receipt for order ${order.orderNumber} is ready. Open your billing workspace to view or download it.`,
+              actionUrl: '/client/billing',
+              metadata: { orderId: order.id, orderNumber: order.orderNumber, receiptId: receipt.id, documentNumber: receipt.documentNumber },
+              channels: ['in_app', 'push', 'email'],
+            })
+          })
+          .catch((receiptError) => console.error('[order-payment] receipt notification failed:', receiptError))
       }
-      void notifyUser({ userId: customer.id, type: 'payment_completed', priority: 'important', title: 'Payment confirmed', message: `Payment for order ${order.orderNumber} was confirmed.`, actionUrl: '/client/orders', channels: ['in_app', 'push'] })
+      void notifyUser({ userId: customer.id, type: 'payment_completed', priority: 'important', title: 'Payment confirmed', message: `Payment for order ${order.orderNumber} was confirmed.`, actionUrl: '/client/orders', metadata: { orderId: order.id, orderNumber: order.orderNumber }, channels: ['in_app', 'push'] })
     }
 
     await db.update(carts).set({ items: [], subtotal: '0', updatedAt: now }).where(eq(carts.userId, customer.id))

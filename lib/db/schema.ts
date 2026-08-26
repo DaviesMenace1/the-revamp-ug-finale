@@ -1488,6 +1488,7 @@ export const conversationMessages = pgTable(
     senderName: varchar("sender_name", { length: 255 }),
     body: text("body").notNull(),
     attachments: jsonb("attachments").default([]),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
     readAt: timestamp("read_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },

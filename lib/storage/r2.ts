@@ -86,6 +86,21 @@ export async function uploadClientDocToR2(
   return { url: `${publicUrl}/${key}`, key, size: file.length }
 }
 
+/** Creates a short-lived browser upload URL for a message attachment. */
+export async function createMessageUploadUrl(
+  options: { userId: string; filename: string; contentType: string },
+): Promise<{ url: string; key: string; expiresAt: string }> {
+  const bucket = getEnv('R2_BUCKET_NAME')
+  const safeFilename = options.filename.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+  const key = `messages/${options.userId}/${randomUUID()}-${safeFilename}`
+  const url = await getSignedUrl(
+    getClient(),
+    new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: options.contentType }),
+    { expiresIn: 10 * 60 },
+  )
+  return { url, key, expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() }
+}
+
 /** Creates a short-lived browser upload URL for a project-scoped object. */
 export async function createProjectUploadUrl(
   options: { projectId: string; category: string; filename: string; contentType: string },

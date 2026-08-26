@@ -2,7 +2,6 @@ import AdminDashboard from './_components/admin-dashboard'
 import { db } from '@/lib/db/client'
 import { sql } from 'drizzle-orm'
 import { safeQuery } from '@/lib/server/safe-query'
-import { requirePortalUser } from '@/lib/auth/portal-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,71 +13,70 @@ async function getDashboardData() {
   const fourWeeksAgo = new Date()
   fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28)
 
-  const kpiResult = await safeQuery(
-    db.execute(sql`
-      SELECT
-        (SELECT COALESCE(SUM(total), 0) FROM orders) AS total_revenue,
-        (SELECT COUNT(*) FROM orders) AS total_orders,
-        (SELECT COUNT(DISTINCT user_id) FROM orders) AS active_clients,
-        (SELECT COUNT(*) FROM projects WHERE COALESCE(progress, 0) < 100 AND project_kind = 'client') AS pending_projects
-    `),
-    'admin KPI report',
-    null,
-  )
+  const [kpiResult, chartResult, categoryResult, activityResult] = await Promise.all([
+    safeQuery(
+      db.execute(sql`
+        SELECT
+          (SELECT COALESCE(SUM(total), 0) FROM orders) AS total_revenue,
+          (SELECT COUNT(*) FROM orders) AS total_orders,
+          (SELECT COUNT(DISTINCT user_id) FROM orders) AS active_clients,
+          (SELECT COUNT(*) FROM projects WHERE COALESCE(progress, 0) < 100 AND project_kind = 'client') AS pending_projects
+      `),
+      'admin KPI report',
+      null,
+    ),
+    safeQuery(
+      db.execute(sql`
+        SELECT 'revenue' AS series,
+               to_char(date_trunc('month', created_at), 'Mon') AS label,
+               date_trunc('month', created_at) AS period_start,
+               COALESCE(SUM(total), 0) AS value
+        FROM orders
+        WHERE created_at >= ${sixMonthsAgo.toISOString()}
+        GROUP BY period_start, label
 
-  const chartResult = await safeQuery(
-    db.execute(sql`
-      SELECT 'revenue' AS series,
-             to_char(date_trunc('month', created_at), 'Mon') AS label,
-             date_trunc('month', created_at) AS period_start,
-             COALESCE(SUM(total), 0) AS value
-      FROM orders
-      WHERE created_at >= ${sixMonthsAgo.toISOString()}
-      GROUP BY period_start, label
+        UNION ALL
 
-      UNION ALL
+        SELECT 'orders' AS series,
+               to_char(date_trunc('week', created_at), 'Mon DD') AS label,
+               date_trunc('week', created_at) AS period_start,
+               COUNT(*) AS value
+        FROM orders
+        WHERE created_at >= ${fourWeeksAgo.toISOString()}
+        GROUP BY period_start, label
 
-      SELECT 'orders' AS series,
-             to_char(date_trunc('week', created_at), 'Mon DD') AS label,
-             date_trunc('week', created_at) AS period_start,
-             COUNT(*) AS value
-      FROM orders
-      WHERE created_at >= ${fourWeeksAgo.toISOString()}
-      GROUP BY period_start, label
-
-      ORDER BY series, period_start ASC
-    `),
-    'admin chart report',
-    null,
-  )
-
-  const categoryResult = await safeQuery(
-    db.execute(sql`
-      SELECT c.name AS category, COUNT(p.id) AS count
-      FROM products p
-      JOIN sub_categories sc ON sc.id = p.sub_category_id
-      JOIN categories c ON c.id = sc.category_id
-      WHERE p.status = 'published'
-      GROUP BY c.name
-      ORDER BY count DESC
-    `),
-    'admin category report',
-    null,
-  )
-
-  const activityResult = await safeQuery(
-    db.execute(sql`
-      (SELECT 'order' AS kind, order_number AS label, created_at FROM orders ORDER BY created_at DESC LIMIT 3)
-      UNION ALL
-      (SELECT 'project' AS kind, title AS label, created_at FROM projects ORDER BY created_at DESC LIMIT 3)
-      UNION ALL
-      (SELECT 'consultation' AS kind, title AS label, created_at FROM consultations ORDER BY created_at DESC LIMIT 3)
-      ORDER BY created_at DESC
-      LIMIT 5
-    `),
-    'admin activity report',
-    null,
-  )
+        ORDER BY series, period_start ASC
+      `),
+      'admin chart report',
+      null,
+    ),
+    safeQuery(
+      db.execute(sql`
+        SELECT c.name AS category, COUNT(p.id) AS count
+        FROM products p
+        JOIN sub_categories sc ON sc.id = p.sub_category_id
+        JOIN categories c ON c.id = sc.category_id
+        WHERE p.status = 'published'
+        GROUP BY c.name
+        ORDER BY count DESC
+      `),
+      'admin category report',
+      null,
+    ),
+    safeQuery(
+      db.execute(sql`
+        (SELECT 'order' AS kind, order_number AS label, created_at FROM orders ORDER BY created_at DESC LIMIT 3)
+        UNION ALL
+        (SELECT 'project' AS kind, title AS label, created_at FROM projects ORDER BY created_at DESC LIMIT 3)
+        UNION ALL
+        (SELECT 'consultation' AS kind, title AS label, created_at FROM consultations ORDER BY created_at DESC LIMIT 3)
+        ORDER BY created_at DESC
+        LIMIT 5
+      `),
+      'admin activity report',
+      null,
+    ),
+  ])
 
   const rows = (value: unknown): QueryRow[] => Array.isArray(value) ? value as QueryRow[] : (value && typeof value === 'object' && 'rows' in value && Array.isArray(value.rows)) ? value.rows as QueryRow[] : []
   const kpiRow = rows(kpiResult.data)[0] || {}
@@ -105,6 +103,5 @@ async function getDashboardData() {
 }
 
 export default async function AdminPage() {
-  await requirePortalUser(['admin'], '/admin')
   return <AdminDashboard data={await getDashboardData()} />
 }

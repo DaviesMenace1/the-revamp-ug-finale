@@ -3,7 +3,7 @@ import { db } from '@/lib/db/client'
 import { conversations, conversationMessages } from '@/lib/db/schema'
 import { eq, asc } from 'drizzle-orm'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
-import MessagesClient from './messages-client'
+import MessagesClient, { type MessageAttachment } from './messages-client'
 import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
@@ -34,6 +34,9 @@ export default async function ClientMessagesPage() {
 
   const formattedMessages = messagesResult.data.map((m) => ({
     ...m,
+    attachments: (Array.isArray(m.attachments) ? m.attachments : []) as MessageAttachment[],
+    deliveredAt: m.deliveredAt?.toISOString() ?? null,
+    readAt: m.readAt?.toISOString() ?? null,
     createdAt: m.createdAt.toISOString(),
   }))
 

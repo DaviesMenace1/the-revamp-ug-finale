@@ -26,6 +26,7 @@ export default async function ClientOrders() {
     createdAt: o.createdAt.toISOString(),
     updatedAt: o.updatedAt.toISOString(),
     items: Array.isArray(o.items) ? o.items : [],
+    deliveryAddress: o.deliveryAddress && typeof o.deliveryAddress === 'object' && !Array.isArray(o.deliveryAddress) ? o.deliveryAddress as Record<string, unknown> : null,
   }))
 
   return <OrdersClient orders={formatted} loadError={result.error ? 'Orders are temporarily unavailable. You can retry the page.' : null} />

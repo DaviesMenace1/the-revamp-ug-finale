@@ -37,7 +37,7 @@ export default async function CollectionsPage() {
         <section className="relative overflow-hidden bg-obsidian px-5 pb-14 pt-36 text-ivory sm:px-8 md:pb-20 md:pt-48 lg:px-16">
           <div className="absolute right-[-12%] top-[-30%] size-[40rem] rounded-full border border-gold/20" aria-hidden="true" />
           <div className="relative mx-auto grid max-w-[1440px] gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div className="max-w-5xl motion-reveal"><p className="text-[10px] uppercase tracking-[0.3em] text-gold">The Revamp collection / current edit</p><h1 className="mt-5 max-w-4xl font-serif text-6xl font-light leading-[0.9] sm:text-8xl lg:text-[8rem]">Objects with presence.</h1><p className="mt-7 max-w-2xl text-base leading-7 text-ivory/65 sm:text-lg">Furniture, lighting, and accents chosen for rooms that are meant to be lived in — not simply filled.</p></div>
+            <div className="max-w-5xl motion-reveal"><p className="text-[10px] uppercase tracking-[0.3em] text-gold">The Revamp collection / current edit</p><h1 className="mt-5 max-w-4xl font-serif text-6xl font-light leading-[0.9] sm:text-8xl lg:text-[8rem]">Objects with presence.</h1><p className="mt-7 max-w-2xl text-base leading-7 text-ivory/65 sm:text-lg">Furniture, lighting, and accents chosen for rooms that are meant to be lived in rather than simply filled.</p></div>
             <div className="flex items-end gap-5 border-l border-gold/45 pl-5 text-sm text-ivory/60 lg:mb-2 lg:flex-col lg:items-start lg:gap-1"><span className="font-serif text-5xl text-ivory">{products.length.toString().padStart(2, '0')}</span><span className="max-w-[12rem] leading-6">Published pieces<br />East Africa · worldwide sourcing</span></div>
           </div>
         </section>

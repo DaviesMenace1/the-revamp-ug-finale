@@ -424,11 +424,11 @@ export default async function AdminProductsPage({
 
                       <td className="px-5 py-4">
                         <div className="text-xs text-stone-700">
-                          {product.departmentName || "—"}
+                          {product.departmentName || "N/A"}
                         </div>
 
                         <div className="mt-1 text-[11px] text-stone-400">
-                          {product.categoryName || "—"}
+                          {product.categoryName || "N/A"}
                           {product.subCategoryName
                             ? ` → ${product.subCategoryName}`
                             : ""}

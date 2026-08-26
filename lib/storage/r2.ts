@@ -1,6 +1,6 @@
 // Used for project drawings/renders/documents (the "files, drawings and all"
-// asset library). Product/marketing images continue to go through Cloudinary
-// — this is deliberately scoped to project workspace files only, to avoid
+// asset library). Product/marketing images continue to go through Cloudinary.
+// This is deliberately scoped to project workspace files only, to avoid
 // re-plumbing everything that already works.
 
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'

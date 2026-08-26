@@ -72,7 +72,7 @@ export default function DocumentsClient({ documents = [], loadError = null }: { 
         <header className="rounded-2xl bg-foreground px-6 py-8 text-background shadow-lift sm:px-10 sm:py-10">
           <p className="text-[10px] uppercase tracking-[0.28em] text-gold">Your studio archive</p>
           <h1 className="mt-4 font-serif text-4xl sm:text-6xl">Documents</h1>
-          <p className="mt-4 max-w-xl text-sm leading-7 text-background/70">Contracts, invoices, estimates, receipts, and files shared with you — kept together and ready when you need them.</p>
+          <p className="mt-4 max-w-xl text-sm leading-7 text-background/70">Contracts, invoices, estimates, receipts, and files shared with you are kept together and ready when you need them.</p>
         </header>
 
         {loadError && (

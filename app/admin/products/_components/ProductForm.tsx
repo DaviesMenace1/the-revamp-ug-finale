@@ -4,13 +4,13 @@ import React, { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CldUploadWidget } from 'next-cloudinary'
-import { 
-  ArrowLeft, 
-  Save, 
-  Sparkles, 
-  Plus, 
-  Trash2, 
-  CheckCircle2, 
+import {
+  ArrowLeft,
+  Save,
+  Sparkles,
+  Plus,
+  Trash2,
+  CheckCircle2,
   AlertCircle,
   Package,
   DollarSign,
@@ -135,21 +135,21 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     mpn: initialData?.mpn || '',
     gtin: initialData?.gtin || '',
     brand: initialData?.brand || 'The Revamp UG',
-    department: initialData?.department || '01 — Furniture',
+    department: initialData?.department || '01: Furniture',
     category: initialData?.category || 'Living Room',
     subCategory: initialData?.subCategory || '',
     googleProductCategory: initialData?.googleProductCategory || 'Furniture > Chairs > Armchairs, Recliners & Tilt Chairs',
-    
+
     // Media State
     thumbnailImage: initialPrimaryImage,
        gallery: initialGalleryImages.length > 0 ? initialGalleryImages : [],
-    
+
     price: initialData?.price || '',
     originalPrice: initialData?.originalPrice || '',
     currency: initialData?.currency || 'UGX',
     weight: initialData?.weight || '',
     weightUnit: initialData?.weightUnit || 'kg',
-    
+
     condition: initialData?.condition || 'new',
     availability: initialData?.availability || 'in_stock',
     inStock: initialData?.inStock ?? true,
@@ -158,15 +158,15 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
     description: initialData?.description || '',
     longDescription: initialData?.longDescription || '',
-    
+
     material: initialData?.material || '',
     materialSwatchUrl: initialData?.materialSwatchUrl || '',
     finish: initialData?.finish || '',
     careInstructions: initialData?.careInstructions || '',
-    whatsIncluded: Array.isArray(initialData?.whatsIncluded) 
-      ? initialData.whatsIncluded.join(', ') 
+    whatsIncluded: Array.isArray(initialData?.whatsIncluded)
+      ? initialData.whatsIncluded.join(', ')
       : (initialData?.whatsIncluded || ''),
-    
+
     seoTitle: initialData?.seoTitle || '',
     seoDescription: initialData?.seoDescription || '',
     featured: initialData?.featured ?? false,
@@ -277,9 +277,9 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
       <div className="mx-auto mt-8 max-w-7xl px-6">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          
+
           <div className="space-y-6 lg:col-span-8">
-            
+
             {/* Tab Navigation */}
             <div className="flex flex-wrap border-b border-stone-200 bg-white px-4 pt-2 shadow-sm rounded-t-xl">
               {[
@@ -362,7 +362,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
             {/* TAB 2: MEDIA (CLOUDINARY) */}
             {activeTab === 'media' && (
               <div className="space-y-6 rounded-b-xl border border-t-0 border-stone-200 bg-white p-6 shadow-sm">
-                
+
                 {/* Primary Cover Upload */}
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-2">Primary Cover / Thumbnail Image *</label>
@@ -554,7 +554,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
             {/* TAB 5: VARIANTS & SWATCHES */}
             {activeTab === 'variants' && (
               <div className="space-y-6 rounded-b-xl border border-t-0 border-stone-200 bg-white p-6 shadow-sm">
-                
+
                 {/* COLOR SWATCHES */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -568,7 +568,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     </button>
                   </div>
 
-                  {(Array.isArray(formData.colors) ? formData.colors : []).map((color, idx) => ( 
+                  {(Array.isArray(formData.colors) ? formData.colors : []).map((color, idx) => (
                     <div key={idx} className="mt-3 flex items-center gap-3 rounded-lg border border-stone-200 p-3 bg-stone-50">
                       <input
                         type="text"
@@ -663,7 +663,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     </button>
                   </div>
 
-                  {(Array.isArray(formData.fabrics) ? formData.fabrics : []).map((fabric, idx) => ( 
+                  {(Array.isArray(formData.fabrics) ? formData.fabrics : []).map((fabric, idx) => (
                     <div key={idx} className="mt-3 flex items-center gap-3 rounded-lg border border-stone-200 p-3 bg-stone-50">
                       <input
                         type="text"
@@ -920,13 +920,13 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 // import { useState, useTransition } from 'react'
 // import { useRouter } from 'next/navigation'
 // import Link from 'next/link'
-// import { 
-//   ArrowLeft, 
-//   Save, 
-//   Sparkles, 
-//   Plus, 
-//   Trash2, 
-//   CheckCircle2, 
+// import {
+//   ArrowLeft,
+//   Save,
+//   Sparkles,
+//   Plus,
+//   Trash2,
+//   CheckCircle2,
 //   AlertCircle,
 //   Package,
 //   DollarSign,
@@ -955,15 +955,15 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 //     mpn: initialData?.mpn || '',
 //     gtin: initialData?.gtin || '',
 //     brand: initialData?.brand || 'The Revamp UG',
-//     department: initialData?.department || '01 — Furniture',
+//     department: initialData?.department || '01: Furniture',
 //     category: initialData?.category || 'Living Room',
 //     subCategory: initialData?.subCategory || '',
 //     googleProductCategory: initialData?.googleProductCategory || 'Furniture > Chairs > Armchairs',
-    
+
 //     price: initialData?.price || '',
 //     originalPrice: initialData?.originalPrice || '',
 //     currency: initialData?.currency || 'UGX',
-    
+
 //     condition: initialData?.condition || 'new',
 //     availability: initialData?.availability || 'in_stock',
 //     inStock: initialData?.inStock ?? true,
@@ -972,14 +972,14 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
 //     description: initialData?.description || '',
 //     longDescription: initialData?.longDescription || '',
-    
+
 //     material: initialData?.material || '',
 //     finish: initialData?.finish || '',
 //     careInstructions: initialData?.careInstructions || '',
 //     whatsIncluded: initialData?.whatsIncluded?.join(', ') || '',
 //     weight: initialData?.weight || '',
 //     weightUnit: initialData?.weightUnit || 'kg',
-    
+
 //     seoTitle: initialData?.seoTitle || '',
 //     seoDescription: initialData?.seoDescription || '',
 //     featured: initialData?.featured ?? false,
@@ -1100,10 +1100,10 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
 //       <div className="mx-auto mt-8 max-w-7xl px-6">
 //         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          
+
 //           {/* Main Form Tabs (8 Columns) */}
 //           <div className="space-y-6 lg:col-span-8">
-            
+
 //             {/* Tab Navigation */}
 //             <div className="flex flex-wrap border-b border-stone-200 bg-white px-4 pt-2 shadow-sm rounded-t-xl">
 //               {[
@@ -1452,7 +1452,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
 //           {/* Sidebar Widgets (4 Columns) */}
 //           <div className="space-y-6 lg:col-span-4">
-            
+
 //             {/* Google Merchant Readiness Scorecard Widget */}
 //             <div className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
 //               <div className="flex items-center justify-between">

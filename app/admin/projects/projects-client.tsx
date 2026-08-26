@@ -9,16 +9,16 @@ import Image from 'next/image'
 import { CldUploadWidget } from 'next-cloudinary'
 import { createProject, updateProject, deleteProject } from '@/lib/actions/projects'
 
-function ImageUpload({ 
-  value = [], 
-  onChange, 
-  maxImages = 5, 
-  label = "Upload Image" 
-}: { 
-  value: string[]; 
-  onChange: (val: string[]) => void; 
+function ImageUpload({
+  value = [],
+  onChange,
+  maxImages = 5,
+  label = "Upload Image"
+}: {
+  value: string[];
+  onChange: (val: string[]) => void;
   maxImages?: number;
-  label?: string 
+  label?: string
 }) {
   const handleRemove = (urlToRemove: string) => {
     onChange(value.filter((url) => url !== urlToRemove))
@@ -187,8 +187,8 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
     })
   }
 
-  const filteredProjects = projects.filter(p => 
-    p.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredProjects = projects.filter(p =>
+    p.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.category?.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -201,10 +201,10 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
           <h1 className="font-serif text-3xl font-normal text-foreground">Projects Catalog</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage project portfolios, client assets, and page visibility</p>
         </div>
-        
+
         {!isFormOpen && (
-          <Button 
-            onClick={() => { setFormData(defaultForm); setEditingId(null); setIsFormOpen(true); }} 
+          <Button
+            onClick={() => { setFormData(defaultForm); setEditingId(null); setIsFormOpen(true); }}
             className="bg-primary text-primary-foreground rounded-none shadow-sm"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -241,13 +241,13 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
 
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <div className="md:col-span-2"><h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2">Overview</h3></div>
-            
+
             <div><label className="block text-xs font-medium text-muted-foreground mb-1">Project Title *</label><Input value={formData.title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Nakasero Luxury Residence" className="rounded-none" /></div>
             <div><label className="block text-xs font-medium text-muted-foreground mb-1">URL Slug *</label><Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} placeholder="nakasero-luxury-residence" className="rounded-none" /></div>
             <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-1">Short Teaser Description</label><Input value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Modern minimalist 4-bedroom architectural redesign..." className="rounded-none" /></div>
 
             <div className="md:col-span-2 mt-2"><h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2">Specifications</h3></div>
-            
+
             <div><label className="block text-xs font-medium text-muted-foreground mb-1">Client Name</label><Input value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value })} placeholder="Sarah Kiwanuka" className="rounded-none" /></div>
             <div><label className="block text-xs font-medium text-muted-foreground mb-1">Client (display label)</label><Input value={formData.client} onChange={(e) => setFormData({ ...formData, client: e.target.value })} placeholder="Private Residence" className="rounded-none" /></div>
             <div><label className="block text-xs font-medium text-muted-foreground mb-1">Location</label><Input value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="Kampala, Uganda" className="rounded-none" /></div>
@@ -268,13 +268,13 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
               <label className="block text-xs font-medium text-muted-foreground mb-1">Full Project Story</label>
               <textarea value={formData.longDescription} onChange={(e) => setFormData({ ...formData, longDescription: e.target.value })} rows={5} className="w-full px-3 py-2 border border-input rounded-none bg-background text-sm resize-none" placeholder="Explain spatial layout, material selections, and lighting strategy..." />
             </div>
-            
+
             <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-1">Tags (Comma-separated)</label><Input value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} placeholder="minimalist, hardwood, accent-lighting" className="rounded-none" /></div>
 
             <div className="md:col-span-2 mt-2"><h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2">Media & Galleries</h3></div>
 
             <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-1">Main Cover Thumbnail URL</label><Input value={formData.thumbnailImage} onChange={(e) => setFormData({ ...formData, thumbnailImage: e.target.value })} placeholder="https://res.cloudinary.com/..." className="rounded-none" /></div>
-            
+
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-muted-foreground mb-2">Project Key Showcase Images</label>
               <ImageUpload value={formData.images} onChange={(images) => setFormData({ ...formData, images })} maxImages={15} label="Upload Main Photo" />
@@ -301,11 +301,11 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
           <div className="flex items-center justify-between gap-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                value={searchTerm} 
-                onChange={(e) => setSearchTerm(e.target.value)} 
-                placeholder="Search by title, client, or category..." 
-                className="pl-9 rounded-none text-sm" 
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by title, client, or category..."
+                className="pl-9 rounded-none text-sm"
               />
             </div>
             <div className="text-xs text-muted-foreground">
@@ -361,7 +361,7 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
 
                         {/* Client & Location */}
                         <td className="py-3 px-4">
-                          <div className="text-xs font-medium text-foreground">{project.clientName || '—'}</div>
+                          <div className="text-xs font-medium text-foreground">{project.clientName || 'N/A'}</div>
                           <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                             <MapPin className="w-3 h-3" />
                             {project.location || 'N/A'}
@@ -378,7 +378,7 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
 
                         {/* Budget */}
                         <td className="py-3 px-4 font-mono text-xs">
-                          {project.budget ? `$${Number(project.budget).toLocaleString()}` : '—'}
+                          {project.budget ? `$${Number(project.budget).toLocaleString()}` : 'N/A'}
                         </td>
 
                         {/* Status Badge */}

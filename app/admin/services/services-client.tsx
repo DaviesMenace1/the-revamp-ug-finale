@@ -220,7 +220,7 @@ export default function ServicesClient({
         ))}
 
         {categories.length === 0 && (
-          <p className="text-sm text-muted-foreground">No service categories yet — add one to get started.</p>
+          <p className="text-sm text-muted-foreground">No service categories yet. Add one to get started.</p>
         )}
       </div>
 

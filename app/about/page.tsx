@@ -51,12 +51,12 @@ export default function AboutPage() {
               <div className="space-y-6">
                 <h2 className="font-serif text-4xl font-light text-foreground">Our Story</h2>
                 <p className="text-lg text-muted-foreground font-light leading-relaxed">
-                  Revamp UG was founded with a simple mission: to bring world-class design and architecture to East Africa. 
-                  What started as a dream in Kampala has grown into a full-service design studio serving clients across Uganda, 
+                  Revamp UG was founded with a simple mission: to bring world-class design and architecture to East Africa.
+                  What started as a dream in Kampala has grown into a full-service design studio serving clients across Uganda,
                   Kenya, Tanzania, and beyond.
                 </p>
                 <p className="text-lg text-muted-foreground font-light leading-relaxed">
-                  We believe that exceptional design isn't a luxury—it's a necessity. Every project, from residential apartments 
+                  We believe that exceptional design isn't a luxury; it's a necessity. Every project, from residential apartments
                   to commercial spaces, deserves thoughtful design, quality materials, and meticulous execution.
                 </p>
               </div>
@@ -65,7 +65,7 @@ export default function AboutPage() {
                       src="https://res.cloudinary.com/r8epy5mg/image/upload/v1785658769/file_0000000044ec71f48458614b2de85725_l4eeso.png"
                       alt="The Revamp UG design showcase"
                       className="w-full h-full object-cover"
-                    />   
+                    />
              </div>
            </div>
           </div>
@@ -78,8 +78,8 @@ export default function AboutPage() {
               <div className="space-y-4">
                 <h3 className="font-serif text-3xl font-light text-foreground">Our Mission</h3>
                 <p className="text-muted-foreground font-light leading-relaxed">
-                  To create exceptional spaces that inspire, function beautifully, and reflect the unique personalities 
-                  and aspirations of our clients. We combine international design expertise with local knowledge to deliver 
+                  To create exceptional spaces that inspire, function beautifully, and reflect the unique personalities
+                  and aspirations of our clients. We combine international design expertise with local knowledge to deliver
                   truly transformative projects.
                 </p>
               </div>

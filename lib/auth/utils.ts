@@ -134,7 +134,7 @@ export async function hasRole(roles: UserRole[]) {
 
 /**
  * Check if user is authenticated (has a Clerk session).
- * Intentionally does NOT require a local DB row — a freshly signed-up user
+ * Intentionally does NOT require a local DB row, a freshly signed-up user
  * is authenticated even before their profile row is provisioned.
  */
 export async function isAuthenticated() {

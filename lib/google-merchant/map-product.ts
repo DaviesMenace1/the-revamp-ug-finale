@@ -47,7 +47,7 @@ export function mapProductToMerchantResource(product: MappableProduct): ProductM
     ? [...product.productImages].sort((a, b) => a.isPrimary === b.isPrimary ? 0 : a.isPrimary ? -1 : 1)
     : []
   const imageLink = images[0]?.url?.trim()
-  if (!imageLink) warnings.push('Product has no real product image — Google requires a crawlable imageLink. Add a product image before syncing.')
+  if (!imageLink) warnings.push('Product has no real product image. Google requires a crawlable imageLink. Add a product image before syncing.')
 
   const weightValue = typeof product.weight === 'string' ? parseFloat(product.weight) : product.weight
   const weightUnit = (product.weightUnit || 'kg').trim().toLowerCase()
@@ -55,7 +55,7 @@ export function mapProductToMerchantResource(product: MappableProduct): ProductM
 
   const description = product.longDescription?.trim() || product.description?.trim()
   if (!description) warnings.push('Product has no description set.')
-  if (!product.brand) warnings.push('Product has no brand set — Google requires a brand for most categories.')
+  if (!product.brand) warnings.push('Product has no brand set. Google requires a brand for most categories.')
   if (!product.googleProductCategoryId && !product.googleProductCategoryPath) warnings.push('No Google product category is set on this product\'s subcategory. Sync may be rejected without one.')
 
   const priceValue = typeof product.price === 'string' ? parseFloat(product.price) : product.price

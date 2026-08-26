@@ -102,10 +102,10 @@ export default function UsersClient({ initialUsers = [] }: { initialUsers: Admin
                 {filtered.map((user) => (
                   <tr key={user.id} className="border-b border-border/20 hover:bg-muted/50 transition-colors">
                     <td className="py-4 px-4 text-sm text-foreground font-medium">
-                      {[user.firstName, user.lastName].filter(Boolean).join(' ') || '—'}
+                      {[user.firstName, user.lastName].filter(Boolean).join(' ') || 'N/A'}
                     </td>
                     <td className="py-4 px-4 text-sm text-muted-foreground">{user.email}</td>
-                    <td className="py-4 px-4 text-sm text-muted-foreground">{user.company || '—'}</td>
+                    <td className="py-4 px-4 text-sm text-muted-foreground">{user.company || 'N/A'}</td>
                     <td className="py-4 px-4 text-sm">
                       <div className="flex items-center gap-2">
                         {user.role === 'admin' && <Shield className="w-4 h-4 text-primary" />}

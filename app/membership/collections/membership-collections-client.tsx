@@ -96,7 +96,7 @@ export default function MembershipCollectionsClient({ products = [] }: { product
             <div className="sm:col-span-2 lg:col-span-3 flex flex-col items-center rounded-lg border border-dashed border-border/40 p-12 text-center">
               <Sparkles className="mb-3 h-8 w-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                No exclusive pieces featured yet — check back soon.
+                No exclusive pieces are featured yet. Check back soon.
               </p>
             </div>
           )}

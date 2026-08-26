@@ -87,7 +87,7 @@ export default function TradeDashboardView({ member, stats }: { member: Member; 
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Your Tier</p>
               <p className="font-serif text-2xl font-light text-primary capitalize">
-                {member?.tier ?? '—'}
+                {member?.tier ?? 'N/A'}
               </p>
               {member && <p className="text-xs text-muted-foreground">{member.discountRate}% off retail</p>}
             </div>

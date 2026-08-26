@@ -1,7 +1,7 @@
 /**
  * Shopping cart stored in Upstash Redis.
  * Persists across sessions, syncs to DB on checkout.
- * TTL: 7 days — cart expires if user is inactive.
+ * TTL: 7 days, cart expires if user is inactive.
  */
 
 import { redis } from './client';

@@ -2,13 +2,13 @@
  * Rate limiting using Upstash Ratelimit
  *
  * Limiters defined here:
- *   api         — general API endpoints       (60 req / 60s)
- *   auth        — sign-in / sign-up           (10 req / 60s)
- *   newsletter  — newsletter subscribe        (3  req / 60s)
- *   contact     — contact / quote forms       (5  req / 60s)
- *   upload      — media upload endpoints      (20 req / 60s)
- *   search      — search endpoint             (30 req / 60s)
- *   whatsapp    — WhatsApp click tracking     (10 req / 60s)
+ *   api: general API endpoints       (60 req / 60s)
+ *   auth: sign-in / sign-up           (10 req / 60s)
+ *   newsletter: newsletter subscribe        (3  req / 60s)
+ *   contact: contact / quote forms       (5  req / 60s)
+ *   upload: media upload endpoints      (20 req / 60s)
+ *   search: search endpoint             (30 req / 60s)
+ *   whatsapp: WhatsApp click tracking     (10 req / 60s)
  */
 
 import { createHash } from 'node:crypto';

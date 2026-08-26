@@ -78,7 +78,7 @@ function timeLabel(value: string) {
 
 function money(value: string | null, currency: string | null) {
   const amount = Number(value)
-  return Number.isFinite(amount) ? `${new Intl.NumberFormat('en-UG', { maximumFractionDigits: 0 }).format(amount)} ${currency || 'UGX'}` : '—'
+  return Number.isFinite(amount) ? `${new Intl.NumberFormat('en-UG', { maximumFractionDigits: 0 }).format(amount)} ${currency || 'UGX'}` : 'N/A'
 }
 
 function documentLabel(documentType: string) {

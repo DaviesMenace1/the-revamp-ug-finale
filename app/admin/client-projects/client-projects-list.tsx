@@ -88,7 +88,7 @@ export default function ClientProjectsListClient({
         <div>
           <h1 className="font-serif text-4xl font-light text-foreground">Client Projects</h1>
           <p className="text-muted-foreground mt-2">
-            Private project workspaces — separate from your public portfolio. Each one belongs to a
+            Private project workspaces are separate from your public portfolio. Each one belongs to a
             client account and includes their own assets, documents, and approvals.
           </p>
         </div>

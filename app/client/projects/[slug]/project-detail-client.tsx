@@ -247,10 +247,6 @@ export default function ProjectDetailClient({ project }: { project: ProjectDetai
       setUploadError('Choose a .gltf file for this model type, or switch to GLB for the most reliable single-file viewer experience.')
       return
     }
-    if (assetType === 'gltf') {
-      setUploadError('GLTF files must be self-contained. If the model uses .bin files or external textures, export it as a single .glb file before uploading.')
-      return
-    }
     setUploadError(null)
     setUploading(true)
     try {

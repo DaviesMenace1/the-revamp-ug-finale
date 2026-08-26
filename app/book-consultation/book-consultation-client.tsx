@@ -278,6 +278,14 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
         window.location.assign(payload.paymentUrl)
         return
       }
+      if (payload.status === 'paid' || payload.status === 'paid_review') {
+        setPaymentState({ status: payload.status === 'paid_review' ? 'review' : 'success', consultationId: typeof payload.consultationId === 'string' ? payload.consultationId : undefined, message: payload.status === 'paid_review' ? 'Your payment was verified and the studio will confirm the selected time shortly.' : undefined })
+        return
+      }
+      if (payload.status === 'pending') {
+        setPaymentState({ status: 'pending', message: typeof payload.message === 'string' ? payload.message : 'Payment was received and is being finalized. Please check your client portal shortly.' })
+        return
+      }
       if (typeof payload.paymentInstruction === 'string' && payload.paymentInstruction) {
         setPaymentState({ status: 'pending', message: payload.paymentInstruction })
         return

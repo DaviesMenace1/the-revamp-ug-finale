@@ -38,6 +38,8 @@ type Props = {
 type ViewerErrorBoundaryProps = {
   children: ReactNode
   onRetry: () => void
+  onError: () => void
+  sourceUrl: string
 }
 
 type ViewerErrorBoundaryState = {
@@ -53,6 +55,7 @@ class ViewerErrorBoundary extends Component<ViewerErrorBoundaryProps, ViewerErro
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[visualization] 3D viewer failed:', error, info.componentStack)
+    this.props.onError()
   }
 
   render() {
@@ -61,8 +64,8 @@ class ViewerErrorBoundary extends Component<ViewerErrorBoundaryProps, ViewerErro
         <div className="flex min-h-[420px] flex-col items-center justify-center bg-background px-6 py-12 text-center sm:min-h-[600px]">
           <AlertTriangle className="h-10 w-10 text-amber-600" />
           <h2 className="mt-4 font-serif text-2xl font-light text-foreground">This model needs another try.</h2>
-          <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">The shared 3D file could not be rendered in this browser. Your project data is safe; retry the viewer or choose another shared model.</p>
-          <Button type="button" onClick={this.props.onRetry} className="mt-6 min-h-11 rounded-none">Retry this model</Button>
+          <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">The shared 3D file could not be rendered in this browser. Your project data is safe; retry the viewer, download the source file, or choose another shared model.</p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2"><Button type="button" onClick={this.props.onRetry} className="min-h-11 rounded-none">Retry this model</Button><a href={this.props.sourceUrl} download className="inline-flex min-h-11 items-center justify-center rounded-none border border-border px-4 text-sm font-medium text-foreground hover:bg-muted">Download model</a></div>
         </div>
       )
     }
@@ -133,6 +136,7 @@ export default function VisualizationViewer({ project, assets }: Props) {
   const [selectedId, setSelectedId] = useState(assets[0]?.id ?? '')
   const [resetKey, setResetKey] = useState(0)
   const [error, setError] = useState('')
+  const [viewerFailed, setViewerFailed] = useState(false)
   const [autoRotate, setAutoRotate] = useState(false)
   const [showControlsHelp, setShowControlsHelp] = useState(true)
   const [sceneAction, setSceneAction] = useState<SceneAction>({ type: 'reset', nonce: 0 })
@@ -155,6 +159,7 @@ export default function VisualizationViewer({ project, assets }: Props) {
   function selectAsset(asset: VisualizationAsset) {
     setSelectedId(asset.id)
     setError('')
+    setViewerFailed(false)
     setAutoRotate(false)
     triggerSceneAction('reset')
   }
@@ -184,7 +189,7 @@ export default function VisualizationViewer({ project, assets }: Props) {
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
             <div ref={viewerRef} className="relative min-h-[420px] overflow-hidden rounded-xl border border-border/30 bg-[#10100f] shadow-2xl sm:min-h-[600px]" aria-label={`${selected?.title ?? 'Project'} 3D viewer`}>
               {selected && (
-                <ViewerErrorBoundary key={`${selected.id}-${resetKey}`} onRetry={() => { setError(''); setResetKey((key) => key + 1); triggerSceneAction('reset') }}>
+                <ViewerErrorBoundary key={`${selected.id}-${resetKey}`} sourceUrl={selected.viewerUrl} onError={() => setViewerFailed(true)} onRetry={() => { setError(''); setViewerFailed(false); setResetKey((key) => key + 1); triggerSceneAction('reset') }}>
                   <Canvas camera={{ position: [4, 3, 5], fov: 42 }} dpr={[1, 1.5]} onCreated={() => setError('')}>
                     <color attach="background" args={['#10100f']} />
                     <ambientLight intensity={1.15} />
@@ -196,12 +201,12 @@ export default function VisualizationViewer({ project, assets }: Props) {
                 </ViewerErrorBoundary>
               )}
 
-              <div className="pointer-events-none absolute inset-x-4 top-4 flex items-start justify-between gap-3">
+              {!viewerFailed && <div className="pointer-events-none absolute inset-x-4 top-4 flex items-start justify-between gap-3">
                 <div className="max-w-[75%] rounded-full border border-white/15 bg-black/45 px-3 py-2 text-xs text-white/80 backdrop-blur-md">{selected?.title} · v{selected?.version}</div>
                 {showControlsHelp && <div className="hidden rounded-lg border border-white/10 bg-black/45 px-3 py-2 text-right text-[11px] leading-5 text-white/70 backdrop-blur-md sm:block">Drag to orbit<br />Scroll or pinch to zoom<br />Right-drag to pan</div>}
-              </div>
+              </div>}
 
-              <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3">
+              {!viewerFailed && <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3">
                 <div className="flex items-center overflow-hidden rounded-lg border border-white/15 bg-black/55 p-1 shadow-lg backdrop-blur-md" role="toolbar" aria-label="3D model controls">
                   <button type="button" onClick={() => triggerSceneAction('zoomOut')} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" aria-label="Zoom out"><Minus className="h-4 w-4" /></button>
                   <button type="button" onClick={() => triggerSceneAction('reset')} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300" aria-label="Reset view"><RotateCcw className="h-4 w-4" /></button>
@@ -209,7 +214,7 @@ export default function VisualizationViewer({ project, assets }: Props) {
                   <button type="button" onClick={() => setAutoRotate((rotating) => !rotating)} className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${autoRotate ? 'bg-amber-300 text-black' : 'text-white/80 hover:bg-white/10 hover:text-white'}`} aria-label={autoRotate ? 'Pause automatic rotation' : 'Play automatic rotation'} aria-pressed={autoRotate}>{autoRotate ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</button>
                 </div>
                 <div className="rounded-full border border-white/15 bg-black/55 px-3 py-2 text-[11px] text-white/70 backdrop-blur-md"><span className="hidden sm:inline">Interactive model</span><span className="sm:hidden">3D</span></div>
-              </div>
+              </div>}
             </div>
 
             <Card className="h-fit overflow-hidden p-0">

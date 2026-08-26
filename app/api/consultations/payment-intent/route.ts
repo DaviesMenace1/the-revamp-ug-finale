@@ -6,6 +6,7 @@ import { db } from '@/lib/db/client'
 import { consultationPaymentIntents, consultationPromotionRedemptions, consultationSlots } from '@/lib/db/schema'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveAuthorizationType, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
+import { settleConsultationPayment } from '@/lib/consultation-payments'
 import {
   calculatePromotionDiscount,
   getConsultationPricing,
@@ -36,6 +37,8 @@ type BookingBody = {
 }
 
 type PaymentIntentResponse = {
+  status?: 'pending' | 'paid' | 'paid_review'
+  consultationId?: string
   paymentIntentId: string
   paymentUrl?: string
   paymentInstruction?: string
@@ -60,8 +63,9 @@ function responseForIntent(intent: typeof consultationPaymentIntents.$inferSelec
   const paymentInstruction = typeof metadata.paymentInstruction === 'string' ? metadata.paymentInstruction : undefined
   const chargeId = typeof metadata.flutterwaveChargeId === 'string' ? metadata.flutterwaveChargeId : undefined
   const authorizationType = typeof metadata.authorizationType === 'string' ? metadata.authorizationType : undefined
-  if (!intent.paymentUrl && !paymentInstruction && !authorizationType) return null
+  if (!intent.paymentUrl && !paymentInstruction && !authorizationType && !chargeId) return null
   return {
+    status: 'pending',
     paymentIntentId: intent.id,
     paymentUrl: intent.paymentUrl || undefined,
     paymentInstruction,
@@ -189,8 +193,15 @@ export async function POST(request: Request) {
     const metadata = { ...((created.metadata || {}) as Record<string, unknown>), flutterwaveChargeId: String(charge.id), paymentInstruction: paymentInstruction || undefined, authorizationType: authorizationType || undefined }
     const [updated] = await db.update(consultationPaymentIntents).set({ paymentUrl, metadata, updatedAt: new Date() }).where(and(eq(consultationPaymentIntents.id, created.id), eq(consultationPaymentIntents.status, 'pending'))).returning()
     if (!updated) return NextResponse.json({ error: 'Payment could not be prepared. Please try again.' }, { status: 500 })
+    if (String(charge.status || '').toLowerCase() === 'succeeded') {
+      const settled = await settleConsultationPayment({ txRef: updated.txRef, transactionId: String(charge.id) })
+      if (settled.success) return NextResponse.json({ status: settled.status, consultationId: settled.consultationId, paymentIntentId: updated.id, txRef: updated.txRef, pricing: summary })
+      if (settled.status === 'paid_review') return NextResponse.json({ status: 'paid_review', paymentIntentId: updated.id, txRef: updated.txRef, pricing: summary, message: settled.error })
+      return NextResponse.json({ status: 'pending', paymentIntentId: updated.id, txRef: updated.txRef, pricing: summary, message: settled.error || 'Payment was received and is being finalized.' })
+    }
+
     const response = responseForIntent(updated, summary)
-    if (!response) return NextResponse.json({ error: 'Flutterwave did not return an authorization step. Please try again.' }, { status: 502 })
+    if (!response) return NextResponse.json({ error: 'Flutterwave did not return a usable payment state. Please try again.' }, { status: 502 })
     return NextResponse.json(response)
   } catch (error) {
     console.error('[consultation-payment] failed to initialize v4 payment:', error)

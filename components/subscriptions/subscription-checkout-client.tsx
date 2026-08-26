@@ -155,6 +155,14 @@ export default function SubscriptionCheckoutClient({
         window.location.assign(data.paymentUrl)
         return
       }
+      if (data?.status === 'active' || data?.status === 'paid') {
+        setMessage('Payment verified. Your program access is now active.')
+        return
+      }
+      if (data?.status === 'pending') {
+        setMessage(typeof data.message === 'string' ? data.message : 'Payment was received and is being finalized. Please check your portal shortly.')
+        return
+      }
       if (data?.chargeId && (data.authorizationType === 'pin' || data.authorizationType === 'otp')) {
         setChallenge({ subscriptionId: data.subscriptionId, txRef: data.txRef, chargeId: data.chargeId, authorizationType: data.authorizationType })
         setMessage(data.authorizationType === 'pin' ? 'Enter the Sandbox card PIN to continue.' : 'Enter the Sandbox OTP to complete payment.')

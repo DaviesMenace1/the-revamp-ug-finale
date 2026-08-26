@@ -6,7 +6,7 @@ import { paymentRecords, programSubscriptions } from '@/lib/db/schema'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveAuthorizationType, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
 import { getSubscriptionPlan, getSubscriptionPricing, subscriptionAmount, type SubscriptionBillingPeriod, type SubscriptionProgram } from '@/lib/subscriptions'
-import { failSubscriptionPayment } from '@/lib/subscription-payments'
+import { failSubscriptionPayment, settleSubscriptionPayment } from '@/lib/subscription-payments'
 
 type SubscriptionBody = {
   program?: unknown
@@ -36,8 +36,9 @@ function responseForSubscription(subscription: typeof programSubscriptions.$infe
   const paymentInstruction = typeof metadata.paymentInstruction === 'string' ? metadata.paymentInstruction : undefined
   const authorizationType = typeof metadata.authorizationType === 'string' ? metadata.authorizationType : undefined
   const chargeId = subscription.providerChargeId || (typeof metadata.flutterwaveChargeId === 'string' ? metadata.flutterwaveChargeId : undefined)
-  if (!paymentUrl && !paymentInstruction && !authorizationType) return null
+  if (!paymentUrl && !paymentInstruction && !authorizationType && !chargeId) return null
   return {
+    status: 'pending' as const,
     subscriptionId: subscription.id,
     txRef: subscription.transactionReference,
     chargeId,
@@ -133,8 +134,14 @@ export async function POST(request: Request) {
 
     const metadata = { ...((subscription.metadata || {}) as Record<string, unknown>), flutterwaveChargeId: String(charge.id), paymentUrl: charge.next_action?.redirect_url?.url || undefined, paymentInstruction: charge.next_action?.payment_instruction?.note || undefined, authorizationType: getFlutterwaveAuthorizationType(charge) || undefined }
     const [updated] = await db.update(programSubscriptions).set({ providerChargeId: String(charge.id), metadata, updatedAt: new Date() }).where(and(eq(programSubscriptions.id, subscription.id), eq(programSubscriptions.status, 'pending'))).returning()
-    const response = updated ? responseForSubscription(updated) : null
-    if (!response) return Response.json({ error: 'Flutterwave did not return a usable subscription authorization step. Please try again.' }, { status: 502 })
+    if (!updated) return Response.json({ error: 'Flutterwave did not return a usable subscription payment state. Please try again.' }, { status: 502 })
+    if (String(charge.status || '').toLowerCase() === 'succeeded') {
+      const settled = await settleSubscriptionPayment({ transactionReference: updated.transactionReference, chargeId: String(charge.id) })
+      if (settled.success) return Response.json({ status: settled.status, subscriptionId: settled.subscriptionId, txRef: updated.transactionReference, program: updated.program, planKey: updated.planKey, billingPeriod: updated.billingPeriod, amount: Number(updated.amount), currency: updated.currency })
+      return Response.json({ status: 'pending', subscriptionId: updated.id, txRef: updated.transactionReference, program: updated.program, planKey: updated.planKey, billingPeriod: updated.billingPeriod, amount: Number(updated.amount), currency: updated.currency, message: settled.error || 'Payment was received and is being finalized.' })
+    }
+    const response = responseForSubscription(updated)
+    if (!response) return Response.json({ error: 'Flutterwave did not return a usable subscription payment state. Please try again.' }, { status: 502 })
     return Response.json(response)
   } catch (error) {
     console.error('[subscription-payment] failed to initialize payment:', error)

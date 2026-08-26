@@ -4,12 +4,13 @@ import { and, eq, gte, isNotNull, isNull, lt, or } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { consultationReminders, consultations } from '@/lib/db/schema'
 import { notifyUser } from '@/lib/notifications/service'
+import { formatRemainingTime } from '@/lib/notifications/reminder-time'
 
 const REMINDER_WINDOWS = [
-  { key: '24h', minutesBefore: 24 * 60, label: 'tomorrow' },
-  { key: '12h', minutesBefore: 12 * 60, label: 'in 12 hours' },
-  { key: '1h', minutesBefore: 60, label: 'in 1 hour' },
-  { key: '30m', minutesBefore: 30, label: 'in 30 minutes' },
+  { key: '24h', minutesBefore: 24 * 60 },
+  { key: '12h', minutesBefore: 12 * 60 },
+  { key: '1h', minutesBefore: 60 },
+  { key: '30m', minutesBefore: 30 },
 ] as const
 
 const WINDOW_TOLERANCE_MS = 10 * 60 * 1000
@@ -42,12 +43,14 @@ function formatMeetingDetails(consultation: DueConsultation) {
   return 'Open your client portal for the meeting details.'
 }
 
-function buildReminderCopy(consultation: DueConsultation, reminder: ReminderWindow) {
+function buildReminderCopy(consultation: DueConsultation, now: Date) {
   const mode = consultation.mode.replaceAll('_', ' ')
   const time = formatConsultationTime(consultation.preferredDate)
+  const remaining = formatRemainingTime(consultation.preferredDate, now)
+  const startsText = remaining === 'now' ? 'is starting now' : `starts in ${remaining}`
   return {
-    title: reminder.key === '24h' ? 'Your consultation is tomorrow' : `Your consultation is ${reminder.label}`,
-    message: `Your ${mode} consultation “${consultation.title}” is scheduled for ${time}. ${formatMeetingDetails(consultation)}`,
+    title: remaining === 'now' ? 'Your consultation is starting now' : `Your consultation starts in ${remaining}`,
+    message: `Your ${mode} consultation “${consultation.title}” ${startsText}, at ${time}. ${formatMeetingDetails(consultation)}`,
   }
 }
 
@@ -144,7 +147,7 @@ async function processReminder(consultation: DueConsultation, reminder: Reminder
   const reminderId = await claimReminder(consultation, reminder, now)
   if (!reminderId) return 'skipped' as const
 
-  const copy = buildReminderCopy(consultation, reminder)
+  const copy = buildReminderCopy(consultation, now)
   const result = await notifyUser({
     userId: consultation.userId,
     type: `consultation_reminder_${reminder.key}`,

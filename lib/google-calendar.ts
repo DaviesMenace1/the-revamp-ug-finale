@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { JWT } from 'google-auth-library'
+import { JWT, OAuth2Client } from 'google-auth-library'
 import { randomUUID } from 'node:crypto'
 
 const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar'
@@ -14,8 +14,34 @@ function privateKey() {
   return setting('GOOGLE_CALENDAR_PRIVATE_KEY').replace(/\\n/g, '\n')
 }
 
+function oauthConfigured() {
+  return Boolean(setting('GOOGLE_CALENDAR_CLIENT_ID') && setting('GOOGLE_CALENDAR_CLIENT_SECRET') && setting('GOOGLE_CALENDAR_REFRESH_TOKEN'))
+}
+
+function serviceAccountConfigured() {
+  return Boolean(setting('GOOGLE_CALENDAR_CLIENT_EMAIL') && privateKey())
+}
+
 function configured() {
-  return Boolean(setting('GOOGLE_CALENDAR_CLIENT_EMAIL') && privateKey() && setting('GOOGLE_CALENDAR_ID'))
+  return Boolean(setting('GOOGLE_CALENDAR_ID') && (oauthConfigured() || serviceAccountConfigured()))
+}
+
+function createCalendarAuth() {
+  if (oauthConfigured()) {
+    const auth = new OAuth2Client(setting('GOOGLE_CALENDAR_CLIENT_ID'), setting('GOOGLE_CALENDAR_CLIENT_SECRET'))
+    auth.setCredentials({ refresh_token: setting('GOOGLE_CALENDAR_REFRESH_TOKEN') })
+    return auth
+  }
+
+  if (serviceAccountConfigured()) {
+    return new JWT({
+      email: setting('GOOGLE_CALENDAR_CLIENT_EMAIL'),
+      key: privateKey(),
+      scopes: [CALENDAR_SCOPE],
+    })
+  }
+
+  throw new GoogleCalendarConfigError('Google Meet creation requires organizer OAuth variables (GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_CLIENT_SECRET, GOOGLE_CALENDAR_REFRESH_TOKEN) or an eligible service account, plus GOOGLE_CALENDAR_ID.')
 }
 
 export function googleCalendarConfigured() {
@@ -45,23 +71,20 @@ export async function createGoogleMeetEvent(input: {
   attendeeEmails?: string[]
 }) {
   if (!configured()) {
-    throw new GoogleCalendarConfigError('Google Meet creation requires GOOGLE_CALENDAR_CLIENT_EMAIL, GOOGLE_CALENDAR_PRIVATE_KEY, and GOOGLE_CALENDAR_ID.')
+    throw new GoogleCalendarConfigError('Google Meet creation requires organizer OAuth variables or an eligible service account, plus GOOGLE_CALENDAR_ID.')
   }
 
-  const auth = new JWT({
-    email: setting('GOOGLE_CALENDAR_CLIENT_EMAIL'),
-    key: privateKey(),
-    scopes: [CALENDAR_SCOPE],
-  })
-  const token = await auth.getAccessToken()
-  if (!token.token) throw new GoogleCalendarApiError('Google Calendar authorization did not return an access token.')
+  const auth = createCalendarAuth()
+  const tokenResponse = await auth.getAccessToken()
+  const accessToken = typeof tokenResponse === 'string' ? tokenResponse : tokenResponse.token
+  if (!accessToken) throw new GoogleCalendarApiError('Google Calendar authorization did not return an access token.')
 
   const end = new Date(input.start.getTime() + input.durationMinutes * 60_000)
   const timeZone = setting('GOOGLE_CALENDAR_TIME_ZONE') || 'Africa/Kampala'
   const attendeeEmails = [...new Set((input.attendeeEmails || []).map((email) => email.trim().toLowerCase()).filter(Boolean))]
   const response = await fetch(`${CALENDAR_API}/${encodeURIComponent(setting('GOOGLE_CALENDAR_ID'))}/events?conferenceDataVersion=1&sendUpdates=all`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token.token}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       summary: input.summary.slice(0, 255),
       description: input.description?.slice(0, 8000) || undefined,

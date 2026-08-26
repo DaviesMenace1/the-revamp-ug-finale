@@ -122,6 +122,7 @@ export function SiteHeader() {
                 </button>
 
                 <Link
+                prefetch={false}
                   href="/search"
                   className={cn(
                     'hidden size-11 items-center justify-center hover:text-gold transition-colors sm:flex',
@@ -136,6 +137,7 @@ export function SiteHeader() {
               {/* Desktop Only: Brand Logo */}
               <div className="hidden md:flex items-center">
                 <Link
+                prefetch={false}
                   href="/"
                   className={cn(
                     'font-serif text-xl md:text-2xl font-light tracking-widest uppercase transition-colors',
@@ -152,6 +154,7 @@ export function SiteHeader() {
             {/* Mobile: Clean Logo */}
             <div className="flex md:hidden items-center justify-center text-center px-1">
               <Link
+                prefetch={false}
                 href="/"
                 className={cn(
                   'font-serif text-xs sm:text-sm font-medium tracking-wider uppercase transition-colors whitespace-nowrap',
@@ -174,6 +177,7 @@ export function SiteHeader() {
                   {link.submenu ? (
                     <div className="flex items-center gap-1 cursor-pointer">
                       <Link
+                prefetch={false}
                         href={link.href}
                         className={cn(
                           'font-sans text-xs lg:text-sm tracking-wide uppercase transition-colors',
@@ -206,6 +210,7 @@ export function SiteHeader() {
                     </div>
                   ) : (
                     <Link
+                prefetch={false}
                       href={link.href}
                       className={cn(
                         'font-sans text-xs lg:text-sm tracking-wide uppercase transition-colors',
@@ -230,6 +235,7 @@ export function SiteHeader() {
                       <div className="bg-background border border-border shadow-xl rounded-sm py-2 max-h-80 overflow-y-auto">
                         {link.submenu.map((subitem) => (
                           <Link
+                prefetch={false}
                             key={subitem.href}
                             href={subitem.href}
                             className="block px-4 py-2 text-xs uppercase tracking-wider text-foreground/70 hover:text-gold hover:bg-muted/50 border-b border-border/30 last:border-b-0 transition-colors"
@@ -248,6 +254,7 @@ export function SiteHeader() {
             <div className="flex items-center gap-0.5 sm:gap-1.5 md:gap-3">
               {/* Desktop Search Icon */}
               <Link
+                prefetch={false}
                 href="/search"
                 className={cn(
                   'hidden size-11 items-center justify-center md:flex hover:text-gold transition-colors',
@@ -268,6 +275,7 @@ export function SiteHeader() {
 
               {/* Wishlist Icon */}
               <Link
+                prefetch={false}
                 href="/wishlist"
                                   className={cn(
                     'hidden size-11 items-center justify-center hover:text-gold transition-colors sm:flex',
@@ -281,6 +289,7 @@ export function SiteHeader() {
 
               {/* Profile / Account Icon */}
               <Link
+                prefetch={false}
                 href="/account"
                                   className={cn(
                     'hidden size-11 items-center justify-center hover:text-gold transition-colors sm:flex',
@@ -294,6 +303,7 @@ export function SiteHeader() {
 
               {/* Shopping Cart Icon */}
               <Link
+                prefetch={false}
                 href="/cart"
                 className={cn(
                   'relative flex size-11 items-center justify-center hover:text-gold transition-colors',
@@ -365,6 +375,7 @@ export function SiteHeader() {
                     </button>
                   ) : (
                     <Link
+                prefetch={false}
                       href={link.href}
                       onClick={() => setDrawerOpen(false)}
                       className={cn(
@@ -381,6 +392,7 @@ export function SiteHeader() {
                     <div className="bg-muted/30 mb-2 rounded-sm border-l-2 border-gold pl-4 py-2">
                       {link.submenu.map((subitem) => (
                         <Link
+                prefetch={false}
                           key={subitem.href}
                           href={subitem.href}
                           onClick={() => setDrawerOpen(false)}
@@ -397,10 +409,10 @@ export function SiteHeader() {
 
             {/* Bottom Actions */}
             <div className="p-6 border-t border-border mt-auto flex flex-col gap-3">
-              <Link href="/client/tickets" onClick={() => setDrawerOpen(false)} className="flex min-h-12 items-center justify-center rounded bg-foreground px-5 py-4 text-xs uppercase tracking-widest text-background transition-colors hover:bg-gold hover:text-white">
+              <Link prefetch={false} href="/client/tickets" onClick={() => setDrawerOpen(false)} className="flex min-h-12 items-center justify-center rounded bg-foreground px-5 py-4 text-xs uppercase tracking-widest text-background transition-colors hover:bg-gold hover:text-white">
                 Support Tickets
               </Link>
-              <Link href="/book-consultation" onClick={() => setDrawerOpen(false)} className="flex min-h-12 items-center justify-center rounded bg-foreground px-5 py-4 text-xs uppercase tracking-widest text-background transition-colors hover:bg-gold hover:text-white">
+              <Link prefetch={false} href="/book-consultation" onClick={() => setDrawerOpen(false)} className="flex min-h-12 items-center justify-center rounded bg-foreground px-5 py-4 text-xs uppercase tracking-widest text-background transition-colors hover:bg-gold hover:text-white">
                 Book a Consultation
               </Link>
             </div>

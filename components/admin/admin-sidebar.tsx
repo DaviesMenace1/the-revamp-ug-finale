@@ -65,6 +65,7 @@ function AdminNav({ onNavigate }: { onNavigate?: () => void }) {
         const active = isItemActive(pathname, item.href)
         return (
           <Link
+            prefetch={false}
             key={item.href}
             href={item.href}
             onClick={onNavigate}
@@ -101,7 +102,7 @@ function AdminSignOut() {
 function AdminBrand() {
   return (
     <div className="mb-7">
-      <Link href="/admin" className="font-serif text-2xl font-light text-foreground">
+      <Link prefetch={false} href="/admin" className="font-serif text-2xl font-light text-foreground">
         The Revamp UG
       </Link>
       <p className="mt-1 text-xs text-muted-foreground">Admin Portal</p>

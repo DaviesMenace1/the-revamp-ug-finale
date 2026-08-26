@@ -31,7 +31,7 @@ export function PortalLayout({
         <div className="mx-auto max-w-7xl px-3 sm:px-5 md:px-8">
           <div className="flex min-w-0 items-center justify-between gap-2 h-16 md:h-20">
             <div className="flex min-w-0 items-center gap-4">
-              <Link href={`/${portalSlug}`} className="truncate font-serif text-lg font-light text-foreground sm:text-xl">
+              <Link prefetch={false} href={`/${portalSlug}`} className="truncate font-serif text-lg font-light text-foreground sm:text-xl">
                 {portalName}
               </Link>
             </div>
@@ -42,6 +42,7 @@ export function PortalLayout({
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
                   <Link
+                    prefetch={false}
                     key={item.href}
                     href={item.href}
                     className={`px-4 py-2 text-sm font-medium transition-colors rounded ${
@@ -79,6 +80,7 @@ export function PortalLayout({
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
                   <Link
+                    prefetch={false}
                     key={item.href}
                     href={item.href}
                     className={`block px-4 py-2 text-sm font-medium transition-colors rounded ${

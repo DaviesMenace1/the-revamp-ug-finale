@@ -66,6 +66,7 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
           </div>
         </div>
         <Link
+          prefetch={false}
           href="/user-profile"
           className="text-sm text-primary underline-offset-4 hover:underline"
         >
@@ -129,12 +130,14 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
             </p>
             <div className="flex flex-wrap gap-4">
               <Link
+          prefetch={false}
                 href="/services"
                 className="text-sm text-primary underline-offset-4 hover:underline"
               >
                 Explore design services <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
               </Link>
               <Link
+          prefetch={false}
                 href="/book-consultation"
                 className="text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
               >
@@ -160,7 +163,7 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
                 <p className="text-sm text-muted-foreground">
                   {nextConsultation.preferredDate?.toLocaleDateString()} · {nextConsultation.status}
                 </p>
-                <Link href="/client/consultations" className="mt-2 text-sm text-primary hover:underline">
+                <Link prefetch={false} href="/client/consultations" className="mt-2 text-sm text-primary hover:underline">
                   View consultation <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
                 </Link>
               </div>
@@ -170,7 +173,7 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
                 <p className="text-sm leading-6 text-muted-foreground">
                   Start with a considered conversation about your space and your ambitions.
                 </p>
-                <Link href="/book-consultation" className="text-sm text-primary hover:underline">
+                <Link prefetch={false} href="/book-consultation" className="text-sm text-primary hover:underline">
                   Book a consultation <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
                 </Link>
               </div>
@@ -193,7 +196,7 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
                 <p className="text-sm text-muted-foreground">
                   Active since {membership.startDate.toLocaleDateString()}
                 </p>
-                <Link href="/membership" className="text-sm text-primary hover:underline">
+                <Link prefetch={false} href="/membership" className="text-sm text-primary hover:underline">
                   View membership <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
                 </Link>
               </div>
@@ -203,7 +206,7 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
                 <p className="text-sm leading-6 text-muted-foreground">
                   Explore a more personal way to access our world of design, objects and experiences.
                 </p>
-                <Link href="/membership" className="text-sm text-primary hover:underline">
+                <Link prefetch={false} href="/membership" className="text-sm text-primary hover:underline">
                   Explore benefits <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
                 </Link>
               </div>
@@ -241,7 +244,7 @@ function SectionHeading({ id, eyebrow, title }: { id: string; eyebrow: string; t
 
 function AccountCard({ href, icon, title, detail }: { href: string; icon: React.ReactNode; title: string; detail: React.ReactNode }) {
   return (
-    <Link href={href} className="group flex min-h-36 flex-col justify-between bg-background p-6 transition-colors hover:bg-muted/40">
+    <Link prefetch={false} href={href} className="group flex min-h-36 flex-col justify-between bg-background p-6 transition-colors hover:bg-muted/40">
       <span className="text-primary">{icon}</span>
       <span className="flex flex-col gap-1">
         <span className="font-serif text-2xl">{title}</span>

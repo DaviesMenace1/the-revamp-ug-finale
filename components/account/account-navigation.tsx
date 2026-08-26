@@ -23,7 +23,7 @@ export function AccountNavigation() {
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{group.label}</p>
             <div className="flex flex-col gap-1">
               {group.links.map(([label, href]) => (
-                <Link key={href + label} href={href} className="py-1 text-sm text-foreground/75 transition-colors hover:text-primary">
+                <Link prefetch={false} key={href + label} href={href} className="py-1 text-sm text-foreground/75 transition-colors hover:text-primary">
                   {label}
                 </Link>
               ))}

@@ -7,6 +7,7 @@ import type { LucideIcon } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import ConsultationNotificationPrompt from '@/components/notifications/consultation-notification-prompt'
+import PromotionBanner from '@/components/promotions/promotion-banner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -132,6 +133,8 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const params = new URLSearchParams(window.location.search)
+      const promo = params.get('promo')?.trim().toUpperCase() || ''
+      if (/^[A-Z0-9_-]{3,40}$/.test(promo)) setPromoCode(promo)
       const payment = params.get('payment')
       if (!payment) return
       if (payment === 'success') setPaymentState({ status: 'success', consultationId: params.get('consultationId') || undefined })
@@ -327,6 +330,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
   return (
     <>
       <SiteHeader />
+      <PromotionBanner compact />
       <main className="min-h-screen bg-background">
         <section className="relative overflow-hidden bg-obsidian px-5 pb-16 pt-36 text-ivory sm:px-8 md:pb-24 md:pt-48 lg:px-16">
           <div className="absolute right-[-12%] top-[-30%] size-[40rem] rounded-full border border-gold/20" aria-hidden="true" />

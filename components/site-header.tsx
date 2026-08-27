@@ -25,6 +25,7 @@ import { ThemeSwitcher } from '@/components/theme-switcher'
     submenu: [
       { label: 'Interior Design', href: '/services' },
       { label: 'Architecture', href: '/services/architecture' },
+      { label: 'Custom Services', href: '/custom-services' },
       { label: 'View all services', href: '/services' },
     ]
   },
@@ -81,8 +82,11 @@ export function SiteHeader() {
 
   // Close menus on page route changes
   useEffect(() => {
-    setDesktopDropdownOpen(null)
-    setDrawerOpen(false)
+    const timer = window.setTimeout(() => {
+      setDesktopDropdownOpen(null)
+      setDrawerOpen(false)
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [pathname])
 
   const toggleSubmenu = (href: string) => {

@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdminPermission } from '@/lib/auth/admin-guard'
 import type { UserRole } from '@/lib/auth/permissions'
 
-export const VALID_ROLES = [
+const VALID_ROLES = [
   'customer',
   'designer',
   'admin',

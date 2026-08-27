@@ -142,7 +142,7 @@ export default function PickupStationsClient({ initialStations }: { initialStati
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="font-medium">{editingId ? 'Edit pickup station' : 'Add pickup station'}</h3>
-              <p className="mt-1 text-xs text-muted-foreground">The first station is seeded at UN Mall in Kyanja. Add more whenever you are ready.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Customers will see active stations during checkout and order tracking.</p>
             </div>
             {editingId && <Button type="button" variant="ghost" size="sm" onClick={resetForm}><X className="mr-2 size-4" aria-hidden="true" /> Cancel</Button>}
           </div>

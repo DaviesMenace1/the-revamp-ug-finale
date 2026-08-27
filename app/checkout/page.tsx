@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCart } from '@/lib/context/cart-context'
 import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
+import PickupStationMap from '@/components/delivery/pickup-station-map'
 
 function getProductImage(item: any): string {
   const image = item?.selectedColor?.image || item?.selectedVariant?.image || item?.image
@@ -68,6 +69,7 @@ export default function CheckoutPage() {
   const [paymentInstruction, setPaymentInstruction] = useState<string | null>(null)
   const [authorizationChallenge, setAuthorizationChallenge] = useState<AuthorizationChallenge | null>(null)
   const [authorizationCode, setAuthorizationCode] = useState('')
+  const [paymentMode, setPaymentMode] = useState<'pay_now' | 'pay_on_delivery'>('pay_now')
   const [paymentMethod, setPaymentMethod] = useState<'mobile_money' | 'card'>('mobile_money')
   const [mobileMoneyNetwork, setMobileMoneyNetwork] = useState<'MTN' | 'AIRTEL'>('MTN')
   const [cardNumber, setCardNumber] = useState('')
@@ -83,7 +85,7 @@ export default function CheckoutPage() {
   const [editingAddressId, setEditingAddressId] = useState('')
   const [selectedPickupStationId, setSelectedPickupStationId] = useState('')
   const [saveAddress, setSaveAddress] = useState(true)
-  const [deliveryLoading, setDeliveryLoading] = useState(false)
+  const [deliveryLoading, setDeliveryLoading] = useState(true)
   const [deliveryError, setDeliveryError] = useState<string | null>(null)
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', address: '', city: '', region: '', country: 'Uganda', notes: '' })
   const defaultName = user?.fullName || user?.firstName || customerName || ''
@@ -126,7 +128,6 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!isClerkLoaded || !user) return
     let cancelled = false
-    setDeliveryLoading(true)
     Promise.all([
       fetch('/api/account/addresses', { cache: 'no-store' }),
       fetch('/api/pickup-stations', { cache: 'no-store' }),
@@ -241,6 +242,7 @@ export default function CheckoutPage() {
           saveAddress: deliveryMethod === 'door_delivery' && saveAddress,
           shippingAddress: { name: currentName.trim(), address: formData.address.trim(), city: formData.city.trim(), region: formData.region.trim(), country: formData.country.trim(), phone: formData.phone.trim(), notes: formData.notes.trim(), deliveryMethod, addressId: saveAddress ? selectedAddressId || editingAddressId || undefined : selectedAddressId || undefined, pickupStationId: selectedPickupStationId || undefined },
           loyaltyPoints: selectedLoyaltyPoints,
+            paymentMode,
             paymentMethod,
             mobileMoneyNetwork,
             cardNumber,
@@ -269,6 +271,10 @@ export default function CheckoutPage() {
       if (!response.ok || !data?.txRef) throw new Error(data?.error || 'We could not initialize this order. Please try again.')
 
       setLoading(false)
+      if (data.paymentMode === 'pay_on_delivery') {
+        window.location.assign(`/checkout/success?orderRef=${encodeURIComponent(data.txRef)}`)
+        return
+      }
       if (typeof data.paymentUrl === 'string' && data.paymentUrl) {
         window.location.assign(data.paymentUrl)
         return
@@ -332,9 +338,8 @@ export default function CheckoutPage() {
                   <div className="mt-6 flex min-h-24 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground"><Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" /> Loading delivery choices…</div>
                 ) : deliveryMethod === 'pickup_station' ? (
                   <div className="mt-6 space-y-3">
-                    <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-medium">Choose a pickup station</p><p className="mt-1 text-xs text-muted-foreground">More stations can be added by the Revamp team.</p></div><MapPin className="size-4 text-primary" aria-hidden="true" /></div>
-                    {pickupStations.length === 0 ? <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">No pickup stations are available right now. Choose door delivery or try again later.</p> : pickupStations.map((station) => <button key={station.id} type="button" onClick={() => setSelectedPickupStationId(station.id)} aria-pressed={selectedPickupStationId === station.id} className={`flex w-full items-start gap-3 rounded-lg border p-4 text-left transition-colors ${selectedPickupStationId === station.id ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/60'}`}><span className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border ${selectedPickupStationId === station.id ? 'border-primary' : 'border-muted-foreground/50'}`}>{selectedPickupStationId === station.id && <span className="size-2.5 rounded-full bg-primary" />}</span><span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2 text-sm font-medium"><span>{station.name}</span>{Number(station.fee) > 0 && <span className="text-xs text-primary">UGX {Number(station.fee).toLocaleString('en-UG')}</span>}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{station.address}</span><span className="mt-1 block text-xs text-muted-foreground">{station.city}{station.region ? ` · ${station.region}` : ''}</span>{station.instructions && <span className="mt-2 block text-xs leading-5 text-primary">{station.instructions}</span>}</span></button>)}
-                    {selectedPickupStation && <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-xs leading-5 text-muted-foreground"><p className="font-medium text-foreground">Selected: {selectedPickupStation.name}</p><p>{selectedPickupStation.address}</p><p className="mt-1">Your collection instructions will also appear on the order confirmation.</p></div>}
+                    <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-medium">Choose a pickup station</p><p className="mt-1 text-xs text-muted-foreground">Select a station on the map or from the list.</p></div><MapPin className="size-4 text-primary" aria-hidden="true" /></div>
+                    <PickupStationMap stations={pickupStations} selectedId={selectedPickupStationId} onSelect={(station) => setSelectedPickupStationId(station.id)} />
                   </div>
                 ) : (
                   <div className="mt-6 space-y-5">
@@ -354,10 +359,12 @@ export default function CheckoutPage() {
                 )}
               </section>
 
+              <section className="rounded-xl border border-border/70 bg-card p-5 shadow-lift sm:p-7"><div className="border-b border-border/70 pb-5"><p className="text-[10px] uppercase tracking-[0.24em] text-primary">02</p><h2 className="mt-2 font-serif text-3xl">Payment</h2><p className="mt-2 text-xs leading-6 text-muted-foreground">Choose when you would like to pay. Your selection is recorded with the order.</p></div><div className="mt-6 grid gap-3 sm:grid-cols-2"><button type="button" onClick={() => setPaymentMode('pay_now')} aria-pressed={paymentMode === 'pay_now'} className={`flex min-h-16 items-center gap-3 rounded-lg border px-4 text-left transition-colors ${paymentMode === 'pay_now' ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-primary/60'}`}><CreditCard className="size-5 shrink-0" aria-hidden="true" /><span><span className="block text-sm font-medium">Pay now</span><span className="text-xs opacity-70">Secure card or mobile money payment</span></span></button><button type="button" onClick={() => setPaymentMode('pay_on_delivery')} aria-pressed={paymentMode === 'pay_on_delivery'} className={`flex min-h-16 items-center gap-3 rounded-lg border px-4 text-left transition-colors ${paymentMode === 'pay_on_delivery' ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-primary/60'}`}><ShoppingBag className="size-5 shrink-0" aria-hidden="true" /><span><span className="block text-sm font-medium">Pay on delivery</span><span className="text-xs opacity-70">Pay when your order arrives or is collected</span></span></button></div>{paymentMode === 'pay_now' ? <div className="mt-6 space-y-5"><div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={() => setPaymentMethod('mobile_money')} aria-pressed={paymentMethod === 'mobile_money'} className={`flex min-h-12 items-center gap-3 rounded-lg border px-4 text-left ${paymentMethod === 'mobile_money' ? 'border-primary bg-primary/10' : 'border-border'}`}><Smartphone className="size-4" aria-hidden="true" /><span className="text-sm font-medium">Mobile money</span></button><button type="button" onClick={() => setPaymentMethod('card')} aria-pressed={paymentMethod === 'card'} className={`flex min-h-12 items-center gap-3 rounded-lg border px-4 text-left ${paymentMethod === 'card' ? 'border-primary bg-primary/10' : 'border-border'}`}><CreditCard className="size-4" aria-hidden="true" /><span className="text-sm font-medium">Card</span></button></div>{paymentMethod === 'mobile_money' ? <div className="grid gap-5 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="mobile-money-network">Mobile-money network</Label><select id="mobile-money-network" value={mobileMoneyNetwork} onChange={(event) => setMobileMoneyNetwork(event.target.value as 'MTN' | 'AIRTEL')} className="min-h-12 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"><option value="MTN">MTN Mobile Money</option><option value="AIRTEL">Airtel Money</option></select></div><div className="flex items-end"><p className="pb-3 text-xs leading-5 text-muted-foreground">We will send the payment prompt to the phone number entered in your delivery details.</p></div></div> : <div className="grid gap-5 sm:grid-cols-2"><div className="space-y-2 sm:col-span-2"><Label htmlFor="card-number">Card number</Label><Input id="card-number" inputMode="numeric" autoComplete="cc-number" value={cardNumber} onChange={(event) => setCardNumber(event.target.value)} placeholder="1234 5678 9012 3456" className="min-h-12 rounded-md bg-background" /></div><div className="space-y-2"><Label htmlFor="card-expiry-month">Expiry month</Label><Input id="card-expiry-month" inputMode="numeric" autoComplete="cc-exp-month" value={cardExpiryMonth} onChange={(event) => setCardExpiryMonth(event.target.value)} placeholder="MM" className="min-h-12 rounded-md bg-background" /></div><div className="space-y-2"><Label htmlFor="card-expiry-year">Expiry year</Label><Input id="card-expiry-year" inputMode="numeric" autoComplete="cc-exp-year" value={cardExpiryYear} onChange={(event) => setCardExpiryYear(event.target.value)} placeholder="YY" className="min-h-12 rounded-md bg-background" /></div><div className="space-y-2"><Label htmlFor="card-cvv">CVV</Label><Input id="card-cvv" type="password" inputMode="numeric" autoComplete="cc-csc" value={cardCvv} onChange={(event) => setCardCvv(event.target.value)} placeholder="123" className="min-h-12 rounded-md bg-background" /></div></div>}</div> : <div className="mt-6 rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm leading-6"><p className="font-medium text-foreground">Payment will be collected at fulfilment.</p><p className="mt-1 text-xs text-muted-foreground">Please have the exact order total ready when your order is delivered or collected. Our team may contact you to confirm availability before dispatch.</p></div>}</section>
               {paymentInstruction && <div role="status" className="rounded-lg border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50"><p className="font-medium">{authorizationChallenge ? 'Complete payment authorization' : 'Authorize the payment on your phone'}</p><p className="mt-1">{paymentInstruction}</p><p className="mt-2 text-xs">Keep this page open. Flutterwave will notify the store after authorization.</p></div>}
               {authorizationChallenge && <div className="space-y-4 rounded-lg border border-primary/30 bg-primary/5 p-4"><label htmlFor="checkout-authorization-code" className="block text-sm font-medium text-foreground">{authorizationChallenge.authorizationType === 'pin' ? 'Sandbox card PIN' : 'Sandbox OTP'}</label><div className="flex flex-col gap-2 sm:flex-row"><Input id="checkout-authorization-code" type="password" inputMode="numeric" value={authorizationCode} onChange={(event) => setAuthorizationCode(event.target.value)} placeholder={authorizationChallenge.authorizationType === 'pin' ? 'Enter PIN' : 'Enter OTP'} className="min-h-11 rounded-md bg-background" /><Button type="button" onClick={submitAuthorization} disabled={loading || !authorizationCode.trim()} className="min-h-11 rounded-md px-5 text-xs uppercase tracking-[0.12em]">{loading ? 'Authorizing…' : 'Authorize payment'}</Button></div></div>}
-              <Button type="submit" disabled={loading || hasMixedCurrencies || hasUnavailableItems} className="min-h-14 w-full rounded-md bg-primary text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground hover:bg-primary/90">{loading ? <span className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Preparing payment…</span> : <span className="flex items-center gap-2"><Lock className="size-4" aria-hidden="true" /> Pay {formatMoney(paymentTotal, checkoutCurrency)} securely</span>}</Button>
+              <Button type="submit" disabled={loading || hasMixedCurrencies || hasUnavailableItems} className="min-h-14 w-full rounded-md bg-primary text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground hover:bg-primary/90">{loading ? <span className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Preparing payment…</span> : <span className="flex items-center gap-2">{paymentMode === 'pay_now' ? <><Lock className="size-4" aria-hidden="true" /> Pay {formatMoney(paymentTotal, checkoutCurrency)} securely</> : <><ShoppingBag className="size-4" aria-hidden="true" /> Place order, pay on delivery</>}</span>}</Button>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground"><ShieldCheck className="size-4 text-emerald-600" aria-hidden="true" /> Encrypted payment via Flutterwave</div>
+              <p className="text-center text-xs leading-5 text-muted-foreground">By placing this order, you agree to our <Link href="/refund-policy" className="font-medium text-primary underline underline-offset-4">cancellation and refund policy</Link>.</p>
             </div>
 
             <aside className="h-fit rounded-xl border border-border/70 bg-card p-5 shadow-editorial sm:p-6 lg:sticky lg:top-28"><div className="flex items-end justify-between gap-4 border-b border-border/70 pb-5"><div><p className="text-[10px] uppercase tracking-[0.24em] text-primary">Your selection</p><h2 className="mt-2 font-serif text-3xl">Summary</h2></div><span className="text-xs text-muted-foreground">{items.length} {items.length === 1 ? 'piece' : 'pieces'}</span></div>

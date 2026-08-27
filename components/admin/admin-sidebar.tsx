@@ -11,6 +11,7 @@ import {
   FolderKanban,
   Users,
   ShoppingCart,
+  Truck,
   FileText,
   FileCog,
   Receipt,
@@ -28,39 +29,42 @@ import {
   X,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { hasPermission, type AdminPermission, type UserRole } from '@/lib/auth/permissions'
 
-const sidebarItems = [
-  { label: 'Dashboard', href: '/admin', icon: BarChart3 },
-  { label: 'Products', href: '/admin/products', icon: Package },
-  { label: 'Categories', href: '/admin/categories', icon: Grid3x3 },
-  { label: 'Services', href: '/admin/services', icon: Briefcase },
-  { label: 'FAQs', href: '/admin/faqs', icon: HelpCircle },
-  { label: 'Projects (Portfolio)', href: '/admin/projects', icon: FolderOpen },
-  { label: 'Client Projects', href: '/admin/client-projects', icon: FolderKanban },
-  { label: 'Billing', href: '/admin/billing', icon: Receipt },
-  { label: 'Finance Documents', href: '/admin/finance/documents', icon: FileCog },
-  { label: 'Orders', href: '/admin/orders', icon: ShoppingCart },
-  { label: 'Messages', href: '/admin/messages', icon: MessageSquare },
-  { label: 'Support Tickets', href: '/admin/tickets', icon: LifeBuoy },
-  { label: 'Users', href: '/admin/users', icon: Users },
-  { label: 'Consultations', href: '/admin/consultations', icon: FileText },
-  { label: 'Events', href: '/admin/events', icon: CalendarDays },
-  { label: 'Community', href: '/admin/community', icon: Megaphone },
-  { label: 'Loyalty Rewards', href: '/admin/loyalty', icon: Gift },
-  { label: 'Studio Inquiries', href: '/admin/service-requests', icon: MessageSquare },
-  { label: 'Settings', href: '/admin/settings', icon: Settings },
+const sidebarItems: Array<{ label: string; href: string; icon: typeof BarChart3; permission: AdminPermission }> = [
+  { label: 'Dashboard', href: '/admin', icon: BarChart3, permission: 'view_admin' },
+  { label: 'Products', href: '/admin/products', icon: Package, permission: 'manage_content' },
+  { label: 'Categories', href: '/admin/categories', icon: Grid3x3, permission: 'manage_content' },
+  { label: 'Services', href: '/admin/services', icon: Briefcase, permission: 'manage_content' },
+  { label: 'FAQs', href: '/admin/faqs', icon: HelpCircle, permission: 'manage_content' },
+  { label: 'Projects (Portfolio)', href: '/admin/projects', icon: FolderOpen, permission: 'manage_projects' },
+  { label: 'Client Projects', href: '/admin/client-projects', icon: FolderKanban, permission: 'manage_projects' },
+  { label: 'Billing', href: '/admin/billing', icon: Receipt, permission: 'view_finance' },
+  { label: 'Refund Requests', href: '/admin/billing/refunds', icon: Receipt, permission: 'view_finance' },
+  { label: 'Finance Documents', href: '/admin/finance/documents', icon: FileCog, permission: 'view_finance' },
+  { label: 'Orders', href: '/admin/orders', icon: ShoppingCart, permission: 'view_orders' },
+  { label: 'Logistics', href: '/admin/logistics', icon: Truck, permission: 'manage_logistics' },
+  { label: 'Messages', href: '/admin/messages', icon: MessageSquare, permission: 'manage_support' },
+  { label: 'Support Tickets', href: '/admin/tickets', icon: LifeBuoy, permission: 'manage_support' },
+  { label: 'Users', href: '/admin/users', icon: Users, permission: 'manage_staff' },
+  { label: 'Consultations', href: '/admin/consultations', icon: FileText, permission: 'manage_projects' },
+  { label: 'Events', href: '/admin/events', icon: CalendarDays, permission: 'manage_content' },
+  { label: 'Community', href: '/admin/community', icon: Megaphone, permission: 'manage_content' },
+  { label: 'Loyalty Rewards', href: '/admin/loyalty', icon: Gift, permission: 'manage_loyalty' },
+  { label: 'Studio Inquiries', href: '/admin/service-requests', icon: MessageSquare, permission: 'manage_support' },
+  { label: 'Settings', href: '/admin/settings', icon: Settings, permission: 'manage_settings' },
 ]
 
 function isItemActive(pathname: string, href: string) {
   return href === '/admin' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`)
 }
 
-function AdminNav({ onNavigate }: { onNavigate?: () => void }) {
+function AdminNav({ role, onNavigate }: { role: UserRole; onNavigate?: () => void }) {
   const pathname = usePathname()
 
   return (
     <nav aria-label="Admin navigation" className="space-y-1">
-      {sidebarItems.map((item) => {
+      {sidebarItems.filter((item) => hasPermission(role, item.permission)).map((item) => {
         const Icon = item.icon
         const active = isItemActive(pathname, item.href)
         return (
@@ -110,14 +114,14 @@ function AdminBrand() {
   )
 }
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ role }: { role: UserRole }) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <>
       <aside className="hidden w-64 shrink-0 border-r border-border/20 bg-card p-5 md:sticky md:top-0 md:block md:h-screen md:overflow-y-auto lg:p-6">
         <AdminBrand />
-        <AdminNav />
+        <AdminNav role={role} />
         <div className="mt-8 border-t border-border/20 pt-5">
           <AdminSignOut />
         </div>
@@ -139,7 +143,7 @@ export default function AdminSidebar() {
             <SheetTitle className="sr-only">Admin navigation</SheetTitle>
             <div className="flex h-full flex-col overflow-y-auto p-5">
               <AdminBrand />
-              <AdminNav onNavigate={() => setMobileOpen(false)} />
+              <AdminNav role={role} onNavigate={() => setMobileOpen(false)} />
               <div className="mt-8 border-t border-border/20 pt-5">
                 <AdminSignOut />
               </div>

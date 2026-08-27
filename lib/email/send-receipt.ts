@@ -4,10 +4,44 @@ interface SendReceiptOptions {
   amount: string
   currency?: string
   customerName?: string
+  paymentMode?: string | null
+  paymentMethod?: string | null
+  deliveryAddress?: unknown
+  items?: unknown
 }
 
 function escapeEmailHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character] || character)
+}
+
+function detailLabel(value: unknown) {
+  if (typeof value === 'string' && value.trim()) return value.trim()
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return ''
+  const item = value as Record<string, unknown>
+  return String(item.label || item.name || item.value || '').trim()
+}
+
+function deliveryLabel(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return 'Delivery details recorded at checkout.'
+  const address = value as Record<string, unknown>
+  if (address.deliveryMethod === 'pickup_station' && address.pickupStation && typeof address.pickupStation === 'object') {
+    const station = address.pickupStation as Record<string, unknown>
+    return `Pickup station: ${String(station.name || 'Selected station')}, ${String(station.address || '')}`
+  }
+  return `Door delivery: ${String(address.address || '')}, ${String(address.city || '')}`
+}
+
+function itemRows(value: unknown) {
+  if (!Array.isArray(value)) return ''
+  return value.slice(0, 18).map((item) => {
+    const row = item && typeof item === 'object' ? item as Record<string, unknown> : {}
+    const options = [['Colour', detailLabel(row.color)], ['Fabric', detailLabel(row.fabric)], ['Material', detailLabel(row.material)], ['Variant', detailLabel(row.variant)]]
+      .filter(([, option]) => option)
+      .map(([key, option]) => `${key}: ${option}`)
+      .join(' | ')
+    const description = [String(row.name || row.title || 'Product'), options].filter(Boolean).join(' | ')
+    return `<li style="margin-bottom: 8px;"><strong>${escapeEmailHtml(description)}</strong><br><span style="color:#666;">Quantity: ${Math.max(1, Number(row.quantity) || 1)}</span></li>`
+  }).join('')
 }
 
 export async function sendOrderVerificationEmail({
@@ -16,6 +50,10 @@ export async function sendOrderVerificationEmail({
   amount,
   currency = 'UGX',
   customerName = 'Valued Customer',
+  paymentMode = 'pay_now',
+  paymentMethod = null,
+  deliveryAddress,
+  items,
 }: SendReceiptOptions) {
   const apiKey = process.env.BREVO_API_KEY?.trim()
   const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim() || process.env.SENDER_EMAIL?.trim() || 'info@therevampug.com'
@@ -25,6 +63,10 @@ export async function sendOrderVerificationEmail({
   const safeAmount = escapeEmailHtml(amount)
   const safeCurrency = escapeEmailHtml(currency)
   const safeSenderName = escapeEmailHtml(senderName)
+  const paymentLabel = paymentMode === 'pay_on_delivery' ? 'Pay on delivery' : `Pay now via ${paymentMethod === 'mobile_money' ? 'mobile money' : paymentMethod === 'card' ? 'card' : 'Flutterwave'}`
+  const safePaymentLabel = escapeEmailHtml(paymentLabel)
+  const safeDeliveryLabel = escapeEmailHtml(deliveryLabel(deliveryAddress))
+  const itemsMarkup = itemRows(items)
 
   if (!apiKey) {
     console.error('BREVO_API_KEY is not configured in environment variables.')
@@ -57,8 +99,10 @@ export async function sendOrderVerificationEmail({
 
           <div class="details">
             <div style="margin-bottom: 10px;"><strong>Order Ref:</strong> ${safeOrderNumber}</div>
-            <div style="margin-bottom: 10px;"><strong>Payment Method:</strong> Flutterwave</div>
-            <div class="total">Total Paid: ${safeCurrency} ${safeAmount}</div>
+            <div style="margin-bottom: 10px;"><strong>Payment:</strong> ${safePaymentLabel}</div>
+            <div style="margin-bottom: 10px;"><strong>Delivery:</strong> ${safeDeliveryLabel}</div>
+            ${itemsMarkup ? `<div style="margin-top: 16px;"><strong>Items:</strong><ul style="padding-left: 20px;line-height:1.5;">${itemsMarkup}</ul></div>` : ''}
+            <div class="total">Total ${paymentMode === 'pay_on_delivery' ? 'due' : 'paid'}: ${safeCurrency} ${safeAmount}</div>
           </div>
 
           <p style="font-size: 13px; color: #555; line-height: 1.6;">

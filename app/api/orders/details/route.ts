@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { db } from '@/lib/db/client'
-import { orders, users } from '@/lib/db/schema'
-import { and, eq } from 'drizzle-orm'
+import { orderShipments, orderTrackingEvents, orders, users } from '@/lib/db/schema'
+import { and, asc, eq } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,12 +69,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Order not found. Check the reference and purchase email.' }, { status: 404 })
     }
 
+    const [shipment] = await db.select({ id: orderShipments.id, trackingCode: orderShipments.trackingCode, status: orderShipments.status, assignedAt: orderShipments.assignedAt, estimatedDeliveryAt: orderShipments.estimatedDeliveryAt, dispatchedAt: orderShipments.dispatchedAt, deliveredAt: orderShipments.deliveredAt, lastNote: orderShipments.lastNote, updatedAt: orderShipments.updatedAt }).from(orderShipments).where(eq(orderShipments.orderId, order.id)).limit(1)
+    const trackingEvents = shipment ? await db.select({ id: orderTrackingEvents.id, status: orderTrackingEvents.status, note: orderTrackingEvents.note, createdAt: orderTrackingEvents.createdAt }).from(orderTrackingEvents).where(and(eq(orderTrackingEvents.orderId, order.id), eq(orderTrackingEvents.customerVisible, true))).orderBy(asc(orderTrackingEvents.createdAt)).limit(100) : []
+
     return NextResponse.json({
       order: {
         orderNumber: order.orderNumber,
         userEmail: record.userEmail || null,
         status: order.status,
         paymentStatus: order.paymentStatus,
+        paymentMode: order.paymentMode,
+        paymentMethod: order.paymentMethod,
+        refundStatus: order.refundStatus,
+        cancellationReason: order.cancellationReason,
         createdAt: order.createdAt,
         updatedAt: order.updatedAt,
         items: parseItems(order.items),
@@ -82,6 +89,7 @@ export async function GET(request: NextRequest) {
         currency: 'UGX',
         subtotal: order.subtotal,
         totalAmount: order.total,
+        shipment: shipment ? { ...shipment, events: trackingEvents } : null,
       },
     }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {

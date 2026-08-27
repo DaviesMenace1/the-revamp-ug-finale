@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { randomUUID } from 'node:crypto'
 import { db } from '@/lib/db/client'
 import { and, eq, inArray } from 'drizzle-orm'
-import { orders, paymentRecords, pickupStations, products, savedAddresses } from '@/lib/db/schema'
+import { orders, orderShipments, orderTrackingEvents, paymentRecords, pickupStations, products, savedAddresses } from '@/lib/db/schema'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { reservePointsForOrder, safelyReleasePointsForOrder } from '@/lib/loyalty/service'
 import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
@@ -17,6 +17,7 @@ type OrderBody = {
   shippingAddress?: unknown
   items?: unknown
   loyaltyPoints?: unknown
+  paymentMode?: unknown
   paymentMethod?: unknown
   mobileMoneyNetwork?: unknown
   cardNumber?: unknown
@@ -101,6 +102,8 @@ export async function POST(request: Request) {
     const submittedShippingAddress = body.shippingAddress && typeof body.shippingAddress === 'object' ? body.shippingAddress as Record<string, unknown> : {}
     const requestedDeliveryMethod = text(body.deliveryMethod ?? submittedShippingAddress.deliveryMethod, '', 30).toLowerCase()
     const deliveryMethod = requestedDeliveryMethod === 'pickup_station' || requestedDeliveryMethod === 'pickup' ? 'pickup_station' : 'door_delivery'
+    const paymentMode = body.paymentMode === 'pay_on_delivery' ? 'pay_on_delivery' : 'pay_now'
+    const requestedPaymentMethod = body.paymentMethod === 'card' ? 'card' : 'mobile_money'
     const addressId = text(body.addressId ?? submittedShippingAddress.addressId, '', 80)
     const pickupStationId = text(body.pickupStationId ?? submittedShippingAddress.pickupStationId, '', 80)
     const items = Array.isArray(body.items) ? body.items : []
@@ -110,8 +113,10 @@ export async function POST(request: Request) {
     if (currency !== expectedCurrency) return NextResponse.json({ error: `Checkout currently supports ${expectedCurrency} only.` }, { status: 400 })
     if (!email.includes('@')) return NextResponse.json({ error: 'Enter a valid email address before continuing.' }, { status: 400 })
 
-    const config = getFlutterwaveConfig()
-    if (!config.ok) return NextResponse.json({ error: flutterwaveConfigurationMessage(config) }, { status: 503 })
+    if (paymentMode === 'pay_now') {
+      const config = getFlutterwaveConfig()
+      if (!config.ok) return NextResponse.json({ error: flutterwaveConfigurationMessage(config) }, { status: 503 })
+    }
 
     const localUser = await getOrCreateCurrentUser(userId)
     if (!localUser) return NextResponse.json({ error: 'Your account is not ready to place this order yet.' }, { status: 503 })
@@ -119,7 +124,7 @@ export async function POST(request: Request) {
     let shippingAddress: Record<string, unknown>
     if (deliveryMethod === 'pickup_station') {
       if (!/^[0-9a-f-]{36}$/i.test(pickupStationId)) return NextResponse.json({ error: 'Choose a valid pickup station.' }, { status: 400 })
-      const [station] = await db.select({ id: pickupStations.id, name: pickupStations.name, address: pickupStations.address, city: pickupStations.city, region: pickupStations.region, country: pickupStations.country, phone: pickupStations.phone, instructions: pickupStations.instructions, fee: pickupStations.fee }).from(pickupStations).where(and(eq(pickupStations.id, pickupStationId), eq(pickupStations.active, true))).limit(1)
+      const [station] = await db.select({ id: pickupStations.id, name: pickupStations.name, address: pickupStations.address, city: pickupStations.city, region: pickupStations.region, country: pickupStations.country, phone: pickupStations.phone, instructions: pickupStations.instructions, fee: pickupStations.fee, latitude: pickupStations.latitude, longitude: pickupStations.longitude }).from(pickupStations).where(and(eq(pickupStations.id, pickupStationId), eq(pickupStations.active, true))).limit(1)
       if (!station) return NextResponse.json({ error: 'That pickup station is no longer available. Please choose another station.' }, { status: 409 })
       shippingAddress = {
         deliveryMethod: 'pickup_station',
@@ -225,17 +230,19 @@ export async function POST(request: Request) {
     const numericAmount = Number(amount.toFixed(2))
     if (Math.abs(itemTotal + deliveryFee - numericAmount) > 0.01) return NextResponse.json({ error: 'The order total changed. Please review your cart and try again.' }, { status: 409 })
 
-    let paymentMethod: Awaited<ReturnType<typeof buildFlutterwavePaymentMethod>>
-    try {
-      paymentMethod = await buildFlutterwavePaymentMethod({ method: body.paymentMethod, phoneNumber, mobileMoneyNetwork: body.mobileMoneyNetwork, cardNumber: body.cardNumber, cardExpiryMonth: body.cardExpiryMonth, cardExpiryYear: body.cardExpiryYear, cardCvv: body.cardCvv })
-    } catch (error) {
-      return NextResponse.json({ error: error instanceof Error ? error.message : 'Choose a valid payment method.' }, { status: 400 })
+    let paymentMethod: Awaited<ReturnType<typeof buildFlutterwavePaymentMethod>> | null = null
+    if (paymentMode === 'pay_now') {
+      try {
+        paymentMethod = await buildFlutterwavePaymentMethod({ method: body.paymentMethod, phoneNumber, mobileMoneyNetwork: body.mobileMoneyNetwork, cardNumber: body.cardNumber, cardExpiryMonth: body.cardExpiryMonth, cardExpiryYear: body.cardExpiryYear, cardCvv: body.cardCvv })
+      } catch (error) {
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Choose a valid payment method.' }, { status: 400 })
+      }
     }
 
     const txRef = `REV-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     const subtotal = (itemTotal * 0.9).toFixed(2)
     const tax = (itemTotal * 0.1).toFixed(2)
-    const [createdOrder] = await db.insert(orders).values({ orderNumber: txRef, userId, items: orderItems, subtotal, tax, shipping: deliveryFee.toFixed(2), discount: '0.00', total: String(numericAmount), status: 'pending', paymentStatus: 'pending', deliveryAddress: shippingAddress, notes: text(shippingAddress.notes) || null }).returning({ id: orders.id })
+    const [createdOrder] = await db.insert(orders).values({ orderNumber: txRef, userId, items: orderItems, subtotal, tax, shipping: deliveryFee.toFixed(2), discount: '0.00', total: String(numericAmount), status: 'pending', paymentStatus: 'pending', paymentMode, paymentMethod: paymentMode === 'pay_now' ? requestedPaymentMethod : null, deliveryAddress: shippingAddress, notes: text(shippingAddress.notes) || null }).returning({ id: orders.id })
     if (!createdOrder) return NextResponse.json({ error: 'The order could not be initialized.' }, { status: 500 })
 
     const requestedPoints = Math.max(0, Math.floor(Number(body.loyaltyPoints) || 0))
@@ -257,22 +264,39 @@ export async function POST(request: Request) {
       await db.update(orders).set({ discount: discountUgx.toFixed(2), total: amountAfterPoints.toFixed(2), updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
     }
 
+    const shipmentStatus = paymentMode === 'pay_on_delivery' ? 'processing' : 'awaiting_payment'
+    const trackingCode = `RV-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
+    const [createdShipment] = await db.insert(orderShipments).values({ orderId: createdOrder.id, trackingCode, status: shipmentStatus, lastNote: paymentMode === 'pay_on_delivery' ? 'Order placed with payment due at fulfilment.' : 'Order created and awaiting payment confirmation.', updatedAt: new Date() }).returning({ id: orderShipments.id })
+    if (!createdShipment) {
+      await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
+      await safelyReleasePointsForOrder(createdOrder.id)
+      return NextResponse.json({ error: 'The order could not be prepared for fulfilment.' }, { status: 500 })
+    }
+    await db.insert(orderTrackingEvents).values({ orderId: createdOrder.id, shipmentId: createdShipment.id, status: shipmentStatus, note: paymentMode === 'pay_on_delivery' ? 'Order placed with payment due at fulfilment.' : 'Order created and awaiting payment confirmation.', customerVisible: true })
+
+    if (paymentMode === 'pay_on_delivery') {
+      return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, status: 'placed', amount: amountAfterPoints, discountUgx })
+    }
+
     const phone = normalizeUgandaPhone(phoneNumber)
     const customer: Record<string, unknown> = { email, name: customerNameParts(customerName), address: addressForFlutterwave(shippingAddress) }
     if (phone) customer.phone = { country_code: phone.countryCode, number: phone.number }
     const baseUrl = normalizeBaseUrl(request)
+    if (!paymentMethod) return NextResponse.json({ error: 'Choose a valid payment method.' }, { status: 400 })
     const flwResponse = await createFlutterwaveCharge({ reference: txRef, amount: amountAfterPoints, currency: expectedCurrency, redirectUrl: `${baseUrl}/api/checkout/callback?reference=${encodeURIComponent(txRef)}&tx_ref=${encodeURIComponent(txRef)}`, customer, paymentMethod, idempotencyKey: randomUUID(), meta: { orderId: createdOrder.id, txRef } })
     const flwPayload = flwResponse.payload || {}
     const charge = flwPayload.data
     if (!flwResponse.response?.ok || !['success', 'pending'].includes(String(flwPayload.status || '').toLowerCase()) || !charge?.id) {
       await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
+      await db.update(orderShipments).set({ status: 'cancelled', lastNote: 'Payment initialization failed.', updatedAt: new Date() }).where(eq(orderShipments.id, createdShipment.id))
+      await db.insert(orderTrackingEvents).values({ orderId: createdOrder.id, shipmentId: createdShipment.id, status: 'cancelled', note: 'Payment initialization failed.', customerVisible: false })
       await safelyReleasePointsForOrder(createdOrder.id)
       return NextResponse.json({ error: flutterwaveErrorMessage(flwPayload, flwResponse.response?.status || 502) }, { status: flwResponse.response?.status === 401 ? 503 : 502 })
     }
 
     await db.insert(paymentRecords).values({ userId: localUser.id, orderId: createdOrder.id, provider: 'flutterwave', transactionReference: String(charge.id), amount: String(amountAfterPoints), currency: expectedCurrency, method: paymentMethod.type, status: 'pending', metadata: { txRef, chargeId: String(charge.id), discountUgx } })
 
-    return NextResponse.json({ txRef, orderId: createdOrder.id, amount: amountAfterPoints, discountUgx, paymentUrl: charge.next_action?.redirect_url?.url || null, paymentInstruction: charge.next_action?.payment_instruction?.note || null })
+    return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, paymentMethod: paymentMethod.type, amount: amountAfterPoints, discountUgx, paymentUrl: charge.next_action?.redirect_url?.url || null, paymentInstruction: charge.next_action?.payment_instruction?.note || null })
   } catch (error: unknown) {
     console.error('Create v4 Order Error:', error)
     return NextResponse.json({ error: 'We could not prepare this payment. Please try again.' }, { status: 500 })

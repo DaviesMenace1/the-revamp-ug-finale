@@ -35,13 +35,13 @@ function revalidateCommunity() {
 }
 
 async function requireAdmin() {
-  const authorization = await getCurrentUserWithRole(['admin'])
+  const authorization = await getCurrentUserWithRole(['admin', 'editor'])
   return authorization.authorized && authorization.user ? authorization.user : null
 }
 
 export async function createCommunityPost(input: CommunityPostInput) {
   const admin = await requireAdmin()
-  if (!admin) return { success: false, error: 'Only an administrator can manage community posts.' }
+  if (!admin) return { success: false, error: 'You are not authorized to manage community posts.' }
   const parsed = validatePost(input)
   if (!parsed.value) return { success: false, error: parsed.error || 'Invalid community post.' }
   try {
@@ -56,7 +56,7 @@ export async function createCommunityPost(input: CommunityPostInput) {
 
 export async function updateCommunityPost(postId: string, input: CommunityPostInput) {
   const admin = await requireAdmin()
-  if (!admin) return { success: false, error: 'Only an administrator can manage community posts.' }
+  if (!admin) return { success: false, error: 'You are not authorized to manage community posts.' }
   const parsed = validatePost(input)
   if (!parsed.value) return { success: false, error: parsed.error || 'Invalid community post.' }
   try {
@@ -72,7 +72,7 @@ export async function updateCommunityPost(postId: string, input: CommunityPostIn
 
 export async function deleteCommunityPost(postId: string) {
   const admin = await requireAdmin()
-  if (!admin) return { success: false, error: 'Only an administrator can manage community posts.' }
+  if (!admin) return { success: false, error: 'You are not authorized to manage community posts.' }
   try {
     const [post] = await db.delete(communityPosts).where(eq(communityPosts.id, postId)).returning({ id: communityPosts.id })
     if (!post) return { success: false, error: 'Community post not found.' }

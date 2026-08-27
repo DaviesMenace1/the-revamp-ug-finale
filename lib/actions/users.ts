@@ -4,22 +4,28 @@ import { db } from '@/lib/db/client'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { getCurrentUserWithRole } from '@/lib/auth/server'
+import { requireAdminPermission } from '@/lib/auth/admin-guard'
+import type { UserRole } from '@/lib/auth/permissions'
 
-const VALID_ROLES = [
+export const VALID_ROLES = [
   'customer',
   'designer',
   'admin',
   'trade_member',
   'architect',
   'interior_designer',
-] as const
+  'editor',
+  'operations_manager',
+  'logistics_coordinator',
+  'support_agent',
+  'finance_viewer',
+] as const satisfies readonly UserRole[]
 
 export async function updateUserRole(userId: string, role: string) {
-  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to manage users.' }
-  if (!VALID_ROLES.includes(role as any)) {
-    return { success: false, error: 'Invalid role.' }
-  }
+  const currentUser = await requireAdminPermission('manage_staff', '/admin/users')
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) return { success: false, error: 'Invalid user.' }
+  if (!VALID_ROLES.includes(role as (typeof VALID_ROLES)[number])) return { success: false, error: 'Invalid role.' }
+  if (userId === currentUser.id && role !== 'admin') return { success: false, error: 'You cannot remove your own administrator access.' }
 
   try {
     await db
@@ -36,7 +42,9 @@ export async function updateUserRole(userId: string, role: string) {
 }
 
 export async function deleteUser(userId: string) {
-  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to manage users.' }
+  const currentUser = await requireAdminPermission('manage_staff', '/admin/users')
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) return { success: false, error: 'Invalid user.' }
+  if (userId === currentUser.id) return { success: false, error: 'You cannot delete your own account from this screen.' }
   try {
     await db.delete(users).where(eq(users.id, userId))
     revalidatePath('/admin/users')

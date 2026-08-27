@@ -17,7 +17,9 @@ export default clerkMiddleware(async (auth, req) => {
     await auth.protect()
   }
 
-  const response = NextResponse.next()
+  const requestHeaders = new Headers(req.headers)
+  requestHeaders.set('x-revamp-path', req.nextUrl.pathname)
+  const response = NextResponse.next({ request: { headers: requestHeaders } })
   const referralCode = req.nextUrl.searchParams.get('ref')?.trim().toUpperCase()
   if (referralCode && /^[A-Z0-9-]{6,32}$/.test(referralCode)) {
     response.cookies.set('revamp_referral', referralCode, {

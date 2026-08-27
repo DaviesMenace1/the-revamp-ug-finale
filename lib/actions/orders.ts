@@ -1,7 +1,7 @@
 'use server'
 
 import { db } from '@/lib/db/client'
-import { orders } from '@/lib/db/schema'
+import { orders, orderShipments, orderTrackingEvents } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
@@ -9,17 +9,22 @@ import { getCurrentUserWithRole } from '@/lib/auth/server'
 type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus) {
-  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to update orders.' }
+  const authorization = await getCurrentUserWithRole(['admin', 'operations_manager'])
+  if (!authorization.authorized || !authorization.user) return { success: false, error: 'You are not authorized to update orders.' }
   try {
-    await db
-      .update(orders)
-      .set({
-        status: status,
-        updatedAt: new Date(),
-      })
-      .where(eq(orders.id, orderId))
+    const now = new Date()
+    await db.update(orders).set({ status, updatedAt: now }).where(eq(orders.id, orderId))
+    const shipmentStatus = status === 'cancelled' ? 'cancelled' : status === 'delivered' ? 'delivered' : status === 'shipped' ? 'out_for_delivery' : status === 'processing' || status === 'confirmed' ? 'processing' : 'awaiting_payment'
+    const [shipment] = await db.select({ id: orderShipments.id }).from(orderShipments).where(eq(orderShipments.orderId, orderId)).limit(1)
+    if (shipment) {
+      await db.update(orderShipments).set({ status: shipmentStatus, lastNote: `Order status updated to ${status}.`, updatedAt: now, deliveredAt: shipmentStatus === 'delivered' ? now : undefined }).where(eq(orderShipments.id, shipment.id))
+      await db.insert(orderTrackingEvents).values({ orderId, shipmentId: shipment.id, status: shipmentStatus, note: `Order status updated to ${status}.`, actorId: authorization.user.id, customerVisible: true })
+    }
 
     revalidatePath('/admin/orders')
+    revalidatePath('/admin/logistics')
+    revalidatePath('/client/orders')
+    revalidatePath('/track-order')
     return { success: true }
   } catch (error) {
     console.error('Failed to update order status:', error)

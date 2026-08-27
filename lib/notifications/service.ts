@@ -21,6 +21,27 @@ export type NotificationInput = {
 
 const ONE_SIGNAL_ENDPOINT = 'https://api.onesignal.com/notifications'
 
+function metadataDetails(metadata: Record<string, unknown> | undefined) {
+  if (!metadata) return ''
+  const lines: string[] = []
+  if (typeof metadata.trackingCode === 'string' && metadata.trackingCode) lines.push(`Tracking code: ${metadata.trackingCode}`)
+  if (typeof metadata.paymentMode === 'string') lines.push(`Payment: ${metadata.paymentMode === 'pay_on_delivery' ? 'Pay on delivery' : 'Pay now'}`)
+  if (typeof metadata.paymentMethod === 'string' && metadata.paymentMethod) lines.push(`Payment method: ${metadata.paymentMethod === 'mobile_money' ? 'Mobile money' : metadata.paymentMethod === 'card' ? 'Card' : metadata.paymentMethod}`)
+  const address = metadata.deliveryAddress && typeof metadata.deliveryAddress === 'object' && !Array.isArray(metadata.deliveryAddress) ? metadata.deliveryAddress as Record<string, unknown> : null
+  if (address?.deliveryMethod === 'pickup_station' && address.pickupStation && typeof address.pickupStation === 'object') {
+    const station = address.pickupStation as Record<string, unknown>
+    lines.push(`Pickup station: ${String(station.name || 'Selected station')}, ${String(station.address || '')}`)
+  } else if (address) {
+    lines.push(`Delivery: ${String(address.address || '')}, ${String(address.city || '')}`)
+  }
+  if (typeof metadata.refundStatus === 'string' && metadata.refundStatus !== 'not_requested') lines.push(`Refund status: ${metadata.refundStatus}`)
+  if (Array.isArray(metadata.items) && metadata.items.length > 0) {
+    const names = metadata.items.slice(0, 5).map((item) => item && typeof item === 'object' ? String((item as Record<string, unknown>).name || (item as Record<string, unknown>).title || 'Product') : 'Product')
+    lines.push(`Products: ${names.join(', ')}${metadata.items.length > 5 ? ` and ${metadata.items.length - 5} more` : ''}`)
+  }
+  return lines.map((line) => `<li style="margin-bottom:6px;">${escapeEmailHtml(line)}</li>`).join('')
+}
+
 function oneSignalConfigured() {
   return Boolean(process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID && process.env.ONESIGNAL_REST_API_KEY)
 }
@@ -116,12 +137,13 @@ export async function notifyUser(input: NotificationInput) {
       const recipientName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'there'
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || ''
       const actionUrl = input.actionUrl ? `${siteUrl}${input.actionUrl}` : null
+      const detailsMarkup = metadataDetails(input.metadata)
       const emailResult = user?.email
         ? await sendBrevoNotificationEmail({
             toEmail: user.email,
             toName: recipientName,
             subject: input.title,
-            htmlContent: `<!doctype html><html><body style="margin:0;background:#f6f4ef;color:#1e1c19;font-family:Arial,sans-serif;padding:32px 16px"><main style="max-width:600px;margin:0 auto;background:#fff;padding:32px;border:1px solid #e5e0d8"><p style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8b6b3f">The Revamp UG</p><h1 style="font-size:26px;font-weight:400;margin:18px 0 10px">${escapeEmailHtml(input.title)}</h1><p style="font-size:15px;line-height:1.7">Hi ${escapeEmailHtml(recipientName)},</p><p style="font-size:15px;line-height:1.7">${escapeEmailHtml(input.message)}</p>${actionUrl ? `<p style="margin-top:28px"><a href="${escapeEmailHtml(actionUrl)}" style="display:inline-block;background:#1e1c19;color:#fff;text-decoration:none;padding:13px 18px;font-size:12px;letter-spacing:1px;text-transform:uppercase">Open your portal</a></p>` : ''}<p style="margin-top:34px;color:#6f6a62;font-size:12px;line-height:1.6">You are receiving this service notification because it relates to your Revamp UG account.</p></main></body></html>`,
+            htmlContent: `<!doctype html><html><body style="margin:0;background:#f6f4ef;color:#1e1c19;font-family:Arial,sans-serif;padding:32px 16px"><main style="max-width:600px;margin:0 auto;background:#fff;padding:32px;border:1px solid #e5e0d8"><p style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8b6b3f">The Revamp UG</p><h1 style="font-size:26px;font-weight:400;margin:18px 0 10px">${escapeEmailHtml(input.title)}</h1><p style="font-size:15px;line-height:1.7">Hi ${escapeEmailHtml(recipientName)},</p><p style="font-size:15px;line-height:1.7">${escapeEmailHtml(input.message)}</p>${detailsMarkup ? `<div style="margin-top:20px;padding:16px;background:#f8f8f8;border:1px solid #eeeeee"><strong style="font-size:13px">Order details</strong><ul style="font-size:13px;line-height:1.5;padding-left:20px">${detailsMarkup}</ul></div>` : ''}${actionUrl ? `<p style="margin-top:28px"><a href="${escapeEmailHtml(actionUrl)}" style="display:inline-block;background:#1e1c19;color:#fff;text-decoration:none;padding:13px 18px;font-size:12px;letter-spacing:1px;text-transform:uppercase">Open your portal</a></p>` : ''}<p style="margin-top:34px;color:#6f6a62;font-size:12px;line-height:1.6">You are receiving this service notification because it relates to your Revamp UG account.</p></main></body></html>`,
           })
         : { status: 'failed' as const, providerMessageId: null, error: 'Recipient email is unavailable.' }
 

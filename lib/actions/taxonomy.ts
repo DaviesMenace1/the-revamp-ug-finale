@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
 
 async function isAdmin() {
-  return (await getCurrentUserWithRole(['admin'])).authorized
+  return (await getCurrentUserWithRole(['admin', 'editor'])).authorized
 }
 
 function slugify(input: string) {

@@ -24,6 +24,15 @@ type FlutterwaveResponse<T> = {
 
 export type FlutterwaveAuthorizationType = 'pin' | 'otp' | 'redirect_url' | 'payment_instruction' | 'requires_additional_fields'
 
+type FlutterwaveRefund = {
+  id?: string
+  amount_refunded?: number | string
+  charge_id?: string
+  reason?: string
+  status?: string
+  created_datetime?: string
+}
+
 type FlutterwaveCharge = {
   id?: string
   amount?: number | string
@@ -195,6 +204,14 @@ export async function retrieveFlutterwaveCharge(chargeId: string) {
   return flutterwaveRequest<FlutterwaveCharge>(`/charges/${encodeURIComponent(chargeId)}`, { method: 'GET' })
 }
 
+export async function createFlutterwaveRefund(input: { chargeId: string; amount: number; reason: 'duplicate' | 'fraudulent' | 'requested_by_customer' | 'expired_uncaptured_charge'; idempotencyKey: string; meta?: Record<string, string> }) {
+  return flutterwaveRequest<FlutterwaveRefund>('/refunds', {
+    method: 'POST',
+    headers: { 'X-Idempotency-Key': input.idempotencyKey },
+    body: JSON.stringify({ amount: input.amount, charge_id: input.chargeId, reason: input.reason, meta: input.meta || {} }),
+  })
+}
+
 export function getFlutterwaveAuthorizationType(charge: FlutterwaveCharge | undefined): FlutterwaveAuthorizationType | null {
   const nextAction = String(charge?.next_action?.type || '').toLowerCase()
   const authorization = String(charge?.next_action?.authorization?.type || '').toLowerCase()
@@ -228,7 +245,7 @@ function createHmacSignature(rawBody: string, secretHash: string) {
   return createHmac('sha256', secretHash).update(rawBody).digest('base64')
 }
 
-export type { FlutterwaveCharge, FlutterwaveResponse }
+export type { FlutterwaveCharge, FlutterwaveRefund, FlutterwaveResponse }
 
 export function normalizeUgandaPhone(value: string) {
   const digits = value.replace(/\D/g, '')

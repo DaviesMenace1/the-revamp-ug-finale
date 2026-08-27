@@ -1,19 +1,24 @@
 'use client'
 
 import { useState, useTransition, useMemo } from 'react'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Trash2, Search, Shield } from 'lucide-react'
 import { updateUserRole, deleteUser } from '@/lib/actions/users'
+import { ROLE_LABELS, type UserRole } from '@/lib/auth/permissions'
 
-const ROLES = [
+const ROLES: UserRole[] = [
   'customer',
   'designer',
   'admin',
   'trade_member',
   'architect',
   'interior_designer',
+  'editor',
+  'operations_manager',
+  'logistics_coordinator',
+  'support_agent',
+  'finance_viewer',
 ]
 
 type AdminUser = {
@@ -64,7 +69,7 @@ export default function UsersClient({ initialUsers = [] }: { initialUsers: Admin
     <div className="space-y-8 p-8">
       <div>
         <h1 className="font-serif text-4xl font-light text-foreground">Users & Members</h1>
-        <p className="text-muted-foreground mt-2">Manage user accounts and permissions</p>
+        <p className="text-muted-foreground mt-2">Assign the least access each team member needs for their work.</p>
       </div>
 
       <Card>
@@ -117,7 +122,7 @@ export default function UsersClient({ initialUsers = [] }: { initialUsers: Admin
                         >
                           {ROLES.map((role) => (
                             <option key={role} value={role}>
-                              {role}
+                              {ROLE_LABELS[role as UserRole] || role}
                             </option>
                           ))}
                         </select>

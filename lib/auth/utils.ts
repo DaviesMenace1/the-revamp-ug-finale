@@ -5,7 +5,7 @@ import { db } from '@/lib/db/client'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
-export type UserRole = 'customer' | 'designer' | 'admin' | 'trade_member' | 'architect' | 'interior_designer'
+export type UserRole = 'customer' | 'designer' | 'admin' | 'trade_member' | 'architect' | 'interior_designer' | 'editor' | 'operations_manager' | 'logistics_coordinator' | 'support_agent' | 'finance_viewer'
 
 /**
  * The protected-route boundary only needs identity, role, and display fields.

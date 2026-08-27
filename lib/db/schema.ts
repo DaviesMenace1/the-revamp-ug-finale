@@ -23,6 +23,11 @@ export const userRoleEnum = pgEnum("user_role", [
   "trade_member",
   "architect",
   "interior_designer",
+  "editor",
+  "operations_manager",
+  "logistics_coordinator",
+  "support_agent",
+  "finance_viewer",
 ])
 
 export const projectStatusEnum = pgEnum("project_status", [
@@ -48,6 +53,28 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "completed",
   "failed",
   "refunded",
+])
+
+export const shipmentStatusEnum = pgEnum("shipment_status", [
+  "awaiting_payment",
+  "processing",
+  "packed",
+  "assigned",
+  "out_for_delivery",
+  "ready_for_pickup",
+  "delivered",
+  "collected",
+  "exception",
+  "cancelled",
+])
+
+export const refundStatusEnum = pgEnum("refund_status", [
+  "not_requested",
+  "requested",
+  "processing",
+  "completed",
+  "failed",
+  "rejected",
 ])
 
 export const variantTypeEnum = pgEnum("variant_type", [
@@ -1045,7 +1072,12 @@ export const orders = pgTable(
     paymentStatus: paymentStatusEnum("payment_status").default(
       "pending",
     ),
+    paymentMode: varchar("payment_mode", { length: 30 }).notNull().default("pay_now"),
+    paymentMethod: varchar("payment_method", { length: 40 }),
     deliveryAddress: jsonb("delivery_address"),
+    cancellationReason: text("cancellation_reason"),
+    cancelledAt: timestamp("cancelled_at"),
+    refundStatus: refundStatusEnum("refund_status").notNull().default("not_requested"),
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -1056,6 +1088,50 @@ export const orders = pgTable(
     orderNumberIdx: uniqueIndex("order_number_idx").on(
       table.orderNumber,
     ),
+    paymentModeIdx: index("order_payment_mode_idx").on(table.paymentMode),
+    refundStatusIdx: index("order_refund_status_idx").on(table.refundStatus),
+  }),
+)
+
+export const orderShipments = pgTable(
+  "order_shipments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id").notNull().unique().references(() => orders.id, { onDelete: "cascade" }),
+    trackingCode: varchar("tracking_code", { length: 80 }).notNull().unique(),
+    status: shipmentStatusEnum("status").notNull().default("awaiting_payment"),
+    assignedTo: uuid("assigned_to").references(() => users.id, { onDelete: "set null" }),
+    assignedAt: timestamp("assigned_at"),
+    estimatedDeliveryAt: timestamp("estimated_delivery_at"),
+    dispatchedAt: timestamp("dispatched_at"),
+    deliveredAt: timestamp("delivered_at"),
+    lastNote: text("last_note"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    orderIdx: uniqueIndex("order_shipments_order_idx").on(table.orderId),
+    statusIdx: index("order_shipments_status_idx").on(table.status),
+    assignedIdx: index("order_shipments_assigned_idx").on(table.assignedTo),
+    trackingCodeIdx: uniqueIndex("order_shipments_tracking_code_idx").on(table.trackingCode),
+  }),
+)
+
+export const orderTrackingEvents = pgTable(
+  "order_tracking_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    shipmentId: uuid("shipment_id").notNull().references(() => orderShipments.id, { onDelete: "cascade" }),
+    status: shipmentStatusEnum("status").notNull(),
+    note: text("note"),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    customerVisible: boolean("customer_visible").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    orderIdx: index("order_tracking_events_order_idx").on(table.orderId, table.createdAt),
+    shipmentIdx: index("order_tracking_events_shipment_idx").on(table.shipmentId, table.createdAt),
   }),
 )
 
@@ -2210,6 +2286,32 @@ export const paymentRecords = pgTable(
   }),
 )
 
+export const refundRequests = pgTable(
+  "refund_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    paymentRecordId: uuid("payment_record_id").references(() => paymentRecords.id, { onDelete: "set null" }),
+    requestedBy: uuid("requested_by").references(() => users.id, { onDelete: "set null" }),
+    reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+    amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+    currency: varchar("currency", { length: 3 }).notNull().default("UGX"),
+    reason: text("reason").notNull(),
+    status: refundStatusEnum("status").notNull().default("requested"),
+    providerRefundId: varchar("provider_refund_id", { length: 120 }),
+    providerStatus: varchar("provider_status", { length: 40 }),
+    reviewNote: text("review_note"),
+    processedAt: timestamp("processed_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    orderIdx: index("refund_requests_order_idx").on(table.orderId),
+    statusIdx: index("refund_requests_status_idx").on(table.status),
+    paymentIdx: index("refund_requests_payment_idx").on(table.paymentRecordId),
+  }),
+)
+
 export const financialDocuments = pgTable(
   "financial_documents",
   {
@@ -2603,6 +2705,8 @@ export const loyaltyReferrals = pgTable(
 
 export const usersRelations = relations(users, ({ many, one }) => ({
   orders: many(orders),
+  orderShipmentsAssigned: many(orderShipments, { relationName: 'shipmentAssignee' }),
+  orderTrackingEventsActed: many(orderTrackingEvents, { relationName: 'trackingEventActor' }),
   consultations: many(consultations),
   consultationReminders: many(consultationReminders),
   quotes: many(quotes),
@@ -2627,6 +2731,18 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   loyaltyTransactions: many(loyaltyTransactions),
   loyaltyReferralsSent: many(loyaltyReferrals, { relationName: 'loyaltyReferrer' }),
   loyaltyReferralsReceived: many(loyaltyReferrals, { relationName: 'loyaltyReferred' }),
+}))
+
+export const orderShipmentsRelations = relations(orderShipments, ({ one, many }) => ({
+  order: one(orders, { fields: [orderShipments.orderId], references: [orders.id] }),
+  assignee: one(users, { fields: [orderShipments.assignedTo], references: [users.id], relationName: 'shipmentAssignee' }),
+  events: many(orderTrackingEvents),
+}))
+
+export const orderTrackingEventsRelations = relations(orderTrackingEvents, ({ one }) => ({
+  order: one(orders, { fields: [orderTrackingEvents.orderId], references: [orders.id] }),
+  shipment: one(orderShipments, { fields: [orderTrackingEvents.shipmentId], references: [orderShipments.id] }),
+  actor: one(users, { fields: [orderTrackingEvents.actorId], references: [users.id], relationName: 'trackingEventActor' }),
 }))
 
 export const savedAddressesRelations = relations(savedAddresses, ({ one }) => ({

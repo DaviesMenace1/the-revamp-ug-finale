@@ -68,13 +68,13 @@ function revalidateEventPaths() {
 }
 
 async function requireAdmin() {
-  const authorization = await getCurrentUserWithRole(['admin'])
+  const authorization = await getCurrentUserWithRole(['admin', 'editor'])
   return authorization.authorized && authorization.user ? authorization.user : null
 }
 
 export async function createEvent(input: EventInput) {
   const admin = await requireAdmin()
-  if (!admin) return { success: false, error: 'Only an administrator can manage events.' }
+  if (!admin) return { success: false, error: 'You are not authorized to manage events.' }
   const parsed = validateEvent(input)
   if (!parsed.value) return { success: false, error: parsed.error || 'Invalid event.' }
 
@@ -114,7 +114,7 @@ export async function createEvent(input: EventInput) {
 
 export async function updateEvent(eventId: string, input: EventInput) {
   const admin = await requireAdmin()
-  if (!admin) return { success: false, error: 'Only an administrator can manage events.' }
+  if (!admin) return { success: false, error: 'You are not authorized to manage events.' }
   const parsed = validateEvent(input)
   if (!parsed.value) return { success: false, error: parsed.error || 'Invalid event.' }
 
@@ -141,7 +141,7 @@ export async function updateEvent(eventId: string, input: EventInput) {
 
 export async function deleteEvent(eventId: string) {
   const admin = await requireAdmin()
-  if (!admin) return { success: false, error: 'Only an administrator can manage events.' }
+  if (!admin) return { success: false, error: 'You are not authorized to manage events.' }
   try {
     const [event] = await db.delete(membershipEvents).where(eq(membershipEvents.id, eventId)).returning({ id: membershipEvents.id })
     if (!event) return { success: false, error: 'Event not found.' }

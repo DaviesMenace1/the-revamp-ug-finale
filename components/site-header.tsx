@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { useCart } from '@/lib/context/cart-context'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { ThemeSwitcher } from '@/components/theme-switcher'
+import PromotionBanner from '@/components/promotions/promotion-banner'
 
   interface NavLink {
     label: string
@@ -101,9 +102,11 @@ export function SiteHeader() {
 
   return (
     <>
-      <header
+      <div className="fixed inset-x-0 top-0 z-50">
+        <PromotionBanner />
+        <header
         className={cn(
-          'fixed inset-x-0 top-0 z-50 transition-all duration-300',
+          'relative w-full transition-all duration-300',
           scrolled || !isHome
             ? 'bg-background/95 backdrop-blur-md border-b border-border'
             : 'bg-transparent',
@@ -115,7 +118,7 @@ export function SiteHeader() {
             {/* 1. LEFT SECTION */}
             <div className="flex items-center gap-1 sm:gap-2">
               {/* Mobile Only: Menu & Search */}
-              <div className="flex items-center gap-1 md:hidden">
+              <div className="hidden">
                 <button
                   className={cn(
                     'flex size-11 items-center justify-center transition-colors',
@@ -131,7 +134,7 @@ export function SiteHeader() {
                 prefetch={false}
                   href="/search"
                   className={cn(
-                    'hidden size-11 items-center justify-center hover:text-gold transition-colors sm:flex',
+                    'hidden size-11 items-center justify-center hover:text-gold transition-colors lg:flex',
                     scrolled || !isHome ? 'text-foreground' : 'text-white',
                   )}
                   aria-label="Search"
@@ -158,7 +161,7 @@ export function SiteHeader() {
 
             {/* 2. CENTER SECTION */}
             {/* Mobile: Clean Logo */}
-            <div className="flex md:hidden items-center justify-center text-center px-1">
+            <div className="mr-auto flex items-center justify-start px-0 text-left md:hidden">
               <Link
                 prefetch={false}
                 href="/"
@@ -258,6 +261,19 @@ export function SiteHeader() {
 
             {/* 3. RIGHT SECTION */}
             <div className="flex items-center gap-0.5 sm:gap-1.5 md:gap-3">
+              {/* Compact mobile search */}
+              <Link
+                prefetch={false}
+                href="/search"
+                className={cn(
+                  'flex size-11 items-center justify-center transition-colors hover:text-gold md:hidden',
+                  scrolled || !isHome ? 'text-foreground' : 'text-white',
+                )}
+                aria-label="Search"
+              >
+                <Search size={19} />
+              </Link>
+
               {/* Desktop Search Icon */}
               <Link
                 prefetch={false}
@@ -272,7 +288,7 @@ export function SiteHeader() {
               </Link>
 
               {/* Theme Switcher */}
-              <div className="scale-90 sm:scale-100">
+              <div className="hidden scale-90 sm:scale-100 md:block">
                 <ThemeSwitcher />
               </div>
 
@@ -284,7 +300,7 @@ export function SiteHeader() {
                 prefetch={false}
                 href="/wishlist"
                                   className={cn(
-                    'hidden size-11 items-center justify-center hover:text-gold transition-colors sm:flex',
+                    'hidden size-11 items-center justify-center hover:text-gold transition-colors lg:flex',
                     scrolled || !isHome ? 'text-foreground' : 'text-white',
                   )}
                   aria-label="Wishlist"
@@ -298,7 +314,7 @@ export function SiteHeader() {
                 prefetch={false}
                 href="/account"
                                   className={cn(
-                    'hidden size-11 items-center justify-center hover:text-gold transition-colors sm:flex',
+                    'hidden size-11 items-center justify-center hover:text-gold transition-colors lg:flex',
                     scrolled || !isHome ? 'text-foreground' : 'text-white',
                   )}
                   aria-label="Account"
@@ -325,6 +341,18 @@ export function SiteHeader() {
                 )}
               </Link>
 
+              {/* Compact mobile menu */}
+              <button
+                className={cn(
+                  'flex size-11 items-center justify-center transition-colors md:hidden',
+                  scrolled || !isHome ? 'text-foreground' : 'text-white',
+                )}
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Open menu"
+              >
+                <Menu size={22} />
+              </button>
+
               {/* Desktop Drawer Toggle */}
               <button
                 className={cn(
@@ -340,7 +368,8 @@ export function SiteHeader() {
 
           </div>
         </div>
-      </header>
+        </header>
+      </div>
 
       {/* Side Drawer */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -414,7 +443,11 @@ export function SiteHeader() {
             </nav>
 
             {/* Bottom Actions */}
-            <div className="p-6 border-t border-border mt-auto flex flex-col gap-3">
+            <div className="mt-auto flex flex-col gap-3 border-t border-border p-6">
+              <div className="flex min-h-12 items-center justify-between border border-border px-4">
+                <span className="text-xs uppercase tracking-widest text-foreground/70">Theme</span>
+                <ThemeSwitcher />
+              </div>
               <Link prefetch={false} href="/client/tickets" onClick={() => setDrawerOpen(false)} className="flex min-h-12 items-center justify-center rounded bg-foreground px-5 py-4 text-xs uppercase tracking-widest text-background transition-colors hover:bg-gold hover:text-white">
                 Support Tickets
               </Link>

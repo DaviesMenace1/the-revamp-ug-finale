@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Check, Armchair, Sofa, Home, Lightbulb, Palette, FileText, ArrowRight, Sparkles } from 'lucide-react'
-import PromotionBanner from '@/components/promotions/promotion-banner'
 
 const serviceTypes = [
   { id: 'custom-furniture', label: 'Custom Furniture', icon: Armchair, description: 'Bespoke pieces tailored to your space' },
@@ -87,7 +86,6 @@ export default function CustomServicesPage() {
             <div className="rounded-2xl border border-background/15 bg-background/10 p-5 backdrop-blur sm:p-6"><p className="text-[10px] uppercase tracking-[0.2em] text-primary">A focused start</p><p className="mt-4 font-serif text-2xl font-light">Tell us what you are building, restoring, or reimagining.</p><div className="mt-5 grid grid-cols-2 gap-3 text-xs text-background/65"><span className="rounded-lg border border-background/10 px-3 py-3">Furniture</span><span className="rounded-lg border border-background/10 px-3 py-3">Upholstery</span><span className="rounded-lg border border-background/10 px-3 py-3">Cabinetry</span><span className="rounded-lg border border-background/10 px-3 py-3">Interior styling</span></div></div>
           </div>
         </section>
-        <PromotionBanner compact />
 
         {/* Form Section */}
         <section id="start-a-brief" className="scroll-mt-24 py-20 lg:py-32">

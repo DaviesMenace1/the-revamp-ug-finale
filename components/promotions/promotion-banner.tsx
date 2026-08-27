@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight, Clock3, Sparkles, Tag } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Clock3, Tag } from 'lucide-react'
 
 export type PublicPromotion = {
   id: string
@@ -27,20 +27,23 @@ function discountLabel(promotion: PublicPromotion) {
 }
 
 function audienceLabel(audience: string) {
-  if (audience === 'new_customer') return 'For new clients'
-  if (audience === 'returning_customer') return 'For returning clients'
+  if (audience === 'new_customer') return 'New clients'
+  if (audience === 'returning_customer') return 'Returning clients'
+  if (audience === 'members') return 'Members'
   return 'Available now'
 }
 
 function expiryLabel(endsAt: string | null) {
-  if (!endsAt) return 'While the offer is active'
+  if (!endsAt) return ''
   const date = new Date(endsAt)
-  if (Number.isNaN(date.getTime())) return 'Limited-time offer'
-  return `Offer ends ${date.toLocaleDateString('en-UG', { day: 'numeric', month: 'short', year: 'numeric' })}`
+  if (Number.isNaN(date.getTime())) return ''
+  return `Ends ${date.toLocaleDateString('en-UG', { day: 'numeric', month: 'short' })}`
 }
 
-export default function PromotionBanner({ compact = false }: { compact?: boolean }) {
+export default function PromotionBanner() {
   const [promotions, setPromotions] = useState<PublicPromotion[]>([])
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [paused, setPaused] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -56,33 +59,35 @@ export default function PromotionBanner({ compact = false }: { compact?: boolean
     }
   }, [])
 
+  useEffect(() => {
+    if (paused || promotions.length < 2) return
+    const timer = window.setInterval(() => setActiveIndex((index) => (index + 1) % promotions.length), 6000)
+    return () => window.clearInterval(timer)
+  }, [paused, promotions.length])
+
   if (promotions.length === 0) return null
 
+  const promotion = promotions[activeIndex] || promotions[0]
+  const previous = () => setActiveIndex((index) => (index - 1 + promotions.length) % promotions.length)
+  const next = () => setActiveIndex((index) => (index + 1) % promotions.length)
+  const expiry = expiryLabel(promotion.endsAt)
+
   return (
-    <section aria-label="Current promotions" className={`relative overflow-hidden border-y border-primary/20 bg-foreground text-background ${compact ? 'py-5' : 'py-8 sm:py-10'}`}>
-      <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-primary/20 blur-3xl" aria-hidden="true" />
-      <div className="pointer-events-none absolute -bottom-24 -left-20 size-64 rounded-full bg-accent/15 blur-3xl" aria-hidden="true" />
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
-          <div>
-            <p className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.24em] text-primary"><Sparkles className="size-3.5" aria-hidden="true" /> Studio offers</p>
-            <h2 className="mt-2 font-serif text-2xl font-light sm:text-3xl">A little more value for your next conversation.</h2>
+    <div className="border-b border-primary/30 bg-foreground text-background" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
+      <div className="mx-auto flex min-h-12 max-w-[1440px] items-center gap-1 px-2 sm:px-4 lg:px-12">
+        {promotions.length > 1 && <button type="button" onClick={previous} className="flex size-11 shrink-0 items-center justify-center text-background/70 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Previous promotion"><ArrowLeft className="size-4" aria-hidden="true" /></button>}
+        <div key={promotion.id} className="min-w-0 flex-1 text-center" aria-live="polite">
+          <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-[10px] uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.16em]">
+            <span className="inline-flex items-center gap-1.5 font-semibold text-primary"><Tag className="size-3.5" aria-hidden="true" />{discountLabel(promotion)}</span>
+            <span className="hidden truncate text-background/85 sm:inline">{promotion.name}</span>
+            <span className="hidden items-center gap-1 text-background/60 md:inline-flex"><Clock3 className="size-3" aria-hidden="true" />{expiry || audienceLabel(promotion.audience)}</span>
           </div>
-          <p className="max-w-xs text-xs leading-5 text-background/65">Use a live promotion code when booking a consultation. Eligibility is checked again at checkout.</p>
+          <p className="mt-0.5 truncate text-[10px] text-background/70 sm:hidden">{promotion.name} · {audienceLabel(promotion.audience)}</p>
         </div>
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {promotions.map((promotion) => (
-            <article key={promotion.id} className="group flex min-h-44 flex-col justify-between rounded-xl border border-background/15 bg-background/10 p-5 backdrop-blur transition-transform hover:-translate-y-1 hover:border-primary/60">
-              <div>
-                <div className="flex items-start justify-between gap-3"><span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary-foreground"><Tag className="size-3" aria-hidden="true" /> {discountLabel(promotion)}</span><span className="text-right text-[10px] uppercase tracking-[0.12em] text-background/60">{audienceLabel(promotion.audience)}</span></div>
-                <h3 className="mt-4 font-serif text-xl font-light">{promotion.name}</h3>
-                <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-background/65"><Clock3 className="size-3.5" aria-hidden="true" /> {expiryLabel(promotion.endsAt)}</p>
-              </div>
-              <div className="mt-5 flex items-center justify-between gap-3 border-t border-background/15 pt-4"><code className="rounded bg-background/10 px-2.5 py-1.5 text-xs font-semibold tracking-[0.12em] text-primary">{promotion.code}</code><a href={`/book-consultation?promo=${encodeURIComponent(promotion.code)}`} className="inline-flex min-h-10 items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-background transition-colors hover:text-primary">Use offer <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden="true" /></a></div>
-            </article>
-          ))}
-        </div>
+        <a href={`/book-consultation?promo=${encodeURIComponent(promotion.code)}`} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-background transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:px-3 sm:text-xs">Use code <span className="hidden font-mono text-primary sm:inline">{promotion.code}</span><ArrowRight className="size-3.5" aria-hidden="true" /></a>
+        {promotions.length > 1 && <button type="button" onClick={next} className="flex size-11 shrink-0 items-center justify-center text-background/70 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Next promotion"><ArrowRight className="size-4" aria-hidden="true" /></button>}
       </div>
-    </section>
+      {promotions.length > 1 && <div className="flex justify-center gap-1 pb-1" aria-label={`${activeIndex + 1} of ${promotions.length} promotions`} role="group">{promotions.map((item, index) => <button key={item.id} type="button" aria-pressed={index === activeIndex} aria-label={`Show promotion ${index + 1}`} onClick={() => setActiveIndex(index)} className={`h-1 rounded-full transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary ${index === activeIndex ? 'w-5 bg-primary' : 'w-1 bg-background/40'}`} />)}</div>}
+    </div>
   )
 }

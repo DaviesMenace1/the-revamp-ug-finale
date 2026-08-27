@@ -1,9 +1,9 @@
 'use client'
 
-import Link from 'next/link'
 import Image from 'next/image'
-import { useState } from 'react'
-import { ShoppingBag, Check } from 'lucide-react'
+import Link from 'next/link'
+import { useState, type CSSProperties, type MouseEvent } from 'react'
+import { Check, ShoppingBag, Star } from 'lucide-react'
 import { useCart } from '@/lib/context/cart-context'
 import { WishlistButton } from '@/components/collections/wishlist-button'
 import { cn, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
@@ -16,29 +16,90 @@ type SwatchVariant = {
   label?: string | null
 }
 
-export function ProductCard({ product, featured = false, className }: { product: any; featured?: boolean; className?: string }) {
+type ProductRecord = {
+  id: string
+  slug: string
+  name: string
+  brand?: string | null
+  price?: string | number | null
+  salePrice?: string | number | null
+  originalPrice?: string | number | null
+  currency?: string | null
+  quantity?: number | null
+  availability?: string | null
+  condition?: string | null
+  rating?: string | number | null
+  ratingCount?: number | null
+  featured?: boolean | null
+  isNewArrival?: boolean | null
+  isBestSeller?: boolean | null
+  isOnSale?: boolean | null
+  editorialHighlight?: string | null
+  description?: string | null
+  subCategory?: { name?: string | null; category?: { name?: string | null } | null } | null
+  productImages?: { url?: string | null; altText?: string | null; isPrimary?: boolean | null; displayOrder?: number | null }[]
+  productVariants?: { id: string; type?: string | null; value?: string | null; label?: string | null }[]
+  [key: string]: unknown
+}
+
+function compactLabel(value: unknown) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function getAvailability(product: ProductRecord) {
+  const availability = compactLabel(product.availability).toLowerCase()
+  const quantity = Number(product.quantity ?? 0)
+  const inStock = availability !== 'out_of_stock' && availability !== 'discontinued' && quantity > 0
+
+  if (!inStock) return { label: 'Sold out', canAdd: false }
+  if (quantity > 0 && quantity <= 3) return { label: `Only ${quantity} left`, canAdd: true }
+  return { label: 'In stock', canAdd: true }
+}
+
+function getBadge(product: ProductRecord, comparePrice: number | null, currentPrice: number) {
+  if (product.isBestSeller) return 'Best seller'
+  if (product.isNewArrival) return 'New arrival'
+  if (product.isOnSale || (comparePrice !== null && comparePrice > currentPrice)) return 'Sale'
+  if (product.featured) return 'Featured'
+  return null
+}
+
+export function ProductCard({ product, featured = false, className, style }: { product: ProductRecord; featured?: boolean; className?: string; style?: CSSProperties }) {
   const { addToCart } = useCart()
   const [justAdded, setJustAdded] = useState(false)
 
   const images = resolveProductImageUrls(product)
   const mainImage = images[0]
   const hoverImage = images[1] || mainImage
+  const primaryImage = product.productImages?.find((image) => image.isPrimary) || product.productImages?.[0]
+  const imageAlt = compactLabel(primaryImage?.altText) || product.name
 
   const variants = Array.isArray(product.productVariants) ? product.productVariants : []
   const colorVariants: SwatchVariant[] = variants
-    .filter((variant: any) => variant.type === 'COLOR')
-    .map((variant: any) => ({ id: variant.id, hex: variant.value, label: variant.label }))
+    .filter((variant) => variant.type === 'COLOR')
+    .map((variant) => ({ id: variant.id, hex: variant.value, label: variant.label }))
 
   const visibleSwatches = colorVariants.slice(0, MAX_VISIBLE_SWATCHES)
   const overflowCount = colorVariants.length - visibleSwatches.length
   const currentPrice = Number(product.salePrice ?? product.price ?? 0)
-  const comparePrice = product.originalPrice ? Number(product.originalPrice) : null
+  const comparePriceValue = product.originalPrice ?? product.price
+  const comparePrice = comparePriceValue !== null && comparePriceValue !== undefined ? Number(comparePriceValue) : null
+  const hasDiscount = comparePrice !== null && Number.isFinite(comparePrice) && comparePrice > currentPrice
+  const discountPercent = hasDiscount ? Math.round(((comparePrice - currentPrice) / comparePrice) * 100) : 0
   const currency = normalizeCurrency(product.currency)
-  const categoryLabel = product.subCategory?.category?.name || product.subCategory?.name
+  const categoryLabel = compactLabel(product.subCategory?.category?.name) || compactLabel(product.subCategory?.name)
+  const brandLabel = compactLabel(product.brand)
+  const ratingValue = Number(product.rating ?? 0)
+  const rating = Number.isFinite(ratingValue) ? Math.max(0, Math.min(5, ratingValue)) : 0
+  const ratingCount = Math.max(0, Number(product.ratingCount ?? 0))
+  const availability = getAvailability(product)
+  const badge = getBadge(product, comparePrice, currentPrice) || (featured ? 'Featured' : null)
+  const detailLine = compactLabel(product.editorialHighlight) || compactLabel(product.description)
 
-  function handleQuickAdd(event: React.MouseEvent<HTMLButtonElement>) {
+  function handleQuickAdd(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault()
     event.stopPropagation()
+    if (!availability.canAdd) return
 
     addToCart(
       {
@@ -58,63 +119,81 @@ export function ProductCard({ product, featured = false, className }: { product:
   }
 
   return (
-    <article className={cn('group relative flex min-w-0 flex-col', className)}>
-      <div className={cn('relative overflow-hidden bg-muted', featured ? 'aspect-[4/5] md:aspect-[5/6]' : 'aspect-[3/4]')}>
+    <article className={cn('group flex h-full min-w-0 flex-col overflow-hidden rounded-xl bg-card shadow-soft ring-1 ring-border/60', className)} style={style}>
+      <div className="relative aspect-[4/5] overflow-hidden bg-muted">
         <Link href={`/collections/${product.slug}`} className="absolute inset-0 z-0 block" aria-label={`View ${product.name}`}>
           <Image
             src={mainImage}
-            alt={product.name}
+            alt={imageAlt}
             fill
-            sizes="(max-width: 767px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
+            className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]"
           />
           {hoverImage !== mainImage && (
             <Image
               src={hoverImage}
               alt=""
               fill
-              sizes="(max-width: 767px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+              sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw"
+              className="object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100"
             />
           )}
-          <span className="absolute inset-0 bg-foreground/0 transition-colors duration-500 group-hover:bg-foreground/10" />
+          <span className="absolute inset-0 bg-foreground/0 transition-colors duration-300 group-hover:bg-foreground/5" />
         </Link>
 
-        {(product.featured || featured) && (
-          <span className="absolute left-3 top-3 z-10 bg-gold px-2.5 py-1 text-[10px] uppercase tracking-widest text-obsidian">
-            {featured ? 'Studio edit' : 'Featured'}
-          </span>
-        )}
+        {badge && <span className="absolute left-2.5 top-2.5 z-10 rounded-sm bg-background/95 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-foreground shadow-sm sm:left-3 sm:top-3">{badge}</span>}
 
-        <div className="absolute right-2 top-2 z-20">
+        <div className="absolute right-2 top-2 z-20 sm:right-3 sm:top-3">
           <WishlistButton productId={product.id} variant="icon" />
         </div>
 
         <button
           type="button"
           onClick={handleQuickAdd}
-          aria-label={`Add ${product.name} to cart`}
-          className="absolute bottom-3 right-3 z-20 flex size-11 translate-y-0 items-center justify-center rounded-full bg-background text-foreground shadow-md transition-all duration-200 hover:bg-gold hover:text-obsidian focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100"
+          disabled={!availability.canAdd}
+          aria-label={availability.canAdd ? `Add ${product.name} to cart` : `${product.name} is sold out`}
+          className={cn(
+            'absolute bottom-2.5 right-2.5 z-20 flex size-10 items-center justify-center rounded-full bg-background text-foreground shadow-md transition-all duration-200 hover:bg-gold hover:text-obsidian focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:bottom-3 sm:right-3 sm:size-11',
+            !availability.canAdd && 'cursor-not-allowed opacity-60 hover:bg-background hover:text-foreground',
+          )}
         >
           {justAdded ? <Check size={16} aria-hidden="true" /> : <ShoppingBag size={16} aria-hidden="true" />}
         </button>
       </div>
 
-      <Link href={`/collections/${product.slug}`} className="flex min-w-0 flex-1 flex-col border-t border-border/70 bg-background px-1 py-4">
-        {categoryLabel && <span className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">{categoryLabel}</span>}
-        <h3 className="mb-2 font-serif text-lg leading-tight text-foreground transition-colors group-hover:text-gold">{product.name}</h3>
-        <div className="mb-2 flex flex-wrap items-baseline gap-2">
-          <span className="font-sans text-sm font-medium tabular-nums text-foreground">{formatMoney(currentPrice, currency)}</span>
-          {comparePrice && comparePrice > currentPrice && <span className="font-sans text-xs tabular-nums text-muted-foreground line-through">{formatMoney(comparePrice, currency)}</span>}
+      <Link href={`/collections/${product.slug}`} className="flex min-h-[174px] flex-1 flex-col px-2.5 pb-3 pt-3 sm:min-h-[190px] sm:px-3 sm:pb-4">
+        <div className="flex min-w-0 items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-primary">
+          {brandLabel && <span className="max-w-[55%] truncate">{brandLabel}</span>}
+          {brandLabel && categoryLabel && <span className="text-muted-foreground">·</span>}
+          {categoryLabel && <span className="max-w-[45%] truncate text-muted-foreground">{categoryLabel}</span>}
         </div>
-        {visibleSwatches.length > 0 && (
-          <div className="mt-auto flex items-center gap-1.5 pt-1" aria-label={`${colorVariants.length} colour options`}>
-            {visibleSwatches.map((swatch) => (
-              <span key={swatch.id} title={swatch.label ?? undefined} className="size-4 rounded-full border border-border/60" style={{ backgroundColor: swatch.hex?.startsWith('#') ? swatch.hex : '#e5e5e5' }} />
-            ))}
-            {overflowCount > 0 && <span className="ml-0.5 text-[11px] text-muted-foreground">+{overflowCount}</span>}
-          </div>
-        )}
+
+        <h3 className="mt-1.5 line-clamp-2 min-h-[2.45rem] text-[13px] font-medium leading-[1.25] text-foreground transition-colors group-hover:text-primary sm:text-sm">{product.name}</h3>
+
+        {detailLine && <p className="mt-1 line-clamp-1 text-[10px] leading-4 text-muted-foreground">{detailLine}</p>}
+
+        <div className="mt-2 flex min-h-4 items-center gap-1.5" aria-label={`${rating.toFixed(1)} out of 5 stars from ${ratingCount} reviews`}>
+          <span className="flex items-center text-gold" aria-hidden="true">
+            {Array.from({ length: 5 }, (_, index) => <Star key={index} size={11} strokeWidth={1.5} fill={index + 0.5 <= rating ? 'currentColor' : 'none'} />)}
+          </span>
+          {ratingCount > 0 ? <span className="text-[10px] tabular-nums text-muted-foreground">({ratingCount.toLocaleString('en-UG')})</span> : <span className="text-[10px] text-muted-foreground">New</span>}
+        </div>
+
+        <div className="mt-auto flex flex-wrap items-baseline gap-x-1.5 gap-y-1 pt-3">
+          <span className="text-sm font-semibold tabular-nums text-foreground sm:text-base">{formatMoney(currentPrice, currency)}</span>
+          {hasDiscount && <span className="text-[10px] tabular-nums text-muted-foreground line-through">{formatMoney(comparePrice, currency)}</span>}
+          {discountPercent > 0 && <span className="text-[10px] font-medium tabular-nums text-destructive">-{discountPercent}%</span>}
+        </div>
+
+        <div className="mt-1 flex min-h-4 items-center justify-between gap-2 text-[10px]">
+          <span className={cn(availability.canAdd ? 'text-emerald-700 dark:text-emerald-400' : 'text-destructive')}>{availability.label}</span>
+          {visibleSwatches.length > 0 && (
+            <span className="flex items-center gap-1" aria-label={`${colorVariants.length} colour options`}>
+              {visibleSwatches.map((swatch) => <span key={swatch.id} title={swatch.label ?? undefined} className="size-3 rounded-full border border-border/70" style={{ backgroundColor: swatch.hex?.startsWith('#') ? swatch.hex : '#e5e5e5' }} />)}
+              {overflowCount > 0 && <span className="text-[9px] text-muted-foreground">+{overflowCount}</span>}
+            </span>
+          )}
+        </div>
       </Link>
     </article>
   )

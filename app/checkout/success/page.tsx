@@ -64,7 +64,9 @@ function SuccessContent() {
           if (res.ok) {
             const data = await res.json()
             const orderData = data?.order
-            if (orderData?.paymentStatus === 'completed') {
+            const isPayOnDelivery = orderData?.paymentMode === 'pay_on_delivery'
+            const isConfirmedPayOnDelivery = isPayOnDelivery && ['confirmed', 'processing', 'shipped', 'delivered'].includes(String(orderData?.status || ''))
+            if (orderData?.paymentStatus === 'completed' || isConfirmedPayOnDelivery) {
               setOrder(orderData)
               setLoadError(null)
               clearCart()
@@ -102,6 +104,7 @@ function SuccessContent() {
 
   const deliveryAddress = order?.deliveryAddress ? parseObject(order.deliveryAddress) : null
   const items = parseItems(order?.items)
+  const isPayOnDelivery = order?.paymentMode === 'pay_on_delivery'
 
   if (loadError || !order) {
     return (
@@ -126,8 +129,9 @@ function SuccessContent() {
         <h1 className="font-serif text-3xl sm:text-4xl font-light text-foreground mb-2">
           Thank You For Your Order!
         </h1>
-        <p className="text-muted-foreground text-sm max-w-md mx-auto">
-          We’ve received your payment and sent a receipt confirmation email to{' '}
+                  <p className="text-muted-foreground text-sm max-w-md mx-auto">
+          {isPayOnDelivery ? 'Your order has been confirmed. Payment is due when your order is delivered or collected. A confirmation email has been sent to ' : 'We’ve received your payment and sent a receipt confirmation email to '}{' '}
+
           <span className="text-foreground font-medium">{order?.userEmail || 'your email'}</span>.
         </p>
       </div>
@@ -143,7 +147,7 @@ function SuccessContent() {
             </p>
           </div>
           <div className="sm:text-right">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Date Paid</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">{isPayOnDelivery ? 'Order Date' : 'Date Paid'}</p>
             <p className="text-sm font-medium text-foreground mt-0.5">
               {order?.createdAt
                 ? new Date(order.createdAt).toLocaleDateString('en-US', {
@@ -187,16 +191,16 @@ function SuccessContent() {
             <div className="space-y-1 text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Method:</span>
-                <span className="font-medium text-foreground">Flutterwave</span>
+                <span className="font-medium text-foreground">{isPayOnDelivery ? 'Pay on delivery' : 'Flutterwave'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status:</span>
-                <span className="text-emerald-600 font-semibold uppercase tracking-wider text-[10px] bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/20">
-                  Paid / Confirmed
+                <span className={`${isPayOnDelivery ? 'text-amber-700 bg-amber-500/10 border-amber-500/20' : 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20'} font-semibold uppercase tracking-wider text-[10px] px-2 py-0.5 border`}>
+                  {isPayOnDelivery ? 'Payment due at fulfilment' : 'Paid / Confirmed'}
                 </span>
               </div>
               <div className="flex justify-between pt-2 border-t border-border/50 text-sm font-semibold">
-                <span>Total Amount:</span>
+                <span>{isPayOnDelivery ? 'Total Due:' : 'Total Amount:'}</span>
                 <span className="font-mono text-primary">
                   {formatMoney(order?.totalAmount || 0, normalizeCurrency(order?.currency))}
                 </span>

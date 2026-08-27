@@ -6,7 +6,9 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { orders, orderShipments, orderTrackingEvents, paymentRecords, pickupStations, products, savedAddresses } from '@/lib/db/schema'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { reservePointsForOrder, safelyReleasePointsForOrder } from '@/lib/loyalty/service'
-import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
+import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveAuthorizationType, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
+import { notifyUser } from '@/lib/notifications/service'
+import { settleOrderPayment } from '@/lib/order-payments'
 
 type OrderBody = {
   amount?: unknown
@@ -242,7 +244,7 @@ export async function POST(request: Request) {
     const txRef = `REV-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     const subtotal = (itemTotal * 0.9).toFixed(2)
     const tax = (itemTotal * 0.1).toFixed(2)
-    const [createdOrder] = await db.insert(orders).values({ orderNumber: txRef, userId, items: orderItems, subtotal, tax, shipping: deliveryFee.toFixed(2), discount: '0.00', total: String(numericAmount), status: 'pending', paymentStatus: 'pending', paymentMode, paymentMethod: paymentMode === 'pay_now' ? requestedPaymentMethod : null, deliveryAddress: shippingAddress, notes: text(shippingAddress.notes) || null }).returning({ id: orders.id })
+    const [createdOrder] = await db.insert(orders).values({ orderNumber: txRef, userId, items: orderItems, subtotal, tax, shipping: deliveryFee.toFixed(2), discount: '0.00', total: String(numericAmount), status: paymentMode === 'pay_on_delivery' ? 'confirmed' : 'pending', paymentStatus: 'pending', paymentMode, paymentMethod: paymentMode === 'pay_now' ? requestedPaymentMethod : null, deliveryAddress: shippingAddress, notes: text(shippingAddress.notes) || null }).returning({ id: orders.id })
     if (!createdOrder) return NextResponse.json({ error: 'The order could not be initialized.' }, { status: 500 })
 
     const requestedPoints = Math.max(0, Math.floor(Number(body.loyaltyPoints) || 0))
@@ -275,7 +277,20 @@ export async function POST(request: Request) {
     await db.insert(orderTrackingEvents).values({ orderId: createdOrder.id, shipmentId: createdShipment.id, status: shipmentStatus, note: paymentMode === 'pay_on_delivery' ? 'Order placed with payment due at fulfilment.' : 'Order created and awaiting payment confirmation.', customerVisible: true })
 
     if (paymentMode === 'pay_on_delivery') {
-      return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, status: 'placed', amount: amountAfterPoints, discountUgx })
+      const deliveryMessage = deliveryMethod === 'pickup_station' && shippingAddress.pickupStation && typeof shippingAddress.pickupStation === 'object'
+        ? `Pickup at ${String((shippingAddress.pickupStation as Record<string, unknown>).name || 'your selected station')}.`
+        : `Door delivery to ${String(shippingAddress.city || shippingAddress.address || 'your saved address')}.`
+      await notifyUser({
+        userId: localUser.id,
+        type: 'order_placed_pay_on_delivery',
+        priority: 'important',
+        title: 'Order received',
+        message: `Your pay-on-delivery order ${txRef} is confirmed. Payment is due when your order is delivered or collected. ${deliveryMessage}`,
+        actionUrl: `/client/orders?order=${encodeURIComponent(createdOrder.id)}`,
+        metadata: { orderId: createdOrder.id, orderNumber: txRef, paymentMode, deliveryAddress: shippingAddress, items: orderItems, trackingCode },
+        channels: ['in_app', 'push', 'email'],
+      })
+      return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, status: 'placed', orderStatus: 'confirmed', paymentStatus: 'pending', amount: amountAfterPoints, discountUgx })
     }
 
     const phone = normalizeUgandaPhone(phoneNumber)
@@ -286,6 +301,7 @@ export async function POST(request: Request) {
     const flwResponse = await createFlutterwaveCharge({ reference: txRef, amount: amountAfterPoints, currency: expectedCurrency, redirectUrl: `${baseUrl}/api/checkout/callback?reference=${encodeURIComponent(txRef)}&tx_ref=${encodeURIComponent(txRef)}`, customer, paymentMethod, idempotencyKey: randomUUID(), meta: { orderId: createdOrder.id, txRef } })
     const flwPayload = flwResponse.payload || {}
     const charge = flwPayload.data
+    const chargeStatus = String(charge?.status || '').toLowerCase()
     if (!flwResponse.response?.ok || !['success', 'pending'].includes(String(flwPayload.status || '').toLowerCase()) || !charge?.id) {
       await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
       await db.update(orderShipments).set({ status: 'cancelled', lastNote: 'Payment initialization failed.', updatedAt: new Date() }).where(eq(orderShipments.id, createdShipment.id))
@@ -296,7 +312,12 @@ export async function POST(request: Request) {
 
     await db.insert(paymentRecords).values({ userId: localUser.id, orderId: createdOrder.id, provider: 'flutterwave', transactionReference: String(charge.id), amount: String(amountAfterPoints), currency: expectedCurrency, method: paymentMethod.type, status: 'pending', metadata: { txRef, chargeId: String(charge.id), discountUgx } })
 
-    return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, paymentMethod: paymentMethod.type, amount: amountAfterPoints, discountUgx, paymentUrl: charge.next_action?.redirect_url?.url || null, paymentInstruction: charge.next_action?.payment_instruction?.note || null })
+    if (chargeStatus === 'succeeded') {
+      const settled = await settleOrderPayment({ orderRef: txRef, chargeId: String(charge.id) })
+      if (settled.success) return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, paymentMethod: paymentMethod.type, status: 'paid', amount: amountAfterPoints, discountUgx })
+    }
+
+    return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, paymentMethod: paymentMethod.type, status: 'pending', chargeId: String(charge.id), chargeStatus: chargeStatus || 'pending', authorizationType: getFlutterwaveAuthorizationType(charge), amount: amountAfterPoints, discountUgx, paymentUrl: charge.next_action?.redirect_url?.url || null, paymentInstruction: charge.next_action?.payment_instruction?.note || null })
   } catch (error: unknown) {
     console.error('Create v4 Order Error:', error)
     return NextResponse.json({ error: 'We could not prepare this payment. Please try again.' }, { status: 500 })

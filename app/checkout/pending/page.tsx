@@ -32,11 +32,13 @@ function PendingContent() {
       try {
         await fetch(`/api/orders/reconcile?ref=${encodeURIComponent(orderRef)}`, { cache: 'no-store' })
         const response = await fetch(`/api/orders/details?ref=${encodeURIComponent(orderRef)}`, { cache: 'no-store' })
-        const payload = await response.json().catch(() => null) as { order?: { paymentStatus?: string; status?: string }; error?: string } | null
+        const payload = await response.json().catch(() => null) as { order?: { paymentStatus?: string; paymentMode?: string; status?: string }; error?: string } | null
         const paymentStatus = payload?.order?.paymentStatus
+        const paymentMode = payload?.order?.paymentMode
         const orderStatus = payload?.order?.status
+        const confirmedPayOnDelivery = paymentMode === 'pay_on_delivery' && ['confirmed', 'processing', 'shipped', 'delivered'].includes(String(orderStatus || ''))
 
-        if (paymentStatus === 'completed') {
+        if (paymentStatus === 'completed' || confirmedPayOnDelivery) {
           clearCart()
           router.replace(`/checkout/success?orderRef=${encodeURIComponent(orderRef)}`)
           return

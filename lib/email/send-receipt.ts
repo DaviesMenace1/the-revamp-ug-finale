@@ -63,7 +63,8 @@ export async function sendOrderVerificationEmail({
   const safeAmount = escapeEmailHtml(amount)
   const safeCurrency = escapeEmailHtml(currency)
   const safeSenderName = escapeEmailHtml(senderName)
-  const paymentLabel = paymentMode === 'pay_on_delivery' ? 'Pay on delivery' : `Pay now via ${paymentMethod === 'mobile_money' ? 'mobile money' : paymentMethod === 'card' ? 'card' : 'Flutterwave'}`
+  const isPayOnDelivery = paymentMode === 'pay_on_delivery'
+  const paymentLabel = isPayOnDelivery ? 'Pay on delivery' : `Pay now via ${paymentMethod === 'mobile_money' ? 'mobile money' : paymentMethod === 'card' ? 'card' : 'Flutterwave'}`
   const safePaymentLabel = escapeEmailHtml(paymentLabel)
   const safeDeliveryLabel = escapeEmailHtml(deliveryLabel(deliveryAddress))
   const itemsMarkup = itemRows(items)
@@ -92,9 +93,9 @@ export async function sendOrderVerificationEmail({
       <body>
         <div class="container">
           <div class="header">
-            <span class="badge">Payment Verified</span>
+            <span class="badge">${isPayOnDelivery ? 'Order Confirmed' : 'Payment Verified'}</span>
             <h1>Thank You for Your Order</h1>
-            <p style="color: #666; font-size: 14px;">Hi ${safeCustomerName}, your payment has been verified and your order is now being processed.</p>
+            <p style="color: #666; font-size: 14px;">Hi ${safeCustomerName}, ${isPayOnDelivery ? 'your order has been confirmed. Payment is due when the order is delivered or collected.' : 'your payment has been verified and your order is now being processed.'}</p>
           </div>
 
           <div class="details">
@@ -128,7 +129,7 @@ export async function sendOrderVerificationEmail({
       body: JSON.stringify({
         sender: { name: senderName, email: senderEmail },
         to: [{ email: toEmail.trim(), name: customerName }],
-        subject: `Order verified #${orderNumber}`,
+        subject: `${isPayOnDelivery ? 'Order confirmed' : 'Order verified'} #${orderNumber}`,
         htmlContent,
       }),
     })

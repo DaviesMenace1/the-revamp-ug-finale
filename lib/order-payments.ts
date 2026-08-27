@@ -45,7 +45,7 @@ export async function settleOrderPayment(input: { orderRef: string; chargeId?: s
   const payload = result.payload || {}
   const charge = payload.data
   const expectedCurrency = (process.env.FLUTTERWAVE_CURRENCY || 'UGX').toUpperCase()
-  const successful = Boolean(result.response?.ok && payload.status === 'success' && charge?.status === 'succeeded')
+  const successful = Boolean(result.response?.ok && String(payload.status || '').toLowerCase() === 'success' && String(charge?.status || '').toLowerCase() === 'succeeded')
   if (!successful || !charge) {
     if (result.response?.status === 401 || result.response?.status === 403) return { success: false as const, status: 'verification_failed' as const, error: flutterwaveErrorMessage(payload, result.response.status) }
     return { success: false as const, status: 'pending' as const, error: payload.error?.message || payload.message || 'Payment is still awaiting authorization.' }

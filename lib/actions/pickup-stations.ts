@@ -82,7 +82,7 @@ export async function createPickupStation(input: {
   if (!name || !address || !city) return { success: false, error: 'Name, address, and city are required.' }
   if (fee < 0) return { success: false, error: 'Pickup fee cannot be negative.' }
   try {
-    await db.insert(pickupStations).values({
+    const [created] = await db.insert(pickupStations).values({
       name,
       address,
       city,
@@ -99,7 +99,7 @@ export async function createPickupStation(input: {
     revalidatePath('/admin/settings')
     revalidatePath('/checkout')
     revalidatePath('/api/pickup-stations')
-    return { success: true }
+    return { success: true, station: created ? serialize(created) : null }
   } catch (error) {
     console.error('[pickup-stations] failed to create:', error)
     return { success: false, error: 'Could not add that pickup station.' }
@@ -146,12 +146,12 @@ export async function updatePickupStation(input: {
       displayOrder: Math.max(0, Math.floor(number(input.displayOrder, 0))),
       active: typeof input.active === 'boolean' ? input.active : undefined,
       updatedAt: new Date(),
-    }).where(eq(pickupStations.id, id)).returning({ id: pickupStations.id })
+    }).where(eq(pickupStations.id, id)).returning()
     if (!updated) return { success: false, error: 'Pickup station not found.' }
     revalidatePath('/admin/settings')
     revalidatePath('/checkout')
     revalidatePath('/api/pickup-stations')
-    return { success: true }
+    return { success: true, station: updated ? serialize(updated) : null }
   } catch (error) {
     console.error('[pickup-stations] failed to update:', error)
     return { success: false, error: 'Could not update that pickup station.' }

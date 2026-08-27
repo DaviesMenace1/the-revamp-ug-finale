@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const charge = payload.data
     if (!result.response?.ok || !['success', 'pending'].includes(String(payload.status || '').toLowerCase()) || !charge?.id) return NextResponse.json({ error: flutterwaveErrorMessage(payload, result.response?.status || 502) }, { status: result.response?.status === 401 ? 503 : 502 })
 
-    if (charge.status === 'succeeded') {
+    if (String(charge.status || '').toLowerCase() === 'succeeded') {
       const settled = await settleOrderPayment({ orderRef, chargeId: String(charge.id) })
       if (settled.success) return NextResponse.json({ success: true, status: settled.status, orderId: settled.orderId })
       return NextResponse.json({ error: settled.error, status: settled.status }, { status: settled.status === 'pending' ? 202 : 400 })

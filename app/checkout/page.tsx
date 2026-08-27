@@ -275,6 +275,10 @@ export default function CheckoutPage() {
         window.location.assign(`/checkout/success?orderRef=${encodeURIComponent(data.txRef)}`)
         return
       }
+      if (data.status === 'paid') {
+        window.location.assign(`/checkout/success?orderRef=${encodeURIComponent(data.txRef)}`)
+        return
+      }
       if (typeof data.paymentUrl === 'string' && data.paymentUrl) {
         window.location.assign(data.paymentUrl)
         return
@@ -288,7 +292,11 @@ export default function CheckoutPage() {
         setPaymentInstruction(data.authorizationType === 'pin' ? 'Enter the Sandbox card PIN to continue.' : 'Enter the Sandbox OTP to complete the card payment.')
         return
       }
-      throw new Error('Flutterwave did not return a payment authorization step. Please try again.')
+      if (typeof data.chargeId === 'string' && data.chargeId) {
+        window.location.assign(`/checkout/pending?orderRef=${encodeURIComponent(data.txRef)}&message=${encodeURIComponent('Flutterwave created your payment. We are checking its status now.')}`)
+        return
+      }
+      throw new Error('Flutterwave could not start an authorization step. Please try again or choose another payment method.')
     } catch (error) {
       console.error('Checkout error:', error)
       setErrorMessage(error instanceof Error ? error.message : 'An unexpected checkout error occurred. Please try again.')

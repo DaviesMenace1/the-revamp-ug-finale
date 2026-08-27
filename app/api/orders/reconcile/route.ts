@@ -12,8 +12,11 @@ export async function GET(request: Request) {
     const orderRef = new URL(request.url).searchParams.get('ref')?.trim() || ''
     if (!orderRef) return Response.json({ error: 'Order reference required.' }, { status: 400 })
 
-    const order = await db.query.orders.findFirst({ where: and(eq(orders.orderNumber, orderRef), eq(orders.userId, userId)), columns: { orderNumber: true } })
+    const order = await db.query.orders.findFirst({ where: and(eq(orders.orderNumber, orderRef), eq(orders.userId, userId)), columns: { orderNumber: true, paymentMode: true, paymentStatus: true, status: true } })
     if (!order) return Response.json({ error: 'Order not found.' }, { status: 404 })
+    if (order.paymentMode === 'pay_on_delivery' && order.paymentStatus !== 'completed') {
+      return Response.json({ status: order.status === 'cancelled' ? 'cancelled' : 'placed', success: order.status !== 'cancelled', error: null })
+    }
 
     const result = await settleOrderPayment({ orderRef: order.orderNumber })
     return Response.json({ status: result.status, success: result.success, error: result.error || null })

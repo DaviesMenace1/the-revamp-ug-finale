@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { products } from "@/lib/db/schema"
@@ -592,6 +593,7 @@ export async function PATCH(
       .where(eq(products.id, id))
       .returning()
 
+    revalidatePath('/')
     return NextResponse.json({
       success: true,
       product: updated,
@@ -675,6 +677,7 @@ export async function DELETE(
         status: products.status,
       })
 
+    revalidatePath('/')
     return NextResponse.json({
       success: true,
       product: archived,

@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache"
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { db, products, productVariants } from "@/lib/db"
@@ -120,6 +121,7 @@ export async function POST(
       })
       .returning()
 
+    revalidatePath('/')
     return NextResponse.json({ success: true, variant }, { status: 201 })
   } catch (error) {
     console.error("Variant creation error:", error)
@@ -183,6 +185,7 @@ export async function PATCH(
       .where(eq(productVariants.id, variantId))
       .returning()
 
+    revalidatePath('/')
     return NextResponse.json({ success: true, variant: updated })
   } catch (error) {
     console.error("Variant update error:", error)
@@ -216,6 +219,7 @@ export async function DELETE(
 
     await db.delete(productVariants).where(eq(productVariants.id, variantId))
 
+    revalidatePath('/')
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Variant deletion error:", error)

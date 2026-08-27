@@ -41,6 +41,26 @@ function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
+const PROMOTION_MIGRATION_GUIDANCE = 'Apply drizzle/0018_collection_promotions.sql and drizzle/0019_collection_promotion_target_type.sql through the established database migration workflow.'
+
+function databaseErrorDetails(error: unknown) {
+  const value = error as { code?: unknown; message?: unknown; cause?: { code?: unknown; message?: unknown } } | null
+  return {
+    code: typeof value?.code === 'string' ? value.code : typeof value?.cause?.code === 'string' ? value.cause.code : '',
+    message: typeof value?.message === 'string' ? value.message : typeof value?.cause?.message === 'string' ? value.cause.message : '',
+  }
+}
+
+function promotionSaveError(error: unknown) {
+  const { code, message } = databaseErrorDetails(error)
+  if (code === '23505') return 'A promotion with this code already exists. Choose a different promo code.'
+  if (code === '42P01' || /relation .*collection_promotions.* does not exist/i.test(message)) return `Collection promotions are not available in the database yet. ${PROMOTION_MIGRATION_GUIDANCE}`
+  if (code === '42703' && /target.?type/i.test(message)) return `Promotion targeting is not available in the database yet. ${PROMOTION_MIGRATION_GUIDANCE}`
+  if (code === '42703' || /column .* does not exist/i.test(message)) return `The collection promotion database schema is incomplete. ${PROMOTION_MIGRATION_GUIDANCE}`
+  if (code === '23502') return 'The promotion could not be saved because a required database field is missing. Check the collection promotion migration status.'
+  return 'Could not save the collection promotion. Check the server logs and database migration status, then try again.'
+}
+
 async function validatePromotionTargets(targetType: string, collectionSlugs: string[], productIds: string[]) {
   if (targetType === 'all' || targetType === 'mixed') return null
   if (targetType === 'product') {
@@ -149,7 +169,7 @@ export async function createCollectionPromotion(input: {
     return { success: true }
   } catch (error) {
     console.error('[collection-promotions] failed to create:', error)
-    return { success: false, error: 'Could not save that collection promotion. Check that its code is unique.' }
+    return { success: false, error: promotionSaveError(error) }
   }
 }
 

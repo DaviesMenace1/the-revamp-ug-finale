@@ -11,6 +11,8 @@ import { CollectionsSection } from '@/components/sections/collections-section'
 import { TestimonialsSection } from '@/components/sections/testimonials-section'
 import { JournalSection } from '@/components/sections/journal-section'
 import { CtaSection } from '@/components/sections/cta-section'
+export const revalidate = 60
+
 export default function HomePage() {
   return (
     <>

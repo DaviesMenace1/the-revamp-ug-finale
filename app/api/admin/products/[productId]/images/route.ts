@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache"
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { db, products, productImages, productVariants } from "@/lib/db"
@@ -132,6 +133,7 @@ export async function POST(
       })
       .returning()
 
+    revalidatePath('/')
     return NextResponse.json({ success: true, image }, { status: 201 })
   } catch (error) {
     console.error("Failed to save product image:", error)
@@ -197,6 +199,7 @@ export async function PATCH(
       .where(eq(productImages.id, data.imageId))
       .returning()
 
+    revalidatePath('/')
     return NextResponse.json({ success: true, image: updated })
   } catch (error) {
     console.error("Failed to update product image:", error)
@@ -256,6 +259,7 @@ export async function DELETE(
       }
     }
 
+    revalidatePath('/')
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Failed to delete product image:", error)

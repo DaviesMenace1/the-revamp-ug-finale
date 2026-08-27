@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { eq } from "drizzle-orm"
 import {
@@ -345,6 +346,7 @@ export async function POST(
         })
         .returning()
 
+    revalidatePath('/')
     return NextResponse.json(
       {
         success: true,

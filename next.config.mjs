@@ -19,9 +19,43 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+          { key: 'Link', value: '</.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json"' },
         ],
       },
     ]
+  },
+  async rewrites() {
+    const markdownPages = [
+      '/',
+      '/about',
+      '/services',
+      '/services/:path*',
+      '/collections',
+      '/collections/:path*',
+      '/portfolio',
+      '/portfolio/:path*',
+      '/journal',
+      '/journal/:path*',
+      '/contact',
+      '/faqs',
+      '/custom-services',
+      '/source-with-revamp',
+      '/trade-program',
+      '/membership-program',
+      '/book-consultation',
+      '/request-quote',
+      '/product-inquiry',
+      '/refund-policy',
+      '/return-policy',
+      '/legal/:path*',
+    ]
+    return {
+      beforeFiles: markdownPages.map((source) => ({
+        source,
+        destination: `/api/agent/markdown?path=${source}`,
+        has: [{ type: 'header', key: 'accept', value: '(?:^|,\\s*)text/markdown(?:,|$)' }],
+      })),
+    }
   },
   async redirects() {
     return [

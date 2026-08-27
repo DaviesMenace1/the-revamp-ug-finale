@@ -10,6 +10,7 @@ import ConsentGatedAnalytics from '@/components/analytics/consent-gated-analytic
 import { CartProvider } from '@/lib/context/cart-context'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateOrganizationSchema, generateLocalBusinessSchema, generateWebSiteSchema } from '@/lib/seo/schema-generator'
+import WebMcpBootstrap from '@/components/agent/webmcp-bootstrap'
 import ClerkRuntimeGuard from '@/components/auth/clerk-runtime-guard'
 import './globals.css'
 
@@ -160,6 +161,7 @@ export default function RootLayout({
                 <NewsletterPopup />
                 <OneSignalBootstrap />
                 <ConsentGatedAnalytics />
+                <WebMcpBootstrap />
               </CartProvider>
             </CookieConsentProvider>
           </ClerkRuntimeGuard>

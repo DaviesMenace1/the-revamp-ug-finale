@@ -262,22 +262,23 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
             </div>
 
             <div className="grid md:grid-cols-2 gap-6 mb-6 text-sm">
-              {/* Shipping Address */}
+              {/* Delivery details */}
               <div className="space-y-2 border p-4 bg-muted/10">
                 <h3 className="font-medium text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-primary" /> Shipping Address
+                  <MapPin className="w-4 h-4 text-primary" /> {selectedOrder.deliveryAddress?.deliveryMethod === 'pickup_station' ? 'Pickup Station' : 'Shipping Address'}
                 </h3>
-                <p className="font-semibold">{selectedOrder.deliveryAddress?.name}</p>
-                <p className="text-muted-foreground text-xs">{selectedOrder.deliveryAddress?.address}</p>
-                <p className="text-muted-foreground text-xs">
-                  {selectedOrder.deliveryAddress?.city}, {selectedOrder.deliveryAddress?.country}
-                </p>
-                <p className="text-muted-foreground text-xs flex items-center gap-1 pt-1">
-                  <Phone className="w-3 h-3" /> {selectedOrder.deliveryAddress?.phone || 'N/A'}
-                </p>
-                <p className="text-muted-foreground text-xs flex items-center gap-1">
-                  <Mail className="w-3 h-3" /> {selectedOrder.customerEmail || selectedOrder.userId}
-                </p>
+                {selectedOrder.deliveryAddress?.deliveryMethod === 'pickup_station' && selectedOrder.deliveryAddress?.pickupStation && typeof selectedOrder.deliveryAddress.pickupStation === 'object' ? <>
+                  <p className="font-semibold">{(selectedOrder.deliveryAddress.pickupStation as Record<string, unknown>).name as string || 'Pickup station'}</p>
+                  <p className="text-muted-foreground text-xs">{(selectedOrder.deliveryAddress.pickupStation as Record<string, unknown>).address as string || selectedOrder.deliveryAddress.address}</p>
+                  <p className="text-muted-foreground text-xs">{(selectedOrder.deliveryAddress.pickupStation as Record<string, unknown>).city as string || selectedOrder.deliveryAddress.city}</p>
+                  {(selectedOrder.deliveryAddress.pickupStation as Record<string, unknown>).instructions && <p className="text-primary text-xs">{(selectedOrder.deliveryAddress.pickupStation as Record<string, unknown>).instructions as string}</p>}
+                </> : <>
+                  <p className="font-semibold">{selectedOrder.deliveryAddress?.name}</p>
+                  <p className="text-muted-foreground text-xs">{selectedOrder.deliveryAddress?.address}</p>
+                  <p className="text-muted-foreground text-xs">{selectedOrder.deliveryAddress?.city}, {selectedOrder.deliveryAddress?.country}</p>
+                </>}
+                <p className="text-muted-foreground text-xs flex items-center gap-1 pt-1"><Phone className="w-3 h-3" /> {selectedOrder.deliveryAddress?.phone || 'N/A'}</p>
+                <p className="text-muted-foreground text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {selectedOrder.customerEmail || selectedOrder.userId}</p>
               </div>
 
               {/* Payment Summary */}

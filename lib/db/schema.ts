@@ -959,6 +959,57 @@ export const carts = pgTable(
   }),
 )
 
+export const savedAddresses = pgTable(
+  "saved_addresses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    label: varchar("label", { length: 120 }).notNull().default("Home"),
+    recipientName: varchar("recipient_name", { length: 255 }).notNull(),
+    phone: varchar("phone", { length: 30 }).notNull(),
+    address: text("address").notNull(),
+    city: varchar("city", { length: 120 }).notNull(),
+    region: varchar("region", { length: 120 }),
+    country: varchar("country", { length: 100 }).notNull().default("Uganda"),
+    notes: text("notes"),
+    isDefault: boolean("is_default").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("saved_addresses_user_idx").on(table.userId),
+    defaultIdx: index("saved_addresses_default_idx").on(table.userId, table.isDefault),
+  }),
+)
+
+export const pickupStations = pgTable(
+  "pickup_stations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 180 }).notNull(),
+    address: text("address").notNull(),
+    city: varchar("city", { length: 120 }).notNull().default("Kampala"),
+    region: varchar("region", { length: 120 }),
+    country: varchar("country", { length: 100 }).notNull().default("Uganda"),
+    phone: varchar("phone", { length: 30 }),
+    instructions: text("instructions"),
+    fee: numeric("fee", { precision: 12, scale: 2 }).notNull().default("0"),
+    latitude: numeric("latitude", { precision: 10, scale: 7 }),
+    longitude: numeric("longitude", { precision: 10, scale: 7 }),
+    active: boolean("active").notNull().default(true),
+    displayOrder: integer("display_order").notNull().default(0),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    activeOrderIdx: index("pickup_stations_active_order_idx").on(table.active, table.displayOrder),
+    cityIdx: index("pickup_stations_city_idx").on(table.city),
+  }),
+)
+
 export const orders = pgTable(
   "orders",
   {
@@ -2561,6 +2612,8 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   memberships: many(memberships),
   sourcingRequests: many(sourcingRequests),
   carts: many(carts),
+  savedAddresses: many(savedAddresses),
+  createdPickupStations: many(pickupStations, { relationName: 'pickupStationCreator' }),
   paymentRecords: many(paymentRecords),
   programSubscriptions: many(programSubscriptions),
   financialDocuments: many(financialDocuments, { relationName: 'financialDocumentsUser' }),
@@ -2574,6 +2627,21 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   loyaltyTransactions: many(loyaltyTransactions),
   loyaltyReferralsSent: many(loyaltyReferrals, { relationName: 'loyaltyReferrer' }),
   loyaltyReferralsReceived: many(loyaltyReferrals, { relationName: 'loyaltyReferred' }),
+}))
+
+export const savedAddressesRelations = relations(savedAddresses, ({ one }) => ({
+  user: one(users, {
+    fields: [savedAddresses.userId],
+    references: [users.id],
+  }),
+}))
+
+export const pickupStationsRelations = relations(pickupStations, ({ one }) => ({
+  creator: one(users, {
+    fields: [pickupStations.createdBy],
+    references: [users.id],
+    relationName: 'pickupStationCreator',
+  }),
 }))
 
 export const departmentsRelations = relations(

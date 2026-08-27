@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { randomUUID } from 'node:crypto'
 import { db } from '@/lib/db/client'
-import { eq, inArray } from 'drizzle-orm'
-import { orders, paymentRecords, products } from '@/lib/db/schema'
+import { and, eq, inArray } from 'drizzle-orm'
+import { orders, paymentRecords, pickupStations, products, savedAddresses } from '@/lib/db/schema'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { reservePointsForOrder, safelyReleasePointsForOrder } from '@/lib/loyalty/service'
 import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
@@ -23,6 +23,10 @@ type OrderBody = {
   cardExpiryMonth?: unknown
   cardExpiryYear?: unknown
   cardCvv?: unknown
+  deliveryMethod?: unknown
+  addressId?: unknown
+  saveAddress?: unknown
+  pickupStationId?: unknown
 }
 
 function text(value: unknown, fallback = '', maxLength = 255) {
@@ -94,7 +98,11 @@ export async function POST(request: Request) {
     const email = text(body.email, '', 320)
     const customerName = text(body.customerName, 'Customer', 255)
     const phoneNumber = text(body.phoneNumber, '', 30)
-    const shippingAddress = body.shippingAddress && typeof body.shippingAddress === 'object' ? body.shippingAddress as Record<string, unknown> : {}
+    const submittedShippingAddress = body.shippingAddress && typeof body.shippingAddress === 'object' ? body.shippingAddress as Record<string, unknown> : {}
+    const requestedDeliveryMethod = text(body.deliveryMethod ?? submittedShippingAddress.deliveryMethod, '', 30).toLowerCase()
+    const deliveryMethod = requestedDeliveryMethod === 'pickup_station' || requestedDeliveryMethod === 'pickup' ? 'pickup_station' : 'door_delivery'
+    const addressId = text(body.addressId ?? submittedShippingAddress.addressId, '', 80)
+    const pickupStationId = text(body.pickupStationId ?? submittedShippingAddress.pickupStationId, '', 80)
     const items = Array.isArray(body.items) ? body.items : []
     const expectedCurrency = (process.env.FLUTTERWAVE_CURRENCY || 'UGX').toUpperCase()
 
@@ -104,6 +112,70 @@ export async function POST(request: Request) {
 
     const config = getFlutterwaveConfig()
     if (!config.ok) return NextResponse.json({ error: flutterwaveConfigurationMessage(config) }, { status: 503 })
+
+    const localUser = await getOrCreateCurrentUser(userId)
+    if (!localUser) return NextResponse.json({ error: 'Your account is not ready to place this order yet.' }, { status: 503 })
+
+    let shippingAddress: Record<string, unknown>
+    if (deliveryMethod === 'pickup_station') {
+      if (!/^[0-9a-f-]{36}$/i.test(pickupStationId)) return NextResponse.json({ error: 'Choose a valid pickup station.' }, { status: 400 })
+      const [station] = await db.select({ id: pickupStations.id, name: pickupStations.name, address: pickupStations.address, city: pickupStations.city, region: pickupStations.region, country: pickupStations.country, phone: pickupStations.phone, instructions: pickupStations.instructions, fee: pickupStations.fee }).from(pickupStations).where(and(eq(pickupStations.id, pickupStationId), eq(pickupStations.active, true))).limit(1)
+      if (!station) return NextResponse.json({ error: 'That pickup station is no longer available. Please choose another station.' }, { status: 409 })
+      shippingAddress = {
+        deliveryMethod: 'pickup_station',
+        pickupStationId: station.id,
+        pickupStation: station,
+        name: customerName,
+        phone: phoneNumber,
+        address: station.address,
+        city: station.city,
+        region: station.region,
+        country: station.country,
+        notes: text(submittedShippingAddress.notes, '', 1000),
+      }
+    } else {
+      let savedAddress: typeof savedAddresses.$inferSelect | null = null
+      if (/^[0-9a-f-]{36}$/i.test(addressId)) {
+        const [selected] = await db.select().from(savedAddresses).where(and(eq(savedAddresses.id, addressId), eq(savedAddresses.userId, localUser.id))).limit(1)
+        savedAddress = selected || null
+        if (!savedAddress) return NextResponse.json({ error: 'That saved address is no longer available. Please choose or enter another address.' }, { status: 409 })
+      }
+      const candidate = savedAddress && body.saveAddress !== true ? savedAddress : {
+        id: savedAddress?.id || null,
+        label: text(submittedShippingAddress.label, '', 120) || savedAddress?.label || 'Checkout address',
+        recipientName: customerName,
+        phone: phoneNumber,
+        address: text(submittedShippingAddress.address, '', 2000),
+        city: text(submittedShippingAddress.city, '', 120),
+        region: text(submittedShippingAddress.region, '', 120),
+        country: text(submittedShippingAddress.country, '', 100) || 'Uganda',
+        notes: text(submittedShippingAddress.notes, '', 1000),
+        isDefault: savedAddress?.isDefault || false,
+      }
+      if (!candidate.address || !candidate.city) return NextResponse.json({ error: 'A delivery address and city are required.' }, { status: 400 })
+      let persistedAddressId = savedAddress?.id || null
+      if (body.saveAddress === true) {
+        await db.update(savedAddresses).set({ isDefault: false, updatedAt: new Date() }).where(eq(savedAddresses.userId, localUser.id))
+        if (savedAddress) {
+          await db.update(savedAddresses).set({ label: candidate.label, recipientName: candidate.recipientName, phone: candidate.phone, address: candidate.address, city: candidate.city, region: candidate.region || null, country: candidate.country, notes: candidate.notes || null, isDefault: true, updatedAt: new Date() }).where(and(eq(savedAddresses.id, savedAddress.id), eq(savedAddresses.userId, localUser.id)))
+        } else {
+          const [createdAddress] = await db.insert(savedAddresses).values({ userId: localUser.id, label: candidate.label, recipientName: candidate.recipientName, phone: candidate.phone, address: candidate.address, city: candidate.city, region: candidate.region || null, country: candidate.country, notes: candidate.notes || null, isDefault: true, updatedAt: new Date() }).returning({ id: savedAddresses.id })
+          persistedAddressId = createdAddress?.id || null
+        }
+      }
+      shippingAddress = {
+        deliveryMethod: 'door_delivery',
+        addressId: persistedAddressId,
+        label: candidate.label,
+        name: candidate.recipientName,
+        phone: candidate.phone,
+        address: candidate.address,
+        city: candidate.city,
+        region: candidate.region || null,
+        country: candidate.country,
+        notes: candidate.notes || '',
+      }
+    }
 
     const parsedItems = items.map((item: unknown) => {
       if (!item || typeof item !== 'object') return null
@@ -149,8 +221,9 @@ export async function POST(request: Request) {
 
     const orderItems = normalizedItems as Array<Record<string, unknown>>
     const itemTotal = validItems.reduce((total, item) => total + item.unitPrice * item.quantity, 0)
+    const deliveryFee = deliveryMethod === 'pickup_station' ? Math.max(0, Number(shippingAddress.pickupStation && typeof shippingAddress.pickupStation === 'object' ? (shippingAddress.pickupStation as Record<string, unknown>).fee : 0) || 0) : 0
     const numericAmount = Number(amount.toFixed(2))
-    if (Math.abs(itemTotal - numericAmount) > 0.01) return NextResponse.json({ error: 'The order total changed. Please review your cart and try again.' }, { status: 409 })
+    if (Math.abs(itemTotal + deliveryFee - numericAmount) > 0.01) return NextResponse.json({ error: 'The order total changed. Please review your cart and try again.' }, { status: 409 })
 
     let paymentMethod: Awaited<ReturnType<typeof buildFlutterwavePaymentMethod>>
     try {
@@ -160,9 +233,9 @@ export async function POST(request: Request) {
     }
 
     const txRef = `REV-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-    const subtotal = (numericAmount * 0.9).toFixed(2)
-    const tax = (numericAmount * 0.1).toFixed(2)
-    const [createdOrder] = await db.insert(orders).values({ orderNumber: txRef, userId, items: orderItems, subtotal, tax, shipping: '0.00', discount: '0.00', total: String(numericAmount), status: 'pending', paymentStatus: 'pending', deliveryAddress: shippingAddress, notes: text(shippingAddress.notes) || null }).returning({ id: orders.id })
+    const subtotal = (itemTotal * 0.9).toFixed(2)
+    const tax = (itemTotal * 0.1).toFixed(2)
+    const [createdOrder] = await db.insert(orders).values({ orderNumber: txRef, userId, items: orderItems, subtotal, tax, shipping: deliveryFee.toFixed(2), discount: '0.00', total: String(numericAmount), status: 'pending', paymentStatus: 'pending', deliveryAddress: shippingAddress, notes: text(shippingAddress.notes) || null }).returning({ id: orders.id })
     if (!createdOrder) return NextResponse.json({ error: 'The order could not be initialized.' }, { status: 500 })
 
     const requestedPoints = Math.max(0, Math.floor(Number(body.loyaltyPoints) || 0))
@@ -170,8 +243,6 @@ export async function POST(request: Request) {
     let discountUgx = 0
     if (requestedPoints > 0) {
       try {
-        const localUser = await getOrCreateCurrentUser(userId)
-        if (!localUser) throw new Error('Your account is not ready for points yet.')
         const redemption = await reservePointsForOrder(localUser.id, createdOrder.id, requestedPoints)
         if (!redemption.success || typeof redemption.discountUgx !== 'number') throw new Error(redemption.error || 'Points could not be applied.')
         amountAfterPoints = Math.max(0, numericAmount - redemption.discountUgx)
@@ -199,12 +270,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: flutterwaveErrorMessage(flwPayload, flwResponse.response?.status || 502) }, { status: flwResponse.response?.status === 401 ? 503 : 502 })
     }
 
-    const localUser = await getOrCreateCurrentUser(userId)
-    if (!localUser) {
-      await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
-      await safelyReleasePointsForOrder(createdOrder.id)
-      return NextResponse.json({ error: 'Your account is not ready to record this payment yet.' }, { status: 503 })
-    }
     await db.insert(paymentRecords).values({ userId: localUser.id, orderId: createdOrder.id, provider: 'flutterwave', transactionReference: String(charge.id), amount: String(amountAfterPoints), currency: expectedCurrency, method: paymentMethod.type, status: 'pending', metadata: { txRef, chargeId: String(charge.id), discountUgx } })
 
     return NextResponse.json({ txRef, orderId: createdOrder.id, amount: amountAfterPoints, discountUgx, paymentUrl: charge.next_action?.redirect_url?.url || null, paymentInstruction: charge.next_action?.payment_instruction?.note || null })

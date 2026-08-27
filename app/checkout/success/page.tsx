@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -20,6 +19,27 @@ import {
   Sparkles,
 } from 'lucide-react'
 
+function parseObject(value: unknown): Record<string, any> {
+  if (typeof value !== 'string') return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {}
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, any> : {}
+  } catch {
+    return {}
+  }
+}
+
+function parseItems(value: unknown): any[] {
+  if (Array.isArray(value)) return value
+  if (typeof value !== 'string') return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
 function SuccessContent() {
   const searchParams = useSearchParams()
   const orderRef = searchParams.get('orderRef')
@@ -27,6 +47,7 @@ function SuccessContent() {
 
   const [order, setOrder] = useState<any>(null)
   const [loading, setLoading] = useState(Boolean(orderRef))
+  const [loadError, setLoadError] = useState<string | null>(orderRef ? null : 'This confirmation link is missing an order reference.')
 
   // Fetch the order first; the cart is cleared only after the server confirms payment.
   useEffect(() => {
@@ -35,17 +56,31 @@ function SuccessContent() {
 
     async function fetchOrderDetails() {
       try {
-        const reconciliationResponse = await fetch(`/api/orders/reconcile?ref=${encodeURIComponent(reference)}`, { cache: 'no-store' })
-        const reconciliation = await reconciliationResponse.json().catch(() => null) as { status?: string; success?: boolean } | null
-        if (reconciliation?.status === 'paid' || reconciliation?.status === 'completed' || reconciliation?.success === true && reconciliation?.status === 'paid') clearCart()
-        const res = await fetch(`/api/orders/details?ref=${encodeURIComponent(reference)}`, { cache: 'no-store' })
-        if (res.ok) {
-          const data = await res.json()
-          setOrder(data.order)
-          if (data.order?.paymentStatus === 'completed') clearCart()
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          const reconciliationResponse = await fetch(`/api/orders/reconcile?ref=${encodeURIComponent(reference)}`, { cache: 'no-store' })
+          const reconciliation = await reconciliationResponse.json().catch(() => null) as { status?: string; success?: boolean; error?: string } | null
+          if (reconciliation?.status === 'paid' && reconciliation.success !== false) clearCart()
+          const res = await fetch(`/api/orders/details?ref=${encodeURIComponent(reference)}`, { cache: 'no-store' })
+          if (res.ok) {
+            const data = await res.json()
+            const orderData = data?.order
+            if (orderData?.paymentStatus === 'completed') {
+              setOrder(orderData)
+              setLoadError(null)
+              clearCart()
+              return
+            }
+            if (orderData?.paymentStatus === 'failed' || orderData?.status === 'cancelled') {
+              setLoadError('This payment was not completed, so no successful receipt is shown. Please return to checkout and try again.')
+              return
+            }
+          }
+          if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 1000))
         }
+        setLoadError('We could not load the confirmed order details yet. Your payment was not changed. Please retry this view in a moment.')
       } catch (error) {
         console.error('Failed to load order details:', error)
+        setLoadError('We could not load the confirmed order details yet. Your payment was not changed. Please retry this view in a moment.')
       } finally {
         setLoading(false)
       }
@@ -65,17 +100,21 @@ function SuccessContent() {
     )
   }
 
-  const shippingAddress = order?.shippingAddress
-    ? typeof order.shippingAddress === 'string'
-      ? JSON.parse(order.shippingAddress)
-      : order.shippingAddress
-    : null
+  const deliveryAddress = order?.deliveryAddress ? parseObject(order.deliveryAddress) : null
+  const items = parseItems(order?.items)
 
-  const items = order?.items
-    ? typeof order.items === 'string'
-      ? JSON.parse(order.items)
-      : order.items
-    : []
+  if (loadError || !order) {
+    return (
+      <div className="mx-auto max-w-xl py-24 text-center">
+        <div className="rounded-xl border border-amber-300/70 bg-amber-50 p-6 text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50">
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em]">The Revamp UG</p>
+          <h1 className="mt-3 font-serif text-3xl">Your order is still being confirmed.</h1>
+          <p className="mt-3 text-sm leading-6">{loadError || 'We are retrieving your order details. Your payment was not changed.'}</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-5 min-h-11 rounded bg-amber-950 px-4 text-sm font-medium text-white dark:bg-amber-200 dark:text-amber-950">Retry confirmation</button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -117,21 +156,23 @@ function SuccessContent() {
           </div>
         </div>
 
-        {/* Shipping & Payment Grid */}
+          {/* Delivery & Payment Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
-          {/* Shipping Address */}
+          {/* Delivery details */}
           <div className="space-y-2 p-4 bg-muted/30 border border-border">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-primary" /> Delivery Address
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-primary" /> {deliveryAddress?.deliveryMethod === 'pickup_station' ? 'Pickup Station' : 'Delivery Address'}
+
             </p>
-            {shippingAddress ? (
+            {deliveryAddress ? (
               <div className="space-y-0.5 text-foreground text-xs leading-relaxed">
-                <p className="font-semibold text-sm">{shippingAddress.name}</p>
-                <p>{shippingAddress.address}</p>
+                <p className="font-semibold text-sm">{deliveryAddress.deliveryMethod === 'pickup_station' ? deliveryAddress.pickupStation?.name || 'Pickup station' : deliveryAddress.name}</p>
+                <p>{deliveryAddress.deliveryMethod === 'pickup_station' ? deliveryAddress.pickupStation?.address || deliveryAddress.address : deliveryAddress.address}</p>
                 <p>
-                  {shippingAddress.city}, {shippingAddress.country}
+                  {deliveryAddress.city}{deliveryAddress.region ? ` · ${deliveryAddress.region}` : ''}, {deliveryAddress.country}
                 </p>
-                <p className="text-muted-foreground pt-1">{shippingAddress.phone}</p>
+                <p className="text-muted-foreground pt-1">{deliveryAddress.phone}</p>
+                {deliveryAddress.deliveryMethod === 'pickup_station' && deliveryAddress.pickupStation?.instructions && <p className="pt-1 text-primary">{deliveryAddress.pickupStation.instructions}</p>}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">Standard Delivery</p>
@@ -180,12 +221,11 @@ function SuccessContent() {
                   <div className="flex items-center gap-3">
                     {item.image && (
                       <div className="relative w-12 h-12 bg-muted border border-border shrink-0 overflow-hidden">
-                        <Image
+                        <img
                           src={item.image}
-                          alt={item.name}
-                          fill
-                          className="object-cover"
-                          unoptimized={typeof item.image === 'string' && item.image.startsWith('http')}
+                          alt={item.name || 'Purchased product'}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
                         />
                       </div>
                     )}

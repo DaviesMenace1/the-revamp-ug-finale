@@ -9,6 +9,8 @@ import { Save, Check } from 'lucide-react'
 import { saveSetting } from '@/lib/actions/settings'
 import ConsultationCommerceClient, { type ConsultationPricing, type ConsultationPromotion } from './consultation-commerce-client'
 import SubscriptionPricingClient, { type SubscriptionPricing } from './subscription-pricing-client'
+import PickupStationsClient from './pickup-stations-client'
+import type { PickupStationRecord } from '@/lib/actions/pickup-stations'
 
 type Business = { name: string; email: string; phone: string; address: string; description: string }
 type EmailPrefs = {
@@ -48,6 +50,7 @@ export default function SettingsClient({
   initialConsultationPricing,
   initialPromotions,
   initialSubscriptionPricing,
+  initialPickupStations,
 }: {
   initialBusiness: Business
   initialEmail: EmailPrefs
@@ -56,6 +59,7 @@ export default function SettingsClient({
   initialConsultationPricing: ConsultationPricing
   initialPromotions: ConsultationPromotion[]
   initialSubscriptionPricing: SubscriptionPricing
+  initialPickupStations: PickupStationRecord[]
 }) {
   const [business, setBusiness] = useState(initialBusiness)
   const [email, setEmail] = useState(initialEmail)
@@ -269,6 +273,8 @@ export default function SettingsClient({
       <ConsultationCommerceClient initialPricing={initialConsultationPricing} initialPromotions={initialPromotions} />
 
       <SubscriptionPricingClient initialPricing={initialSubscriptionPricing} />
+
+      <PickupStationsClient initialStations={initialPickupStations} />
 
       <Card>
         <CardHeader>

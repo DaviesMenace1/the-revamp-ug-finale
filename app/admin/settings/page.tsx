@@ -3,6 +3,7 @@ import { listConsultationPromotions } from '@/lib/actions/consultation-commerce'
 import { type ConsultationPricing, type ConsultationPromotion } from './consultation-commerce-client'
 import SettingsClient from './settings-client'
 import { DEFAULT_SUBSCRIPTION_PRICING, getSubscriptionPricing } from '@/lib/subscriptions'
+import { listPickupStations } from '@/lib/actions/pickup-stations'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,6 +63,7 @@ export default async function AdminSettingsPage() {
   const promotions = await listConsultationPromotions()
   const documentProfile = await getSetting('document_profile', DOCUMENT_PROFILE_DEFAULTS)
   const subscriptionPricing = await getSubscriptionPricing()
+  const pickupStations = await listPickupStations(true)
 
   return (
     <SettingsClient
@@ -72,6 +74,7 @@ export default async function AdminSettingsPage() {
       initialConsultationPricing={consultationPricing}
       initialPromotions={promotions as ConsultationPromotion[]}
       initialSubscriptionPricing={subscriptionPricing || DEFAULT_SUBSCRIPTION_PRICING}
+      initialPickupStations={pickupStations}
     />
   )
 }

@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       order: {
         orderNumber: order.orderNumber,
+        userEmail: record.userEmail || null,
         status: order.status,
         paymentStatus: order.paymentStatus,
         createdAt: order.createdAt,

@@ -30,16 +30,18 @@ import { ThemeSwitcher } from '@/components/theme-switcher'
     ]
   },
   { label: 'Projects', href: '/portfolio' },
-  { label: 'Shop', href: '/collections' },
+  { label: 'Collections', href: '/collections' },
+  { label: 'Journal', href: '/journal' },
   { label: 'FAQs', href: '/faqs' },
 ]
 
 // Secondary links available via the Drawer/Sheet
 const secondaryNavLinks: NavLink[] = [
-  { label: 'Journal', href: '/journal' },
-  { label: 'Source With Revamp', href: '/contact' },
-  { label: 'Trade Program', href: '/trade' },
-  { label: 'Membership', href: '/membership' },
+  { label: 'Source With Revamp', href: '/source-with-revamp' },
+  { label: 'Trade Program', href: '/trade-program' },
+  { label: 'Membership', href: '/membership-program' },
+  { label: 'Request a Quote', href: '/request-quote' },
+  { label: 'Product Inquiry', href: '/product-inquiry' },
   { label: 'Contact', href: '/contact' },
 ]
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getArticles, getArticlesByCategory } from '@/lib/db/queries';
+import { getPublishedArticles, getArticlesByCategory } from '@/lib/db/queries';
 import { checkRateLimit, withCache, CACHE_KEYS, TTL } from '@/lib/redis';
 
 export async function GET(request: NextRequest) {
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       cacheKey,
       async () => {
         if (category) return getArticlesByCategory(category);
-        return getArticles(limit, offset);
+        return getPublishedArticles(limit, offset);
       },
       TTL.LONG,
     );

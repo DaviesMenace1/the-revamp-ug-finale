@@ -9,6 +9,7 @@ import { ArrowRight, ArrowLeft } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateBreadcrumbSchema, generateServiceSchema } from '@/lib/seo/schema-generator'
+import { getServicePageContent } from '@/lib/service-content'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,6 +70,8 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const nextService = serviceIndex < publishedServices.length - 1 ? publishedServices[serviceIndex + 1] : null
   const serviceUrl = `${SITE_URL}/services/${encodeURIComponent(category.slug)}/${encodeURIComponent(service.slug)}`
   const serviceImage = service.ogImage || service.image || undefined
+  const serviceContent = getServicePageContent(service.name, category.name)
+  const inquiryHref = `/contact?interest=quote_request&service=${encodeURIComponent(service.name)}`
 
   return (
     <>
@@ -155,15 +158,10 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
                 <div>
                   <h2 className="font-serif text-3xl font-light text-foreground mb-4">
-                    What We Offer
+                    {serviceContent.offerLabel}
                   </h2>
                   <ul className="space-y-3">
-                    {[
-                      'Expert consultation and assessment',
-                      'Customized solutions tailored to your needs',
-                      'Professional execution and management',
-                      'Post-delivery support and follow-up',
-                    ].map((item) => (
+                    {serviceContent.offerItems.map((item) => (
                       <li key={item} className="flex items-start gap-3 text-foreground/70">
                         <span className="text-gold mt-1">→</span>
                         {item}
@@ -177,17 +175,12 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                     Our Process
                   </h2>
                   <div className="space-y-4">
-                    {[
-                      { step: '01', title: 'Consultation', desc: 'We meet to understand your vision, requirements, and budget.' },
-                      { step: '02', title: 'Design', desc: 'Our team creates comprehensive designs and proposals.' },
-                      { step: '03', title: 'Implementation', desc: 'Meticulous execution with attention to every detail.' },
-                      { step: '04', title: 'Completion', desc: 'Final delivery and handover with ongoing support.' },
-                    ].map((item) => (
+                    {serviceContent.process.map((item) => (
                       <div key={item.step} className="flex gap-4 pb-4 border-b border-border/20 last:border-0">
                         <div className="text-2xl font-light text-muted-foreground">{item.step}</div>
                         <div>
                           <h3 className="font-medium text-foreground">{item.title}</h3>
-                          <p className="text-sm text-foreground/60 mt-1">{item.desc}</p>
+                          <p className="text-sm text-foreground/60 mt-1">{item.description}</p>
                         </div>
                       </div>
                     ))}
@@ -207,10 +200,10 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                   </div>
 
                   <Link
-                    href="/book-consultation"
+                    href={inquiryHref}
                     className="block w-full text-center px-6 py-3 bg-gold text-foreground rounded font-medium hover:bg-gold/90 transition-colors"
                   >
-                    Request Service
+                    {serviceContent.inquiryLabel}
                   </Link>
 
                   <div className="p-6 border border-border/30 rounded-lg space-y-3">
@@ -219,19 +212,33 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                       Contact our team to discuss how this service can transform your project.
                     </p>
                     <Link
-                      href="/contact"
+                      href={inquiryHref}
                       className="inline-flex items-center gap-1 text-sm text-gold hover:text-gold/80 transition-colors"
                     >
-                      Get in Touch
+                      Request a conversation
                       <ArrowRight size={14} />
                     </Link>
+                  </div>
+                                </div>
+
+                <div>
+                  <h2 className="font-serif text-3xl font-light text-foreground mb-4">Frequently asked</h2>
+                  <div className="divide-y divide-border border-y border-border/60">
+                    {serviceContent.faqs.map((faq) => (
+                      <details key={faq.question} className="group py-4">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-foreground">
+                          {faq.question}
+                          <span className="text-gold transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+                        </summary>
+                        <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">{faq.answer}</p>
+                      </details>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
-
         {(prevService || nextService) && (
           <section className="border-t border-border/20 py-16">
             <div className="mx-auto max-w-7xl px-6 md:px-8">

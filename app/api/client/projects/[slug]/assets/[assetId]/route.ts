@@ -4,6 +4,7 @@ import { projectAssets, projectMembers, projects } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
 import { getFromR2, keyFromR2Url } from '@/lib/storage/r2'
+import { isUuid } from '@/lib/utils'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -21,7 +22,7 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
       return NextResponse.json({ success: false, error: 'Forbidden.' }, { status: 403 })
     }
 
-    const project = await db.query.projects.findFirst({ where: eq(projects.slug, slug), columns: { id: true, userId: true } })
+    const project = await db.query.projects.findFirst({ where: isUuid(slug) ? eq(projects.id, slug) : eq(projects.slug, slug), columns: { id: true, userId: true } })
     if (!project) return NextResponse.json({ success: false, error: 'Project not found.' }, { status: 404 })
 
     const isStaff = STAFF_ROLES.includes(authorization.user.role as typeof STAFF_ROLES[number])

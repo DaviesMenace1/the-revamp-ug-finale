@@ -9,7 +9,7 @@ const teamMembers = [
   {
     name: 'Faridah Nakayiwa A ',
     title: 'Founder & Creative Director',
-    bio: 'The visionary behind The Revamp UG, blending refined East African craft with world-class design sensibilit.',
+    bio: 'The visionary behind The Revamp UG, bringing together an East African point of view, considered spaces, and a wider design perspective.',
     image: '/team/faridah-nakayiwa.webp',
   },
   {
@@ -20,11 +20,11 @@ const teamMembers = [
   },
 ]
 
-const stats = [
-  { number: '120+', label: 'Projects Completed' },
-  { number: '14', label: 'Years of Experience' },
-  { number: '98%', label: 'Client Satisfaction' },
-  { number: '25+', label: 'Countries Sourced From' },
+const practiceAreas = [
+  { title: 'Spaces', description: 'Interior design, architecture, renovation, and project direction shaped around how people live and work.' },
+  { title: 'Objects', description: 'Furniture, lighting, art, textiles, and custom pieces selected or developed for the room.' },
+  { title: 'Sourcing', description: 'A considered route through materials, makers, procurement, and the practical details behind a brief.' },
+  { title: 'Perspective', description: 'An East African point of view with room for global references, local collaboration, and individual expression.' },
 ]
 
 export default function AboutPage() {
@@ -52,8 +52,7 @@ export default function AboutPage() {
                 <h2 className="font-serif text-4xl font-light text-foreground">Our Story</h2>
                 <p className="text-lg text-muted-foreground font-light leading-relaxed">
                   Revamp UG was founded with a simple mission: to bring world-class design and architecture to East Africa.
-                  What started as a dream in Kampala has grown into a full-service design studio serving clients across Uganda,
-                  Kenya, Tanzania, and beyond.
+                  What started as a dream in Kampala has grown into a broader design studio for residential, commercial, hospitality, and sourcing briefs.
                 </p>
                 <p className="text-lg text-muted-foreground font-light leading-relaxed">
                   We believe that exceptional design isn't a luxury; it's a necessity. Every project, from residential apartments
@@ -100,17 +99,11 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Stats */}
-        <section className="py-20 md:py-28 border-b border-border/20">
+        {/* Practice */}
+        <section className="border-b border-border/20 py-20 md:py-28">
           <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <div className="grid md:grid-cols-4 gap-8 text-center">
-              {stats.map(stat => (
-                <div key={stat.label} className="space-y-2">
-                  <p className="font-serif text-5xl font-light text-primary">{stat.number}</p>
-                  <p className="text-muted-foreground font-light">{stat.label}</p>
-                </div>
-              ))}
-            </div>
+            <div className="mb-12 max-w-2xl"><p className="text-[10px] uppercase tracking-[0.24em] text-primary">The practice</p><h2 className="mt-4 font-serif text-4xl font-light text-foreground sm:text-5xl">A connected way of working.</h2><p className="mt-4 text-base leading-7 text-muted-foreground">The work moves between space, object, sourcing, and point of view. Each brief begins with its own context.</p></div>
+            <div className="grid gap-px bg-border sm:grid-cols-2">{practiceAreas.map((area) => <article key={area.title} className="bg-background p-6 sm:p-8"><h3 className="font-serif text-3xl font-light text-foreground">{area.title}</h3><p className="mt-3 text-sm leading-7 text-muted-foreground">{area.description}</p></article>)}</div>
           </div>
         </section>
 

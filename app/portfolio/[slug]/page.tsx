@@ -58,7 +58,8 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   const relatedProjects = allProjects.filter((item) => item.slug !== slug && item.category === project.category).slice(0, 3)
   const heroImage = resolveProductImageUrls(project)[0]
   const galleryImages = resolveProductImageUrls(project).slice(1)
-  const description = project.description || project.shortDescription || 'A considered interior by The Revamp studio.'
+  const description = project.shortDescription || project.description || 'A considered interior by The Revamp studio.'
+  const storyParagraphs = (project.longDescription || '').split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean)
   const projectUrl = `${SITE_URL}/portfolio/${encodeURIComponent(slug)}`
   const projectSchema = generateProjectSchema({
     name: project.title,
@@ -105,6 +106,8 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
             </dl>
           </div>
         </section>
+
+        {storyParagraphs.length > 0 && <section className="border-b border-border/70 px-5 py-14 sm:px-8 md:py-20 lg:px-16"><div className="mx-auto grid max-w-[1440px] gap-8 lg:grid-cols-[0.65fr_1.35fr]"><div><p className="text-[10px] uppercase tracking-[0.25em] text-primary">The story</p><h2 className="mt-4 font-serif text-4xl font-light leading-tight sm:text-5xl">The thinking behind the room.</h2></div><div className="space-y-5 text-base leading-8 text-muted-foreground sm:text-lg">{storyParagraphs.map((paragraph, index) => <p key={`${project.id}-story-${index}`}>{paragraph}</p>)}</div></div></section>}
 
         {galleryImages.length > 0 && <section className="px-5 py-14 sm:px-8 md:py-20 lg:px-16"><div className="mx-auto max-w-[1440px]"><div className="mb-8 flex items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.25em] text-primary">Inside the project</p><h2 className="mt-3 font-serif text-4xl font-light sm:text-5xl">Material, light, proportion.</h2></div><span className="hidden text-xs uppercase tracking-[0.15em] text-muted-foreground sm:block">{galleryImages.length} views</span></div><div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-12">{galleryImages.map((image, index) => <div key={`${image}-${index}`} className={`motion-reveal relative overflow-hidden bg-muted ${index % 5 === 0 ? 'sm:col-span-2 lg:col-span-7 lg:row-span-2 aspect-[5/4]' : index % 3 === 0 ? 'lg:col-span-5 aspect-[4/5]' : 'lg:col-span-4 aspect-[4/3]'}`} style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}><Image src={image} alt={`${project.title}, view ${index + 1}`} fill className="object-cover transition duration-700 hover:scale-[1.025]" sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 40vw" /></div>)}</div></div></section>}
 

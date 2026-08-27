@@ -12,7 +12,6 @@ import { TestimonialsSection } from '@/components/sections/testimonials-section'
 import { JournalSection } from '@/components/sections/journal-section'
 import { CtaSection } from '@/components/sections/cta-section'
 import PromotionBanner from '@/components/promotions/promotion-banner'
-
 export default function HomePage() {
   return (
     <>
@@ -36,7 +35,7 @@ export default function HomePage() {
         </section>
         <ProcessSection />
         <TestimonialsSection />
-        <JournalSection />
+        <JournalSection articles={[]} />
         <CtaSection />
       </main>
       <SiteFooter />

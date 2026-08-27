@@ -91,16 +91,16 @@ export function NewsletterPopup() {
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3.5 py-1">
               <Download className="h-3.5 w-3.5 text-primary" />
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary font-medium">
-                Complimentary Design Guide
+                Join the Journal
               </span>
             </div>
 
             <div className="space-y-2">
               <h2 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
-                Elevate Your Living Space
+                A considered note for your inbox
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                Subscribe today to receive our exclusive <strong className="text-foreground font-semibold">2026 Interior Styling Guide (PDF)</strong> emailed directly to your inbox.
+                Subscribe for studio notes on interiors, materials, sourcing, projects, and the details that make a space feel complete.
               </p>
             </div>
 
@@ -128,14 +128,14 @@ export function NewsletterPopup() {
                   'Processing...'
                 ) : (
                   <span className="flex items-center justify-center gap-2">
-                    Claim Free Design PDF <ArrowRight className="h-4 w-4" />
+                    Join the newsletter <ArrowRight className="h-4 w-4" />
                   </span>
                 )}
               </Button>
             </form>
 
             <p className="text-[11px] text-muted-foreground/70">
-              PDF guide emailed upon subscription. No spam, ever.
+              You can unsubscribe whenever you choose.
             </p>
           </div>
         ) : (
@@ -145,9 +145,9 @@ export function NewsletterPopup() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="font-serif text-3xl font-bold">Check Your Inbox!</h3>
+              <h3 className="font-serif text-3xl font-bold">You are on the list</h3>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                We have sent your complimentary <strong className="text-foreground">2026 Interior Styling Guide PDF</strong> directly to <span className="text-foreground font-medium">{email}</span>.
+                You are now on the studio newsletter list at <span className="text-foreground font-medium">{email}</span>.
               </p>
             </div>
 

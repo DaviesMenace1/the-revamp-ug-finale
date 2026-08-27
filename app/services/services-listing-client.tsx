@@ -239,7 +239,7 @@ export default function ServicesListingClient({ categories }: { categories: Serv
               size="lg"
               className="bg-gold text-foreground hover:bg-gold/90 rounded-full font-medium text-base px-8 py-3"
             >
-              <Link href="/contact">Schedule a Consultation</Link>
+              <Link href="/book-consultation">Schedule a Consultation</Link>
             </Button>
           </div>
         </section>

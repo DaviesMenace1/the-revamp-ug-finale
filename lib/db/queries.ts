@@ -240,6 +240,19 @@ export async function getUserConsultations(userId: string) {
 // ARTICLES
 // ============================================================================
 
+export async function getPublishedArticles(limit = 10, offset = 0) {
+  try {
+    return await db.query.articles.findMany({
+      where: eq(articles.status, 'published'),
+      limit,
+      offset,
+      orderBy: desc(articles.publishedAt),
+    })
+  } catch (error) {
+    return []
+  }
+}
+
 export async function getArticles(limit = 10, offset = 0) {
   try {
     return await db.query.articles.findMany({
@@ -265,7 +278,7 @@ export async function getArticleById(id: string) {
 export async function getArticlesByCategory(category: string) {
   try {
     return await db.query.articles.findMany({
-      where: eq(articles.category, category),
+      where: and(eq(articles.category, category), eq(articles.status, 'published')),
       orderBy: desc(articles.publishedAt),
     });
   } catch (error) {

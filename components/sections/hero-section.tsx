@@ -50,8 +50,8 @@ const slides: Slide[] = [
     titleLine1: 'Exclusive Collections',
     titleLine2: 'Sourced Worldwide',
     description: 'Access rare materials, bespoke décor, and artisan manufacturing through our international trade program.',
-    primaryCta: { label: 'Source With Us', href: '/contact' },
-    secondaryCta: { label: 'Join Trade Program', href: '/trade' },
+    primaryCta: { label: 'Source With Us', href: '/source-with-revamp' },
+    secondaryCta: { label: 'Join Trade Program', href: '/trade-program' },
   },
 ]
 
@@ -176,16 +176,8 @@ export function HeroSection() {
           </div>
 
           <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 border-t border-white/15 pt-6">
-            {[
-              { value: '200+', label: 'Projects Completed' },
-              { value: '12+', label: 'Years of Excellence' },
-              { value: '15+', label: 'Countries Sourced' },
-              { value: '98%', label: 'Client Satisfaction' },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <div className="font-serif text-3xl font-light text-white">{stat.value}</div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-white/45">{stat.label}</div>
-              </div>
+            {['Interior Design', 'Architecture', 'Sourcing', 'Custom Work'].map((service) => (
+              <div key={service} className="text-[10px] uppercase tracking-[0.16em] text-white/55">{service}</div>
             ))}
           </div>
         </div>

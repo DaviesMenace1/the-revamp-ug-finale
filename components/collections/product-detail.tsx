@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useCart } from '@/lib/context/cart-context'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls, resolveProductVariantImage } from '@/lib/utils'
 import { ProductShareSheet } from '@/components/collections/product-share-sheet'
 
@@ -185,6 +186,7 @@ export function ProductDetail({ product }: { product: any }) {
   }
 
   const categoryName = product?.category?.name || product?.category || 'Luxury Collection'
+  const productInquiryHref = `/contact?interest=product_inquiry&product=${encodeURIComponent(product?.name || '')}`
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
@@ -415,7 +417,7 @@ export function ProductDetail({ product }: { product: any }) {
           {useCustomDims ? (
             <div className="space-y-3 pt-2 border-t border-border/60">
               <p className="text-[11px] text-muted-foreground">
-                Specify exact dimensions in inches for our East Africa artisan workshop:
+                Add approximate dimensions in inches if you already have them. The studio will confirm the final specification before custom work is accepted.
               </p>
               <div className="grid grid-cols-3 gap-2">
                 <div>
@@ -506,6 +508,14 @@ export function ProductDetail({ product }: { product: any }) {
           </button>
         </div>
 
+        <div className="mb-8 flex flex-col gap-2 border border-border/70 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-widest text-foreground">Need a different finish or size?</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Send the studio this piece as the starting point for a customisation conversation.</p>
+          </div>
+          <Link href={productInquiryHref} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-border px-4 text-xs font-medium uppercase tracking-wider text-foreground transition-colors hover:border-gold hover:text-gold"><Send className="size-4" aria-hidden="true" />Ask about this piece</Link>
+        </div>
+
         {/* ACCORDIONS */}
         <div className="border-t border-border mt-2">
           <AccordionItem
@@ -513,7 +523,7 @@ export function ProductDetail({ product }: { product: any }) {
             isOpen={openAccordion === 'description'}
             onToggle={() => toggleAccordion('description')}
           >
-            <p>{product?.description || 'Crafted with premium materials and engineered for refined living.'}</p>
+            <p>{product?.description || 'The studio will confirm the product description and suitable specifications with your order brief.'}</p>
           </AccordionItem>
 
           <AccordionItem
@@ -524,19 +534,19 @@ export function ProductDetail({ product }: { product: any }) {
             <div className="grid grid-cols-2 gap-3">
               <div className="border border-border/60 p-2.5">
                 <span className="block text-[10px] uppercase text-muted-foreground">Overall Width</span>
-                <span className="font-medium text-foreground">{rawDims?.width || '32'} in</span>
+                <span className="font-medium text-foreground">{rawDims?.width ? `${rawDims.width} in` : 'Not supplied'}</span>
               </div>
               <div className="border border-border/60 p-2.5">
                 <span className="block text-[10px] uppercase text-muted-foreground">Overall Height</span>
-                <span className="font-medium text-foreground">{rawDims?.height || '34'} in</span>
+                <span className="font-medium text-foreground">{rawDims?.height ? `${rawDims.height} in` : 'Not supplied'}</span>
               </div>
               <div className="border border-border/60 p-2.5">
                 <span className="block text-[10px] uppercase text-muted-foreground">Depth</span>
-                <span className="font-medium text-foreground">{rawDims?.depth || '30'} in</span>
+                <span className="font-medium text-foreground">{rawDims?.depth ? `${rawDims.depth} in` : 'Not supplied'}</span>
               </div>
               <div className="border border-border/60 p-2.5">
                 <span className="block text-[10px] uppercase text-muted-foreground">Seat Height</span>
-                <span className="font-medium text-foreground">{rawDims?.seatHeight || '18'} in</span>
+                <span className="font-medium text-foreground">{rawDims?.seatHeight ? `${rawDims.seatHeight} in` : 'Not supplied'}</span>
               </div>
             </div>
           </AccordionItem>
@@ -548,7 +558,7 @@ export function ProductDetail({ product }: { product: any }) {
           >
             <p>
               {product?.material ||
-                'Solid hardwood frame sourced sustainably, upholstered in top-tier performance fabric designed for longevity.'}
+                'Material and finish details will be confirmed for the selected piece and options.'}
             </p>
           </AccordionItem>
 
@@ -558,7 +568,7 @@ export function ProductDetail({ product }: { product: any }) {
             onToggle={() => toggleAccordion('care')}
           >
             <p>
-              Wipe clean with a soft, dry cloth. Avoid abrasive cleaners or direct harsh sunlight to maintain original luster.
+              Follow the care guidance supplied with your order. The studio can confirm suitable care for the selected material and finish.
             </p>
           </AccordionItem>
         </div>
@@ -568,11 +578,11 @@ export function ProductDetail({ product }: { product: any }) {
 
           <div className="flex items-center gap-3">
             <Truck size={16} className="text-gold" />
-            <span>Complimentary white-glove assembly on luxury orders.</span>
+            <span>Delivery and installation options are confirmed with your order brief.</span>
           </div>
           <div className="flex items-center gap-3">
             <ShieldCheck size={16} className="text-gold" />
-            <span>Authenticity guarantee & 2-year warranty included.</span>
+            <span>Specifications and any applicable warranty terms are confirmed before purchase.</span>
           </div>
         </div>
       </div>

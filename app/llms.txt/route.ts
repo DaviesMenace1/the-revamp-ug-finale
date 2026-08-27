@@ -25,6 +25,10 @@ Location: Kyanja, Kampala, Uganda
 - Design consultations
 
 Service directory: https://therevampug.com/services/
+Source With Revamp: https://therevampug.com/source-with-revamp/
+Custom Services: https://therevampug.com/custom-services/
+Trade Program: https://therevampug.com/trade-program/
+Membership: https://therevampug.com/membership-program/
 Consultation booking: https://therevampug.com/book-consultation/
 Contact page: https://therevampug.com/contact/
 
@@ -44,6 +48,8 @@ Portfolio: https://therevampug.com/portfolio/
 Journal: https://therevampug.com/journal/
 FAQs: https://therevampug.com/faqs/
 About the studio: https://therevampug.com/about/
+Membership portal: https://therevampug.com/membership/
+Trade portal: https://therevampug.com/trade/
 
 ## Source guidance
 

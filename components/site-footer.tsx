@@ -5,13 +5,14 @@ import type { IconType } from 'react-icons'
 import { FaInstagram, FaSnapchatGhost, FaLinkedinIn } from 'react-icons/fa'
 import { SiTiktok } from 'react-icons/si'
 import { CookiePreferencesTrigger } from '@/components/privacy/cookie-consent-provider'
+import { siteContact } from '@/lib/site-config'
 
 const footerLinks = {
   Services: [
     { label: 'Interior Design', href: '/services' },
     { label: 'Architecture', href: '/services/architecture' },
-    { label: 'Global Sourcing', href: '/services' },
-    { label: 'Installation', href: '/services' },
+    { label: 'Source With Revamp', href: '/source-with-revamp' },
+    { label: 'Custom Services', href: '/custom-services' },
   ],
   Collections: [
     { label: 'Living Spaces', href: '/collections' },
@@ -24,9 +25,13 @@ const footerLinks = {
     { label: 'Our Work', href: '/portfolio' },
     { label: 'Journal', href: '/journal' },
     { label: 'Contact', href: '/contact' },
+    { label: 'Trade Program', href: '/trade-program' },
+    { label: 'Membership', href: '/membership-program' },
   ],
   Client: [
-    { label: 'Book Consultation', href: '/contact' },
+    { label: 'Book Consultation', href: siteContact.bookingPath },
+    { label: 'Request a Quote', href: '/request-quote' },
+    { label: 'Product Inquiry', href: '/product-inquiry' },
     { label: 'Client Portal', href: '/client' },
     { label: 'Track Project', href: '/client/projects' },
     { label: 'Support', href: '/client/tickets' },
@@ -77,19 +82,19 @@ export function SiteFooter() {
             {/* Contact */}
             <div className="mt-8 space-y-2">
               <a
-                href="tel:+256783476807"
+                href={siteContact.phoneHref}
                 className="block font-sans text-sm text-background/60 hover:text-gold transition-colors"
               >
-                +256 783 476 807
+                {siteContact.phoneDisplay}
               </a>
               <a
                 href="mailto:support@therevampug.com"
                 className="block font-sans text-sm text-background/60 hover:text-gold transition-colors"
               >
-                support@therevampug.com
+                {siteContact.supportEmail}
               </a>
               <p className="font-sans text-sm text-background/40 mt-2">
-                Kyanja | Kampala, Uganda
+                {siteContact.location}
               </p>
             </div>
           </div>

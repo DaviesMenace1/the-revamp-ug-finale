@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { formatMoney, normalizeCurrency } from '@/lib/utils'
 
@@ -14,6 +15,11 @@ export type CartToastData = {
 }
 
 export function CartAddedToast({ data, itemCount, cartTotal, currency = 'UGX', onDismiss }: { data: CartToastData; itemCount: number; cartTotal: number; currency?: string; onDismiss: () => void }) {
+  useEffect(() => {
+    const timeout = window.setTimeout(onDismiss, 6000)
+    return () => window.clearTimeout(timeout)
+  }, [onDismiss])
+
   return (
     <div className="fixed inset-x-4 bottom-4 z-[100] mx-auto w-auto max-w-sm rounded-xl border border-border bg-card p-3 text-card-foreground shadow-lift sm:left-auto sm:right-5 sm:inset-x-auto sm:w-[22rem]" role="status" aria-live="polite">
       <div className="flex items-start gap-3">

@@ -37,7 +37,7 @@ export default function UsersClient({ initialUsers = [], loadError = null }: { i
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(loadError)
   const [isPending, startTransition] = useTransition()
-  const [isLoading, setIsLoading] = useState(initialUsers.length === 0)
+  const [isLoading, setIsLoading] = useState(initialUsers.length === 0 && !loadError)
 
   const loadUsers = useCallback(async () => {
     setIsLoading(true)
@@ -55,10 +55,10 @@ export default function UsersClient({ initialUsers = [], loadError = null }: { i
   }, [])
 
   useEffect(() => {
-    if (initialUsers.length > 0) return
+    if (initialUsers.length > 0 || loadError) return
     const timer = window.setTimeout(() => { void loadUsers() }, 0)
     return () => window.clearTimeout(timer)
-  }, [initialUsers.length, loadUsers])
+  }, [initialUsers.length, loadError, loadUsers])
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase()

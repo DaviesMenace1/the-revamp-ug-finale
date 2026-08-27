@@ -1,14 +1,15 @@
 'use server'
 
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq, inArray } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db/client'
-import { collectionPromotions } from '@/lib/db/schema'
+import { categories, collectionPromotions, products, subCategories } from '@/lib/db/schema'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
 
 const DISCOUNT_TYPES = new Set(['percentage', 'fixed'])
 const AUDIENCES = new Set(['all', 'new_customer', 'returning_customer', 'members'])
 const STATUSES = new Set(['draft', 'scheduled', 'active', 'paused', 'expired', 'archived'])
+const TARGET_TYPES = new Set(['all', 'category', 'subcategory', 'collection', 'product', 'mixed'])
 
 function text(value: unknown, maxLength: number) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
@@ -36,6 +37,34 @@ function parseList(value: unknown, maxItems = 200) {
   return values.filter((item): item is string => typeof item === 'string').map((item) => item.trim().toLowerCase()).filter(Boolean).slice(0, maxItems)
 }
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
+
+async function validatePromotionTargets(targetType: string, collectionSlugs: string[], productIds: string[]) {
+  if (targetType === 'all' || targetType === 'mixed') return null
+  if (targetType === 'product') {
+    if (productIds.some((id) => !isUuid(id))) return 'Product-targeted promotions require valid product IDs.'
+    const rows = await db.select({ id: products.id }).from(products).where(and(inArray(products.id, productIds), eq(products.status, 'published')))
+    return rows.length === productIds.length ? null : 'Select only published products for this promotion.'
+  }
+  if (targetType === 'category') {
+    const rows = await db.select({ slug: categories.slug }).from(categories).where(and(inArray(categories.slug, collectionSlugs), eq(categories.active, true), eq(categories.isActive, true)))
+    return new Set(rows.map((row) => row.slug)).size === new Set(collectionSlugs).size ? null : 'Select only active published categories.'
+  }
+  if (targetType === 'subcategory') {
+    const rows = await db.select({ slug: subCategories.slug }).from(subCategories).where(and(inArray(subCategories.slug, collectionSlugs), eq(subCategories.active, true), eq(subCategories.isActive, true)))
+    return new Set(rows.map((row) => row.slug)).size === new Set(collectionSlugs).size ? null : 'Select only active published subcategories.'
+  }
+  if (targetType === 'collection') {
+    const categoryRows = await db.select({ slug: categories.slug }).from(categories).where(and(inArray(categories.slug, collectionSlugs), eq(categories.active, true), eq(categories.isActive, true)))
+    const subcategoryRows = await db.select({ slug: subCategories.slug }).from(subCategories).where(and(inArray(subCategories.slug, collectionSlugs), eq(subCategories.active, true), eq(subCategories.isActive, true)))
+    const validSlugs = new Set([...categoryRows, ...subcategoryRows].map((row) => row.slug))
+    return validSlugs.size === new Set(collectionSlugs).size ? null : 'Select only existing active category or subcategory slugs.'
+  }
+  return 'Choose a valid promotion target.'
+}
+
 export async function listCollectionPromotions() {
   const authorization = await getCurrentUserWithRole(['admin'])
   if (!authorization.authorized) return []
@@ -54,6 +83,7 @@ export async function createCollectionPromotion(input: {
   discountType: string
   discountValue: string
   maxDiscount?: string
+  targetType?: string
   collectionSlugs?: string
   productIds?: string
   audience: string
@@ -72,6 +102,7 @@ export async function createCollectionPromotion(input: {
     const discountType = text(input.discountType, 20)
     const discountValue = number(input.discountValue)
     const maxDiscount = text(input.maxDiscount, 40) ? number(input.maxDiscount) : null
+    const targetType = text(input.targetType, 20) || 'all'
     const collectionSlugs = parseList(input.collectionSlugs)
     const productIds = parseList(input.productIds)
     const audience = text(input.audience, 30)
@@ -86,11 +117,14 @@ export async function createCollectionPromotion(input: {
     if (!Number.isFinite(discountValue) || discountValue <= 0 || (discountType === 'percentage' && discountValue > 100)) return { success: false, error: discountType === 'percentage' ? 'Percentage must be between 1 and 100.' : 'Fixed discount must be greater than zero.' }
     if (maxDiscount !== null && maxDiscount <= 0) return { success: false, error: 'Maximum discount must be greater than zero.' }
     if (!AUDIENCES.has(audience)) return { success: false, error: 'Choose a valid promotion audience.' }
+    if (!TARGET_TYPES.has(targetType)) return { success: false, error: 'Choose a valid promotion target.' }
     if (!STATUSES.has(status)) return { success: false, error: 'Choose a valid promotion status.' }
     if (startsAt && endsAt && endsAt <= startsAt) return { success: false, error: 'The end date must be after the start date.' }
-    if (collectionSlugs.length === 0 && productIds.length === 0) {
-      // An empty target is intentional and means all published collection products.
-    }
+    if (targetType === 'all' && (collectionSlugs.length > 0 || productIds.length > 0)) return { success: false, error: 'An all-products promotion cannot include category or product targets.' }
+    if (['category', 'subcategory', 'collection'].includes(targetType) && collectionSlugs.length === 0) return { success: false, error: 'Select at least one category, subcategory, or collection slug.' }
+    if (targetType === 'product' && productIds.length === 0) return { success: false, error: 'Add at least one product ID for a product-targeted promotion.' }
+    const targetError = await validatePromotionTargets(targetType, collectionSlugs, productIds)
+    if (targetError) return { success: false, error: targetError }
 
     await db.insert(collectionPromotions).values({
       name,
@@ -98,6 +132,7 @@ export async function createCollectionPromotion(input: {
       discountType,
       discountValue: discountValue.toFixed(2),
       maxDiscount: maxDiscount === null ? null : maxDiscount.toFixed(2),
+      targetType,
       collectionSlugs,
       productIds,
       audience,

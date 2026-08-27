@@ -14,6 +14,7 @@ import {
 
 const ACTIVE_REDEMPTION_STATUSES = ['reserved', 'applied'] as const
 const VALID_AUDIENCES = new Set(['all', 'new_customer', 'returning_customer', 'members'])
+const VALID_TARGET_TYPES = new Set(['all', 'category', 'subcategory', 'collection', 'product', 'mixed'])
 
 export type CollectionPromotionCartItem = {
   productId: string
@@ -54,10 +55,13 @@ function dateIsActive(startsAt: Date | null, endsAt: Date | null, now: Date) {
   return (!startsAt || startsAt <= now) && (!endsAt || endsAt > now)
 }
 
-async function hasCompletedOrder(userId: string) {
+async function hasPriorOrder(userId: string) {
   const [owner] = await db.select({ clerkId: users.clerkId }).from(users).where(eq(users.id, userId)).limit(1)
   if (!owner) return false
-  const [row] = await db.select({ id: orders.id }).from(orders).where(and(eq(orders.userId, owner.clerkId), eq(orders.paymentStatus, 'completed'))).limit(1)
+  const [row] = await db.select({ id: orders.id }).from(orders).where(and(
+    eq(orders.userId, owner.clerkId),
+    or(eq(orders.paymentStatus, 'completed'), inArray(orders.status, ['confirmed', 'processing', 'shipped', 'delivered'])),
+  )).limit(1)
   return Boolean(row)
 }
 
@@ -71,7 +75,7 @@ async function isMember(userId: string, now: Date) {
 async function audienceIsEligible(audience: string, userId: string, now: Date) {
   if (!VALID_AUDIENCES.has(audience) || audience === 'all') return audience === 'all'
   if (audience === 'members') return isMember(userId, now)
-  const hasOrder = await hasCompletedOrder(userId)
+  const hasOrder = await hasPriorOrder(userId)
   return audience === 'new_customer' ? !hasOrder : hasOrder
 }
 
@@ -83,13 +87,22 @@ async function usageIsAvailable(promotionId: string, userId: string, totalUsageL
   return (totalUsageLimit === null || totalCount < totalUsageLimit) && customerCount < Math.max(1, perCustomerLimit)
 }
 
-async function matchingProductIds(items: CollectionPromotionCartItem[], collectionSlugs: string[], productIds: string[]) {
+async function matchingProductIds(items: CollectionPromotionCartItem[], targetType: string, collectionSlugs: string[], productIds: string[]) {
   if (items.length === 0) return new Set<string>()
-  if (collectionSlugs.length === 0 && productIds.length === 0) return new Set(items.map((item) => item.productId))
+  const safeTargetType = VALID_TARGET_TYPES.has(targetType) ? targetType : 'mixed'
+  if (safeTargetType === 'all' || (safeTargetType === 'mixed' && collectionSlugs.length === 0 && productIds.length === 0)) return new Set(items.map((item) => item.productId))
+  if (safeTargetType === 'product') return new Set(items.filter((item) => productIds.includes(item.productId)).map((item) => item.productId))
+  if (collectionSlugs.length === 0) return new Set<string>()
+
   const ids = [...new Set(items.map((item) => item.productId))]
   const rows = await db.select({ id: products.id, categorySlug: categories.slug, subCategorySlug: subCategories.slug }).from(products).innerJoin(subCategories, eq(products.subCategoryId, subCategories.id)).innerJoin(categories, eq(subCategories.categoryId, categories.id)).where(inArray(products.id, ids))
   const targetProductIds = new Set(productIds)
-  return new Set(rows.filter((row) => targetProductIds.has(row.id) || collectionSlugs.includes(row.categorySlug.toLowerCase()) || collectionSlugs.includes(row.subCategorySlug.toLowerCase())).map((row) => row.id))
+  return new Set(rows.filter((row) => {
+    if (safeTargetType === 'category') return collectionSlugs.includes(row.categorySlug.toLowerCase())
+    if (safeTargetType === 'subcategory') return collectionSlugs.includes(row.subCategorySlug.toLowerCase())
+    if (safeTargetType === 'collection') return collectionSlugs.includes(row.categorySlug.toLowerCase()) || collectionSlugs.includes(row.subCategorySlug.toLowerCase())
+    return targetProductIds.has(row.id) || collectionSlugs.includes(row.categorySlug.toLowerCase()) || collectionSlugs.includes(row.subCategorySlug.toLowerCase())
+  }).map((row) => row.id))
 }
 
 export async function getCollectionPromotionQuote(input: { userId: string; code: unknown; items: CollectionPromotionCartItem[] }) {
@@ -102,7 +115,7 @@ export async function getCollectionPromotionQuote(input: { userId: string; code:
   if (!(await audienceIsEligible(promotion.audience, input.userId, now))) return { success: false as const, error: 'This collection promo code is not available for your account.' }
   if (!(await usageIsAvailable(promotion.id, input.userId, promotion.totalUsageLimit, promotion.perCustomerLimit))) return { success: false as const, error: 'That collection promo code has reached its usage limit.' }
 
-  const qualifyingIds = await matchingProductIds(input.items, stringArray(promotion.collectionSlugs), stringArray(promotion.productIds))
+  const qualifyingIds = await matchingProductIds(input.items, promotion.targetType, stringArray(promotion.collectionSlugs), stringArray(promotion.productIds))
   const eligibleItemTotal = roundMoney(input.items.reduce((sum, item) => qualifyingIds.has(item.productId) ? sum + Math.max(0, item.unitPrice) * item.quantity : sum, 0))
   if (eligibleItemTotal <= 0) return { success: false as const, error: 'This collection promo code does not apply to the items in your cart.' }
 

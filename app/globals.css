@@ -4,7 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Fonts are loaded via next/font/google in layout.tsx — no @import url() needed here */
+/* Fonts are loaded via next/font/google in layout.tsx. No @import url() is needed here. */
 
 @theme inline {
   /* Brand palette */
@@ -15,6 +15,7 @@
   --color-charcoal:        oklch(0.16 0 0);        /* #1C1C1C */
   --color-canvas:          oklch(0.96 0.01 80);   /* #F5F0E8 warm ivory */
   --color-canvas-dark:     oklch(0.90 0.015 75);  /* slightly deeper ivory */
+  --color-ivory:           oklch(0.96 0.01 80);   /* readable light text on dark editorial surfaces */
 
   /* Semantic tokens (light) */
   --color-background:      var(--background);

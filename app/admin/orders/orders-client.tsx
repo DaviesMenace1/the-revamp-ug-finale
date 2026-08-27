@@ -14,10 +14,6 @@ import {
   Mail,
   Phone,
   CreditCard,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Truck,
 } from 'lucide-react'
 import { updateOrderStatus, deleteOrder } from '@/lib/actions/orders'
 import { formatMoney } from '@/lib/utils'
@@ -33,7 +29,7 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-muted text-muted-foreground border-border',
 }
 
-export default function OrdersClient({ initialOrders = [] }: { initialOrders: any[] }) {
+export default function OrdersClient({ initialOrders = [], loadError = null }: { initialOrders: any[]; loadError?: string | null }) {
   const [ordersList, setOrdersList] = useState(initialOrders)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -83,6 +79,7 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
 
   return (
     <div className="min-h-screen space-y-8 bg-muted/30 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+      {loadError && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground"><span>{loadError}</span><button type="button" onClick={() => window.location.reload()} className="font-medium text-primary underline underline-offset-4">Retry</button></div>}
       {/* Top Title Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b">
         <div>

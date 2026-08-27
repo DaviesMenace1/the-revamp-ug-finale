@@ -1213,6 +1213,7 @@ export const collectionPromotions = pgTable(
     discountType: varchar("discount_type", { length: 20 }).notNull().default("percentage"),
     discountValue: decimal("discount_value", { precision: 12, scale: 2 }).notNull(),
     maxDiscount: decimal("max_discount", { precision: 12, scale: 2 }),
+    targetType: varchar("target_type", { length: 20 }).notNull().default("all"),
     collectionSlugs: jsonb("collection_slugs").notNull().default([]),
     productIds: jsonb("product_ids").notNull().default([]),
     audience: varchar("audience", { length: 30 }).notNull().default("all"),

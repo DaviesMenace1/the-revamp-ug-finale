@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { AlertCircle, CheckCircle2, Trash2, Search, Shield } from 'lucide-react'
@@ -37,6 +37,28 @@ export default function UsersClient({ initialUsers = [], loadError = null }: { i
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(loadError)
   const [isPending, startTransition] = useTransition()
+  const [isLoading, setIsLoading] = useState(initialUsers.length === 0)
+
+  const loadUsers = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/admin/users', { cache: 'no-store' })
+      const payload = await response.json().catch(() => ({})) as { users?: AdminUser[]; error?: string }
+      if (!response.ok) throw new Error(payload.error || 'The user list could not be loaded.')
+      setUsersList(Array.isArray(payload.users) ? payload.users : [])
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'The user list could not be loaded.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (initialUsers.length > 0) return
+    const timer = window.setTimeout(() => { void loadUsers() }, 0)
+    return () => window.clearTimeout(timer)
+  }, [initialUsers.length, loadUsers])
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase()
@@ -54,7 +76,7 @@ export default function UsersClient({ initialUsers = [], loadError = null }: { i
     startTransition(async () => {
       const res = await updateUserRole(userId, role)
       if (res.success) {
-        setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)))
+        setUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, role: res.role || role } : u)))
         setMessage('User role updated successfully.')
       } else {
         setError(res.error || 'The user role could not be updated. Please retry.')
@@ -88,7 +110,7 @@ export default function UsersClient({ initialUsers = [], loadError = null }: { i
       {(error || message) && <div role={error ? 'alert' : 'status'} className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm ${error ? 'border-destructive/30 bg-destructive/5 text-destructive' : 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300'}`}>
         {error ? <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" /> : <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />}
         <span>{error || message}</span>
-        {error && <button type="button" onClick={() => window.location.reload()} className="ml-auto shrink-0 font-medium underline underline-offset-4">Retry</button>}
+        {error && <button type="button" onClick={() => void loadUsers()} disabled={isLoading} className="ml-auto shrink-0 font-medium underline underline-offset-4">Retry</button>}
       </div>}
 
       <Card>
@@ -135,7 +157,8 @@ export default function UsersClient({ initialUsers = [], loadError = null }: { i
                     <td className="px-4 py-4 text-sm"><button type="button" aria-label={`Delete ${user.email}`} disabled={isPending} onClick={() => handleDelete(user.id)} className="rounded p-2 transition-colors hover:bg-muted"><Trash2 className="size-4 text-muted-foreground" /></button></td>
                   </tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">No users found.</td></tr>}
+                {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">Loading users…</td></tr>}
+                {!isLoading && filtered.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">No users found.</td></tr>}
               </tbody>
             </table>
           </div>

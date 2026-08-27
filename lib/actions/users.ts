@@ -28,13 +28,15 @@ export async function updateUserRole(userId: string, role: string) {
   if (userId === currentUser.id && role !== 'admin') return { success: false, error: 'You cannot remove your own administrator access.' }
 
   try {
-    await db
+    const updated = await db
       .update(users)
       .set({ role: role as (typeof VALID_ROLES)[number], updatedAt: new Date() })
       .where(eq(users.id, userId))
+      .returning({ id: users.id, role: users.role })
 
+    if (updated.length === 0) return { success: false, error: 'That user no longer exists. Refresh the user list and try again.' }
     revalidatePath('/admin/users')
-    return { success: true }
+    return { success: true, role: updated[0].role || 'customer' }
   } catch (error) {
     console.error('Failed to update user role:', error)
     return { success: false, error: 'Failed to update user role.' }

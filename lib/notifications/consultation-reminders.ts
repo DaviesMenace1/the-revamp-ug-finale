@@ -11,9 +11,11 @@ const REMINDER_WINDOWS = [
   { key: '12h', minutesBefore: 12 * 60 },
   { key: '1h', minutesBefore: 60 },
   { key: '30m', minutesBefore: 30 },
+  { key: 'start', minutesBefore: 0 },
 ] as const
 
 const WINDOW_TOLERANCE_MS = 10 * 60 * 1000
+const START_WINDOW_TOLERANCE_MS = 2 * 60 * 1000
 const STALE_PROCESSING_MS = 30 * 60 * 1000
 const MAX_ATTEMPTS = 3
 
@@ -55,8 +57,9 @@ function buildReminderCopy(consultation: DueConsultation, now: Date) {
 }
 
 async function getDueConsultations(reminder: ReminderWindow, now: Date) {
-  const windowStart = new Date(now.getTime() + reminder.minutesBefore * 60 * 1000 - WINDOW_TOLERANCE_MS)
-  const windowEnd = new Date(now.getTime() + reminder.minutesBefore * 60 * 1000 + WINDOW_TOLERANCE_MS)
+  const tolerance = reminder.minutesBefore === 0 ? START_WINDOW_TOLERANCE_MS : WINDOW_TOLERANCE_MS
+  const windowStart = new Date(now.getTime() + reminder.minutesBefore * 60 * 1000 - tolerance)
+  const windowEnd = new Date(now.getTime() + reminder.minutesBefore * 60 * 1000 + tolerance)
 
   return db
     .select({

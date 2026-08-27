@@ -61,6 +61,18 @@ export function resolveProductImageUrls(product: unknown): string[] {
   return urls.length ? urls : [DEFAULT_PRODUCT_IMAGE]
 }
 
+/** Resolve the first image explicitly attached to a product variant. */
+export function resolveProductVariantImage(product: unknown, variantId: unknown) {
+  if (!product || typeof product !== 'object' || typeof variantId !== 'string' || !variantId) return null
+  const record = product as Record<string, unknown>
+  const relationImages = Array.isArray(record.productImages) ? record.productImages : []
+  const matchingImage = relationImages
+    .map((image) => image && typeof image === 'object' ? image as { variantId?: unknown; url?: unknown; displayOrder?: unknown } : null)
+    .filter((image): image is { variantId?: unknown; url?: unknown; displayOrder?: unknown } => image?.variantId === variantId && typeof image.url === 'string' && Boolean(image.url.trim()))
+    .sort((a, b) => Number(a.displayOrder ?? 0) - Number(b.displayOrder ?? 0))[0]
+  return typeof matchingImage?.url === 'string' ? matchingImage.url.trim() || null : null
+}
+
 export function formatMoney(value: unknown, currency = 'UGX') {
   const safeCurrency = normalizeCurrency(currency)
   const amount = Number(value)

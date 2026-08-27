@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { useCart } from '@/lib/context/cart-context'
 import { useRouter } from 'next/navigation'
-import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
+import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls, resolveProductVariantImage } from '@/lib/utils'
 import { ProductShareSheet } from '@/components/collections/product-share-sheet'
 
 const WISHLIST_STORAGE_KEY = 'revamp:wishlist'
@@ -55,9 +55,6 @@ function AccordionItem({
 
 export function ProductDetail({ product }: { product: any }) {
   const cart = useCart() as any
-
-  // Relational productImages fallback
-  const productImages = Array.isArray(product?.productImages) ? product.productImages : []
 
   // Images are sorted by primary flag and display order, with safe legacy fallbacks.
   const rawImages = resolveProductImageUrls(product)
@@ -142,12 +139,14 @@ export function ProductDetail({ product }: { product: any }) {
   const unitPrice = basePrice + fabricDelta + optionPrice(selectedMaterial) + optionPrice(selectedVariant) + selectedAccessories.reduce((sum, accessory) => sum + optionPrice(accessory), 0)
   const totalPrice = unitPrice * quantity
 
+  const selectVariantImage = (variant: any) => {
+    const matchingImage = resolveProductVariantImage(product, variant?.id)
+    if (matchingImage) setSelectedImage(matchingImage)
+  }
+
   const handleColorSelect = (color: any) => {
     setSelectedColor(color)
-    const matchingImage = productImages.find((img: any) => img?.variantId === color?.id)
-    if (matchingImage?.url) {
-      setSelectedImage(matchingImage.url)
-    }
+    selectVariantImage(color)
   }
 
   const handleAddToCart = () => {
@@ -304,8 +303,11 @@ export function ProductDetail({ product }: { product: any }) {
             <div className="flex flex-wrap gap-2.5">
               {colors.map((color: any, idx: number) => (
                 <button
+                  type="button"
                   key={color?.id || idx}
                   onClick={() => handleColorSelect(color)}
+                  aria-pressed={selectedColor?.id === color?.id}
+                  aria-label={`Select ${color?.label || 'colour'} colour`}
                   className={`flex items-center gap-2 h-10 px-3 border text-xs font-medium transition-all ${
                     selectedColor?.id === color?.id
                       ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold'
@@ -338,12 +340,7 @@ export function ProductDetail({ product }: { product: any }) {
                     key={fabric?.id || idx}
                     onClick={() => {
                       setSelectedFabric(fabric)
-                      const matchingImage = productImages.find(
-                        (img: any) => img?.variantId === fabric?.id,
-                      )
-                      if (matchingImage?.url) {
-                        setSelectedImage(matchingImage.url)
-                      }
+                      selectVariantImage(fabric)
                     }}
                     className={`h-9 px-4 border text-xs font-medium transition-all ${
                       selectedFabric?.id === fabric?.id
@@ -364,7 +361,7 @@ export function ProductDetail({ product }: { product: any }) {
             <label className="mb-3 block text-xs font-medium uppercase tracking-widest text-foreground">Material: <span className="text-gold">{selectedMaterial?.label || 'Standard'}</span></label>
             <div className="flex flex-wrap gap-2">
               {materials.map((material: any, index: number) => (
-                <button type="button" key={material?.id || index} onClick={() => setSelectedMaterial(material)} className={`min-h-11 border px-4 text-xs font-medium transition-all ${selectedMaterial?.id === material?.id ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold' : 'border-border text-muted-foreground hover:border-foreground'}`}>
+                <button type="button" key={material?.id || index} onClick={() => { setSelectedMaterial(material); selectVariantImage(material) }} className={`min-h-11 border px-4 text-xs font-medium transition-all ${selectedMaterial?.id === material?.id ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold' : 'border-border text-muted-foreground hover:border-foreground'}`}>
                   {material?.label || material?.name} {optionPrice(material) > 0 ? `(+${formatMoney(optionPrice(material), normalizeCurrency(product?.currency))})` : ''}
                 </button>
               ))}
@@ -377,7 +374,7 @@ export function ProductDetail({ product }: { product: any }) {
             <label className="mb-3 block text-xs font-medium uppercase tracking-widest text-foreground">Style / size: <span className="text-gold">{selectedVariant?.label || 'Select'}</span></label>
             <div className="flex flex-wrap gap-2">
               {otherVariants.map((variant: any, index: number) => (
-                <button type="button" key={variant?.id || index} onClick={() => setSelectedVariant(variant)} className={`min-h-11 border px-4 text-xs font-medium transition-all ${selectedVariant?.id === variant?.id ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold' : 'border-border text-muted-foreground hover:border-foreground'}`}>
+                <button type="button" key={variant?.id || index} onClick={() => { setSelectedVariant(variant); selectVariantImage(variant) }} className={`min-h-11 border px-4 text-xs font-medium transition-all ${selectedVariant?.id === variant?.id ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold' : 'border-border text-muted-foreground hover:border-foreground'}`}>
                   {variant?.label || variant?.name} {optionPrice(variant) > 0 ? `(+${formatMoney(optionPrice(variant), normalizeCurrency(product?.currency))})` : ''}
                 </button>
               ))}
@@ -469,14 +466,18 @@ export function ProductDetail({ product }: { product: any }) {
         {/* QUANTITY, ADD TO CART & WISHLIST */}
         <div className="flex gap-4 mb-8">
           <div className="flex items-center border border-border">
-            <button
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                            <button
+                  type="button"
+                  aria-label="Decrease quantity"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               className="px-3 py-2 text-foreground hover:bg-muted transition-colors"
             >
               -
             </button>
             <span className="px-4 py-2 text-xs font-medium">{quantity}</span>
             <button
+              type="button"
+              aria-label="Increase quantity"
               onClick={() => setQuantity((q) => q + 1)}
               className="px-3 py-2 text-foreground hover:bg-muted transition-colors"
             >

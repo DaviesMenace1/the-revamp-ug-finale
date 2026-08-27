@@ -47,6 +47,42 @@ function addressForFlutterwave(value: unknown) {
   return { line1: text(address.address, 'Address provided at checkout', 255), city, state: city, country: 'UG', postal_code: '00000' }
 }
 
+function optionSnapshot(value: unknown) {
+  if (typeof value === 'string') return text(value, '', 180) || null
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const option = value as Record<string, unknown>
+  const snapshot = {
+    id: text(option.id, '', 80) || undefined,
+    label: text(option.label, '', 180) || undefined,
+    name: text(option.name, '', 180) || undefined,
+    value: text(option.value, '', 180) || undefined,
+    hex: text(option.hex, '', 20) || undefined,
+    priceDelta: Number.isFinite(Number(option.priceDelta)) ? Number(option.priceDelta) : undefined,
+  }
+  return Object.values(snapshot).some(Boolean) ? snapshot : null
+}
+
+function dimensionsSnapshot(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const dimensions = value as Record<string, unknown>
+  const measurement = (entry: unknown) => {
+    if (typeof entry === 'number' && Number.isFinite(entry)) return String(entry)
+    return text(entry, '', 30) || undefined
+  }
+  const snapshot = {
+    width: measurement(dimensions.width),
+    height: measurement(dimensions.height),
+    depth: measurement(dimensions.depth),
+    unit: text(dimensions.unit, 'in', 12),
+  }
+  return Object.values(snapshot).some(Boolean) ? snapshot : null
+}
+
+function accessoriesSnapshot(value: unknown) {
+  if (!Array.isArray(value)) return []
+  return value.map(optionSnapshot).filter(Boolean)
+}
+
 export async function POST(request: Request) {
   try {
     const { userId } = await auth()
@@ -87,7 +123,27 @@ export async function POST(request: Request) {
     const normalizedItems = validItems.map(({ value, productId, quantity, unitPrice }) => {
       const product = catalogById.get(productId)
       if (!product || product.status !== 'published' || product.availability === 'out_of_stock' || product.currency.toUpperCase() !== expectedCurrency || unitPrice + 0.01 < Number(product.price)) return null
-      return { productId, name: product.name, quantity, unitPrice, currency: expectedCurrency, color: value.color, material: value.material, variant: value.variant, dimensions: value.dimensions, image: value.image }
+      const color = optionSnapshot(value.color)
+      const fabric = optionSnapshot(value.fabric)
+      const material = optionSnapshot(value.material)
+      const variant = optionSnapshot(value.variant)
+      const accessories = accessoriesSnapshot(value.accessories)
+      const dimensions = dimensionsSnapshot(value.customDimensions ?? value.dimensions)
+      return {
+        productId,
+        name: product.name,
+        quantity,
+        unitPrice,
+        currency: expectedCurrency,
+        color,
+        fabric,
+        material,
+        variant,
+        accessories,
+        dimensions,
+        configuration: { color, fabric, material, variant, accessories, dimensions },
+        image: text(value.image, '', 200) || null,
+      }
     })
     if (normalizedItems.some((item) => !item)) return NextResponse.json({ error: 'One or more products are no longer available at the submitted price.' }, { status: 409 })
 

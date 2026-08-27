@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { updateOrderStatus, deleteOrder } from '@/lib/actions/orders'
 import { formatMoney } from '@/lib/utils'
+import { getOrderItemOptionLines } from '@/lib/orders/order-item-options'
 
 const STATUS_COLORS: Record<string, string> = {
   confirmed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
@@ -309,27 +310,23 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
                 <Package className="w-4 h-4 text-primary" /> Ordered Items ({selectedOrder.items?.length || 0})
               </h3>
               <div className="border divide-y">
-                {selectedOrder.items?.map((item: any, idx: number) => (
-                  <div key={idx} className="p-3 flex items-center gap-4 text-sm">
-                    {item.image && (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-12 h-12 object-cover border"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Unit Price: {formatMoney(item.unitPrice ?? item.price ?? 0, item.currency || selectedOrder.currency || 'UGX')}
-                      </p>
+                {selectedOrder.items?.map((item: any, idx: number) => {
+                  const optionLines = getOrderItemOptionLines(item)
+                  return (
+                    <div key={idx} className="flex items-start gap-4 p-3 text-sm">
+                      {item.image && <img src={item.image} alt={item.name} className="h-12 w-12 shrink-0 border object-cover" />}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-foreground">{item.name}</p>
+                        {optionLines.length > 0 && <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">{optionLines.map((line) => <p key={line}>{line}</p>)}</div>}
+                        <p className="mt-1 text-xs text-muted-foreground">Unit Price: {formatMoney(item.unitPrice ?? item.price ?? 0, item.currency || selectedOrder.currency || 'UGX')}</p>
+                      </div>
+                      <div className="shrink-0 text-right font-mono">
+                        <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                        <p className="font-semibold">{formatMoney(Number(item.unitPrice ?? item.price ?? 0) * Number(item.quantity || 0), item.currency || selectedOrder.currency || 'UGX')}</p>
+                      </div>
                     </div>
-                    <div className="text-right font-mono">
-                      <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                      <p className="font-semibold">{formatMoney(Number(item.unitPrice ?? item.price ?? 0) * Number(item.quantity || 0), item.currency || selectedOrder.currency || 'UGX')}</p>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 

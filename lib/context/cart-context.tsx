@@ -21,6 +21,7 @@ import type {
   Variant,
 } from '@/lib/types'
 import { normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
+import { CartAddedToast, type CartToastData } from '@/components/cart/cart-added-toast'
 
 export const CartContext = createContext<CartContextType | undefined>(undefined)
 
@@ -210,6 +211,7 @@ function AuthenticatedCartProvider({
   const [items, setItems] = useState<CartItem[]>([])
   const [customerName, setCustomerName] = useState('')
   const [isLoaded, setIsLoaded] = useState(false)
+  const [cartToast, setCartToast] = useState<CartToastData | null>(null)
 
   const cartStorageKey = userId
     ? `revamp-cart-${userId}`
@@ -327,6 +329,14 @@ function AuthenticatedCartProvider({
       )
 
       const image = selectedColor?.image || selectedVariant?.image || resolveProductImageUrls(product)[0]
+      const toastOptions = [
+        selectedColor?.label || selectedColor?.name ? `Colour: ${selectedColor.label || selectedColor.name}` : null,
+        selectedFabric?.label || selectedFabric?.name ? `Fabric: ${selectedFabric.label || selectedFabric.name}` : null,
+        selectedMaterial?.label || selectedMaterial?.name ? `Material: ${selectedMaterial.label || selectedMaterial.name}` : null,
+        selectedVariant?.label || selectedVariant?.name ? `Option: ${selectedVariant.label || selectedVariant.name}` : null,
+        selectedAccessories.length > 0 ? `Add-ons: ${selectedAccessories.map((accessory) => accessory.label || accessory.name).filter(Boolean).join(', ')}` : null,
+        customDimensions && Object.values(customDimensions).some(Boolean) ? `Custom sizing: ${[customDimensions.width && `W ${customDimensions.width}`, customDimensions.height && `H ${customDimensions.height}`, customDimensions.depth && `D ${customDimensions.depth}`, customDimensions.unit].filter(Boolean).join(' ')}` : null,
+      ].filter((option): option is string => Boolean(option))
 
       setItems((previous) => {
         const existingIndex = previous.findIndex(
@@ -383,6 +393,8 @@ function AuthenticatedCartProvider({
 
         return [...previous, item]
       })
+
+      setCartToast({ name: product.name, image, quantity: safeQuantity, options: toastOptions, currency: normalizeCurrency(product.currency) })
     },
     []
   )
@@ -513,6 +525,7 @@ function AuthenticatedCartProvider({
       }}
     >
       {children}
+      {cartToast && <CartAddedToast data={cartToast} itemCount={cartCount} cartTotal={totals.total} currency={cartToast.currency} onDismiss={() => setCartToast(null)} />}
     </CartContext.Provider>
   )
 }

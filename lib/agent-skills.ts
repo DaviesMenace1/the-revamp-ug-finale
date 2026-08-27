@@ -19,10 +19,10 @@ This skill is read-only. Do not request or expose administrator data, customer d
 
 ## Public entry points
 
-- Website: https://therevampug.com/
+- Website: https://www.therevampug.com/
 - Markdown request: send Accept: text/markdown to a public page.
-- API Catalog: https://therevampug.com/.well-known/api-catalog
-- Public search endpoint: https://therevampug.com/mcp
+- API Catalog: https://www.therevampug.com/.well-known/api-catalog
+- Public search endpoint: https://www.therevampug.com/mcp
 - Contact: support@therevampug.com or +256 783 476 807
 `
 

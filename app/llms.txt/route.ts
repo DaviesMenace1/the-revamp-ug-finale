@@ -6,7 +6,7 @@ const LLMS_CONTENT = `# The Revamp UG
 
 The Revamp UG serves clients from Kyanja, Kampala, Uganda. The studio combines interior design, architecture, procurement, global sourcing, custom furniture, and installation support for residential, commercial, hospitality, and other considered spaces.
 
-Official website: https://therevampug.com/
+Official website: https://www.therevampug.com/
 Contact: support@therevampug.com
 General enquiries: info@therevampug.com
 Sales: sales@therevampug.com
@@ -24,19 +24,19 @@ Location: Kyanja, Kampala, Uganda
 - Renovation, styling, and installation support
 - Design consultations
 
-Service directory: https://therevampug.com/services/
-Source With Revamp: https://therevampug.com/source-with-revamp/
-Custom Services: https://therevampug.com/custom-services/
-Trade Program: https://therevampug.com/trade-program/
-Membership: https://therevampug.com/membership-program/
-Consultation booking: https://therevampug.com/book-consultation/
-Contact page: https://therevampug.com/contact/
+Service directory: https://www.therevampug.com/services/
+Source With Revamp: https://www.therevampug.com/source-with-revamp/
+Custom Services: https://www.therevampug.com/custom-services/
+Trade Program: https://www.therevampug.com/trade-program/
+Membership: https://www.therevampug.com/membership-program/
+Consultation booking: https://www.therevampug.com/book-consultation/
+Contact page: https://www.therevampug.com/contact/
 
 ## Products
 
 The online collection includes chairs, sofas, tables, lighting, décor, furniture, and other interior objects. Product availability, prices, materials, images, options, and delivery details are maintained on the individual product pages.
 
-Product collection: https://therevampug.com/collections/
+Product collection: https://www.therevampug.com/collections/
 
 ## Expertise and locations
 
@@ -44,22 +44,22 @@ Primary market: Uganda, with design and sourcing work for clients in Kampala and
 
 ## Projects and journal
 
-Portfolio: https://therevampug.com/portfolio/
-Journal: https://therevampug.com/journal/
-FAQs: https://therevampug.com/faqs/
-About the studio: https://therevampug.com/about/
-Membership portal: https://therevampug.com/membership/
-Trade portal: https://therevampug.com/trade/
+Portfolio: https://www.therevampug.com/portfolio/
+Journal: https://www.therevampug.com/journal/
+FAQs: https://www.therevampug.com/faqs/
+About the studio: https://www.therevampug.com/about/
+Membership portal: https://www.therevampug.com/membership/
+Trade portal: https://www.therevampug.com/trade/
 
 ## Agent access
 
-Public pages support the Accept: text/markdown header for content negotiation. Public read-only API discovery: https://therevampug.com/.well-known/api-catalog
+Public pages support the Accept: text/markdown header for content negotiation. Public read-only API discovery: https://www.therevampug.com/.well-known/api-catalog
 
-Agent Card: https://therevampug.com/.well-known/agent-card.json
-Agent Skills index: https://therevampug.com/.well-known/agent-skills/index.json
-MCP Server Card: https://therevampug.com/.well-known/mcp/server-card.json
-MCP endpoint: https://therevampug.com/mcp
-Authentication guidance: https://therevampug.com/auth.md
+Agent Card: https://www.therevampug.com/.well-known/agent-card.json
+Agent Skills index: https://www.therevampug.com/.well-known/agent-skills/index.json
+MCP Server Card: https://www.therevampug.com/.well-known/mcp/server-card.json
+MCP endpoint: https://www.therevampug.com/mcp
+Authentication guidance: https://www.therevampug.com/auth.md
 
 The public agent endpoints are read-only. They do not expose customer accounts, admin data, checkout submissions, payment authorization, loyalty balances, or private documents. Direct users to the official website for sign-in, booking, checkout, and payment actions.
 

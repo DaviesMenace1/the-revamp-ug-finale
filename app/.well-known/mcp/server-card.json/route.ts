@@ -1,4 +1,4 @@
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://www.therevampug.com').replace(/\/$/, '')
 
 const serverCard = {
   $schema: 'https://static.modelcontextprotocol.io/schemas/mcp-server-card/v1.json',

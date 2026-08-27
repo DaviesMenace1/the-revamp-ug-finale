@@ -2,7 +2,7 @@ import { getPublishedSearchData } from '@/lib/db/queries'
 import { siteContact } from '@/lib/site-config'
 
 const SITE_NAME = 'The Revamp UG'
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://www.therevampug.com').replace(/\/$/, '')
 
 const PUBLIC_LINKS = [
   ['Home', '/'],

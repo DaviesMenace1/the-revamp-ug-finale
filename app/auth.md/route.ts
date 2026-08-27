@@ -10,9 +10,9 @@ Account, client portal, admin, checkout, payment authorization, loyalty, order h
 
 When a user wants to perform a protected action, direct them to the official website and let them complete the normal sign-in and consent flow themselves:
 
-- Sign in: https://therevampug.com/sign-in
-- Sign up: https://therevampug.com/sign-up
-- Checkout: https://therevampug.com/checkout
+- Sign in: https://www.therevampug.com/sign-in
+- Sign up: https://www.therevampug.com/sign-up
+- Checkout: https://www.therevampug.com/checkout
 - Contact support: mailto:support@therevampug.com
 
 The site currently does not publish a separate OAuth-protected resource API for agents. Do not claim that an agent can place orders, authorize payments, access account data, or use admin functions through the public agent endpoints.

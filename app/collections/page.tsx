@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import PageLoadError from '@/components/system/page-load-error'
@@ -6,8 +7,20 @@ import { products as productsTable } from '@/lib/db/schema'
 import { desc, eq } from 'drizzle-orm'
 import { safeQuery } from '@/lib/server/safe-query'
 import CollectionsGrid from './collections-grid'
+import { SchemaScript } from '@/components/seo/schema-script'
 
 export const dynamic = 'force-dynamic'
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
+
+export const metadata: Metadata = {
+  title: 'Furniture, Chairs and Sofas in Uganda',
+  description: 'Explore The Revamp UG collection of chairs, sofas, tables, lighting, décor, and considered furniture for residential and commercial spaces.',
+  keywords: ['chairs Uganda', 'sofas Uganda', 'furniture Kampala', 'interior décor Uganda', 'The Revamp UG collection'],
+  alternates: { canonical: `${SITE_URL}/collections` },
+  openGraph: { type: 'website', url: `${SITE_URL}/collections`, title: 'Furniture, Chairs and Sofas | The Revamp UG', description: 'Considered furniture, lighting, and interior objects sourced by The Revamp UG.' },
+  twitter: { card: 'summary_large_image', title: 'Furniture, Chairs and Sofas | The Revamp UG', description: 'Considered furniture, lighting, and interior objects sourced by The Revamp UG.' },
+}
 
 async function getPublishedProducts() {
   return db.query.products.findMany({
@@ -25,9 +38,16 @@ async function getPublishedProducts() {
 export default async function CollectionsPage() {
   const result = await safeQuery(getPublishedProducts(), 'published collections', [])
   const products = result.data
+  const productItems = products.map((product, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name: product.name,
+    url: `${SITE_URL}/collections/${encodeURIComponent(product.slug)}`,
+  }))
 
   return (
     <>
+      <SchemaScript schema={{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'The Revamp UG Collection', url: `${SITE_URL}/collections`, mainEntity: { '@type': 'ItemList', itemListElement: productItems } }} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
         <section className="relative overflow-hidden bg-obsidian px-5 pb-14 pt-36 text-ivory sm:px-8 md:pb-20 md:pt-48 lg:px-16">

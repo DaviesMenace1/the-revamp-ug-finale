@@ -1,15 +1,35 @@
+import type { Metadata } from 'next'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import { getPublishedProjects } from '@/lib/db/queries'
 import PortfolioGrid from './portfolio-grid'
+import { SchemaScript } from '@/components/seo/schema-script'
 
 export const dynamic = 'force-dynamic'
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
+
+export const metadata: Metadata = {
+  title: 'Interior Design and Architecture Portfolio | The Revamp UG',
+  description: 'View selected residential, hospitality, and commercial interior design and architecture projects by The Revamp UG in Uganda.',
+  keywords: ['interior design portfolio Uganda', 'architecture portfolio Kampala', 'hospitality design Uganda', 'commercial interiors Uganda', 'The Revamp UG projects'],
+  alternates: { canonical: `${SITE_URL}/portfolio` },
+  openGraph: { type: 'website', url: `${SITE_URL}/portfolio`, title: 'Interior Design and Architecture Portfolio | The Revamp UG', description: 'Selected spaces and case studies from The Revamp UG.' },
+  twitter: { card: 'summary_large_image', title: 'Interior Design and Architecture Portfolio | The Revamp UG', description: 'Selected spaces and case studies from The Revamp UG.' },
+}
+
 export default async function PortfolioPage() {
   const projects = await getPublishedProjects(100, 0)
+  const projectItems = projects.map((project, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name: project.title,
+    url: `${SITE_URL}/portfolio/${encodeURIComponent(project.slug)}`,
+  }))
 
   return (
     <>
+      <SchemaScript schema={{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'The Revamp UG Portfolio', url: `${SITE_URL}/portfolio`, mainEntity: { '@type': 'ItemList', itemListElement: projectItems } }} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
         <section className="relative overflow-hidden bg-obsidian px-5 pb-16 pt-36 text-ivory sm:px-8 md:pb-24 md:pt-48 lg:px-16">

@@ -14,6 +14,7 @@ export const dynamic = 'force-dynamic'
 
 const DEFAULT_IMAGE =
   'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg'
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
 
 interface ArticlePageProps {
   params: Promise<{ slug: string }>
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const { slug } = await params
   const article = await db.query.articles.findFirst({ where: eq(articles.slug, slug) })
 
-  if (!article) {
+  if (!article || article.status !== 'published') {
     return {
       title: 'Article Not Found',
       description: 'This article could not be found',
@@ -31,14 +32,17 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   }
 
   const description = (article.content || article.excerpt || '').substring(0, 160)
+  const canonical = `${SITE_URL}/journal/${encodeURIComponent(article.slug)}`
 
   return {
     title: article.title,
+    alternates: { canonical },
     description,
     openGraph: {
       title: article.title,
       description,
       type: 'article',
+      url: canonical,
       publishedTime: (article.publishedAt || article.createdAt).toISOString(),
       authors: article.author ? [article.author] : [],
       tags: article.category ? [article.category] : [],
@@ -99,6 +103,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   const publishedDate = article.publishedAt || article.createdAt
 
+  const articleUrl = `${SITE_URL}/journal/${encodeURIComponent(article.slug)}`
   const articleSchema = generateArticleSchema({
     headline: article.title,
     description: (article.content || article.excerpt || '').substring(0, 160),
@@ -108,6 +113,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     datePublished: publishedDate.toISOString(),
     author: article.author || 'The Revamp UG',
     category: article.category || 'Journal',
+    options: { url: articleUrl, datePublished: publishedDate.toISOString() },
   })
 
   const contentParagraphs = (article.content || '')

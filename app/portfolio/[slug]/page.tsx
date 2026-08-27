@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowUpRight, MapPin, Ruler, Sparkles } from 'lucide-react'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import { SchemaScript } from '@/components/seo/schema-script'
-import { generateProjectSchema } from '@/lib/seo/schema-generator'
+import { generateBreadcrumbSchema, generateProjectSchema } from '@/lib/seo/schema-generator'
 import LikeButton from '@/components/like-button'
 import { getProjectBySlug, getPublishedProjects } from '@/lib/db/queries'
 import { resolveProductImageUrls } from '@/lib/utils'
@@ -14,6 +14,8 @@ import { resolveProductImageUrls } from '@/lib/utils'
 interface ProjectPageProps {
   params: Promise<{ slug: string }>
 }
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
 
 function valueOrFallback(value: string | null | undefined, fallback: string) {
   return value?.trim() || fallback
@@ -26,13 +28,16 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
   if (!project) return { title: 'Project Not Found', description: 'This project could not be found' }
 
   const heroImage = resolveProductImageUrls(project)[0]
+  const canonical = `${SITE_URL}/portfolio/${encodeURIComponent(slug)}`
   return {
     title: `${project.title} | The Revamp UG`,
+    alternates: { canonical },
     description: project.shortDescription || project.description || 'A project by The Revamp UG.',
     openGraph: {
       title: project.title,
       description: project.shortDescription || project.description || undefined,
       type: 'website',
+      url: canonical,
       images: heroImage ? [{ url: heroImage, width: 1200, height: 630 }] : [],
     },
     twitter: {
@@ -54,17 +59,24 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   const heroImage = resolveProductImageUrls(project)[0]
   const galleryImages = resolveProductImageUrls(project).slice(1)
   const description = project.description || project.shortDescription || 'A considered interior by The Revamp studio.'
+  const projectUrl = `${SITE_URL}/portfolio/${encodeURIComponent(slug)}`
   const projectSchema = generateProjectSchema({
     name: project.title,
     description,
     image: heroImage,
     location: project.location,
     startDate: project.createdAt ? new Date(project.createdAt).toISOString() : new Date().toISOString(),
+    url: projectUrl,
   })
 
   return (
     <>
       <SchemaScript schema={projectSchema} />
+      <SchemaScript schema={generateBreadcrumbSchema([
+        { name: 'Home', url: `${SITE_URL}/` },
+        { name: 'Portfolio', url: `${SITE_URL}/portfolio` },
+        { name: project.title, url: projectUrl },
+      ])} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
         <section className="relative overflow-hidden bg-obsidian text-ivory">

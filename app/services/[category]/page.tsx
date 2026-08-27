@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { db } from '@/lib/db/client'
 import { serviceCategories, services } from '@/lib/db/schema'
 import { asc, eq } from 'drizzle-orm'
@@ -6,11 +7,33 @@ import { SiteFooter } from '@/components/site-footer'
 import Link from 'next/link'
 import { ArrowRight, ArrowLeft } from 'lucide-react'
 import { notFound } from 'next/navigation'
+import { SchemaScript } from '@/components/seo/schema-script'
+import { generateBreadcrumbSchema } from '@/lib/seo/schema-generator'
 
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: Promise<{ category: string }>
+}
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { category: categorySlug } = await params
+  const category = await db.query.serviceCategories.findFirst({
+    where: eq(serviceCategories.slug, categorySlug),
+  })
+  if (!category || category.status !== 'published') return {}
+  const description = category.description || `${category.name} services from The Revamp UG, a Uganda-based interior design and architecture studio.`
+  const canonical = `${SITE_URL}/services/${encodeURIComponent(category.slug)}`
+  return {
+    title: `${category.name} Services in Uganda`,
+    description,
+    keywords: [category.name, `${category.name} Uganda`, 'The Revamp UG', 'Kampala'],
+    alternates: { canonical },
+    openGraph: { type: 'website', url: canonical, title: `${category.name} Services | The Revamp UG`, description },
+    twitter: { card: 'summary_large_image', title: `${category.name} Services | The Revamp UG`, description },
+  }
 }
 
 export default async function ServiceCategoryPage({ params }: PageProps) {
@@ -39,9 +62,15 @@ export default async function ServiceCategoryPage({ params }: PageProps) {
 
   const prevCategory = categoryIndex > 0 ? allCategories[categoryIndex - 1] : null
   const nextCategory = categoryIndex < allCategories.length - 1 ? allCategories[categoryIndex + 1] : null
+  const categoryUrl = `${SITE_URL}/services/${encodeURIComponent(category.slug)}`
 
   return (
     <>
+      <SchemaScript schema={generateBreadcrumbSchema([
+        { name: 'Home', url: `${SITE_URL}/` },
+        { name: 'Services', url: `${SITE_URL}/services` },
+        { name: category.name, url: categoryUrl },
+      ])} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
         <section className="border-b border-border/20 py-6">

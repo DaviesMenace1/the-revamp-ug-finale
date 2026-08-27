@@ -9,7 +9,7 @@ import OneSignalBootstrap from '@/components/notifications/onesignal-bootstrap'
 import ConsentGatedAnalytics from '@/components/analytics/consent-gated-analytics'
 import { CartProvider } from '@/lib/context/cart-context'
 import { SchemaScript } from '@/components/seo/schema-script'
-import { generateOrganizationSchema, generateLocalBusinessSchema } from '@/lib/seo/schema-generator'
+import { generateOrganizationSchema, generateLocalBusinessSchema, generateWebSiteSchema } from '@/lib/seo/schema-generator'
 import ClerkRuntimeGuard from '@/components/auth/clerk-runtime-guard'
 import './globals.css'
 
@@ -28,7 +28,10 @@ const instrument = Instrument_Sans({
   display: 'swap',
 })
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: 'The Revamp UG | Luxury Interior Design & Architecture',
     template: '%s | The Revamp UG',
@@ -41,10 +44,10 @@ export const metadata: Metadata = {
     siteName: 'The Revamp UG',
     title: 'The Revamp UG | Luxury Interior Design & Architecture',
     description: 'Bespoke interior design, architecture, global sourcing, and white-glove installation. Transforming spaces into extraordinary living experiences.',
-    url: 'https://therevampug.com',
+    url: SITE_URL,
     images: [
       {
-        url: 'https://therevampug.com/og-image.png',
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: 'The Revamp UG - Luxury Design House',
@@ -55,11 +58,10 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'The Revamp UG | Luxury Design House',
     description: 'Interior design, architecture, procurement, and custom furniture services.',
-    creator: '@therevampug',
-    images: ['https://therevampug.com/og-image.png'],
+    images: [`${SITE_URL}/og-image.png`],
   },
   alternates: {
-    canonical: 'https://therevampug.com',
+    canonical: SITE_URL,
   },
   robots: {
     index: true,
@@ -72,7 +74,6 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  generator: 'Davis',
   manifest: '/site.webmanifest',
   icons: {
     icon: [
@@ -139,6 +140,7 @@ export default function RootLayout({
         
         <SchemaScript schema={generateOrganizationSchema()} />
         <SchemaScript schema={generateLocalBusinessSchema()} />
+        <SchemaScript schema={generateWebSiteSchema()} />
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

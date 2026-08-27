@@ -8,7 +8,7 @@ import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { ProductDetail, ProductReviews } from '@/components/collections/product-detail'
 import { SchemaScript } from '@/components/seo/schema-script'
-import { generateProductSchema } from '@/lib/seo/schema-generator'
+import { generateBreadcrumbSchema, generateProductSchema } from '@/lib/seo/schema-generator'
 import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
 
 // Database & Drizzle Imports
@@ -18,6 +18,8 @@ import { eq, ne, and } from 'drizzle-orm'
 
 export const dynamicParams = true
 export const revalidate = 60
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
 
 function extractProductImages(product: unknown): string[] {
   return resolveProductImageUrls(product)
@@ -52,7 +54,7 @@ async function getRelatedProductsFromDB(subCategoryId: string | null, currentId:
       },
       limit: 4,
     })
-  } catch (error) {
+  } catch {
     return []
   }
 }
@@ -78,9 +80,11 @@ export async function generateMetadata({
 
   const images = extractProductImages(product)
 
+  const canonical = `${SITE_URL}/collections/${encodeURIComponent(product.slug)}`
   return {
     title: `${product.name} | The Revamp UG`,
     description: product.description || product.name,
+    alternates: { canonical },
     keywords: [product.name, product.googleProductCategoryPath, product.googleProductCategoryId].filter(
       (value): value is string => Boolean(value),
     ),
@@ -88,6 +92,7 @@ export async function generateMetadata({
       title: product.name,
       description: product.description || product.name,
       type: 'website',
+      url: canonical,
       images: images.map((url) => ({ url, width: 1200, height: 1200 })),
     },
     twitter: {
@@ -172,20 +177,33 @@ export default async function ProductPage({
   // -------------------------------------------------------------
 
   const related = await getRelatedProductsFromDB(product.subCategoryId, product.id)
-  const pageUrl = `https://therevampug.com/collections/${product.slug}`
+  const pageUrl = `${SITE_URL}/collections/${encodeURIComponent(product.slug)}`
+  const availability = product.availability === 'out_of_stock' ? 'OutOfStock' : product.availability === 'pre_order' ? 'PreOrder' : product.availability === 'made_to_order' ? 'MadeToOrder' : 'InStock'
+  const condition = product.condition === 'used' ? 'UsedCondition' : product.condition === 'refurbished' ? 'RefurbishedCondition' : 'NewCondition'
 
   const productSchema = generateProductSchema({
     name: product.name,
     description: product.description || '',
     price: parseFloat(product.price || '0'),
-    currency: 'UGX',
+    currency: product.currency || 'UGX',
     images: safeImages,
+    brand: product.brand || 'The Revamp UG',
+    sku: product.sku,
+    mpn: product.mpn,
+    gtin: product.gtin,
+    availability,
+    condition,
     options: { url: pageUrl, image: safeImages[0] },
   })
 
   return (
     <>
       <SchemaScript schema={productSchema} />
+      <SchemaScript schema={generateBreadcrumbSchema([
+        { name: 'Home', url: `${SITE_URL}/` },
+        { name: 'Collections', url: `${SITE_URL}/collections` },
+        { name: product.name, url: pageUrl },
+      ])} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
         

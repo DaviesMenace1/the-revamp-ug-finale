@@ -1,16 +1,42 @@
+import type { Metadata } from 'next'
 import { db } from '@/lib/db/client'
 import { serviceCategories, services } from '@/lib/db/schema'
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import Link from 'next/link'
 import { ArrowRight, ArrowLeft } from 'lucide-react'
 import { notFound } from 'next/navigation'
+import { SchemaScript } from '@/components/seo/schema-script'
+import { generateBreadcrumbSchema, generateServiceSchema } from '@/lib/seo/schema-generator'
 
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: Promise<{ category: string; service: string }>
+}
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { category: categorySlug, service: serviceSlug } = await params
+  const category = await db.query.serviceCategories.findFirst({ where: eq(serviceCategories.slug, categorySlug) })
+  if (!category) return {}
+  const service = await db.query.services.findFirst({
+    where: and(eq(services.categoryId, category.id), eq(services.slug, serviceSlug), eq(services.status, 'published')),
+  })
+  if (!service) return {}
+  const description = service.description || `${service.name} from The Revamp UG, a Uganda-based interior design and architecture studio.`
+  const canonical = `${SITE_URL}/services/${encodeURIComponent(category.slug)}/${encodeURIComponent(service.slug)}`
+  const image = service.ogImage || service.image || undefined
+  return {
+    title: `${service.name} | ${category.name}`,
+    description,
+    keywords: [service.name, category.name, 'The Revamp UG', 'Uganda', 'Kampala'],
+    alternates: { canonical },
+    openGraph: { type: 'article', url: canonical, title: `${service.name} | The Revamp UG`, description, images: image ? [{ url: image, alt: service.name }] : undefined },
+    twitter: { card: 'summary_large_image', title: `${service.name} | The Revamp UG`, description, images: image ? [image] : undefined },
+  }
 }
 
 export default async function ServiceDetailPage({ params }: PageProps) {
@@ -41,9 +67,18 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
   const prevService = serviceIndex > 0 ? publishedServices[serviceIndex - 1] : null
   const nextService = serviceIndex < publishedServices.length - 1 ? publishedServices[serviceIndex + 1] : null
+  const serviceUrl = `${SITE_URL}/services/${encodeURIComponent(category.slug)}/${encodeURIComponent(service.slug)}`
+  const serviceImage = service.ogImage || service.image || undefined
 
   return (
     <>
+      <SchemaScript schema={generateServiceSchema({ name: service.name, description: service.longDescription || service.description || '', options: { url: serviceUrl, image: serviceImage } })} />
+      <SchemaScript schema={generateBreadcrumbSchema([
+        { name: 'Home', url: `${SITE_URL}/` },
+        { name: 'Services', url: `${SITE_URL}/services` },
+        { name: category.name, url: `${SITE_URL}/services/${encodeURIComponent(category.slug)}` },
+        { name: service.name, url: serviceUrl },
+      ])} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
         <section className="border-b border-border/20 py-6">

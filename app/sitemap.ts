@@ -1,8 +1,7 @@
 import type { MetadataRoute } from 'next'
-import { getPublishedSearchData } from '@/lib/db/queries'
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 3600 
+export const dynamic = 'force-static'
+export const revalidate = 86_400
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
 
@@ -27,52 +26,10 @@ const staticRoutes = [
   { path: '/legal/terms', priority: 0.3, changeFrequency: 'yearly' as const },
 ]
 
-function url(path: string) {
-  return `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`
-}
-
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const entries: MetadataRoute.Sitemap = staticRoutes.map((route) => ({
-    url: url(route.path),
+export default function sitemap(): MetadataRoute.Sitemap {
+  return staticRoutes.map((route) => ({
+    url: `${SITE_URL}${route.path}`,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }))
-
-  try {
-    const { products, services, projects, articles } = await getPublishedSearchData()
-    const dynamicEntries: MetadataRoute.Sitemap = []
-    const seen = new Set(entries.map((entry) => entry.url))
-    const add = (path: string, priority: number, changeFrequency: 'daily' | 'weekly' | 'monthly') => {
-      const canonicalUrl = url(path)
-      if (seen.has(canonicalUrl)) return
-      seen.add(canonicalUrl)
-      dynamicEntries.push({ url: canonicalUrl, changeFrequency, priority })
-    }
-
-    const categorySlugs = new Set<string>()
-    for (const service of services) {
-      const categorySlug = service.category?.slug?.trim()
-      if (categorySlug) categorySlugs.add(categorySlug)
-    }
-    categorySlugs.forEach((categorySlug) => add(`/services/${encodeURIComponent(categorySlug)}`, 0.82, 'monthly'))
-    services.forEach((service) => {
-      const categorySlug = service.category?.slug?.trim()
-      const serviceSlug = service.slug?.trim()
-      if (categorySlug && serviceSlug) add(`/services/${encodeURIComponent(categorySlug)}/${encodeURIComponent(serviceSlug)}`, 0.85, 'monthly')
-    })
-    products.forEach((product) => {
-      if (product.slug?.trim()) add(`/collections/${encodeURIComponent(product.slug.trim())}`, 0.8, 'weekly')
-    })
-    projects.forEach((project) => {
-      if (project.slug?.trim()) add(`/portfolio/${encodeURIComponent(project.slug.trim())}`, 0.75, 'monthly')
-    })
-    articles.forEach((article) => {
-      if (article.slug?.trim()) add(`/journal/${encodeURIComponent(article.slug.trim())}`, 0.7, 'monthly')
-    })
-
-    return [...entries, ...dynamicEntries]
-  } catch (error) {
-    console.error('[seo] sitemap data load failed:', error)
-    return entries
-  }
 }

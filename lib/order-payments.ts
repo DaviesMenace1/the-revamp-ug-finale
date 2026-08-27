@@ -106,7 +106,7 @@ export async function settleOrderPayment(input: { orderRef: string; chargeId?: s
       }
       const delivery = parseAddress(order.deliveryAddress)
       const deliveryMessage = delivery.deliveryMethod === 'pickup_station' && delivery.pickupStation && typeof delivery.pickupStation === 'object' ? `Pickup at ${String((delivery.pickupStation as Record<string, unknown>).name || 'your selected station')}.` : `Door delivery to ${String(delivery.city || delivery.address || 'your saved address')}.`
-      void notifyUser({ userId: customer.id, type: 'payment_completed', priority: 'important', title: 'Payment confirmed', message: `Payment for order ${order.orderNumber} was confirmed. ${deliveryMessage}`, actionUrl: `/client/orders?order=${encodeURIComponent(order.id)}`, metadata: { orderId: order.id, orderNumber: order.orderNumber, paymentMode: order.paymentMode, paymentMethod: method, deliveryAddress: order.deliveryAddress, items: order.items }, channels: ['in_app', 'push', 'email'] })
+      void notifyUser({ userId: customer.id, type: 'payment_completed', priority: 'important', title: 'Payment confirmed', message: `Payment for order ${order.orderNumber} was confirmed. ${deliveryMessage}`, actionUrl: `/client/orders?order=${encodeURIComponent(order.id)}`, metadata: { orderId: order.id, orderNumber: order.orderNumber, status: 'confirmed', total: order.total, currency: expectedCurrency, paymentMode: order.paymentMode, paymentMethod: method, deliveryAddress: order.deliveryAddress, items: order.items }, channels: ['in_app', 'push', 'email'] })
     }
 
     await db.update(carts).set({ items: [], subtotal: '0', updatedAt: now }).where(eq(carts.userId, customer.id))
@@ -114,7 +114,7 @@ export async function settleOrderPayment(input: { orderRef: string; chargeId?: s
     const emailAlreadySent = originalPaymentMetadata.verifiedOrderEmailSent === true
     if (!emailAlreadySent && customer.email) {
       const address = parseAddress(order.deliveryAddress)
-      const emailResult = await sendOrderVerificationEmail({ toEmail: customer.email, orderNumber: order.orderNumber, amount: String(order.total), currency: expectedCurrency, customerName: typeof address.name === 'string' ? address.name : 'Valued Customer', paymentMode: order.paymentMode, paymentMethod: method, deliveryAddress: order.deliveryAddress, items: order.items })
+      const emailResult = await sendOrderVerificationEmail({ toEmail: customer.email, orderNumber: order.orderNumber, amount: String(order.total), currency: expectedCurrency, customerName: typeof address.name === 'string' ? address.name : 'Valued Customer', paymentMode: order.paymentMode, paymentMethod: method, deliveryAddress: order.deliveryAddress, items: order.items, orderId: order.id })
       if (emailResult.success) {
         if (paymentId) await db.update(paymentRecords).set({ metadata: { ...completedMetadata, verifiedOrderEmailSent: true }, updatedAt: now }).where(eq(paymentRecords.id, paymentId))
       } else {

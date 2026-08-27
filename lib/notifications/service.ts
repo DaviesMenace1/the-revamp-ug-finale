@@ -24,6 +24,9 @@ const ONE_SIGNAL_ENDPOINT = 'https://api.onesignal.com/notifications'
 function metadataDetails(metadata: Record<string, unknown> | undefined) {
   if (!metadata) return ''
   const lines: string[] = []
+  if (typeof metadata.orderNumber === 'string' && metadata.orderNumber) lines.push(`Order reference: ${metadata.orderNumber}`)
+  if (typeof metadata.status === 'string' && metadata.status) lines.push(`Status: ${metadata.status.replaceAll('_', ' ')}`)
+  if (typeof metadata.total === 'string' || typeof metadata.total === 'number') lines.push(`Total: ${String(metadata.currency || 'UGX')} ${String(metadata.total)}`)
   if (typeof metadata.trackingCode === 'string' && metadata.trackingCode) lines.push(`Tracking code: ${metadata.trackingCode}`)
   if (typeof metadata.paymentMode === 'string') lines.push(`Payment: ${metadata.paymentMode === 'pay_on_delivery' ? 'Pay on delivery' : 'Pay now'}`)
   if (typeof metadata.paymentMethod === 'string' && metadata.paymentMethod) lines.push(`Payment method: ${metadata.paymentMethod === 'mobile_money' ? 'Mobile money' : metadata.paymentMethod === 'card' ? 'Card' : metadata.paymentMethod}`)
@@ -36,7 +39,16 @@ function metadataDetails(metadata: Record<string, unknown> | undefined) {
   }
   if (typeof metadata.refundStatus === 'string' && metadata.refundStatus !== 'not_requested') lines.push(`Refund status: ${metadata.refundStatus}`)
   if (Array.isArray(metadata.items) && metadata.items.length > 0) {
-    const names = metadata.items.slice(0, 5).map((item) => item && typeof item === 'object' ? String((item as Record<string, unknown>).name || (item as Record<string, unknown>).title || 'Product') : 'Product')
+    const names = metadata.items.slice(0, 5).map((item) => {
+      const row = item && typeof item === 'object' ? item as Record<string, unknown> : {}
+      const name = String(row.name || row.title || 'Product')
+      const options = [['colour', row.color], ['fabric', row.fabric], ['material', row.material], ['variant', row.variant]]
+        .filter(([, value]) => typeof value === 'string' && value.trim())
+        .map(([label, value]) => `${label}: ${String(value)}`)
+        .join(', ')
+      const quantity = Math.max(1, Number(row.quantity) || 1)
+      return `${name}${options ? ` (${options})` : ''} x ${quantity}`
+    })
     lines.push(`Products: ${names.join(', ')}${metadata.items.length > 5 ? ` and ${metadata.items.length - 5} more` : ''}`)
   }
   return lines.map((line) => `<li style="margin-bottom:6px;">${escapeEmailHtml(line)}</li>`).join('')
@@ -135,7 +147,7 @@ export async function notifyUser(input: NotificationInput) {
 
     if (channels.includes('email')) {
       const recipientName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'there'
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || ''
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://therevampug.com'
       const actionUrl = input.actionUrl ? `${siteUrl}${input.actionUrl}` : null
       const detailsMarkup = metadataDetails(input.metadata)
       const emailResult = user?.email
@@ -143,7 +155,7 @@ export async function notifyUser(input: NotificationInput) {
             toEmail: user.email,
             toName: recipientName,
             subject: input.title,
-            htmlContent: `<!doctype html><html><body style="margin:0;background:#f6f4ef;color:#1e1c19;font-family:Arial,sans-serif;padding:32px 16px"><main style="max-width:600px;margin:0 auto;background:#fff;padding:32px;border:1px solid #e5e0d8"><p style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8b6b3f">The Revamp UG</p><h1 style="font-size:26px;font-weight:400;margin:18px 0 10px">${escapeEmailHtml(input.title)}</h1><p style="font-size:15px;line-height:1.7">Hi ${escapeEmailHtml(recipientName)},</p><p style="font-size:15px;line-height:1.7">${escapeEmailHtml(input.message)}</p>${detailsMarkup ? `<div style="margin-top:20px;padding:16px;background:#f8f8f8;border:1px solid #eeeeee"><strong style="font-size:13px">Order details</strong><ul style="font-size:13px;line-height:1.5;padding-left:20px">${detailsMarkup}</ul></div>` : ''}${actionUrl ? `<p style="margin-top:28px"><a href="${escapeEmailHtml(actionUrl)}" style="display:inline-block;background:#1e1c19;color:#fff;text-decoration:none;padding:13px 18px;font-size:12px;letter-spacing:1px;text-transform:uppercase">Open your portal</a></p>` : ''}<p style="margin-top:34px;color:#6f6a62;font-size:12px;line-height:1.6">You are receiving this service notification because it relates to your Revamp UG account.</p></main></body></html>`,
+            htmlContent: `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{margin:0;background:#f4f1eb;color:#231f1b;font-family:Arial,sans-serif;padding:28px 14px}.card{max-width:620px;margin:0 auto;background:#fff;border:1px solid #e5dfd5}.head{padding:30px;background:#231f1b;color:#fffaf2}.brand{color:#d2ab72;font-size:11px;letter-spacing:3px;text-transform:uppercase}.badge{display:inline-block;margin-top:22px;border:1px solid #d2ab72;color:#f4d49d;padding:7px 10px;font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase}.head h1{font-family:Georgia,serif;font-size:28px;font-weight:400;line-height:1.2;margin:14px 0 8px}.head p{color:#e1d9cd;font-size:14px;line-height:1.7;margin:0}.body{padding:28px 30px 32px}.details{border:1px solid #e5dfd5;background:#fbfaf7;padding:16px}.details ul{font-size:13px;line-height:1.5;margin:10px 0 0;padding-left:20px}.button{display:inline-block;background:#231f1b;color:#fffaf2!important;text-decoration:none;padding:14px 18px;font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase}.foot{border-top:1px solid #ebe7df;color:#91887d;font-size:11px;line-height:1.6;margin-top:28px;padding-top:18px}@media(max-width:520px){body{padding:0}.head,.body{padding-left:20px;padding-right:20px}}</style></head><body><main class="card"><header class="head"><div class="brand">The Revamp UG</div><div class="badge">Service update</div><h1>${escapeEmailHtml(input.title)}</h1><p>Hi ${escapeEmailHtml(recipientName)},</p><p style="margin-top:8px">${escapeEmailHtml(input.message)}</p></header><section class="body">${detailsMarkup ? `<div class="details"><strong style="font-size:13px;letter-spacing:1px;text-transform:uppercase">Order update details</strong><ul>${detailsMarkup}</ul></div>` : ''}${actionUrl ? `<p style="margin:24px 0 0"><a class="button" href="${escapeEmailHtml(actionUrl)}">Open order status</a></p>` : ''}<p class="foot">You are receiving this service notification because it relates to your Revamp UG account.</p></section></main></body></html>`,
           })
         : { status: 'failed' as const, providerMessageId: null, error: 'Recipient email is unavailable.' }
 

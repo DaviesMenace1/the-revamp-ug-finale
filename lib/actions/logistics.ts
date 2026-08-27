@@ -97,14 +97,27 @@ export async function updateShipmentStatus(input: { shipmentId: string; status: 
 
   const [customer] = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, row.order.userId)).limit(1)
   if (customer) {
+    const statusMessage = status === 'processing'
+      ? 'We are preparing your order.'
+      : status === 'packed'
+        ? 'Your order has been packed and is ready for dispatch.'
+        : status === 'out_for_delivery'
+          ? 'Your order is on the way.'
+          : status === 'delivered'
+            ? 'Your order has been delivered.'
+            : status === 'collected'
+              ? 'Your order has been collected from the pickup station.'
+              : status === 'exception'
+                ? 'There is an issue affecting your order. Our team is reviewing it.'
+                : `${SHIPMENT_STATUS_LABELS[status]}.`
     void notifyUser({
       userId: customer.id,
       type: 'shipment_update',
       priority: status === 'exception' ? 'important' : 'informational',
       title: `Order ${row.order.orderNumber}: ${SHIPMENT_STATUS_LABELS[status]}`,
-      message: `${SHIPMENT_STATUS_LABELS[status]}. ${deliverySummary(row.order.deliveryAddress)}${note ? ` ${note}` : ''}`,
+      message: `${statusMessage} ${deliverySummary(row.order.deliveryAddress)}${note ? ` ${note}` : ''}`,
       actionUrl: `/client/orders?order=${encodeURIComponent(row.order.id)}`,
-      metadata: { orderId: row.order.id, orderNumber: row.order.orderNumber, shipmentId: row.shipment.id, trackingCode: row.shipment.trackingCode, status, paymentMode: row.order.paymentMode, deliveryAddress: row.order.deliveryAddress, items: row.order.items },
+      metadata: { orderId: row.order.id, orderNumber: row.order.orderNumber, shipmentId: row.shipment.id, trackingCode: row.shipment.trackingCode, status, total: row.order.total, currency: 'UGX', paymentMode: row.order.paymentMode, paymentMethod: row.order.paymentMethod, deliveryAddress: row.order.deliveryAddress, items: row.order.items },
       channels: ['in_app', 'push', 'email'],
     }).catch((error) => console.error('[logistics] customer notification failed:', error))
   }

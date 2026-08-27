@@ -1,4 +1,4 @@
-interface SendReceiptOptions {
+type SendReceiptOptions = {
   toEmail: string
   orderNumber: string
   amount: string
@@ -8,6 +8,8 @@ interface SendReceiptOptions {
   paymentMethod?: string | null
   deliveryAddress?: unknown
   items?: unknown
+  orderId?: string | null
+  trackingCode?: string | null
 }
 
 function escapeEmailHtml(value: string) {
@@ -38,9 +40,10 @@ function itemRows(value: unknown) {
     const options = [['Colour', detailLabel(row.color)], ['Fabric', detailLabel(row.fabric)], ['Material', detailLabel(row.material)], ['Variant', detailLabel(row.variant)]]
       .filter(([, option]) => option)
       .map(([key, option]) => `${key}: ${option}`)
-      .join(' | ')
-    const description = [String(row.name || row.title || 'Product'), options].filter(Boolean).join(' | ')
-    return `<li style="margin-bottom: 8px;"><strong>${escapeEmailHtml(description)}</strong><br><span style="color:#666;">Quantity: ${Math.max(1, Number(row.quantity) || 1)}</span></li>`
+      .join(' · ')
+    const name = escapeEmailHtml(String(row.name || row.title || 'Product'))
+    const description = options ? `<div style="margin-top:4px;color:#756f66;font-size:12px;line-height:1.5">${escapeEmailHtml(options)}</div>` : ''
+    return `<div style="padding:14px 0;border-bottom:1px solid #ebe7df"><div style="font-size:14px;font-weight:600;color:#231f1b">${name}</div>${description}<div style="margin-top:5px;color:#756f66;font-size:12px">Quantity: ${Math.max(1, Number(row.quantity) || 1)}</div></div>`
   }).join('')
 }
 
@@ -54,6 +57,8 @@ export async function sendOrderVerificationEmail({
   paymentMethod = null,
   deliveryAddress,
   items,
+  orderId = null,
+  trackingCode = null,
 }: SendReceiptOptions) {
   const apiKey = process.env.BREVO_API_KEY?.trim()
   const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim() || process.env.SENDER_EMAIL?.trim() || 'info@therevampug.com'
@@ -67,7 +72,10 @@ export async function sendOrderVerificationEmail({
   const paymentLabel = isPayOnDelivery ? 'Pay on delivery' : `Pay now via ${paymentMethod === 'mobile_money' ? 'mobile money' : paymentMethod === 'card' ? 'card' : 'Flutterwave'}`
   const safePaymentLabel = escapeEmailHtml(paymentLabel)
   const safeDeliveryLabel = escapeEmailHtml(deliveryLabel(deliveryAddress))
+  const safeTrackingCode = trackingCode ? escapeEmailHtml(trackingCode) : ''
   const itemsMarkup = itemRows(items)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://therevampug.com'
+  const actionUrl = orderId ? `${siteUrl}/client/orders?order=${encodeURIComponent(orderId)}` : null
 
   if (!apiKey) {
     console.error('BREVO_API_KEY is not configured in environment variables.')
@@ -79,41 +87,51 @@ export async function sendOrderVerificationEmail({
     <html>
       <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; margin: 0; padding: 40px 20px; color: #111111; }
-          .container { max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e5e5; padding: 40px; }
-          .header { border-bottom: 1px solid #eeeeee; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
-          .badge { display: inline-block; background-color: #10b981; color: #ffffff; font-size: 10px; font-weight: bold; padding: 4px 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; }
-          h1 { font-size: 24px; font-weight: 300; margin: 0 0 10px; letter-spacing: -0.5px; }
-          .details { background-color: #f8f8f8; border: 1px solid #eeeeee; padding: 20px; margin: 25px 0; font-size: 14px; }
-          .total { font-weight: bold; font-size: 16px; color: #000; padding-top: 10px; border-top: 1px solid #ddd; }
-          .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #777777; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background:#f4f1eb; margin:0; padding:28px 14px; color:#231f1b; }
+          .container { max-width:620px; margin:0 auto; background:#ffffff; border:1px solid #e5dfd5; }
+          .header { padding:34px 30px 28px; background:#231f1b; color:#fffaf2; }
+          .brand { color:#d2ab72; font-size:11px; letter-spacing:3px; text-transform:uppercase; }
+          .badge { display:inline-block; margin-top:26px; border:1px solid #d2ab72; color:#f4d49d; font-size:10px; font-weight:700; padding:7px 11px; text-transform:uppercase; letter-spacing:1.5px; }
+          h1 { font-family: Georgia, 'Times New Roman', serif; font-size:32px; font-weight:400; line-height:1.15; margin:16px 0 10px; }
+          .intro { color:#e1d9cd; font-size:14px; line-height:1.7; margin:0; }
+          .content { padding:28px 30px 34px; }
+          .summary { border:1px solid #e5dfd5; background:#fbfaf7; }
+          .summary-row { padding:14px 16px; border-bottom:1px solid #ebe7df; }
+          .summary-row:last-child { border-bottom:0; }
+          .label { color:#827a70; font-size:10px; letter-spacing:1.3px; text-transform:uppercase; }
+          .value { color:#231f1b; font-size:14px; line-height:1.5; margin-top:4px; }
+          .section-title { color:#231f1b; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; margin:28px 0 4px; }
+          .total { display:flex; justify-content:space-between; gap:16px; border-top:1px solid #231f1b; margin-top:18px; padding-top:16px; font-size:16px; font-weight:700; }
+          .button { display:inline-block; background:#231f1b; color:#fffaf2 !important; text-decoration:none; padding:14px 18px; font-size:11px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; }
+          .note { color:#756f66; font-size:13px; line-height:1.7; }
+          .footer { border-top:1px solid #ebe7df; color:#91887d; font-size:11px; line-height:1.6; margin-top:30px; padding-top:20px; text-align:center; }
+          @media (max-width:520px) { body { padding:0; } .header, .content { padding-left:20px; padding-right:20px; } h1 { font-size:28px; } }
         </style>
       </head>
       <body>
-        <div class="container">
-          <div class="header">
-            <span class="badge">${isPayOnDelivery ? 'Order Confirmed' : 'Payment Verified'}</span>
-            <h1>Thank You for Your Order</h1>
-            <p style="color: #666; font-size: 14px;">Hi ${safeCustomerName}, ${isPayOnDelivery ? 'your order has been confirmed. Payment is due when the order is delivered or collected.' : 'your payment has been verified and your order is now being processed.'}</p>
-          </div>
-
-          <div class="details">
-            <div style="margin-bottom: 10px;"><strong>Order Ref:</strong> ${safeOrderNumber}</div>
-            <div style="margin-bottom: 10px;"><strong>Payment:</strong> ${safePaymentLabel}</div>
-            <div style="margin-bottom: 10px;"><strong>Delivery:</strong> ${safeDeliveryLabel}</div>
-            ${itemsMarkup ? `<div style="margin-top: 16px;"><strong>Items:</strong><ul style="padding-left: 20px;line-height:1.5;">${itemsMarkup}</ul></div>` : ''}
-            <div class="total">Total ${paymentMode === 'pay_on_delivery' ? 'due' : 'paid'}: ${safeCurrency} ${safeAmount}</div>
-          </div>
-
-          <p style="font-size: 13px; color: #555; line-height: 1.6;">
-            Keep this email for your records. If you have questions about your order, contact our customer support team.
-          </p>
-
-          <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} ${safeSenderName}. All rights reserved.</p>
-          </div>
-        </div>
+        <main class="container">
+          <header class="header">
+            <div class="brand">The Revamp UG</div>
+            <div class="badge">${isPayOnDelivery ? 'Order confirmed' : 'Payment verified'}</div>
+            <h1>${isPayOnDelivery ? 'Your order is confirmed' : 'Thank you for your order'}</h1>
+            <p class="intro">Hi ${safeCustomerName}, ${isPayOnDelivery ? 'your order is now reserved for fulfilment. Payment is due when it is delivered or collected.' : 'your payment has been verified and your order is now moving into fulfilment.'}</p>
+          </header>
+          <section class="content">
+            <div class="summary">
+              <div class="summary-row"><div class="label">Order reference</div><div class="value">${safeOrderNumber}</div></div>
+              <div class="summary-row"><div class="label">Payment</div><div class="value">${safePaymentLabel}</div></div>
+              <div class="summary-row"><div class="label">Fulfilment</div><div class="value">${safeDeliveryLabel}</div></div>
+              ${safeTrackingCode ? `<div class="summary-row"><div class="label">Tracking code</div><div class="value">${safeTrackingCode}</div></div>` : ''}
+            </div>
+            ${itemsMarkup ? `<h2 class="section-title">Your selection</h2><div>${itemsMarkup}</div>` : ''}
+            <div class="total"><span>Total ${isPayOnDelivery ? 'due' : 'paid'}</span><span>${safeCurrency} ${safeAmount}</span></div>
+            <p class="note">Keep this email for your records. You can follow the order, review its delivery details, and contact the studio from your client portal.</p>
+            ${actionUrl ? `<p style="margin:24px 0 0"><a class="button" href="${escapeEmailHtml(actionUrl)}">View order status</a></p>` : ''}
+            <div class="footer">Need help? Contact The Revamp UG through your client portal or email support@therevampug.com.<br>&copy; ${new Date().getFullYear()} ${safeSenderName}. All rights reserved.</div>
+          </section>
+        </main>
       </body>
     </html>
   `

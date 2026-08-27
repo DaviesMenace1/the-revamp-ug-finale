@@ -27,6 +27,8 @@ const nextConfig = {
     return [
       { source: '/studio', destination: '/portfolio', permanent: true },
       { source: '/studio/:path*', destination: '/portfolio', permanent: true },
+      { source: '/sitemap.ts', destination: '/sitemap.xml', permanent: true },
+      { source: '/sitemap', destination: '/sitemap.xml', permanent: true },
     ]
   },
 }

@@ -284,10 +284,10 @@ export async function POST(request: Request) {
         userId: localUser.id,
         type: 'order_placed_pay_on_delivery',
         priority: 'important',
-        title: 'Order received',
-        message: `Your pay-on-delivery order ${txRef} is confirmed. Payment is due when your order is delivered or collected. ${deliveryMessage}`,
+        title: `Order ${txRef} confirmed`,
+        message: `Your pay-on-delivery order is confirmed. Payment is due when your order is delivered or collected. ${deliveryMessage}`,
         actionUrl: `/client/orders?order=${encodeURIComponent(createdOrder.id)}`,
-        metadata: { orderId: createdOrder.id, orderNumber: txRef, paymentMode, deliveryAddress: shippingAddress, items: orderItems, trackingCode },
+        metadata: { orderId: createdOrder.id, orderNumber: txRef, status: 'confirmed', total: amountAfterPoints.toFixed(2), currency: expectedCurrency, paymentMode, deliveryAddress: shippingAddress, items: orderItems, trackingCode },
         channels: ['in_app', 'push', 'email'],
       })
       return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, status: 'placed', orderStatus: 'confirmed', paymentStatus: 'pending', amount: amountAfterPoints, discountUgx })

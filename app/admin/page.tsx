@@ -1,11 +1,11 @@
-import AdminDashboard from './_components/admin-dashboard'
 import { db } from '@/lib/db/client'
 import { sql } from 'drizzle-orm'
 import { safeQuery } from '@/lib/server/safe-query'
+import AdminDashboard from './_components/admin-dashboard'
 
 export const dynamic = 'force-dynamic'
 
- type QueryRow = Record<string, unknown>
+type QueryRow = Record<string, unknown>
 
 function rows(value: unknown): QueryRow[] {
   if (Array.isArray(value)) return value as QueryRow[]
@@ -35,28 +35,18 @@ function numeric(value: unknown) {
 }
 
 async function getDashboardData() {
-  const sixMonthsAgo = new Date()
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
-  const fourWeeksAgo = new Date()
-  fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28)
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
   const result = await safeQuery(
     db.execute(sql`
       WITH chart AS (
-        SELECT 'revenue' AS series,
-               to_char(date_trunc('month', created_at), 'Mon') AS label,
-               date_trunc('month', created_at) AS period_start,
-               COALESCE(SUM(total), 0) AS value
+        SELECT to_char(date_trunc('day', created_at), 'Mon DD') AS label,
+               date_trunc('day', created_at) AS period_start,
+               COALESCE(SUM(total), 0) AS revenue,
+               COUNT(*) AS orders
         FROM orders
-        WHERE created_at >= ${sixMonthsAgo.toISOString()}
-        GROUP BY period_start, label
-        UNION ALL
-        SELECT 'orders' AS series,
-               to_char(date_trunc('week', created_at), 'Mon DD') AS label,
-               date_trunc('week', created_at) AS period_start,
-               COUNT(*) AS value
-        FROM orders
-        WHERE created_at >= ${fourWeeksAgo.toISOString()}
+        WHERE created_at >= ${thirtyDaysAgo.toISOString()}
         GROUP BY period_start, label
       ),
       categories AS (
@@ -84,7 +74,7 @@ async function getDashboardData() {
           'activeClients', (SELECT COUNT(DISTINCT user_id) FROM orders),
           'pendingProjects', (SELECT COUNT(*) FROM projects WHERE COALESCE(progress, 0) < 100 AND project_kind = 'client')
         ) AS kpis,
-        COALESCE((SELECT json_agg(json_build_object('series', series, 'label', label, 'value', value) ORDER BY series, period_start) FROM chart), '[]'::json) AS chart,
+        COALESCE((SELECT json_agg(json_build_object('label', label, 'revenue', revenue, 'orders', orders) ORDER BY period_start) FROM chart), '[]'::json) AS trend,
         COALESCE((SELECT json_agg(json_build_object('category', category, 'count', product_count) ORDER BY product_count DESC) FROM categories), '[]'::json) AS categories,
         COALESCE((SELECT json_agg(json_build_object('kind', kind, 'label', label, 'created_at', created_at) ORDER BY created_at DESC) FROM activity), '[]'::json) AS activity
     `),
@@ -94,7 +84,7 @@ async function getDashboardData() {
 
   const row = rows(result.data)[0] || {}
   const kpis = objectValue(row.kpis)
-  const chartRows = arrayValue(row.chart)
+  const trendRows = arrayValue(row.trend)
   const categoryRows = arrayValue(row.categories)
   const activityRows = arrayValue(row.activity)
   const activityLabels: Record<string, string> = { order: 'New order placed', project: 'Project updated', consultation: 'New consultation booked' }
@@ -106,8 +96,7 @@ async function getDashboardData() {
       activeClients: numeric(kpis.activeClients),
       pendingProjects: numeric(kpis.pendingProjects),
     },
-    revenueByMonth: chartRows.filter((report) => report.series === 'revenue').map((report) => ({ month: String(report.label ?? ''), revenue: numeric(report.value) })),
-    ordersByWeek: chartRows.filter((report) => report.series === 'orders').map((report, index) => ({ week: `Week ${index + 1}`, orders: numeric(report.value) })),
+    trend: trendRows.map((report) => ({ label: String(report.label ?? ''), revenue: numeric(report.revenue), orders: numeric(report.orders) })),
     productsByCategory: categoryRows.map((report) => ({ category: String(report.category ?? ''), count: numeric(report.count) })),
     activity: activityRows.slice(0, 5).map((report) => ({ action: activityLabels[String(report.kind)] ?? 'Update', detail: String(report.label ?? ''), time: new Date(String(report.created_at)).toISOString() })),
     loadError: result.error ? 'The dashboard reports are temporarily unavailable. The workspace remains usable; retry the page when the database is responsive.' : null,

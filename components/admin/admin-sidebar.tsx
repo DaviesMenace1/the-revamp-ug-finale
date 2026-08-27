@@ -27,6 +27,8 @@ import {
   Megaphone,
   Menu,
   X,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { hasPermission, type AdminPermission, type UserRole } from '@/lib/auth/permissions'
@@ -59,7 +61,7 @@ function isItemActive(pathname: string, href: string) {
   return href === '/admin' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`)
 }
 
-function AdminNav({ role, onNavigate }: { role: UserRole; onNavigate?: () => void }) {
+function AdminNav({ role, onNavigate, collapsed = false }: { role: UserRole; onNavigate?: () => void; collapsed?: boolean }) {
   const pathname = usePathname()
 
   return (
@@ -73,15 +75,14 @@ function AdminNav({ role, onNavigate }: { role: UserRole; onNavigate?: () => voi
             key={item.href}
             href={item.href}
             onClick={onNavigate}
+            aria-label={item.label}
             aria-current={active ? 'page' : undefined}
-            className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-              active
-                ? 'bg-primary/10 font-medium text-primary'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
+            title={collapsed ? item.label : undefined}
+            className={`group relative flex min-h-11 items-center rounded-lg py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'} ${active ? 'bg-primary/10 font-medium text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
           >
             <Icon className="size-4 shrink-0" aria-hidden="true" />
-            <span className="min-w-0 truncate">{item.label}</span>
+            <span className={collapsed ? 'sr-only' : 'min-w-0 truncate'}>{item.label}</span>
+            {collapsed && active && <span className="absolute right-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-primary" aria-hidden="true" />}
           </Link>
         )
       })}
@@ -89,28 +90,59 @@ function AdminNav({ role, onNavigate }: { role: UserRole; onNavigate?: () => voi
   )
 }
 
-function AdminSignOut() {
+function AdminSignOut({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <SignOutButton redirectUrl="/">
       <button
         type="button"
-        className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        aria-label="Sign out"
+        title={collapsed ? 'Sign out' : undefined}
+        className={`flex min-h-11 w-full items-center rounded-lg py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'}`}
       >
         <LogOut className="size-4 shrink-0" aria-hidden="true" />
-        Sign Out
+        <span className={collapsed ? 'sr-only' : undefined}>Sign Out</span>
       </button>
     </SignOutButton>
   )
 }
 
-function AdminBrand() {
+function AdminBrand({ collapsed = false }: { collapsed?: boolean }) {
+  if (collapsed) {
+    return <Link prefetch={false} href="/admin" aria-label="The Revamp UG admin dashboard" title="The Revamp UG" className="mx-auto flex size-10 items-center justify-center rounded-xl bg-foreground font-serif text-lg text-background">R</Link>
+  }
+
   return (
-    <div className="mb-7">
-      <Link prefetch={false} href="/admin" className="font-serif text-2xl font-light text-foreground">
-        The Revamp UG
-      </Link>
-      <p className="mt-1 text-xs text-muted-foreground">Admin Portal</p>
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <Link prefetch={false} href="/admin" className="font-serif text-2xl font-light text-foreground">The Revamp UG</Link>
+        <p className="mt-1 text-xs text-muted-foreground">Admin Portal</p>
+      </div>
     </div>
+  )
+}
+
+function DesktopSidebar({ role }: { role: UserRole }) {
+  const [collapsed, setCollapsed] = useState(true)
+
+  function toggle() {
+    setCollapsed((current) => {
+      const next = !current
+      window.localStorage.setItem('revamp-admin-sidebar-collapsed', String(next))
+      return next
+    })
+  }
+
+  return (
+    <aside className={`hidden shrink-0 border-r border-border/70 bg-card transition-[width] duration-200 md:sticky md:top-0 md:flex md:h-dvh md:flex-col md:overflow-y-auto ${collapsed ? 'md:w-16' : 'md:w-64'}`}>
+      <div className={`flex min-h-16 items-center border-b border-border/50 ${collapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
+        <AdminBrand collapsed={collapsed} />
+        <button type="button" onClick={toggle} aria-label={collapsed ? 'Expand admin navigation' : 'Collapse admin navigation'} title={collapsed ? 'Expand navigation' : 'Collapse navigation'} className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+          {collapsed ? <PanelLeftOpen className="size-4" aria-hidden="true" /> : <PanelLeftClose className="size-4" aria-hidden="true" />}
+        </button>
+      </div>
+      <div className={`flex-1 py-4 ${collapsed ? 'px-2' : 'px-3'}`}><AdminNav role={role} collapsed={collapsed} /></div>
+      <div className={`border-t border-border/50 py-3 ${collapsed ? 'px-2' : 'px-3'}`}><AdminSignOut collapsed={collapsed} /></div>
+    </aside>
   )
 }
 
@@ -119,34 +151,19 @@ export default function AdminSidebar({ role }: { role: UserRole }) {
 
   return (
     <>
-      <aside className="hidden w-64 shrink-0 border-r border-border/20 bg-card p-5 md:sticky md:top-0 md:block md:h-screen md:overflow-y-auto lg:p-6">
-        <AdminBrand />
-        <AdminNav role={role} />
-        <div className="mt-8 border-t border-border/20 pt-5">
-          <AdminSignOut />
-        </div>
-      </aside>
+      <DesktopSidebar role={role} />
 
       <div className="md:hidden">
-        <button
-          type="button"
-          aria-label={mobileOpen ? 'Close admin navigation' : 'Open admin navigation'}
-          aria-expanded={mobileOpen}
-          onClick={() => setMobileOpen((open) => !open)}
-          className="fixed left-2.5 top-2.5 z-50 flex size-11 items-center justify-center rounded-lg border border-border/70 bg-background/95 text-foreground shadow-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-        >
+        <button type="button" aria-label={mobileOpen ? 'Close admin navigation' : 'Open admin navigation'} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)} className="fixed left-2.5 top-2.5 z-50 flex size-11 items-center justify-center rounded-lg border border-border/70 bg-background/95 text-foreground shadow-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
           {mobileOpen ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
         </button>
-
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="safe-bottom w-[min(20rem,calc(100vw-1rem))] border-border bg-card p-0">
             <SheetTitle className="sr-only">Admin navigation</SheetTitle>
             <div className="flex h-full flex-col overflow-y-auto p-5">
               <AdminBrand />
-              <AdminNav role={role} onNavigate={() => setMobileOpen(false)} />
-              <div className="mt-8 border-t border-border/20 pt-5">
-                <AdminSignOut />
-              </div>
+              <div className="mt-7"><AdminNav role={role} onNavigate={() => setMobileOpen(false)} /></div>
+              <div className="mt-8 border-t border-border/20 pt-5"><AdminSignOut /></div>
             </div>
           </SheetContent>
         </Sheet>

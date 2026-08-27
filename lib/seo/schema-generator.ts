@@ -3,6 +3,8 @@
  * Generates JSON-LD structured data for SEO and AI search engines
  */
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
+
 export interface SchemaMarkupOptions {
   url?: string
   image?: string
@@ -19,8 +21,8 @@ export function generateOrganizationSchema() {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'The Revamp UG',
-    url: 'https://therevampug.com',
-    logo: 'https://therevampug.com/brand/revamp-logo.png',
+    url: SITE_URL,
+    logo: `${SITE_URL}/brand/revamp-logo.png`,
     description:
       'Uganda-based design house offering interior design, architecture, furniture sourcing, custom furniture, procurement, 3D visualization, and installation support.',
     sameAs: [
@@ -59,7 +61,7 @@ export function generateServiceSchema(...args: any) {
     provider: {
       '@type': 'Organization',
       name: 'The Revamp UG',
-      url: 'https://therevampug.com',
+      url: SITE_URL,
     },
     areaServed: {
       '@type': 'Country',
@@ -86,7 +88,7 @@ export function generateProductSchema(...args: any) {
   let sku: string | undefined
   let mpn: string | undefined
   let gtin: string | undefined
-  let availability = 'InStock'
+  let availability: string | undefined
   let condition = 'NewCondition'
 
   if (args.length === 1 && typeof args[0] === 'object') {
@@ -101,7 +103,7 @@ export function generateProductSchema(...args: any) {
     sku = o.sku
     mpn = o.mpn
     gtin = o.gtin
-    availability = o.availability || availability
+    availability = o.availability
     condition = o.condition || condition
   } else {
     ;[name, description, price, currency, images, options] = args
@@ -125,13 +127,12 @@ export function generateProductSchema(...args: any) {
       url: options?.url,
       priceCurrency: currency,
       price,
-      availability: `https://schema.org/${availability}`,
-      itemCondition: `https://schema.org/${condition}`,
-    },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.8',
-      ratingCount: '150',
+      ...(availability && ['BackOrder', 'Discontinued', 'InStock', 'LimitedAvailability', 'OnlineOnly', 'OutOfStock', 'PreOrder', 'PreSale', 'SoldOut'].includes(availability)
+        ? { availability: `https://schema.org/${availability}` }
+        : {}),
+      ...(condition && ['DamagedCondition', 'NewCondition', 'RefurbishedCondition', 'UsedCondition'].includes(condition)
+        ? { itemCondition: `https://schema.org/${condition}` }
+        : {}),
     },
   }
 }
@@ -262,9 +263,9 @@ export function generateWebSiteSchema() {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'The Revamp UG',
-    url: 'https://therevampug.com',
+    url: SITE_URL,
     inLanguage: 'en-UG',
-    publisher: { '@type': 'Organization', name: 'The Revamp UG', url: 'https://therevampug.com' },
+    publisher: { '@type': 'Organization', name: 'The Revamp UG', url: SITE_URL },
   }
 }
 
@@ -273,7 +274,7 @@ export function generateLocalBusinessSchema() {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     name: 'The Revamp UG',
-    image: 'https://therevampug.com/brand/revamp-logo.png',
+    image: `${SITE_URL}/brand/revamp-logo.png`,
     description:
       'Uganda-based design house offering interior design, architecture, furniture sourcing, custom furniture, procurement, and installation support.',
     telephone: '+256 783 476 807',
@@ -285,7 +286,7 @@ export function generateLocalBusinessSchema() {
       addressCountry: 'UG',
     },
     areaServed: { '@type': 'Country', name: 'Uganda' },
-    url: 'https://therevampug.com',
+    url: SITE_URL,
     sameAs: [
       'https://www.instagram.com/therevamp_ug',
       'https://www.linkedin.com/company/therevampug',

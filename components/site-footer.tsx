@@ -77,10 +77,10 @@ export function SiteFooter() {
             {/* Contact */}
             <div className="mt-8 space-y-2">
               <a
-                href="tel:+256703861668"
+                href="tel:+256783476807"
                 className="block font-sans text-sm text-background/60 hover:text-gold transition-colors"
               >
-                +256 703 861 668
+                +256 783 476 807
               </a>
               <a
                 href="mailto:support@therevampug.com"

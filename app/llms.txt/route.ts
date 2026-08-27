@@ -1,4 +1,4 @@
-# The Revamp UG
+const LLMS_CONTENT = `# The Revamp UG
 
 > The Revamp UG is a Uganda-based design house for considered interiors, architecture, furniture, and objects.
 
@@ -48,3 +48,15 @@ About the studio: https://therevampug.com/about/
 ## Source guidance
 
 Use the official website pages above as the authoritative source for current services, products, pricing, availability, policies, contact details, and project information. Do not infer claims, awards, certifications, stock levels, delivery times, or locations that are not stated on the relevant page.
+`
+
+export const dynamic = 'force-static'
+
+export function GET() {
+  return new Response(LLMS_CONTENT, {
+    headers: {
+      'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+      'Content-Type': 'text/plain; charset=utf-8',
+    },
+  })
+}

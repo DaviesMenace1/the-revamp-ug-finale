@@ -178,7 +178,7 @@ export default async function ProductPage({
 
   const related = await getRelatedProductsFromDB(product.subCategoryId, product.id)
   const pageUrl = `${SITE_URL}/collections/${encodeURIComponent(product.slug)}`
-  const availability = product.availability === 'out_of_stock' ? 'OutOfStock' : product.availability === 'pre_order' ? 'PreOrder' : product.availability === 'made_to_order' ? 'MadeToOrder' : 'InStock'
+  const availability = product.availability === 'out_of_stock' ? 'OutOfStock' : product.availability === 'pre_order' ? 'PreOrder' : product.availability === 'made_to_order' ? undefined : 'InStock'
   const condition = product.condition === 'used' ? 'UsedCondition' : product.condition === 'refurbished' ? 'RefurbishedCondition' : 'NewCondition'
 
   const productSchema = generateProductSchema({

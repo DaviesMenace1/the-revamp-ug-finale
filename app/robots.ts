@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       { userAgent: 'OAI-SearchBot', allow: '/', disallow: privatePaths },
-      { userAgent: 'GPTBot', allow: '/', disallow: privatePaths },
+      { userAgent: 'GPTBot', disallow: '/' },
       { userAgent: '*', allow: '/', disallow: [...privatePaths, '/_next/'] },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

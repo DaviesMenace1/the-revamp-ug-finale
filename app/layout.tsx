@@ -47,9 +47,9 @@ export const metadata: Metadata = {
     url: SITE_URL,
     images: [
       {
-        url: `${SITE_URL}/og-image.png`,
-        width: 1200,
-        height: 630,
+        url: `${SITE_URL}/brand/revamp-logo.png`,
+        width: 900,
+        height: 600,
         alt: 'The Revamp UG - Luxury Design House',
       },
     ],
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'The Revamp UG | Luxury Design House',
     description: 'Interior design, architecture, procurement, and custom furniture services.',
-    images: [`${SITE_URL}/og-image.png`],
+    images: [`${SITE_URL}/brand/revamp-logo.png`],
   },
   alternates: {
     canonical: SITE_URL,

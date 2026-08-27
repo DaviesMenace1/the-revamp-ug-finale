@@ -2,21 +2,25 @@
 
 import { useEffect } from 'react'
 
+type ModelContextTool = {
+  name: string
+  title?: string
+  description: string
+  inputSchema: Record<string, unknown>
+  annotations: { readOnlyHint: boolean; untrustedContentHint: boolean }
+  execute: (input: Record<string, unknown>, context: { signal: AbortSignal }) => Promise<string>
+}
+
 type ModelContext = {
-  registerTool: (tool: {
-    name: string
-    description: string
-    inputSchema: Record<string, unknown>
-    annotations: { readOnlyHint: boolean; untrustedContentHint: boolean }
-    execute: (input: Record<string, unknown>, context: { signal: AbortSignal }) => Promise<string>
-  }, options?: { signal?: AbortSignal }) => Promise<void>
+  registerTool: (tool: ModelContextTool, options?: { signal?: AbortSignal }) => Promise<void>
 }
 
 type WebMcpDocument = Document & { modelContext?: ModelContext }
+type WebMcpNavigator = Navigator & { modelContext?: ModelContext }
 
 export default function WebMcpBootstrap() {
   useEffect(() => {
-    const modelContext = (document as WebMcpDocument).modelContext
+    const modelContext = (document as WebMcpDocument).modelContext || (navigator as WebMcpNavigator).modelContext
     if (!modelContext?.registerTool) return
     const controller = new AbortController()
     const publicPage = async (input: Record<string, unknown>, context: { signal: AbortSignal }) => {
@@ -32,8 +36,8 @@ export default function WebMcpBootstrap() {
       if (!response.ok) throw new Error('The public search service is temporarily unavailable.')
       return JSON.stringify(await response.json())
     }
-    void modelContext.registerTool({ name: 'read_public_page', description: 'Read a safe public page from The Revamp UG as concise Markdown.', inputSchema: { type: 'object', properties: { path: { type: 'string', description: 'Public path such as /services or /portfolio' } }, required: ['path'] }, annotations: { readOnlyHint: true, untrustedContentHint: true }, execute: publicPage }, { signal: controller.signal })
-    void modelContext.registerTool({ name: 'search_public_content', description: 'Search current published products, services, projects, and journal articles.', inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'Search terms' } }, required: ['query'] }, annotations: { readOnlyHint: true, untrustedContentHint: true }, execute: search }, { signal: controller.signal })
+    void modelContext.registerTool({ name: 'read_public_page', title: 'Read public page', description: 'Read a safe public page from The Revamp UG as concise Markdown.', inputSchema: { type: 'object', properties: { path: { type: 'string', description: 'Public path such as /services or /portfolio' } }, required: ['path'] }, annotations: { readOnlyHint: true, untrustedContentHint: true }, execute: publicPage }, { signal: controller.signal })
+    void modelContext.registerTool({ name: 'search_public_content', title: 'Search public content', description: 'Search current published products, services, projects, and journal articles.', inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'Search terms' } }, required: ['query'] }, annotations: { readOnlyHint: true, untrustedContentHint: true }, execute: search }, { signal: controller.signal })
     return () => controller.abort()
   }, [])
 

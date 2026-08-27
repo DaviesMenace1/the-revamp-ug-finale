@@ -3,6 +3,16 @@ import { NextRequest } from 'next/server'
 import { checkRateLimit } from '@/lib/redis'
 import { getPublicAgentMarkdown, searchPublicAgentContent } from '@/lib/agent-public'
 
+const A2A_HEADERS = {
+  'Cache-Control': 'no-store',
+  'Content-Type': 'application/json; charset=utf-8',
+  'A2A-Version': '1.0',
+}
+
+function a2aResponse(payload: unknown, status = 200) {
+  return new Response(JSON.stringify(payload), { status, headers: A2A_HEADERS })
+}
+
 function textFromParts(value: unknown) {
   if (!Array.isArray(value)) return ''
   return value.map((part) => {
@@ -21,10 +31,9 @@ function messageText(body: Record<string, unknown>) {
 
 function responseMessage(text: string) {
   return {
-    kind: 'message',
     messageId: randomUUID(),
     role: 'ROLE_AGENT',
-    parts: [{ kind: 'text', text }],
+    parts: [{ text, mediaType: 'text/plain' }],
   }
 }
 
@@ -33,25 +42,61 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   const limited = await checkRateLimit(request, 'api')
   if (limited) return limited
+
   let body: Record<string, unknown>
   try {
     body = await request.json() as Record<string, unknown>
   } catch {
-    return Response.json({ error: { code: 'INVALID_ARGUMENT', message: 'The A2A request must be valid JSON.' } }, { status: 400 })
+    return a2aResponse({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Invalid JSON payload.' } }, 400)
   }
-  const method = typeof body.method === 'string' ? body.method : 'message/send'
-  if (!['message/send', 'tasks/send'].includes(method)) return Response.json({ error: { code: 'UNSUPPORTED_OPERATION', message: 'This read-only agent supports public-information message requests only.' } }, { status: 400 })
+
+  const method = typeof body.method === 'string' ? body.method : 'SendMessage'
+  const supportedMethods = new Set(['SendMessage', 'message/send', 'message:send', 'tasks/send'])
+  if (!supportedMethods.has(method)) {
+    return a2aResponse({
+      jsonrpc: '2.0',
+      id: body.id ?? null,
+      error: { code: -32004, message: 'This read-only agent supports public-information message requests only.' },
+    }, 400)
+  }
+
   const query = messageText(body)
-  if (!query) return Response.json({ error: { code: 'INVALID_ARGUMENT', message: 'Include a text message in the request.' } }, { status: 400 })
+  if (!query) {
+    return a2aResponse({
+      jsonrpc: '2.0',
+      id: body.id ?? null,
+      error: { code: -32602, message: 'Include a text message in the request.' },
+    }, 400)
+  }
+
   try {
     const lower = query.toLowerCase()
     const requestsLiveSearch = /\b(find|search|show me|which|published)\b/.test(lower)
     const text = requestsLiveSearch
       ? JSON.stringify(await searchPublicAgentContent(query, 10))
       : await getPublicAgentMarkdown('/')
-    return Response.json({ jsonrpc: '2.0', id: body.id ?? null, result: responseMessage(text) }, { headers: { 'Cache-Control': 'no-store', 'Content-Type': 'application/json; charset=utf-8' } })
+
+    return a2aResponse({
+      jsonrpc: '2.0',
+      id: body.id ?? null,
+      result: { message: responseMessage(text) },
+    })
   } catch (error) {
     console.error('[public-a2a] request failed:', error)
-    return Response.json({ error: { code: 'INTERNAL', message: 'The public information service is temporarily unavailable.' } }, { status: 503 })
+    return a2aResponse({
+      jsonrpc: '2.0',
+      id: body.id ?? null,
+      error: { code: -32603, message: 'The public information service is temporarily unavailable.' },
+    }, 503)
   }
+}
+
+export function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      ...A2A_HEADERS,
+      Allow: 'POST, OPTIONS',
+    },
+  })
 }

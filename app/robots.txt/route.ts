@@ -58,6 +58,7 @@ Disallow: /dashboard/
 Content-Signal: ai-train=no, ai-input=yes, search=yes
 
 Sitemap: ${SITE_URL}/sitemap.xml
+Agentmap: ${SITE_URL}/.well-known/ard.json
 Host: ${SITE_URL}
 `
 

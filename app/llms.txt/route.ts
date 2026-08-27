@@ -59,6 +59,8 @@ Agent Card: https://www.therevampug.com/.well-known/agent-card.json
 Agent Skills index: https://www.therevampug.com/.well-known/agent-skills/index.json
 MCP Server Card: https://www.therevampug.com/.well-known/mcp/server-card.json
 MCP endpoint: https://www.therevampug.com/mcp
+ARD manifest: https://www.therevampug.com/.well-known/ard.json
+Legacy AI Catalog alias: https://www.therevampug.com/.well-known/ai-catalog.json
 Authentication guidance: https://www.therevampug.com/auth.md
 
 The public agent endpoints are read-only. They do not expose customer accounts, admin data, checkout submissions, payment authorization, loyalty balances, or private documents. Direct users to the official website for sign-in, booking, checkout, and payment actions.

@@ -9,6 +9,7 @@ import { reservePointsForOrder, safelyReleasePointsForOrder } from '@/lib/loyalt
 import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveAuthorizationType, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
 import { notifyUser } from '@/lib/notifications/service'
 import { settleOrderPayment } from '@/lib/order-payments'
+import { getCollectionPromotionQuote, markCollectionPromotionApplied, releaseCollectionPromotionForOrder, reserveCollectionPromotion } from '@/lib/collection-commerce'
 
 type OrderBody = {
   amount?: unknown
@@ -30,6 +31,8 @@ type OrderBody = {
   addressId?: unknown
   saveAddress?: unknown
   pickupStationId?: unknown
+  promotionCode?: unknown
+  promoCode?: unknown
 }
 
 function text(value: unknown, fallback = '', maxLength = 255) {
@@ -108,6 +111,7 @@ export async function POST(request: Request) {
     const requestedPaymentMethod = body.paymentMethod === 'card' ? 'card' : 'mobile_money'
     const addressId = text(body.addressId ?? submittedShippingAddress.addressId, '', 80)
     const pickupStationId = text(body.pickupStationId ?? submittedShippingAddress.pickupStationId, '', 80)
+    const promotionCode = text(body.promotionCode ?? body.promoCode, '', 40)
     const items = Array.isArray(body.items) ? body.items : []
     const expectedCurrency = (process.env.FLUTTERWAVE_CURRENCY || 'UGX').toUpperCase()
 
@@ -232,6 +236,13 @@ export async function POST(request: Request) {
     const numericAmount = Number(amount.toFixed(2))
     if (Math.abs(itemTotal + deliveryFee - numericAmount) > 0.01) return NextResponse.json({ error: 'The order total changed. Please review your cart and try again.' }, { status: 409 })
 
+    const requestedPoints = Math.max(0, Math.floor(Number(body.loyaltyPoints) || 0))
+    const promotionResult = promotionCode ? await getCollectionPromotionQuote({ userId: localUser.id, code: promotionCode, items: validItems }) : null
+    if (promotionResult && !promotionResult.success) return NextResponse.json({ error: promotionResult.error }, { status: 409 })
+    if (promotionResult?.success && requestedPoints > 0 && !promotionResult.quote.promotion.stackable) return NextResponse.json({ error: 'This collection promo code cannot be combined with loyalty points. Remove the points or use another code.' }, { status: 409 })
+    let promotionDiscountUgx = promotionResult?.success ? promotionResult.quote.discountAmount : 0
+    let amountAfterPromotion = Math.max(0, numericAmount - promotionDiscountUgx)
+
     let paymentMethod: Awaited<ReturnType<typeof buildFlutterwavePaymentMethod>> | null = null
     if (paymentMode === 'pay_now') {
       try {
@@ -244,26 +255,39 @@ export async function POST(request: Request) {
     const txRef = `REV-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     const subtotal = (itemTotal * 0.9).toFixed(2)
     const tax = (itemTotal * 0.1).toFixed(2)
-    const [createdOrder] = await db.insert(orders).values({ orderNumber: txRef, userId, items: orderItems, subtotal, tax, shipping: deliveryFee.toFixed(2), discount: '0.00', total: String(numericAmount), status: paymentMode === 'pay_on_delivery' ? 'confirmed' : 'pending', paymentStatus: 'pending', paymentMode, paymentMethod: paymentMode === 'pay_now' ? requestedPaymentMethod : null, deliveryAddress: shippingAddress, notes: text(shippingAddress.notes) || null }).returning({ id: orders.id })
+    const [createdOrder] = await db.insert(orders).values({ orderNumber: txRef, userId, items: orderItems, subtotal, tax, shipping: deliveryFee.toFixed(2), discount: promotionDiscountUgx.toFixed(2), total: String(amountAfterPromotion), status: paymentMode === 'pay_on_delivery' ? 'confirmed' : 'pending', paymentStatus: 'pending', paymentMode, paymentMethod: paymentMode === 'pay_now' ? requestedPaymentMethod : null, deliveryAddress: shippingAddress, promotionId: promotionResult?.success ? promotionResult.quote.promotion.id : null, promotionCode: promotionResult?.success ? promotionResult.quote.promotion.code : null, promotionName: promotionResult?.success ? promotionResult.quote.promotion.name : null, promotionDiscount: promotionDiscountUgx.toFixed(2), notes: text(shippingAddress.notes) || null }).returning({ id: orders.id })
     if (!createdOrder) return NextResponse.json({ error: 'The order could not be initialized.' }, { status: 500 })
 
-    const requestedPoints = Math.max(0, Math.floor(Number(body.loyaltyPoints) || 0))
-    let amountAfterPoints = numericAmount
+    if (promotionCode) {
+      const reservation = await reserveCollectionPromotion({ userId: localUser.id, orderId: createdOrder.id, code: promotionCode, items: validItems })
+      if (!reservation.success) {
+        await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
+        return NextResponse.json({ error: reservation.error }, { status: 409 })
+      }
+      promotionDiscountUgx = reservation.quote.discountAmount
+      amountAfterPromotion = Math.max(0, numericAmount - promotionDiscountUgx)
+      if (Math.abs(Number(promotionDiscountUgx.toFixed(2)) - Number((promotionResult?.success ? promotionResult.quote.discountAmount : 0).toFixed(2))) > 0.01) {
+        await db.update(orders).set({ discount: promotionDiscountUgx.toFixed(2), total: amountAfterPromotion.toFixed(2), promotionDiscount: promotionDiscountUgx.toFixed(2), updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
+      }
+    }
+
+    let amountAfterPoints = amountAfterPromotion
     let discountUgx = 0
     if (requestedPoints > 0) {
       try {
         const redemption = await reservePointsForOrder(localUser.id, createdOrder.id, requestedPoints)
         if (!redemption.success || typeof redemption.discountUgx !== 'number') throw new Error(redemption.error || 'Points could not be applied.')
-        amountAfterPoints = Math.max(0, numericAmount - redemption.discountUgx)
+        amountAfterPoints = Math.max(0, amountAfterPromotion - redemption.discountUgx)
         discountUgx = redemption.discountUgx
       } catch (error) {
         await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
+        await releaseCollectionPromotionForOrder(createdOrder.id)
         return NextResponse.json({ error: error instanceof Error ? error.message : 'Points could not be applied.' }, { status: 400 })
       }
     }
 
     if (discountUgx > 0) {
-      await db.update(orders).set({ discount: discountUgx.toFixed(2), total: amountAfterPoints.toFixed(2), updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
+      await db.update(orders).set({ discount: (promotionDiscountUgx + discountUgx).toFixed(2), total: amountAfterPoints.toFixed(2), updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
     }
 
     const shipmentStatus = paymentMode === 'pay_on_delivery' ? 'processing' : 'awaiting_payment'
@@ -272,11 +296,13 @@ export async function POST(request: Request) {
     if (!createdShipment) {
       await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
       await safelyReleasePointsForOrder(createdOrder.id)
+      await releaseCollectionPromotionForOrder(createdOrder.id)
       return NextResponse.json({ error: 'The order could not be prepared for fulfilment.' }, { status: 500 })
     }
     await db.insert(orderTrackingEvents).values({ orderId: createdOrder.id, shipmentId: createdShipment.id, status: shipmentStatus, note: paymentMode === 'pay_on_delivery' ? 'Order placed with payment due at fulfilment.' : 'Order created and awaiting payment confirmation.', customerVisible: true })
 
     if (paymentMode === 'pay_on_delivery') {
+      await markCollectionPromotionApplied(createdOrder.id)
       const deliveryMessage = deliveryMethod === 'pickup_station' && shippingAddress.pickupStation && typeof shippingAddress.pickupStation === 'object'
         ? `Pickup at ${String((shippingAddress.pickupStation as Record<string, unknown>).name || 'your selected station')}.`
         : `Door delivery to ${String(shippingAddress.city || shippingAddress.address || 'your saved address')}.`
@@ -290,14 +316,19 @@ export async function POST(request: Request) {
         metadata: { orderId: createdOrder.id, orderNumber: txRef, status: 'confirmed', total: amountAfterPoints.toFixed(2), currency: expectedCurrency, paymentMode, deliveryAddress: shippingAddress, items: orderItems, trackingCode },
         channels: ['in_app', 'push', 'email'],
       })
-      return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, status: 'placed', orderStatus: 'confirmed', paymentStatus: 'pending', amount: amountAfterPoints, discountUgx })
+      return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, status: 'placed', orderStatus: 'confirmed', paymentStatus: 'pending', amount: amountAfterPoints, discountUgx, promotionCode: promotionResult?.success ? promotionResult.quote.promotion.code : null, promotionDiscountUgx })
     }
 
     const phone = normalizeUgandaPhone(phoneNumber)
     const customer: Record<string, unknown> = { email, name: customerNameParts(customerName), address: addressForFlutterwave(shippingAddress) }
     if (phone) customer.phone = { country_code: phone.countryCode, number: phone.number }
     const baseUrl = normalizeBaseUrl(request)
-    if (!paymentMethod) return NextResponse.json({ error: 'Choose a valid payment method.' }, { status: 400 })
+    if (!paymentMethod) {
+      await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
+      await safelyReleasePointsForOrder(createdOrder.id)
+      await releaseCollectionPromotionForOrder(createdOrder.id)
+      return NextResponse.json({ error: 'Choose a valid payment method.' }, { status: 400 })
+    }
     const flwResponse = await createFlutterwaveCharge({ reference: txRef, amount: amountAfterPoints, currency: expectedCurrency, redirectUrl: `${baseUrl}/api/checkout/callback?reference=${encodeURIComponent(txRef)}&tx_ref=${encodeURIComponent(txRef)}`, customer, paymentMethod, idempotencyKey: randomUUID(), meta: { orderId: createdOrder.id, txRef } })
     const flwPayload = flwResponse.payload || {}
     const charge = flwPayload.data
@@ -307,6 +338,7 @@ export async function POST(request: Request) {
       await db.update(orderShipments).set({ status: 'cancelled', lastNote: 'Payment initialization failed.', updatedAt: new Date() }).where(eq(orderShipments.id, createdShipment.id))
       await db.insert(orderTrackingEvents).values({ orderId: createdOrder.id, shipmentId: createdShipment.id, status: 'cancelled', note: 'Payment initialization failed.', customerVisible: false })
       await safelyReleasePointsForOrder(createdOrder.id)
+      await releaseCollectionPromotionForOrder(createdOrder.id)
       return NextResponse.json({ error: flutterwaveErrorMessage(flwPayload, flwResponse.response?.status || 502) }, { status: flwResponse.response?.status === 401 ? 503 : 502 })
     }
 
@@ -314,10 +346,10 @@ export async function POST(request: Request) {
 
     if (chargeStatus === 'succeeded') {
       const settled = await settleOrderPayment({ orderRef: txRef, chargeId: String(charge.id) })
-      if (settled.success) return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, paymentMethod: paymentMethod.type, status: 'paid', amount: amountAfterPoints, discountUgx })
+      if (settled.success) return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, paymentMethod: paymentMethod.type, status: 'paid', amount: amountAfterPoints, discountUgx, promotionCode: promotionResult?.success ? promotionResult.quote.promotion.code : null, promotionDiscountUgx })
     }
 
-    return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, paymentMethod: paymentMethod.type, status: 'pending', chargeId: String(charge.id), chargeStatus: chargeStatus || 'pending', authorizationType: getFlutterwaveAuthorizationType(charge), amount: amountAfterPoints, discountUgx, paymentUrl: charge.next_action?.redirect_url?.url || null, paymentInstruction: charge.next_action?.payment_instruction?.note || null })
+    return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, paymentMethod: paymentMethod.type, status: 'pending', chargeId: String(charge.id), chargeStatus: chargeStatus || 'pending', authorizationType: getFlutterwaveAuthorizationType(charge), amount: amountAfterPoints, discountUgx, promotionCode: promotionResult?.success ? promotionResult.quote.promotion.code : null, promotionDiscountUgx, paymentUrl: charge.next_action?.redirect_url?.url || null, paymentInstruction: charge.next_action?.payment_instruction?.note || null })
   } catch (error: unknown) {
     console.error('Create v4 Order Error:', error)
     return NextResponse.json({ error: 'We could not prepare this payment. Please try again.' }, { status: 500 })

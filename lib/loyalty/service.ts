@@ -320,7 +320,7 @@ export async function reservePointsForOrder(userId: string, orderId: string, req
   if (requested === 0) return { success: false, error: 'Choose some points to use.' }
 
   const [order] = await db
-    .select({ id: orders.id, userId: orders.userId, subtotal: orders.subtotal, total: orders.total, paymentStatus: orders.paymentStatus })
+    .select({ id: orders.id, userId: orders.userId, subtotal: orders.subtotal, total: orders.total, discount: orders.discount, paymentStatus: orders.paymentStatus })
     .from(orders)
     .where(eq(orders.id, orderId))
     .limit(1)
@@ -356,7 +356,7 @@ export async function reservePointsForOrder(userId: string, orderId: string, req
     await transaction
       .update(orders)
       .set({
-        discount: String(discountUgx),
+        discount: String((Number(order.discount) || 0) + discountUgx),
         total: String(Math.max(0, (Number(order.total) || 0) - discountUgx)),
         updatedAt: new Date(),
       })
@@ -398,11 +398,11 @@ export async function releasePointsForOrder(orderId: string) {
   })
 
   if (released.applied) {
-    const [order] = await db.select({ total: orders.total }).from(orders).where(eq(orders.id, orderId)).limit(1)
+    const [order] = await db.select({ total: orders.total, discount: orders.discount }).from(orders).where(eq(orders.id, orderId)).limit(1)
     if (order) {
       await db
         .update(orders)
-        .set({ discount: '0', total: String((Number(order.total) || 0) + discountUgx), updatedAt: new Date() })
+        .set({ discount: String(Math.max(0, (Number(order.discount) || 0) - discountUgx)), total: String((Number(order.total) || 0) + discountUgx), updatedAt: new Date() })
         .where(eq(orders.id, orderId))
     }
   }

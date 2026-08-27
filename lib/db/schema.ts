@@ -1078,6 +1078,10 @@ export const orders = pgTable(
     cancellationReason: text("cancellation_reason"),
     cancelledAt: timestamp("cancelled_at"),
     refundStatus: refundStatusEnum("refund_status").notNull().default("not_requested"),
+    promotionId: uuid("promotion_id").references(() => collectionPromotions.id, { onDelete: "set null" }),
+    promotionCode: varchar("promotion_code", { length: 40 }),
+    promotionName: varchar("promotion_name", { length: 160 }),
+    promotionDiscount: decimal("promotion_discount", { precision: 12, scale: 2 }).default("0"),
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -1200,6 +1204,35 @@ export const consultationPromotions = pgTable(
   }),
 )
 
+export const collectionPromotions = pgTable(
+  "collection_promotions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 160 }).notNull(),
+    code: varchar("code", { length: 40 }).notNull(),
+    discountType: varchar("discount_type", { length: 20 }).notNull().default("percentage"),
+    discountValue: decimal("discount_value", { precision: 12, scale: 2 }).notNull(),
+    maxDiscount: decimal("max_discount", { precision: 12, scale: 2 }),
+    collectionSlugs: jsonb("collection_slugs").notNull().default([]),
+    productIds: jsonb("product_ids").notNull().default([]),
+    audience: varchar("audience", { length: 30 }).notNull().default("all"),
+    startsAt: timestamp("starts_at"),
+    endsAt: timestamp("ends_at"),
+    totalUsageLimit: integer("total_usage_limit"),
+    perCustomerLimit: integer("per_customer_limit").notNull().default(1),
+    status: varchar("status", { length: 20 }).notNull().default("draft"),
+    stackable: boolean("stackable").notNull().default(false),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    codeIdx: uniqueIndex("collection_promotions_code_idx").on(table.code),
+    statusIdx: index("collection_promotions_status_idx").on(table.status),
+    validityIdx: index("collection_promotions_validity_idx").on(table.startsAt, table.endsAt),
+  }),
+)
+
 export const consultationPaymentIntents = pgTable(
   "consultation_payment_intents",
   {
@@ -1256,6 +1289,29 @@ export const consultationPromotionRedemptions = pgTable(
     paymentIntentIdx: uniqueIndex("consultation_promotion_redemptions_intent_idx").on(table.paymentIntentId),
     promotionUserIdx: index("consultation_promotion_redemptions_promotion_user_idx").on(table.promotionId, table.userId),
     statusIdx: index("consultation_promotion_redemptions_status_idx").on(table.status),
+  }),
+)
+
+export const orderPromotionRedemptions = pgTable(
+  "order_promotion_redemptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    promotionId: uuid("promotion_id").notNull().references(() => collectionPromotions.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id").notNull().unique().references(() => orders.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    code: varchar("code", { length: 40 }).notNull(),
+    discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("reserved"),
+    reservedAt: timestamp("reserved_at").notNull().defaultNow(),
+    appliedAt: timestamp("applied_at"),
+    releasedAt: timestamp("released_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    orderIdx: uniqueIndex("order_promotion_redemptions_order_idx").on(table.orderId),
+    promotionUserIdx: index("order_promotion_redemptions_promotion_user_idx").on(table.promotionId, table.userId),
+    statusIdx: index("order_promotion_redemptions_status_idx").on(table.status),
   }),
 )
 
@@ -2103,6 +2159,16 @@ export const consultationPromotionsRelations = relations(consultationPromotions,
   }),
   paymentIntents: many(consultationPaymentIntents),
   redemptions: many(consultationPromotionRedemptions),
+  orderRedemptions: many(orderPromotionRedemptions),
+}))
+
+export const collectionPromotionsRelations = relations(collectionPromotions, ({ one, many }) => ({
+  createdByUser: one(users, {
+    fields: [collectionPromotions.createdBy],
+    references: [users.id],
+  }),
+  orders: many(orders),
+  redemptions: many(orderPromotionRedemptions),
 }))
 
 export const consultationPaymentIntentsRelations = relations(consultationPaymentIntents, ({ one, many }) => ({
@@ -2132,6 +2198,21 @@ export const consultationPromotionRedemptionsRelations = relations(consultationP
   }),
   user: one(users, {
     fields: [consultationPromotionRedemptions.userId],
+    references: [users.id],
+  }),
+}))
+
+export const orderPromotionRedemptionsRelations = relations(orderPromotionRedemptions, ({ one }) => ({
+  promotion: one(collectionPromotions, {
+    fields: [orderPromotionRedemptions.promotionId],
+    references: [collectionPromotions.id],
+  }),
+  order: one(orders, {
+    fields: [orderPromotionRedemptions.orderId],
+    references: [orders.id],
+  }),
+  user: one(users, {
+    fields: [orderPromotionRedemptions.userId],
     references: [users.id],
   }),
 }))

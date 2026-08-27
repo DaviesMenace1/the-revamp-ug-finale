@@ -1,152 +1,108 @@
-import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+'use client'
 
-const projects = [
-  {
-    id: 1,
-    slug: 'nakasero-residence',
-    title: 'The Nakasero Residence',
-    category: 'Residential Interior',
-    location: 'Kampala, Uganda',
-    year: '2024',
-    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487038/8b1d75021b8a7a8e012e34efa8e029_xmuibg.jpg',
-    size: 'large', // spans 2 cols
-  },
-  {
-    id: 2,
-    slug: 'kololo-villa-renovation',
-    title: 'Kololo Villa Renovation',
-    category: 'Architecture',
-    location: 'Kololo, Uganda',
-    year: '2024',
-    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487079/L3D124S57ENDOVMH4UYUWIF6ILUFX73NOMA8_4000x3000_loxyzb.jpg',
-    size: 'small',
-  },
-  {
-    id: 3,
-    slug: 'serena-penthouse-suite',
-    title: 'Serena Penthouse Suite',
-    category: 'Hospitality',
-    location: 'Kampala, Uganda',
-    year: '2023',
-    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487083/L3D552S148ENDOVNXUSIUWIOKALUFX73VHJQ8_1024x576_wfxusq.jpg',
-    size: 'small',
-  },
-  {
-    id: 4,
-    slug: 'muyenga-heritage-home',
-    title: 'Muyenga Heritage Home',
-    category: 'Residential Interior',
-    location: 'Muyenga, Uganda',
-    year: '2023',
-    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487080/L3D124S57ENDOVMH53YUWLVIELUFX73NCSY8_4000x3000_wsv3cj.jpg',
-    size: 'small',
-  },
-  {
-    id: 5,
-    slug: 'pearl-marina-corporate-hq',
-    title: 'HC of Bosnia & Herzegovina',
-    category: 'Commercial Design',
-    location: 'Entebbe, Uganda',
-    year: '2023',
-    image: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785649986/Untitled-reception-20240830-171128_1_enmmlf.jpg',
-    size: 'large',
-  },
-]
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { ArrowRight, FolderOpen } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { resolveProductImageUrls } from '@/lib/utils'
+
+type PublishedProject = {
+  id: string
+  slug: string
+  title: string
+  description?: string | null
+  longDescription?: string | null
+  category?: string | null
+  location?: string | null
+  year?: string | number | null
+  images?: unknown
+  gallery?: unknown
+  thumbnailImage?: unknown
+  ogImage?: unknown
+  featured?: boolean | null
+  publishStatus?: string | null
+  projectKind?: string | null
+}
+
+function usableProjects(value: unknown) {
+  if (!Array.isArray(value)) return []
+  return value.filter((project): project is PublishedProject => {
+    if (!project || typeof project !== 'object') return false
+    const candidate = project as Record<string, unknown>
+    return typeof candidate.id === 'string' && typeof candidate.slug === 'string' && Boolean(candidate.slug.trim()) && typeof candidate.title === 'string' && Boolean(candidate.title.trim())
+  }).slice(0, 5)
+}
+
+function projectImage(project: PublishedProject) {
+  return resolveProductImageUrls(project)[0] || ''
+}
 
 export function PortfolioSection() {
-  const featured = projects.find((p) => p.size === 'large' && p.id === 1)!
-  const small1 = projects.find((p) => p.id === 2)!
-  const small2 = projects.find((p) => p.id === 3)!
-  const small3 = projects.find((p) => p.id === 4)!
-  const featured2 = projects.find((p) => p.size === 'large' && p.id === 5)!
+  const [projects, setProjects] = useState<PublishedProject[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 7000)
+    fetch('/api/projects?limit=5', { signal: controller.signal, cache: 'no-store' })
+      .then((response) => response.ok ? response.json() as Promise<{ data?: unknown }> : { data: [] })
+      .then((payload) => setProjects(usableProjects(payload.data)))
+      .catch(() => setProjects([]))
+      .finally(() => {
+        window.clearTimeout(timeout)
+        setLoading(false)
+      })
+    return () => {
+      window.clearTimeout(timeout)
+      controller.abort()
+    }
+  }, [])
 
   return (
     <section className="section-pad bg-canvas dark:bg-background">
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+      <div className="mx-auto max-w-[1440px] px-6 lg:px-12">
+        <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <div className="gold-line" />
-            <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-foreground leading-tight">
-              Selected Work
-            </h2>
+            <h2 className="font-serif text-4xl font-light leading-tight text-foreground md:text-5xl lg:text-6xl">Selected Work</h2>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground">A current selection from our published portfolio.</p>
           </div>
-          <Link
-            href="/portfolio"
-            className="inline-flex items-center gap-2 font-sans text-xs tracking-widest uppercase text-gold hover-line group"
-          >
-            View All Projects
-            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-          </Link>
+          <Link href="/portfolio" className="group inline-flex min-h-11 items-center gap-2 font-sans text-xs uppercase tracking-widest text-gold hover-line">View All Projects<ArrowRight size={14} className="transition-transform group-hover:translate-x-1" /></Link>
         </div>
 
-        {/* Bento grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border">
-          {/* Large featured */}
-          <ProjectCard project={featured} className="md:col-span-2 aspect-[16/9] md:aspect-auto md:min-h-[520px]" />
-
-          {/* Small stack */}
-          <div className="grid grid-rows-2 gap-px bg-border">
-            <ProjectCard project={small1} className="min-h-[250px]" />
-            <ProjectCard project={small2} className="min-h-[250px]" />
+        {loading ? (
+          <div className="grid gap-px bg-border md:grid-cols-3" aria-busy="true" aria-label="Loading published projects">
+            <div className="min-h-[360px] animate-pulse bg-background md:col-span-2" />
+            <div className="grid min-h-[360px] gap-px bg-border md:grid-rows-2"><div className="animate-pulse bg-background" /><div className="animate-pulse bg-background" /></div>
           </div>
-
-          {/* Bottom row */}
-          <ProjectCard project={small3} className="min-h-[340px]" />
-          <ProjectCard project={featured2} className="md:col-span-2 min-h-[340px]" />
-        </div>
+        ) : projects.length === 0 ? (
+          <div className="flex min-h-56 flex-col items-center justify-center border border-dashed border-border px-6 text-center"><FolderOpen className="size-8 text-primary" aria-hidden="true" /><p className="mt-4 font-serif text-2xl text-foreground">Our next published projects will appear here.</p><p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">Explore the portfolio page for the latest work currently available from The Revamp UG.</p><Link href="/portfolio" className="mt-5 inline-flex min-h-11 items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary hover:underline">Open portfolio<ArrowRight className="size-4" aria-hidden="true" /></Link></div>
+        ) : (
+          <div className="grid gap-px bg-border md:grid-cols-3">
+            {projects.map((project, index) => <ProjectCard key={project.id} project={project} className={index === 0 ? 'md:col-span-2 md:min-h-[520px]' : index === 1 || index === 2 ? 'min-h-[250px]' : index === 3 ? 'min-h-[340px]' : 'md:col-span-2 min-h-[340px]'} />)}
+          </div>
+        )}
       </div>
     </section>
   )
 }
 
-function ProjectCard({
-  project,
-  className = '',
-}: {
-  project: (typeof projects)[0]
-  className?: string
-}) {
+function ProjectCard({ project, className = '' }: { project: PublishedProject; className?: string }) {
+  const image = projectImage(project)
+  const category = project.category?.trim() || 'Portfolio'
+  const location = project.location?.trim() || 'Uganda'
+  const year = project.year ? String(project.year) : ''
+
   return (
-    <Link
-      href={`/portfolio/${project.slug}`}
-      className={`group relative bg-background overflow-hidden block ${className}`}
-    >
-      {/* Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-        style={{ backgroundImage: `url('${project.image}')` }}
-        role="img"
-        aria-label={project.title}
-      />
-
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-500" />
-
-      {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-        <Badge
-          variant="outline"
-          className="font-sans text-[10px] tracking-widest uppercase border-white/30 text-white/70 mb-3 rounded-none"
-        >
-          {project.category}
-        </Badge>
-        <h3 className="font-serif text-xl md:text-2xl font-light text-white leading-tight mb-1">
-          {project.title}
-        </h3>
-        <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-2">
-          <span className="font-sans text-xs text-white/50">{project.location}</span>
-          <span className="w-px h-3 bg-white/20" />
-          <span className="font-sans text-xs text-white/50">{project.year}</span>
-        </div>
+    <Link href={`/portfolio/${encodeURIComponent(project.slug)}`} className={`group relative block min-h-[300px] overflow-hidden bg-background ${className}`}>
+      <div className="absolute inset-0 bg-muted transition-transform duration-700 group-hover:scale-105" style={image ? { backgroundImage: `url('${image.replace(/'/g, '%27')}')`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined} role="img" aria-label={project.title} />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-75 transition-opacity duration-500 group-hover:opacity-90" />
+      <div className="absolute bottom-0 left-0 right-0 translate-y-2 p-6 transition-transform duration-300 group-hover:translate-y-0">
+        <Badge variant="outline" className="mb-3 rounded-none border-white/30 font-sans text-[10px] uppercase tracking-widest text-white/80">{category}</Badge>
+        <h3 className="mb-1 font-serif text-xl font-light leading-tight text-white md:text-2xl">{project.title}</h3>
+        <div className="mt-2 flex items-center gap-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">{location && <span className="font-sans text-xs text-white/60">{location}</span>}{year && <><span className="h-3 w-px bg-white/25" /><span className="font-sans text-xs text-white/60">{year}</span></>}</div>
       </div>
-
-      {/* Arrow */}
-      <div className="absolute top-5 right-5 w-9 h-9 border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:border-gold">
-        <ArrowRight size={14} className="text-white group-hover:text-gold -rotate-45" />
-      </div>
+      <div className="absolute right-5 top-5 flex size-9 items-center justify-center border border-white/20 opacity-0 transition-all duration-300 group-hover:border-gold group-hover:opacity-100"><ArrowRight size={14} className="-rotate-45 text-white group-hover:text-gold" /></div>
     </Link>
   )
 }

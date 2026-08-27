@@ -9,6 +9,7 @@ import { getCurrentUserWithRole } from '@/lib/auth/server'
 import { createFlutterwaveRefund, getFlutterwaveConfig, flutterwaveErrorMessage } from '@/lib/flutterwave-config'
 import { applyRefundProviderState } from '@/lib/refund-processing'
 import { notifyUser } from '@/lib/notifications/service'
+import { releaseCollectionPromotionForOrder } from '@/lib/collection-commerce'
 
 function validUuid(value: string) {
   return /^[0-9a-f-]{36}$/i.test(value)
@@ -59,6 +60,8 @@ export async function requestOrderCancellation(orderId: string, reason: string) 
       await tx.insert(refundRequests).values({ orderId: order.id, paymentRecordId: payment?.id || null, amount: order.total, currency: 'UGX', reason: note, requestedBy: actorUser.id, status: 'requested', updatedAt: now })
     }
   })
+
+  if (order.paymentStatus !== 'completed') await releaseCollectionPromotionForOrder(order.id)
 
   if (order.paymentStatus === 'completed') {
     await notifyUser({ userId: actorUser.id, type: 'refund_requested', priority: 'important', title: `Cancellation received for ${order.orderNumber}`, message: `Your cancellation request was received. A refund review will follow for ${deliverySummary(order.deliveryAddress)}.`, actionUrl: `/client/orders?order=${encodeURIComponent(order.id)}`, metadata: { orderId: order.id, orderNumber: order.orderNumber, deliveryAddress: order.deliveryAddress, items: order.items, refundStatus: 'requested' }, channels: ['in_app', 'push', 'email'] })

@@ -112,7 +112,7 @@ export function SiteHeader() {
             : 'bg-transparent',
         )}
       >
-        <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-12">
+        <div className="mx-auto max-w-[1440px] px-2 sm:px-6 lg:px-12">
           <div className="flex min-h-16 items-center justify-between md:min-h-20">
           
             {/* 1. LEFT SECTION */}
@@ -260,13 +260,13 @@ export function SiteHeader() {
             </nav>
 
             {/* 3. RIGHT SECTION */}
-            <div className="flex items-center gap-0.5 sm:gap-1.5 md:gap-3">
+            <div className="flex items-center gap-0 sm:gap-1.5 md:gap-3">
               {/* Compact mobile search */}
               <Link
                 prefetch={false}
                 href="/search"
                 className={cn(
-                  'flex size-11 items-center justify-center transition-colors hover:text-gold md:hidden',
+                  'hidden size-10 items-center justify-center transition-colors hover:text-gold sm:flex sm:size-11 md:hidden',
                   scrolled || !isHome ? 'text-foreground' : 'text-white',
                 )}
                 aria-label="Search"
@@ -288,12 +288,12 @@ export function SiteHeader() {
               </Link>
 
               {/* Theme Switcher */}
-              <div className="hidden scale-90 sm:scale-100 md:block">
+              <div className="flex scale-90 sm:scale-100 md:flex">
                 <ThemeSwitcher />
               </div>
 
               {/* Notifications */}
-              <NotificationBell className={scrolled || !isHome ? 'text-foreground' : 'text-white'} />
+              <NotificationBell className={cn('size-10 sm:size-11', scrolled || !isHome ? 'text-foreground' : 'text-white')} />
 
               {/* Wishlist Icon */}
               <Link
@@ -314,7 +314,7 @@ export function SiteHeader() {
                 prefetch={false}
                 href="/account"
                                   className={cn(
-                    'hidden size-11 items-center justify-center hover:text-gold transition-colors lg:flex',
+                    'flex size-10 items-center justify-center hover:text-gold transition-colors sm:size-11',
                     scrolled || !isHome ? 'text-foreground' : 'text-white',
                   )}
                   aria-label="Account"
@@ -328,7 +328,7 @@ export function SiteHeader() {
                 prefetch={false}
                 href="/cart"
                 className={cn(
-                  'relative flex size-11 items-center justify-center hover:text-gold transition-colors',
+                  'relative flex size-10 items-center justify-center hover:text-gold transition-colors sm:size-11',
                   scrolled || !isHome ? 'text-foreground' : 'text-white',
                 )}
                 aria-label="Shopping Cart"
@@ -344,7 +344,7 @@ export function SiteHeader() {
               {/* Compact mobile menu */}
               <button
                 className={cn(
-                  'flex size-11 items-center justify-center transition-colors md:hidden',
+                  'flex size-10 items-center justify-center transition-colors sm:size-11 md:hidden',
                   scrolled || !isHome ? 'text-foreground' : 'text-white',
                 )}
                 onClick={() => setDrawerOpen(true)}

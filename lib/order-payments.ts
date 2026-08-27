@@ -8,6 +8,7 @@ import { notifyUser } from '@/lib/notifications/service'
 import { safelyReleasePointsForOrder, settleSuccessfulOrderRewards } from '@/lib/loyalty/service'
 import { flutterwaveErrorMessage, retrieveFlutterwaveCharge } from '@/lib/flutterwave-config'
 import { sendOrderVerificationEmail } from '@/lib/email/send-receipt'
+import { markCollectionPromotionApplied, releaseCollectionPromotionForOrder } from '@/lib/collection-commerce'
 
 function parseAddress(value: unknown): { name?: string; [key: string]: unknown } {
   if (typeof value === 'string') {
@@ -86,6 +87,7 @@ export async function settleOrderPayment(input: { orderRef: string; chargeId?: s
   if (customer) {
     if (newlySettled) {
       await settleSuccessfulOrderRewards(customer.id, order.id, order.subtotal)
+      await markCollectionPromotionApplied(order.id)
       if (paymentId) {
                   void generateVerifiedPaymentReceipt({ paymentId, userId: customer.id, clientName: `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() || customer.email, clientEmail: customer.email, orderNumber: order.orderNumber, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), paymentMethod: method, paymentMode: order.paymentMode, transactionReference, items: order.items, shipping: order.shipping, discount: order.discount, deliveryAddress: order.deliveryAddress, refundStatus: order.refundStatus })
 
@@ -135,4 +137,5 @@ export async function cancelPendingOrder(orderId: string) {
     await db.insert(orderTrackingEvents).values({ orderId, shipmentId: shipment.id, status: 'cancelled', note: 'Payment was not completed.', customerVisible: false })
   }
   await safelyReleasePointsForOrder(orderId)
+  await releaseCollectionPromotionForOrder(orderId)
 }

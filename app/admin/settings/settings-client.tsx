@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Save, Check } from 'lucide-react'
 import { saveSetting } from '@/lib/actions/settings'
 import ConsultationCommerceClient, { type ConsultationPricing, type ConsultationPromotion } from './consultation-commerce-client'
+import CollectionCommerceClient, { type CollectionPromotion } from './collection-commerce-client'
 import SubscriptionPricingClient, { type SubscriptionPricing } from './subscription-pricing-client'
 import PickupStationsClient from './pickup-stations-client'
 import type { PickupStationRecord } from '@/lib/actions/pickup-stations'
@@ -49,6 +50,7 @@ export default function SettingsClient({
   initialDocumentProfile,
   initialConsultationPricing,
   initialPromotions,
+  initialCollectionPromotions,
   initialSubscriptionPricing,
   initialPickupStations,
 }: {
@@ -58,6 +60,7 @@ export default function SettingsClient({
   initialDocumentProfile: DocumentProfile
   initialConsultationPricing: ConsultationPricing
   initialPromotions: ConsultationPromotion[]
+  initialCollectionPromotions: CollectionPromotion[]
   initialSubscriptionPricing: SubscriptionPricing
   initialPickupStations: PickupStationRecord[]
 }) {
@@ -270,7 +273,8 @@ export default function SettingsClient({
         </CardContent>
       </Card>
 
-      <ConsultationCommerceClient initialPricing={initialConsultationPricing} initialPromotions={initialPromotions} />
+        <ConsultationCommerceClient initialPricing={initialConsultationPricing} initialPromotions={initialPromotions} />
+        <CollectionCommerceClient initialPromotions={initialCollectionPromotions} />
 
       <SubscriptionPricingClient initialPricing={initialSubscriptionPricing} />
 

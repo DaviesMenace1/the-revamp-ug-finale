@@ -33,6 +33,23 @@ function audienceLabel(audience: string) {
   return 'Available now'
 }
 
+function bookingOfferLabel(promotion: PublicPromotion) {
+  const value = Number(promotion.discountValue)
+  const amount = promotion.discountType === 'fixed'
+    ? Number.isFinite(value) ? `UGX ${value.toLocaleString('en-UG', { maximumFractionDigits: 0 })} off` : 'a special offer'
+    : Number.isFinite(value) ? `${value.toLocaleString('en-UG', { maximumFractionDigits: 0 })}% discount` : 'a special offer'
+  const booking = promotion.audience === 'new_customer'
+    ? 'your first consultation booking'
+    : promotion.audience === 'returning_customer'
+      ? 'your next consultation booking'
+      : 'your consultation booking'
+  const cap = Number(promotion.maxDiscount)
+  const capLabel = promotion.discountType !== 'fixed' && Number.isFinite(cap) && cap > 0
+    ? `, up to UGX ${cap.toLocaleString('en-UG', { maximumFractionDigits: 0 })}`
+    : ''
+  return `Get ${amount} on ${booking}${capLabel}`
+}
+
 function expiryLabel(endsAt: string | null) {
   if (!endsAt) return ''
   const date = new Date(endsAt)
@@ -79,12 +96,12 @@ export default function PromotionBanner() {
         <div key={promotion.id} className="min-w-0 flex-1 text-center" aria-live="polite">
           <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-[10px] uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.16em]">
             <span className="inline-flex items-center gap-1.5 font-semibold text-primary"><Tag className="size-3.5" aria-hidden="true" />{discountLabel(promotion)}</span>
-            <span className="hidden truncate text-background/85 sm:inline">{promotion.name}</span>
+            <span className="hidden truncate text-background/85 sm:inline">{bookingOfferLabel(promotion)}</span>
             <span className="hidden items-center gap-1 text-background/60 md:inline-flex"><Clock3 className="size-3" aria-hidden="true" />{expiry || audienceLabel(promotion.audience)}</span>
           </div>
-          <p className="mt-0.5 truncate text-[10px] text-background/70 sm:hidden">{promotion.name} · {audienceLabel(promotion.audience)}</p>
+          <p className="mt-0.5 truncate text-[10px] text-background/70 sm:hidden">{bookingOfferLabel(promotion)}</p>
         </div>
-        <a href={`/book-consultation?promo=${encodeURIComponent(promotion.code)}`} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-background transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:px-3 sm:text-xs">Use code <span className="hidden font-mono text-primary sm:inline">{promotion.code}</span><ArrowRight className="size-3.5" aria-hidden="true" /></a>
+        <a href={`/book-consultation?promo=${encodeURIComponent(promotion.code)}`} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-background transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:px-3 sm:text-xs">Use code <span className="rounded border border-primary/50 px-1.5 py-1 font-mono text-[10px] tracking-normal text-primary">{promotion.code}</span></a>
         {promotions.length > 1 && <button type="button" onClick={next} className="flex size-11 shrink-0 items-center justify-center text-background/70 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Next promotion"><ArrowRight className="size-4" aria-hidden="true" /></button>}
       </div>
       {promotions.length > 1 && <div className="flex justify-center gap-1 pb-1" aria-label={`${activeIndex + 1} of ${promotions.length} promotions`} role="group">{promotions.map((item, index) => <button key={item.id} type="button" aria-pressed={index === activeIndex} aria-label={`Show promotion ${index + 1}`} onClick={() => setActiveIndex(index)} className={`h-1 rounded-full transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary ${index === activeIndex ? 'w-5 bg-primary' : 'w-1 bg-background/40'}`} />)}</div>}

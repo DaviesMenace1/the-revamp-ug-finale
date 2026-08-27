@@ -36,6 +36,21 @@ type CheckoutLoyalty = {
   }
 }
 
+type CheckoutPromotion = {
+  promotion: {
+    id: string
+    name: string
+    code: string
+    discountType: string
+    discountValue: string
+    maxDiscount: string | null
+    audience: string
+    stackable: boolean
+  }
+  discountAmount: number
+  eligibleItemTotal: number
+}
+
 type SavedAddress = {
   id: string
   label: string
@@ -78,6 +93,10 @@ export default function CheckoutPage() {
   const [cardCvv, setCardCvv] = useState('')
   const [loyalty, setLoyalty] = useState<CheckoutLoyalty | null>(null)
   const [loyaltyPoints, setLoyaltyPoints] = useState('0')
+  const [promotionCode, setPromotionCode] = useState('')
+  const [promotionQuote, setPromotionQuote] = useState<CheckoutPromotion | null>(null)
+  const [promotionLoading, setPromotionLoading] = useState(false)
+  const [promotionError, setPromotionError] = useState<string | null>(null)
   const [deliveryMethod, setDeliveryMethod] = useState<'door_delivery' | 'pickup_station'>('door_delivery')
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
   const [pickupStations, setPickupStations] = useState<PickupStation[]>([])
@@ -100,12 +119,40 @@ export default function CheckoutPage() {
   const checkoutTotal = Number(cart?.total || items.reduce((sum, item) => sum + itemUnitPrice(item) * item.quantity, 0))
   const checkoutSubtotal = Number(cart?.subtotal || checkoutTotal)
   const maximumRedeemablePoints = loyalty ? Math.floor((checkoutSubtotal * loyalty.rules.redemptionCapPercent / 100) / loyalty.rules.redemptionUgxPerPoint) : 0
-  const selectedLoyaltyPoints = Math.min(Math.max(0, Math.floor(Number(loyaltyPoints) || 0)), Math.max(0, maximumRedeemablePoints), loyalty?.balancePoints ?? 0)
+  const selectedLoyaltyPoints = promotionQuote && !promotionQuote.promotion.stackable ? 0 : Math.min(Math.max(0, Math.floor(Number(loyaltyPoints) || 0)), Math.max(0, maximumRedeemablePoints), loyalty?.balancePoints ?? 0)
   const loyaltyDiscountPreview = loyalty ? selectedLoyaltyPoints * loyalty.rules.redemptionUgxPerPoint : 0
+  const promotionDiscountPreview = promotionQuote?.discountAmount || 0
   const selectedPickupStation = pickupStations.find((station) => station.id === selectedPickupStationId) || null
   const selectedPickupFee = deliveryMethod === 'pickup_station' && selectedPickupStation ? Math.max(0, Number(selectedPickupStation.fee) || 0) : 0
   const checkoutGrossTotal = checkoutTotal + selectedPickupFee
-  const paymentTotal = Math.max(0, checkoutGrossTotal - loyaltyDiscountPreview)
+  const paymentTotal = Math.max(0, checkoutGrossTotal - promotionDiscountPreview - loyaltyDiscountPreview)
+
+  async function applyPromotion() {
+    const code = promotionCode.trim()
+    if (!code) {
+      setPromotionError('Enter a collection promo code first.')
+      setPromotionQuote(null)
+      return
+    }
+    setPromotionLoading(true)
+    setPromotionError(null)
+    try {
+      const response = await fetch('/api/checkout/promotion-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, currency: checkoutCurrency, items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPrice: itemUnitPrice(item) })) }),
+      })
+      const data = await response.json().catch(() => null) as { quote?: CheckoutPromotion; error?: string } | null
+      if (!response.ok || !data?.quote) throw new Error(data?.error || 'That collection promo code could not be applied.')
+      setPromotionQuote(data.quote)
+      if (!data.quote.promotion.stackable) setLoyaltyPoints('0')
+    } catch (error) {
+      setPromotionQuote(null)
+      setPromotionError(error instanceof Error ? error.message : 'That collection promo code could not be applied.')
+    } finally {
+      setPromotionLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!isClerkLoaded || !user) return
@@ -242,7 +289,8 @@ export default function CheckoutPage() {
           saveAddress: deliveryMethod === 'door_delivery' && saveAddress,
           shippingAddress: { name: currentName.trim(), address: formData.address.trim(), city: formData.city.trim(), region: formData.region.trim(), country: formData.country.trim(), phone: formData.phone.trim(), notes: formData.notes.trim(), deliveryMethod, addressId: saveAddress ? selectedAddressId || editingAddressId || undefined : selectedAddressId || undefined, pickupStationId: selectedPickupStationId || undefined },
           loyaltyPoints: selectedLoyaltyPoints,
-            paymentMode,
+          promotionCode: promotionQuote?.promotion.code || undefined,
+          paymentMode,
             paymentMethod,
             mobileMoneyNetwork,
             cardNumber,
@@ -376,10 +424,11 @@ export default function CheckoutPage() {
             </div>
 
             <aside className="h-fit rounded-xl border border-border/70 bg-card p-5 shadow-editorial sm:p-6 lg:sticky lg:top-28"><div className="flex items-end justify-between gap-4 border-b border-border/70 pb-5"><div><p className="text-[10px] uppercase tracking-[0.24em] text-primary">Your selection</p><h2 className="mt-2 font-serif text-3xl">Summary</h2></div><span className="text-xs text-muted-foreground">{items.length} {items.length === 1 ? 'piece' : 'pieces'}</span></div>
+              <div className="mt-5 rounded-lg border border-primary/20 bg-primary/5 p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-foreground">Collection promo code</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Apply a code for eligible products in this order. Delivery fees are not discounted.</p></div><Sparkles className="size-4 shrink-0 text-primary" aria-hidden="true" /></div><div className="mt-3 flex flex-col gap-2 sm:flex-row"><Input id="collection-promotion-code" value={promotionCode} onChange={(event) => { const value = event.target.value.toUpperCase(); setPromotionCode(value); if (promotionQuote && value.trim() !== promotionQuote.promotion.code) setPromotionQuote(null); setPromotionError(null) }} placeholder="Enter promo code" className="min-h-11 rounded-md bg-background uppercase" /><Button type="button" onClick={() => void applyPromotion()} disabled={promotionLoading || !promotionCode.trim()} variant="outline" className="min-h-11 shrink-0 rounded-md">{promotionLoading ? <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" /> : null}{promotionLoading ? 'Checking…' : 'Apply code'}</Button></div>{promotionQuote && <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">Applied {promotionQuote.promotion.code}: saving {formatMoney(promotionQuote.discountAmount, checkoutCurrency)} on eligible items.</p>}{promotionError && <p role="alert" className="mt-2 text-xs leading-5 text-destructive">{promotionError}</p>}</div>
               <div className="mt-5 max-h-80 space-y-4 overflow-y-auto pr-1">
                 {items.map((item) => { const image = getProductImage(item); const unitPrice = itemUnitPrice(item); const currency = normalizeCurrency(item.currency ?? item.product?.currency); return <div key={item.cartItemId} className="flex gap-3 border-b border-border/60 pb-4 last:border-0 last:pb-0"><div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted">{image ? <Image src={image} alt="" fill sizes="64px" className="object-cover" /> : <div className="flex h-full items-center justify-center text-primary"><ShoppingBag className="size-5" aria-hidden="true" /></div>}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.product?.name || 'Saved selection'}</p><p className="mt-1 text-xs text-muted-foreground">Qty {item.quantity} · {formatMoney(unitPrice, currency)}</p>{item.customDimensions && <p className="mt-1 flex items-center gap-1 text-[10px] text-primary"><Sparkles className="size-3" aria-hidden="true" /> Bespoke sizing</p>}</div><p className="text-right text-sm font-medium tabular-nums">{formatMoney(unitPrice * item.quantity, currency)}</p></div> })}
               </div>
-              <div className="mt-5 space-y-3 border-t border-border/70 pt-5 text-sm"><div className="flex justify-between gap-4 text-muted-foreground"><span>Subtotal</span><span className="tabular-nums text-foreground">{formatMoney(cart?.subtotal || 0, checkoutCurrency)}</span></div><div className="flex justify-between gap-4 text-muted-foreground"><span>Delivery</span><span className="text-right text-xs">{deliveryMethod === 'pickup_station' ? selectedPickupFee > 0 ? formatMoney(selectedPickupFee, checkoutCurrency) : 'Free pickup' : 'Confirmed after quotation'}</span></div>{loyalty && <div className="rounded-lg border border-primary/20 bg-primary/5 p-3"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-medium text-foreground">Revamp Rewards</p><p className="mt-1 text-xs text-muted-foreground">{loyalty.balancePoints.toLocaleString('en-UG')} points available</p></div><Sparkles className="size-4 text-primary" aria-hidden="true" /></div><label htmlFor="loyalty-points" className="mt-3 block text-xs font-medium text-foreground">Use points <span className="font-normal text-muted-foreground">(up to {maximumRedeemablePoints.toLocaleString('en-UG')} on this order)</span></label><input id="loyalty-points" type="number" min="0" max={maximumRedeemablePoints} step="1" value={loyaltyPoints} onChange={(event) => setLoyaltyPoints(event.target.value)} className="mt-2 min-h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" />{loyaltyDiscountPreview > 0 && <p className="mt-2 text-xs text-primary">Saving {formatMoney(loyaltyDiscountPreview, checkoutCurrency)} with points.</p>}</div>}<div className="flex justify-between gap-4 border-t border-border/70 pt-4 font-serif text-2xl text-foreground"><span>Total</span><span className="tabular-nums text-primary">{formatMoney(paymentTotal, checkoutCurrency)}</span></div></div>
+              <div className="mt-5 space-y-3 border-t border-border/70 pt-5 text-sm"><div className="flex justify-between gap-4 text-muted-foreground"><span>Subtotal</span><span className="tabular-nums text-foreground">{formatMoney(cart?.subtotal || 0, checkoutCurrency)}</span></div><div className="flex justify-between gap-4 text-muted-foreground"><span>Delivery</span><span className="text-right text-xs">{deliveryMethod === 'pickup_station' ? selectedPickupFee > 0 ? formatMoney(selectedPickupFee, checkoutCurrency) : 'Free pickup' : 'Confirmed after quotation'}</span></div>{promotionDiscountPreview > 0 && <div className="flex justify-between gap-4 text-muted-foreground"><span>Collection promotion <span className="font-mono text-[10px] text-primary">{promotionQuote?.promotion.code}</span></span><span className="tabular-nums text-primary">-{formatMoney(promotionDiscountPreview, checkoutCurrency)}</span></div>}{loyalty && <div className="rounded-lg border border-primary/20 bg-primary/5 p-3"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-medium text-foreground">Revamp Rewards</p><p className="mt-1 text-xs text-muted-foreground">{loyalty.balancePoints.toLocaleString('en-UG')} points available</p></div><Sparkles className="size-4 text-primary" aria-hidden="true" /></div><label htmlFor="loyalty-points" className="mt-3 block text-xs font-medium text-foreground">Use points <span className="font-normal text-muted-foreground">(up to {maximumRedeemablePoints.toLocaleString('en-UG')} on this order)</span></label><input id="loyalty-points" type="number" min="0" max={maximumRedeemablePoints} step="1" value={loyaltyPoints} disabled={Boolean(promotionQuote && !promotionQuote.promotion.stackable)} onChange={(event) => setLoyaltyPoints(event.target.value)} className="mt-2 min-h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60" />{promotionQuote && !promotionQuote.promotion.stackable ? <p className="mt-2 text-xs text-muted-foreground">This promotion cannot be combined with loyalty points.</p> : loyaltyDiscountPreview > 0 && <p className="mt-2 text-xs text-primary">Saving {formatMoney(loyaltyDiscountPreview, checkoutCurrency)} with points.</p>}</div>}<div className="flex justify-between gap-4 border-t border-border/70 pt-4 font-serif text-2xl text-foreground"><span>Total</span><span className="tabular-nums text-primary">{formatMoney(paymentTotal, checkoutCurrency)}</span></div></div>
               <Link href="/cart" className="mt-5 inline-flex min-h-11 items-center justify-center text-xs uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground hover:underline">Edit selection</Link>
             </aside>
           </form>

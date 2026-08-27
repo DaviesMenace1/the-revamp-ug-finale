@@ -35,7 +35,9 @@ function SuccessContent() {
 
     async function fetchOrderDetails() {
       try {
-        await fetch(`/api/orders/reconcile?ref=${encodeURIComponent(reference)}`, { cache: 'no-store' })
+        const reconciliationResponse = await fetch(`/api/orders/reconcile?ref=${encodeURIComponent(reference)}`, { cache: 'no-store' })
+        const reconciliation = await reconciliationResponse.json().catch(() => null) as { status?: string; success?: boolean } | null
+        if (reconciliation?.status === 'paid' || reconciliation?.status === 'completed' || reconciliation?.success === true && reconciliation?.status === 'paid') clearCart()
         const res = await fetch(`/api/orders/details?ref=${encodeURIComponent(reference)}`, { cache: 'no-store' })
         if (res.ok) {
           const data = await res.json()

@@ -324,7 +324,12 @@ export async function reservePointsForOrder(userId: string, orderId: string, req
     .from(orders)
     .where(eq(orders.id, orderId))
     .limit(1)
-  if (!order || order.userId !== userId) return { success: false, error: 'Order not found.' }
+  const [owner] = await db
+    .select({ clerkId: users.clerkId })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+  if (!order || !owner || order.userId !== owner.clerkId) return { success: false, error: 'Order not found.' }
   if (order.paymentStatus !== 'pending') return { success: false, error: 'Points can only be used before payment is completed.' }
 
   const maximumDiscount = Math.floor((Number(order.subtotal) || 0) * (rules.redemptionCapPercent / 100))

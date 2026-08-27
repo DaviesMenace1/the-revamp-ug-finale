@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 import { db } from '@/lib/db/client'
 import { orders, users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,13 @@ function parseItems(value: unknown) {
       unitPrice: Number(record.unitPrice ?? record.price ?? 0),
       currency: String(record.currency || 'UGX').toUpperCase(),
       image: typeof record.image === 'string' && record.image.trim() ? record.image : '/brand/revamp-logo.png',
+      color: record.color,
+      fabric: record.fabric,
+      material: record.material,
+      variant: record.variant,
+      accessories: record.accessories,
+      dimensions: record.dimensions,
+      configuration: record.configuration,
     }
   }) : []
 }
@@ -42,8 +50,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const orderRef = searchParams.get('ref')?.trim()
   const email = searchParams.get('email')?.trim().toLowerCase()
+  const { userId } = await auth()
 
-  if (!orderRef || !email) {
+  if (!orderRef || (!userId && !email)) {
     return NextResponse.json({ error: 'Order reference and purchase email are required.' }, { status: 400 })
   }
 
@@ -52,11 +61,11 @@ export async function GET(request: NextRequest) {
       .select({ order: orders, userEmail: users.email })
       .from(orders)
       .leftJoin(users, eq(users.clerkId, orders.userId))
-      .where(eq(orders.orderNumber, orderRef))
+      .where(userId ? and(eq(orders.orderNumber, orderRef), eq(orders.userId, userId)) : eq(orders.orderNumber, orderRef))
       .limit(1)
     const order = record?.order
     const orderEmail = record?.userEmail?.trim().toLowerCase()
-    if (!order || !orderEmail || orderEmail !== email) {
+    if (!order || (!userId && (!orderEmail || orderEmail !== email))) {
       return NextResponse.json({ error: 'Order not found. Check the reference and purchase email.' }, { status: 404 })
     }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { settleConsultationPayment } from '@/lib/consultation-payments'
 import { isValidFlutterwaveWebhookSignature, retrieveFlutterwaveCharge } from '@/lib/flutterwave-config'
+import { applyRefundProviderState } from '@/lib/refund-processing'
 import { settleOrderPayment } from '@/lib/order-payments'
 import { settleSubscriptionPayment } from '@/lib/subscription-payments'
 
@@ -17,7 +18,21 @@ export async function POST(request: NextRequest) {
 
     const payload = JSON.parse(rawBody) as { type?: string; event?: string; data?: Record<string, unknown> }
     const data = payload.data || {}
-    const eventType = payload.type || payload.event
+    const eventType = String(payload.type || payload.event || '').toLowerCase()
+    if (eventType === 'refund.completed') {
+      const refundId = String(data.id || data.refund_id || '').trim()
+      if (!refundId) return NextResponse.json({ status: 'acknowledged', reason: 'missing_refund_id' })
+      const providerStatus = String(data.status || 'completed').toLowerCase()
+      const refundResult = await applyRefundProviderState({
+        providerRefundId: refundId,
+        providerStatus,
+        providerRequestOk: true,
+        providerRecord: { id: refundId, charge_id: typeof data.charge_id === 'string' ? data.charge_id : null, status: providerStatus },
+        notifyCustomer: true,
+      })
+      return NextResponse.json({ status: refundResult.found ? refundResult.status : 'acknowledged', scope: 'refund', reason: refundResult.found ? undefined : 'refund_not_found' })
+    }
+
     const paymentStatus = String(data.status || '').toLowerCase()
     const chargeId = String(data.id || '').trim()
     let orderRef = String(data.reference || data.tx_ref || '').trim()

@@ -24,7 +24,7 @@ type FlutterwaveResponse<T> = {
 
 export type FlutterwaveAuthorizationType = 'pin' | 'otp' | 'redirect_url' | 'payment_instruction' | 'requires_additional_fields'
 
-type FlutterwaveRefund = {
+export type FlutterwaveRefund = {
   id?: string
   amount_refunded?: number | string
   charge_id?: string
@@ -212,6 +212,10 @@ export async function createFlutterwaveRefund(input: { chargeId: string; amount:
   })
 }
 
+export async function retrieveFlutterwaveRefund(refundId: string) {
+  return flutterwaveRequest<FlutterwaveRefund>(`/refunds/${encodeURIComponent(refundId)}`, { method: 'GET' })
+}
+
 export function getFlutterwaveAuthorizationType(charge: FlutterwaveCharge | undefined): FlutterwaveAuthorizationType | null {
   const nextAction = String(charge?.next_action?.type || '').toLowerCase()
   const authorization = String(charge?.next_action?.authorization?.type || '').toLowerCase()
@@ -245,7 +249,7 @@ function createHmacSignature(rawBody: string, secretHash: string) {
   return createHmac('sha256', secretHash).update(rawBody).digest('base64')
 }
 
-export type { FlutterwaveCharge, FlutterwaveRefund, FlutterwaveResponse }
+export type { FlutterwaveCharge, FlutterwaveResponse }
 
 export function normalizeUgandaPhone(value: string) {
   const digits = value.replace(/\D/g, '')

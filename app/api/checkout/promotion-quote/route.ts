@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     const catalogById = new Map(catalog.map((product) => [product.id, product]))
     if (validItems.some((item) => {
       const product = catalogById.get(item.productId)
-      return !product || product.status !== 'published' || product.availability === 'out_of_stock' || product.currency.toUpperCase() !== expectedCurrency || item.unitPrice + 0.01 < Number(product.price)
+      return !product || product.status !== 'published' || product.availability === 'out_of_stock' || (product.currency || '').toUpperCase() !== expectedCurrency || item.unitPrice + 0.01 < Number(product.price)
     })) return Response.json({ error: 'One or more products changed. Refresh your cart and try again.' }, { status: 409 })
 
     const result = await getCollectionPromotionQuote({ userId: localUser.id, code: body.code, items: validItems })

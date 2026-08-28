@@ -47,6 +47,10 @@ function stringArray(value: unknown) {
   return value.filter((entry): entry is string => typeof entry === 'string').map((entry) => entry.trim().toLowerCase()).filter(Boolean).slice(0, 200)
 }
 
+function normalizedSlug(value: unknown) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : ''
+}
+
 function roundMoney(value: number) {
   return Math.max(0, Math.round((value + Number.EPSILON) * 100) / 100)
 }
@@ -98,10 +102,12 @@ async function matchingProductIds(items: CollectionPromotionCartItem[], targetTy
   const rows = await db.select({ id: products.id, categorySlug: categories.slug, subCategorySlug: subCategories.slug }).from(products).innerJoin(subCategories, eq(products.subCategoryId, subCategories.id)).innerJoin(categories, eq(subCategories.categoryId, categories.id)).where(inArray(products.id, ids))
   const targetProductIds = new Set(productIds)
   return new Set(rows.filter((row) => {
-    if (safeTargetType === 'category') return collectionSlugs.includes(row.categorySlug.toLowerCase())
-    if (safeTargetType === 'subcategory') return collectionSlugs.includes(row.subCategorySlug.toLowerCase())
-    if (safeTargetType === 'collection') return collectionSlugs.includes(row.categorySlug.toLowerCase()) || collectionSlugs.includes(row.subCategorySlug.toLowerCase())
-    return targetProductIds.has(row.id) || collectionSlugs.includes(row.categorySlug.toLowerCase()) || collectionSlugs.includes(row.subCategorySlug.toLowerCase())
+    const categorySlug = normalizedSlug(row.categorySlug)
+    const subCategorySlug = normalizedSlug(row.subCategorySlug)
+    if (safeTargetType === 'category') return collectionSlugs.includes(categorySlug)
+    if (safeTargetType === 'subcategory') return collectionSlugs.includes(subCategorySlug)
+    if (safeTargetType === 'collection') return collectionSlugs.includes(categorySlug) || collectionSlugs.includes(subCategorySlug)
+    return targetProductIds.has(row.id) || collectionSlugs.includes(categorySlug) || collectionSlugs.includes(subCategorySlug)
   }).map((row) => row.id))
 }
 

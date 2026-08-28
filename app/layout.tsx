@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
-import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google'
+import { Cinzel, Montserrat } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeProvider } from '@/lib/theme-provider'
 import { NewsletterPopup } from '@/components/newsletter-popup'
@@ -14,15 +14,15 @@ import WebMcpBootstrap from '@/components/agent/webmcp-bootstrap'
 import ClerkRuntimeGuard from '@/components/auth/clerk-runtime-guard'
 import './globals.css'
 
-const cormorant = Cormorant_Garamond({
+const cinzel = Cinzel({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
-  style: ['normal', 'italic'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+  style: ['normal'],
   variable: '--font-serif',
   display: 'swap',
 })
 
-const instrument = Instrument_Sans({
+const montserrat = Montserrat({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
   variable: '--font-sans',
@@ -119,7 +119,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${instrument.variable} bg-background`}>
+    <html lang="en" suppressHydrationWarning className={`${cinzel.variable} ${montserrat.variable} bg-background`}>
       <head>
         {/* Theme Script */}
         <script

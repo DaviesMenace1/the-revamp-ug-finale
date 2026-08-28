@@ -134,8 +134,8 @@ function EditorialHero() {
   }, [reducedMotion, slides.length])
 
   return (
-    <section className="relative h-[138svh] min-h-[720px] bg-obsidian text-white" aria-label="The Revamp UG introduction">
-      <div className="sticky top-0 h-[100svh] min-h-[640px] overflow-hidden">
+    <section className="relative h-[138svh] min-h-[760px] bg-background p-3 sm:p-5 lg:p-7" aria-label="The Revamp UG introduction">
+      <div className="sticky top-3 h-[calc(100svh-1.5rem)] min-h-[700px] overflow-hidden rounded-[2rem] border border-border bg-obsidian text-white shadow-2xl sm:top-5 sm:h-[calc(100svh-2.5rem)] lg:top-7 lg:h-[calc(100svh-3.5rem)]">
         <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" src={HERO_VIDEO} poster={HERO_POSTER} muted playsInline loop autoPlay preload="metadata" aria-label="Atmospheric architecture footage" />
         <div className="absolute inset-0 bg-black/42" aria-hidden="true" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-black/45" aria-hidden="true" />

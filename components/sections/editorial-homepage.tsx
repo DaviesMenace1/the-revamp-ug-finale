@@ -163,16 +163,16 @@ function PhilosophySection() {
     <section className="border-b border-foreground/10 bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto grid max-w-[1440px] items-start gap-12 lg:grid-cols-[0.55fr_1fr_0.7fr] lg:gap-16">
         <div>
-          <Eyebrow>Why choose The Revamp UG</Eyebrow>
+          <Eyebrow>Why Choose The Revamp UG</Eyebrow>
           <p className="mt-6 max-w-[13rem] text-xs leading-6 text-foreground/65">Two decades of excellence in luxury architecture, interiors and considered living.</p>
         </div>
         <div>
-          <h2 className="max-w-3xl font-serif text-[clamp(3rem,8vw,7rem)] font-light leading-[0.9] tracking-[-0.03em]">Luxury living.<br /><span className="italic text-foreground/60">Thoughtfully delivered.</span></h2>
+          <h2 className="max-w-3xl font-serif text-[clamp(3rem,8vw,7rem)] font-light leading-[0.9] tracking-[-0.03em]">Why Choose<br /><span className="italic text-foreground/60">The Revamp UG</span></h2>
           <div className="mt-10 border-t border-foreground/15 pt-6 sm:mt-14 sm:flex sm:items-end sm:justify-between sm:gap-8">
-            <p className="max-w-md text-sm leading-7 text-foreground/70">We deliver complete luxury living solutions — from architectural conception through final installation. Every detail exceeds expectations, every project tells a story.</p>
+            <p className="max-w-md text-sm leading-7 text-foreground/70">We deliver complete luxury living solutions, from architectural conception through final installation. Our white-glove service ensures every detail exceeds expectations, every project tells a story, and every client experiences true refinement.</p>
             <TextLink href="/about">Meet the studio</TextLink>
           </div>
-          <div className="mt-10 grid max-w-2xl grid-cols-3 gap-4 border-t border-foreground/15 pt-5"><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">250+</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Projects completed</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">5,000+</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Products available</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">500+</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Clients served</p></div></div>
+          <div className="mt-10 grid max-w-2xl grid-cols-2 gap-4 border-t border-foreground/15 pt-5 sm:grid-cols-5"><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">250+</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Projects Completed</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">5000+</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Products Available</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">500+</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Clients Served</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">8</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Categories</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">15+</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Years Experience</p></div></div>
         </div>
         <div className="relative mt-2 aspect-[4/5] overflow-hidden bg-canvas-dark sm:mt-8 lg:mt-0">
           <img src={HERO_POSTER} alt="Material and architectural detail in a Revamp interior" className="h-full w-full object-cover grayscale-[0.15] transition-transform duration-700 hover:scale-105" loading="lazy" />
@@ -246,6 +246,24 @@ function ImageStory({ image }: { image: string }) {
           <div className="mt-8"><TextLink href="/portfolio" light>Explore All Services</TextLink></div>
         </div>
       </div>
+    </section>
+  )
+}
+
+function CollectionsPreview({ products }: { products: Product[] }) {
+  const categories = [
+    ['Living Room', '/collections'],
+    ['Dining', '/collections'],
+    ['Bedroom', '/collections'],
+    ['Kitchen', '/collections'],
+    ['Bathroom', '/collections'],
+    ['Lighting', '/collections'],
+    ['Office', '/collections'],
+    ['Outdoor', '/collections'],
+  ]
+  return (
+    <section className="bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
+      <div className="mx-auto max-w-[1440px]"><div className="mb-10 text-center sm:mb-14"><Eyebrow>Collections</Eyebrow><h2 className="mt-4 font-serif text-5xl font-light leading-none sm:text-7xl">Collections</h2><p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">Explore our curated selection of luxury furnishings and design elements</p></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">{categories.map(([name, href], index) => { const product = products.length ? products[index % products.length] : null; const image = product ? productImage(product, index) : FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]; return <Link key={name} href={href} className={`group relative aspect-[4/5] overflow-hidden bg-card ${index % 3 === 1 ? 'sm:mt-10' : ''}`}><img src={image} alt={name} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" /><div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" /><div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3"><h3 className="font-sans text-sm font-medium text-white sm:text-base">{name}</h3><ArrowUpRight size={15} className="text-white/80" aria-hidden="true" /></div></Link> })}</div></div>
     </section>
   )
 }
@@ -327,7 +345,7 @@ function JournalSection({ articles, loading }: { articles: Article[]; loading: b
   const selected = articles.slice(0, 3)
   return (
     <section className="border-t border-foreground/10 bg-canvas dark:bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
-      <div className="mx-auto max-w-[1440px]"><div className="mb-10 flex flex-col gap-6 border-b border-foreground/15 pb-7 md:flex-row md:items-end md:justify-between"><div><Eyebrow>06 — Journal</Eyebrow><h2 className="mt-4 font-serif text-5xl font-light leading-none sm:text-7xl">From Our Journal</h2></div><TextLink href="/journal">Read the Journal</TextLink></div>{loading ? <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5" aria-busy="true" aria-label="Loading journal">{[1, 2, 3].map((item) => <div key={item} className={`animate-pulse bg-foreground/10 ${item === 1 ? 'col-span-2 aspect-[16/9] md:col-span-1' : 'aspect-[4/5]'}`} />)}</div> : selected.length ? <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">{selected.map((article, index) => <Link key={article.id || article.slug} href={`/journal/${encodeURIComponent(article.slug)}`} className={`group ${index === 0 ? 'col-span-2 md:col-span-1' : index === 1 ? 'mt-8 md:mt-14' : ''}`}><div className={`overflow-hidden bg-canvas-dark ${index === 0 ? 'aspect-[16/10]' : 'aspect-[4/5]'}`}><img src={article.image || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]} alt={article.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" /></div><div className="mt-3"><div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] uppercase tracking-[0.18em] text-foreground/60"><span>{article.category || 'Studio notes'}</span>{article.publishedAt && <span>{shortDate(article.publishedAt)}</span>}</div><h3 className="mt-2 font-serif text-2xl font-light leading-[0.95] sm:text-3xl">{article.title}</h3>{article.excerpt && <p className="mt-2 line-clamp-2 text-xs leading-5 text-foreground/65">{article.excerpt}</p>}</div></Link>)}</div> : <div className="border border-dashed border-foreground/20 px-6 py-12 text-center"><p className="font-serif text-3xl font-light">Notes from the studio, soon.</p><Link href="/journal" className="mt-4 inline-flex text-[10px] uppercase tracking-[0.18em] text-foreground/60 underline underline-offset-4">Visit the journal</Link></div>}</div>
+      <div className="mx-auto max-w-[1440px]"><div className="mb-10 flex flex-col gap-6 border-b border-foreground/15 pb-7 md:flex-row md:items-end md:justify-between"><div><Eyebrow>06 — Journal</Eyebrow><h2 className="mt-4 font-serif text-5xl font-light leading-none sm:text-7xl">From Our Journal</h2><p className="mt-4 max-w-xl text-sm leading-6 text-foreground/60">Insights, trends, and inspiration for refined living</p></div><TextLink href="/journal">Read the Journal</TextLink></div>{loading ? <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5" aria-busy="true" aria-label="Loading journal">{[1, 2, 3].map((item) => <div key={item} className={`animate-pulse bg-foreground/10 ${item === 1 ? 'col-span-2 aspect-[16/9] md:col-span-1' : 'aspect-[4/5]'}`} />)}</div> : selected.length ? <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">{selected.map((article, index) => <Link key={article.id || article.slug} href={`/journal/${encodeURIComponent(article.slug)}`} className={`group ${index === 0 ? 'col-span-2 md:col-span-1' : index === 1 ? 'mt-8 md:mt-14' : ''}`}><div className={`overflow-hidden bg-canvas-dark ${index === 0 ? 'aspect-[16/10]' : 'aspect-[4/5]'}`}><img src={article.image || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]} alt={article.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" /></div><div className="mt-3"><div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] uppercase tracking-[0.18em] text-foreground/60"><span>{article.category || 'Studio notes'}</span>{article.publishedAt && <span>{shortDate(article.publishedAt)}</span>}</div><h3 className="mt-2 font-serif text-2xl font-light leading-[0.95] sm:text-3xl">{article.title}</h3>{article.excerpt && <p className="mt-2 line-clamp-2 text-xs leading-5 text-foreground/65">{article.excerpt}</p>}</div></Link>)}</div> : <div className="border border-dashed border-foreground/20 px-6 py-12 text-center"><p className="font-serif text-3xl font-light">Notes from the studio, soon.</p><Link href="/journal" className="mt-4 inline-flex text-[10px] uppercase tracking-[0.18em] text-foreground/60 underline underline-offset-4">Visit the journal</Link></div>}</div>
     </section>
   )
 }
@@ -375,12 +393,12 @@ export function EditorialHomepage() {
   return (
     <>
       <EditorialHero />
-      <PhilosophySection />
       <ServiceWorld services={services} loading={loading} />
       <ImageStory image={storyImage} />
-      <ProjectFeature projects={projects} loading={loading} />
-      <ProcessSection />
+      <CollectionsPreview products={products} />
+      <PhilosophySection />
       <GallerySection products={products} loading={loading} />
+      <ProjectFeature projects={projects} loading={loading} />
       <JournalSection articles={articles} loading={loading} />
       <section className="bg-obsidian px-5 py-20 text-white sm:px-8 sm:py-28 lg:px-12 lg:py-36"><div className="mx-auto grid max-w-[1440px] gap-10 md:grid-cols-[1fr_0.7fr] md:items-end"><div><Eyebrow light>A final thought</Eyebrow><blockquote className="mt-5 max-w-4xl font-serif text-4xl font-light leading-[0.95] sm:text-6xl lg:text-7xl">“The space should feel as though it could only ever have existed this way.”</blockquote></div><div className="md:pb-2"><p className="max-w-sm text-sm leading-7 text-white/60">Our white-glove service ensures every detail exceeds expectations, every project tells a story, and every client experiences true refinement.</p></div></div></section>
       <section className="bg-primary px-5 py-20 text-primary-foreground sm:px-8 sm:py-24 lg:px-12"><div className="mx-auto flex max-w-[1440px] flex-col gap-8 md:flex-row md:items-end md:justify-between"><div><Eyebrow>Request Our Catalog</Eyebrow><h2 className="mt-4 max-w-3xl font-serif text-4xl font-light leading-[0.92] sm:text-6xl">Request Our Catalog</h2><p className="mt-5 max-w-xl text-sm leading-7 text-primary-foreground/75">Access our comprehensive collection of luxury furnishings and design materials. Receive a beautifully curated PDF catalog delivered to your inbox.</p><p className="mt-3 text-xs text-primary-foreground/65">Earn 500 loyalty points when you request a catalog</p></div><Link href="/contact" className="inline-flex min-h-12 shrink-0 items-center gap-3 self-start rounded-full bg-accent px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent-foreground transition-transform hover:-translate-y-0.5 hover:bg-accent/85 md:self-end">Request Catalog Now <ArrowRight size={14} aria-hidden="true" /></Link></div></section>

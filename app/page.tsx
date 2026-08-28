@@ -18,10 +18,14 @@ export default function HomePage() {
   return (
     <>
       <SiteHeader />
+      </br>
       <main>
         <HeroSection />
         <StudioIntroSection />
         <ServicesSection />
+        <PortfolioSection />
+        <JournalSection articles={[]} />
+        <CollectionsSection />
         <section className="relative overflow-hidden border-y border-border bg-foreground text-background">
           <div className="mx-auto grid max-w-[1440px] gap-10 px-6 py-20 sm:px-8 lg:grid-cols-[1.2fr_0.8fr] lg:px-12 lg:py-28">
             <div>
@@ -34,30 +38,11 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-        <CollectionsSection />
-        <section className="section-pad border-y border-border bg-card">
-          <div className="mx-auto max-w-[1440px] px-6 text-center lg:px-12">
-            <p className="text-[10px] uppercase tracking-[0.28em] text-primary">Why The Revamp UG</p>
-            <h2 className="mx-auto mt-4 max-w-4xl font-serif text-4xl font-light leading-tight text-foreground sm:text-6xl">A considered approach to the architecture of refined living.</h2>
-            <div className="mx-auto mt-12 grid max-w-5xl gap-px bg-border sm:grid-cols-3">
-              {[
-                ['01', 'Considered', 'Every decision begins with the character of the space and the people who inhabit it.'],
-                ['02', 'Global', 'A local design house with access to exceptional materials, makers and objects worldwide.'],
-                ['03', 'White Glove', 'From first conversation through sourcing and installation, the experience remains deeply considered.'],
-              ].map(([number, title, text]) => (
-                <div key={number} className="bg-background p-8 text-left sm:p-10">
-                  <span className="font-serif text-4xl font-light text-primary/40">{number}</span>
-                  <h3 className="mt-8 font-serif text-2xl font-light text-foreground">{title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        <PortfolioSection />
+        
+        
+        
         <ProcessSection />
         <TestimonialsSection />
-        <JournalSection articles={[]} />
         <section className="section-pad border-y border-border bg-card">
           <div className="mx-auto flex max-w-[1440px] flex-col gap-8 px-6 md:flex-row md:items-end md:justify-between lg:px-12">
             <div>

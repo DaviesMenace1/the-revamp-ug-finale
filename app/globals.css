@@ -346,3 +346,21 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Site-wide editorial heading guardrails */
+@layer base {
+  main h1:not(.hero-heading) {
+    font-size: clamp(2rem, 4.5vw, 4.75rem) !important;
+    line-height: 0.98;
+  }
+
+  main h2 {
+    font-size: clamp(1.75rem, 3.5vw, 3.75rem) !important;
+    line-height: 1;
+  }
+
+  main h3 {
+    font-size: clamp(1.25rem, 2.3vw, 2.25rem) !important;
+    line-height: 1.05;
+  }
+}

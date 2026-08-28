@@ -144,7 +144,8 @@ export async function POST(request: Request) {
     if (!response) return Response.json({ error: 'Flutterwave did not return a usable subscription payment state. Please try again.' }, { status: 502 })
     return Response.json(response)
   } catch (error) {
-    console.error('[subscription-payment] failed to initialize payment:', error)
-    return Response.json({ error: 'We could not prepare subscription payment. Please try again.' }, { status: 500 })
+    const traceId = randomUUID()
+    console.error('[subscription-payment] failed to initialize payment', { traceId, error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error })
+    return Response.json({ error: `We could not prepare subscription payment. Please try again. Reference: ${traceId.slice(0, 8)}` }, { status: 500, headers: { 'Cache-Control': 'no-store' } })
   }
 }

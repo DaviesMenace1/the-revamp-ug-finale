@@ -363,7 +363,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, paymentMethod: paymentMethod.type, status: 'pending', chargeId: String(charge.id), chargeStatus: chargeStatus || 'pending', authorizationType: getFlutterwaveAuthorizationType(charge), amount: amountAfterPoints, discountUgx, promotionCode: promotionResult?.success ? promotionResult.quote.promotion.code : null, promotionDiscountUgx, paymentUrl: charge.next_action?.redirect_url?.url || null, paymentInstruction: charge.next_action?.payment_instruction?.note || null })
   } catch (error: unknown) {
-    console.error('Create v4 Order Error:', error)
-    return NextResponse.json({ error: 'We could not prepare this payment. Please try again.' }, { status: 500 })
+    const traceId = randomUUID()
+    console.error('[checkout-payment] failed to prepare payment', { traceId, error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error })
+    return NextResponse.json({ error: `We could not prepare this payment. Please try again. Reference: ${traceId.slice(0, 8)}` }, { status: 500, headers: { 'Cache-Control': 'no-store' } })
   }
 }

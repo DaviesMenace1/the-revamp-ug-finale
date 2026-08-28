@@ -217,7 +217,8 @@ export async function POST(request: Request) {
     if (!response) return NextResponse.json({ error: 'Flutterwave did not return a usable payment state. Please try again.' }, { status: 502 })
     return NextResponse.json(response)
   } catch (error) {
-    console.error('[consultation-payment] failed to initialize v4 payment:', error)
-    return NextResponse.json({ error: 'We could not prepare consultation payment. Please try again.' }, { status: 500 })
+    const traceId = randomUUID()
+    console.error('[consultation-payment] failed to initialize payment', { traceId, error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error })
+    return NextResponse.json({ error: `We could not prepare consultation payment. Please try again. Reference: ${traceId.slice(0, 8)}` }, { status: 500, headers: { 'Cache-Control': 'no-store' } })
   }
 }

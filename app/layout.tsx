@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
-import { Cinzel, Montserrat } from 'next/font/google'
+import { Cormorant_Garamond, Montserrat } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeProvider } from '@/lib/theme-provider'
 import { NewsletterPopup } from '@/components/newsletter-popup'
@@ -14,10 +14,10 @@ import WebMcpBootstrap from '@/components/agent/webmcp-bootstrap'
 import ClerkRuntimeGuard from '@/components/auth/clerk-runtime-guard'
 import './globals.css'
 
-const cinzel = Cinzel({
+const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800', '900'],
-  style: ['normal'],
+  weight: ['300', '400', '500', '600', '700'],
+  style: ['normal', 'italic'],
   variable: '--font-serif',
   display: 'swap',
 })
@@ -119,7 +119,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${cinzel.variable} ${montserrat.variable} bg-background`}>
+    <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${montserrat.variable} bg-background`}>
       <head>
         {/* Theme Script */}
         <script

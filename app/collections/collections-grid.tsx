@@ -12,21 +12,23 @@ type ProductGridItem = {
   [key: string]: unknown
 }
 
-export default function CollectionsGrid({ products }: { products: ProductGridItem[] }) {
+export default function CollectionsGrid({ products, initialCategory = '' }: { products: ProductGridItem[]; initialCategory?: string }) {
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState('All')
+  const [category, setCategory] = useState(initialCategory || 'All')
   const categories = useMemo(() => {
     const names = products
       .map((product) => product.subCategory?.category?.name || product.subCategory?.name)
       .filter((value): value is string => Boolean(value))
-    return ['All', ...Array.from(new Set(names))]
-  }, [products])
+    const uniqueNames = Array.from(new Set(names))
+    if (initialCategory && !uniqueNames.some((name) => name.toLowerCase() === initialCategory.toLowerCase())) uniqueNames.unshift(initialCategory)
+    return ['All', ...uniqueNames]
+  }, [initialCategory, products])
 
   const filteredProducts = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return products.filter((product) => {
       const productCategory = product.subCategory?.category?.name || product.subCategory?.name || ''
-      const matchesCategory = category === 'All' || productCategory === category
+      const matchesCategory = category === 'All' || productCategory.toLowerCase() === category.toLowerCase()
       const searchable = `${product.name} ${product.description || ''} ${productCategory}`.toLowerCase()
       return matchesCategory && (!needle || searchable.includes(needle))
     })

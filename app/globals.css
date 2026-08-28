@@ -64,7 +64,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 
   /* Typography */
-  --font-serif: 'Cinzel', Georgia, serif;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
   --font-sans:  'Montserrat', system-ui, sans-serif;
 
   /* Spacing and elevation extras */
@@ -84,10 +84,10 @@
   --popover-foreground:    #0D0D0D;
   --primary:               #0D0D0D;        /* obsidian buttons */
   --primary-foreground:    #F5F1EB;    /* ivory on obsidian */
-  --secondary:             #362a16;
-  --secondary-foreground:  #FFFFFF;
-  --muted:                 #8B7D6B;
-  --muted-foreground:      #F5F1EB;
+  --secondary:             #E8E1D6;
+  --secondary-foreground:  #0D0D0D;
+  --muted:                 #E8E1D6;
+  --muted-foreground:      #8B7D6B;
   --accent:                #C8A66A;    /* gold as accent */
   --accent-foreground:     #0D0D0D;
   --destructive:           oklch(0.577 0.245 27.325);

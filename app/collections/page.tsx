@@ -35,8 +35,10 @@ async function getPublishedProducts() {
   })
 }
 
-export default async function CollectionsPage() {
+export default async function CollectionsPage({ searchParams }: { searchParams?: Promise<{ category?: string }> }) {
   const result = await safeQuery(getPublishedProducts(), 'published collections', [])
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const initialCategory = resolvedSearchParams.category?.trim() || ''
   const products = result.data
   const productItems = products.map((product, index) => ({
     '@type': 'ListItem',
@@ -76,7 +78,7 @@ export default async function CollectionsPage() {
               <p className="mt-3 text-sm text-muted-foreground">No published pieces are available just yet. Return soon or speak with our studio.</p>
             </div>
           ) : (
-            <CollectionsGrid products={products} />
+            <CollectionsGrid products={products} initialCategory={initialCategory} />
           )}
         </div>
       </main>

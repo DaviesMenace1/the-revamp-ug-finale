@@ -18,7 +18,7 @@ export default function HomePage() {
   return (
     <>
       <SiteHeader />
-      <br>
+      <br/>
       <main>
         <HeroSection />
         <StudioIntroSection />

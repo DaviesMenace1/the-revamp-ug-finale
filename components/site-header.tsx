@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 import { useCart } from '@/lib/context/cart-context'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { ThemeSwitcher } from '@/components/theme-switcher'
-import PromotionBanner from '@/components/promotions/promotion-banner'
+{/*import PromotionBanner from '@/components/promotions/promotion-banner'*/}
 
   interface NavLink {
     label: string
@@ -105,7 +105,7 @@ export function SiteHeader() {
   return (
     <>
       <div className="fixed inset-x-0 top-0 z-50">
-        <PromotionBanner />
+        {/*<PromotionBanner />*/}
         <header
         className={cn(
           'relative w-full transition-all duration-300',

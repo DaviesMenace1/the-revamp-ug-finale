@@ -5,6 +5,14 @@ import { articles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
+import { invalidateCachePattern } from '@/lib/redis/cache'
+
+async function revalidatePublicArticleContent() {
+  revalidatePath('/')
+  revalidatePath('/journal')
+  revalidatePath('/journal/[slug]', 'page')
+  await invalidateCachePattern('articles:list:*')
+}
 
 function slugify(input: string) {
   return input
@@ -45,6 +53,7 @@ export async function createArticle(data: {
       .returning()
 
     revalidatePath('/admin/blogs')
+    await revalidatePublicArticleContent()
     return { success: true, article }
   } catch (error) {
     console.error('Failed to create article:', error)
@@ -83,6 +92,7 @@ export async function updateArticle(
     await db.update(articles).set(patch).where(eq(articles.id, id))
 
     revalidatePath('/admin/blogs')
+    await revalidatePublicArticleContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to update article:', error)
@@ -95,6 +105,7 @@ export async function deleteArticle(id: string) {
   try {
     await db.delete(articles).where(eq(articles.id, id))
     revalidatePath('/admin/blogs')
+    await revalidatePublicArticleContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to delete article:', error)

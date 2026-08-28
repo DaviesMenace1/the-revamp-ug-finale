@@ -5,6 +5,14 @@ import { projects } from '@/lib/db/schema'
 import { and, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { requirePortalUser } from '@/lib/auth/portal-auth'
+import { invalidateCachePattern } from '@/lib/redis/cache'
+
+async function revalidatePublicProjectContent() {
+  revalidatePath('/')
+  revalidatePath('/portfolio')
+  revalidatePath('/portfolio/[slug]', 'page')
+  await invalidateCachePattern('projects:list:*')
+}
 
 const PROJECT_STATUSES = ['consultation_scheduled', 'design_phase', 'procurement_phase', 'installation_phase', 'completed', 'on_hold'] as const
 
@@ -128,7 +136,7 @@ export async function createProject(data: ProjectInput) {
     normalized.slug = await ensureUniqueSlug(String(normalized.slug || normalized.title))
     const [created] = await db.insert(projects).values(normalized as typeof projects.$inferInsert).returning({ id: projects.id, slug: projects.slug })
     revalidatePath('/admin/projects')
-    revalidatePath('/portfolio')
+    await revalidatePublicProjectContent()
     return { success: true, project: created }
   } catch (error) {
     console.error('Failed to create project:', error)
@@ -154,7 +162,7 @@ export async function updateProject(id: string, data: ProjectInput) {
     if (!updated) return { success: false, error: 'Project not found. Refresh the projects page and try again.' }
 
     revalidatePath('/admin/projects')
-    revalidatePath('/portfolio')
+    await revalidatePublicProjectContent()
     revalidatePath(`/portfolio/${updated.slug}`)
     return { success: true, project: updated }
   } catch (error) {
@@ -170,7 +178,7 @@ export async function deleteProject(id: string) {
     const [deleted] = await db.delete(projects).where(eq(projects.id, id)).returning({ id: projects.id })
     if (!deleted) return { success: false, error: 'Project not found. Refresh the projects page and try again.' }
     revalidatePath('/admin/projects')
-    revalidatePath('/portfolio')
+    await revalidatePublicProjectContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to delete project:', error)

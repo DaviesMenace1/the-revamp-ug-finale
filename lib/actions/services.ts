@@ -6,6 +6,14 @@ import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
 
+function revalidatePublicServiceContent() {
+  revalidatePath('/')
+  revalidatePath('/services')
+  revalidatePath('/services/[category]', 'page')
+  revalidatePath('/services/[category]/[service]', 'page')
+  revalidatePath('/api/services')
+}
+
 async function isAdmin() {
   return (await getCurrentUserWithRole(['admin', 'editor'])).authorized
 }
@@ -40,6 +48,7 @@ export async function createServiceCategory(data: {
       .returning()
 
     revalidatePath('/admin/services')
+    revalidatePublicServiceContent()
     return { success: true, category }
   } catch (error) {
     console.error('Failed to create service category:', error)
@@ -66,6 +75,7 @@ export async function updateServiceCategory(
       .where(eq(serviceCategories.id, id))
 
     revalidatePath('/admin/services')
+    revalidatePublicServiceContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to update service category:', error)
@@ -78,6 +88,7 @@ export async function deleteServiceCategory(id: string) {
   try {
     await db.delete(serviceCategories).where(eq(serviceCategories.id, id))
     revalidatePath('/admin/services')
+    revalidatePublicServiceContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to delete service category:', error)
@@ -124,6 +135,7 @@ export async function createService(data: {
       .returning()
 
     revalidatePath('/admin/services')
+    revalidatePublicServiceContent()
     return { success: true, service }
   } catch (error) {
     console.error('Failed to create service:', error)
@@ -157,6 +169,7 @@ export async function updateService(
       .where(eq(services.id, id))
 
     revalidatePath('/admin/services')
+    revalidatePublicServiceContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to update service:', error)
@@ -169,6 +182,7 @@ export async function deleteService(id: string) {
   try {
     await db.delete(services).where(eq(services.id, id))
     revalidatePath('/admin/services')
+    revalidatePublicServiceContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to delete service:', error)

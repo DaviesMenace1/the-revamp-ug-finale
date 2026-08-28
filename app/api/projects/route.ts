@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = (page - 1) * limit;
 
-    const cacheKey = CACHE_KEYS.projectsList(page, limit);
+    const cacheKey = CACHE_KEYS.projectsList(page, limit, category ?? undefined);
 
     const projects = await withCache(
       cacheKey,
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { success: true, data: projects, page, limit, count: projects.length },
-      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } },
+      { headers: { 'Cache-Control': 'private, no-store' } },
     );
   } catch (error) {
     console.error('[Projects API] Error:', error);

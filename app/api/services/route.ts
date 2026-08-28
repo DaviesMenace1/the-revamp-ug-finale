@@ -25,7 +25,7 @@ export async function GET() {
 
     return NextResponse.json(
       { success: true, data: rows },
-      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } },
+      { headers: { 'Cache-Control': 'private, no-store' } },
     )
   } catch (error) {
     console.error('[Services API] Error:', error)

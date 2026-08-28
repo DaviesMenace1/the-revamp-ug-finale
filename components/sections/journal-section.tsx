@@ -202,7 +202,7 @@ export function JournalSection({
     let animationFrame = 0
     let previousTime = performance.now()
 
-    const speed = 0.035
+    const speed = 0.095
 
     const animate = (time: number) => {
       const delta = time - previousTime

@@ -105,9 +105,9 @@ function EditorialHero() {
   const [reducedMotion, setReducedMotion] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
   const slides = [
-    { title: 'Luxury living redefined.', subtitle: 'Discover architectural excellence.', cta: 'Explore architecture', href: '/services/architecture' },
-    { title: 'Interior design excellence.', subtitle: 'Bespoke solutions for refined spaces.', cta: 'View collections', href: '/collections' },
-    { title: 'Global procurement.', subtitle: 'Access premium materials worldwide.', cta: 'Start sourcing', href: '/source-with-revamp' },
+    { title: 'Luxury Living Redefined', subtitle: 'Discover architectural excellence', cta: 'Explore Architecture', href: '/services/architecture' },
+    { title: 'Interior Design Excellence', subtitle: 'Bespoke solutions for refined spaces', cta: 'View Collections', href: '/collections' },
+    { title: 'Global Procurement', subtitle: 'Access premium materials worldwide', cta: 'Start Sourcing', href: '/source-with-revamp' },
   ]
   const slide = slides[currentSlide]
 
@@ -191,11 +191,11 @@ function ServiceWorld({ services, loading }: { services: Service[]; loading: boo
         <div className="grid gap-8 border-b border-foreground/15 pb-8 md:grid-cols-[0.7fr_1.3fr] md:items-end">
           <div>
             <Eyebrow>01 — Explore our services</Eyebrow>
-            <h2 className="mt-4 max-w-md font-serif text-5xl font-light leading-[0.92] sm:text-7xl">The practice.</h2>
+            <h2 className="mt-4 max-w-md font-serif text-5xl font-light leading-[0.92] sm:text-7xl">Architectural Mastery</h2>
           </div>
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
-            <p className="max-w-lg text-sm leading-7 text-foreground/60">Architecture, interiors and global procurement — connected by one considered point of view.</p>
-            <TextLink href="/services">Explore all services</TextLink>
+            <p className="max-w-lg text-sm leading-7 text-foreground/60">From conceptual design to structural excellence, we craft spaces that inspire</p>
+            <TextLink href="/services">Explore All Services</TextLink>
           </div>
         </div>
 
@@ -241,9 +241,9 @@ function ImageStory({ image }: { image: string }) {
       <div className="relative mx-auto flex min-h-[31rem] max-w-[1440px] items-end px-5 py-12 sm:min-h-[38rem] sm:px-8 sm:py-16 lg:px-12">
         <div className="max-w-xl">
           <Eyebrow light>02 — Interior design excellence</Eyebrow>
-          <h2 className="mt-5 max-w-xl font-serif text-5xl font-light leading-[0.9] sm:text-7xl">Interior design excellence.</h2>
-          <p className="mt-6 max-w-sm text-sm leading-6 text-white/70">Bespoke solutions for refined spaces — shaped by proportion, material, light and the objects that stay.</p>
-          <div className="mt-8"><TextLink href="/portfolio" light>See selected work</TextLink></div>
+          <h2 className="mt-5 max-w-xl font-serif text-5xl font-light leading-[0.9] sm:text-7xl">Interior Design Excellence</h2>
+          <p className="mt-6 max-w-sm text-sm leading-6 text-white/70">Every detail meticulously crafted to create spaces of unparalleled beauty</p>
+          <div className="mt-8"><TextLink href="/portfolio" light>Explore All Services</TextLink></div>
         </div>
       </div>
     </section>
@@ -256,8 +256,8 @@ function ProjectFeature({ projects, loading }: { projects: Project[]; loading: b
     <section className="bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-10 flex flex-col gap-6 border-b border-foreground/15 pb-7 md:flex-row md:items-end md:justify-between">
-          <div><Eyebrow>03 — Selected work</Eyebrow><h2 className="mt-4 font-serif text-5xl font-light leading-none sm:text-7xl">The proof.</h2></div>
-          <TextLink href="/portfolio">View all projects</TextLink>
+          <div><Eyebrow>03 — Selected work</Eyebrow><h2 className="mt-4 font-serif text-5xl font-light leading-none sm:text-7xl">Featured Projects</h2></div>
+          <TextLink href="/portfolio">View All Projects</TextLink>
         </div>
         {loading ? (
           <div className="grid gap-3 md:grid-cols-[1.25fr_0.75fr]" aria-busy="true" aria-label="Loading projects"><div className="h-[26rem] animate-pulse bg-canvas-dark md:h-[38rem]" /><div className="grid gap-3 md:grid-rows-2"><div className="h-64 animate-pulse bg-canvas-dark md:h-auto" /><div className="h-64 animate-pulse bg-canvas-dark md:h-auto" /></div></div>
@@ -316,7 +316,7 @@ function GallerySection({ products, loading }: { products: Product[]; loading: b
   return (
     <section className="bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]">
-        <div className="mb-10 flex flex-col gap-6 border-b border-foreground/15 pb-7 md:flex-row md:items-end md:justify-between"><div><Eyebrow>05 — New arrivals</Eyebrow><h2 className="mt-4 max-w-xl font-serif text-5xl font-light leading-[0.9] sm:text-7xl">Objects with presence.</h2><p className="mt-5 max-w-md text-sm leading-6 text-foreground/60">Discover premium furniture, lighting and accents selected for rooms meant to be lived in.</p></div><TextLink href="/collections">View collection</TextLink></div>
+        <div className="mb-10 flex flex-col gap-6 border-b border-foreground/15 pb-7 md:flex-row md:items-end md:justify-between"><div><Eyebrow>05 — New arrivals</Eyebrow><h2 className="mt-4 max-w-xl font-serif text-5xl font-light leading-[0.9] sm:text-7xl">New Arrivals</h2><p className="mt-5 max-w-md text-sm leading-6 text-foreground/60">Latest luxury furnishings from our curated collection</p></div><TextLink href="/collections">View Collection</TextLink></div>
         {loading ? <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5" aria-busy="true" aria-label="Loading collection">{[1, 2, 3, 4].map((item) => <div key={item} className={`animate-pulse bg-canvas-dark ${item % 2 ? 'aspect-[4/5]' : 'mt-8 aspect-[4/5]'}`} />)}</div> : selected.length ? <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-5 md:grid-cols-4 md:gap-y-0 md:items-start md:gap-5">{selected.map((product, index) => <Link key={product.id} href={`/collections/${encodeURIComponent(product.slug)}`} className={`group block ${index % 2 === 1 ? 'md:mt-12' : ''}`}><div className={`overflow-hidden bg-canvas-dark ${index % 2 === 0 ? 'aspect-[4/5]' : 'aspect-[4/5]'}`}><img src={productImage(product, index)} alt={product.name} className="h-full w-full object-cover mix-blend-multiply dark:mix-blend-normal transition-transform duration-700 group-hover:scale-105" loading="lazy" /></div><div className="mt-3 flex items-start justify-between gap-3"><div><h3 className="font-serif text-xl font-light leading-none">{product.name}</h3><p className="mt-1 line-clamp-2 text-[10px] leading-4 text-foreground/60">{product.description || 'A selected object from The Revamp gallery.'}</p></div><ArrowUpRight size={14} className="mt-1 shrink-0 text-foreground/60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" /></div></Link>)}</div> : null}
       </div>
     </section>
@@ -327,7 +327,7 @@ function JournalSection({ articles, loading }: { articles: Article[]; loading: b
   const selected = articles.slice(0, 3)
   return (
     <section className="border-t border-foreground/10 bg-canvas dark:bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
-      <div className="mx-auto max-w-[1440px]"><div className="mb-10 flex flex-col gap-6 border-b border-foreground/15 pb-7 md:flex-row md:items-end md:justify-between"><div><Eyebrow>06 — Journal</Eyebrow><h2 className="mt-4 font-serif text-5xl font-light leading-none sm:text-7xl">Editorial perspectives.</h2></div><TextLink href="/journal">Read the journal</TextLink></div>{loading ? <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5" aria-busy="true" aria-label="Loading journal">{[1, 2, 3].map((item) => <div key={item} className={`animate-pulse bg-foreground/10 ${item === 1 ? 'col-span-2 aspect-[16/9] md:col-span-1' : 'aspect-[4/5]'}`} />)}</div> : selected.length ? <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">{selected.map((article, index) => <Link key={article.id || article.slug} href={`/journal/${encodeURIComponent(article.slug)}`} className={`group ${index === 0 ? 'col-span-2 md:col-span-1' : index === 1 ? 'mt-8 md:mt-14' : ''}`}><div className={`overflow-hidden bg-canvas-dark ${index === 0 ? 'aspect-[16/10]' : 'aspect-[4/5]'}`}><img src={article.image || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]} alt={article.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" /></div><div className="mt-3"><div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] uppercase tracking-[0.18em] text-foreground/60"><span>{article.category || 'Studio notes'}</span>{article.publishedAt && <span>{shortDate(article.publishedAt)}</span>}</div><h3 className="mt-2 font-serif text-2xl font-light leading-[0.95] sm:text-3xl">{article.title}</h3>{article.excerpt && <p className="mt-2 line-clamp-2 text-xs leading-5 text-foreground/65">{article.excerpt}</p>}</div></Link>)}</div> : <div className="border border-dashed border-foreground/20 px-6 py-12 text-center"><p className="font-serif text-3xl font-light">Notes from the studio, soon.</p><Link href="/journal" className="mt-4 inline-flex text-[10px] uppercase tracking-[0.18em] text-foreground/60 underline underline-offset-4">Visit the journal</Link></div>}</div>
+      <div className="mx-auto max-w-[1440px]"><div className="mb-10 flex flex-col gap-6 border-b border-foreground/15 pb-7 md:flex-row md:items-end md:justify-between"><div><Eyebrow>06 — Journal</Eyebrow><h2 className="mt-4 font-serif text-5xl font-light leading-none sm:text-7xl">From Our Journal</h2></div><TextLink href="/journal">Read the Journal</TextLink></div>{loading ? <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5" aria-busy="true" aria-label="Loading journal">{[1, 2, 3].map((item) => <div key={item} className={`animate-pulse bg-foreground/10 ${item === 1 ? 'col-span-2 aspect-[16/9] md:col-span-1' : 'aspect-[4/5]'}`} />)}</div> : selected.length ? <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">{selected.map((article, index) => <Link key={article.id || article.slug} href={`/journal/${encodeURIComponent(article.slug)}`} className={`group ${index === 0 ? 'col-span-2 md:col-span-1' : index === 1 ? 'mt-8 md:mt-14' : ''}`}><div className={`overflow-hidden bg-canvas-dark ${index === 0 ? 'aspect-[16/10]' : 'aspect-[4/5]'}`}><img src={article.image || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]} alt={article.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" /></div><div className="mt-3"><div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] uppercase tracking-[0.18em] text-foreground/60"><span>{article.category || 'Studio notes'}</span>{article.publishedAt && <span>{shortDate(article.publishedAt)}</span>}</div><h3 className="mt-2 font-serif text-2xl font-light leading-[0.95] sm:text-3xl">{article.title}</h3>{article.excerpt && <p className="mt-2 line-clamp-2 text-xs leading-5 text-foreground/65">{article.excerpt}</p>}</div></Link>)}</div> : <div className="border border-dashed border-foreground/20 px-6 py-12 text-center"><p className="font-serif text-3xl font-light">Notes from the studio, soon.</p><Link href="/journal" className="mt-4 inline-flex text-[10px] uppercase tracking-[0.18em] text-foreground/60 underline underline-offset-4">Visit the journal</Link></div>}</div>
     </section>
   )
 }
@@ -383,7 +383,7 @@ export function EditorialHomepage() {
       <GallerySection products={products} loading={loading} />
       <JournalSection articles={articles} loading={loading} />
       <section className="bg-obsidian px-5 py-20 text-white sm:px-8 sm:py-28 lg:px-12 lg:py-36"><div className="mx-auto grid max-w-[1440px] gap-10 md:grid-cols-[1fr_0.7fr] md:items-end"><div><Eyebrow light>A final thought</Eyebrow><blockquote className="mt-5 max-w-4xl font-serif text-4xl font-light leading-[0.95] sm:text-6xl lg:text-7xl">“The space should feel as though it could only ever have existed this way.”</blockquote></div><div className="md:pb-2"><p className="max-w-sm text-sm leading-7 text-white/60">Our white-glove service ensures every detail exceeds expectations, every project tells a story, and every client experiences true refinement.</p></div></div></section>
-      <section className="bg-primary px-5 py-20 text-primary-foreground sm:px-8 sm:py-24 lg:px-12"><div className="mx-auto flex max-w-[1440px] flex-col gap-8 md:flex-row md:items-end md:justify-between"><div><Eyebrow>Request our catalog</Eyebrow><h2 className="mt-4 max-w-3xl font-serif text-4xl font-light leading-[0.92] sm:text-6xl">A considered collection<br /><span className="italic text-accent">for refined spaces.</span></h2><p className="mt-5 max-w-xl text-sm leading-7 text-primary-foreground/75">Access our curated collection of luxury furnishings, materials and design pieces.</p></div><Link href="/contact" className="inline-flex min-h-12 shrink-0 items-center gap-3 self-start rounded-full bg-accent px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent-foreground transition-transform hover:-translate-y-0.5 hover:bg-accent/85 md:self-end">Request the catalog <ArrowRight size={14} aria-hidden="true" /></Link></div></section>
+      <section className="bg-primary px-5 py-20 text-primary-foreground sm:px-8 sm:py-24 lg:px-12"><div className="mx-auto flex max-w-[1440px] flex-col gap-8 md:flex-row md:items-end md:justify-between"><div><Eyebrow>Request Our Catalog</Eyebrow><h2 className="mt-4 max-w-3xl font-serif text-4xl font-light leading-[0.92] sm:text-6xl">Request Our Catalog</h2><p className="mt-5 max-w-xl text-sm leading-7 text-primary-foreground/75">Access our comprehensive collection of luxury furnishings and design materials. Receive a beautifully curated PDF catalog delivered to your inbox.</p><p className="mt-3 text-xs text-primary-foreground/65">Earn 500 loyalty points when you request a catalog</p></div><Link href="/contact" className="inline-flex min-h-12 shrink-0 items-center gap-3 self-start rounded-full bg-accent px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent-foreground transition-transform hover:-translate-y-0.5 hover:bg-accent/85 md:self-end">Request Catalog Now <ArrowRight size={14} aria-hidden="true" /></Link></div></section>
       <section className="relative overflow-hidden bg-foreground px-5 py-24 text-background sm:px-8 sm:py-32 lg:px-12 lg:py-40"><div className="mx-auto max-w-[1440px]"><Eyebrow light>07 — Begin a project</Eyebrow><div className="mt-6 flex flex-col gap-10 md:flex-row md:items-end md:justify-between"><h2 className="max-w-5xl font-serif text-[clamp(3.5rem,9vw,9rem)] font-light leading-[0.83] tracking-[-0.035em]">Your space deserves<br /><span className="italic text-gold-light">a point of view.</span></h2><div className="flex shrink-0 flex-col items-start gap-3 md:pb-2"><TextLink href="/book-consultation" light>Book a consultation</TextLink><TextLink href="/contact" light>Get in touch</TextLink></div></div></div></section>
     </>
   )

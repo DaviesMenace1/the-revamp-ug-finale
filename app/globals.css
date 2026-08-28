@@ -133,6 +133,9 @@
   --border:                #2A2A2A;
   --input:                 #1A1A1A;
   --ring:                  #C8A66A;
+  --color-canvas:          #0D0D0D;
+  --color-canvas-dark:     #1A1A1A;
+  --color-ivory:           #F5F1EB;
 
   --chart-1: oklch(0.72 0.10 78);
   --chart-2: oklch(0.85 0.07 78);
@@ -171,6 +174,9 @@
     --border:                #2A2A2A;
     --input:                 #1A1A1A;
     --ring:                  #C8A66A;
+    --color-canvas:          #0D0D0D;
+    --color-canvas-dark:     #1A1A1A;
+    --color-ivory:           #F5F1EB;
     --radius:                0.5rem;
     --chart-1: oklch(0.72 0.10 78);
     --chart-2: oklch(0.85 0.07 78);

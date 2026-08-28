@@ -12,8 +12,8 @@ interface NewsletterSignupProps {
 }
 
 export function NewsletterSignup({
-  title = 'Stay Updated',
-  subtitle = 'Get the latest design trends and inspiration delivered to your inbox',
+  title = 'Join Our Community',
+  subtitle = 'Stay updated with the latest in luxury design, architecture trends, and exclusive offers. Plus, earn 300 loyalty points just for signing up!',
   placeholder = 'Enter your email',
   buttonText = 'Subscribe',
   className = '',

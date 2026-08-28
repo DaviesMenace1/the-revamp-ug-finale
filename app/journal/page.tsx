@@ -4,6 +4,7 @@ import { articles } from '@/lib/db/schema'
 import { desc, eq } from 'drizzle-orm'
 import JournalListingClient from './journal-listing-client'
 import { SchemaScript } from '@/components/seo/schema-script'
+import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,13 +20,17 @@ export const metadata: Metadata = {
 }
 
 export default async function JournalPage() {
-  const allArticles = await db
-    .select()
-    .from(articles)
-    .where(eq(articles.status, 'published'))
-    .orderBy(desc(articles.publishedAt))
+  const articlesResult = await safeQuery(
+    db
+      .select()
+      .from(articles)
+      .where(eq(articles.status, 'published'))
+      .orderBy(desc(articles.publishedAt)),
+    'journal articles',
+    [],
+  )
 
-  const formatted = allArticles.map((a) => {
+  const formatted = articlesResult.data.map((a) => {
     const wordCount = (a.content || '').split(/\s+/).filter(Boolean).length
     const readTime = `${Math.max(1, Math.round(wordCount / 200))} min read`
 
@@ -36,7 +41,7 @@ export default async function JournalPage() {
       excerpt: a.excerpt,
       category: a.category,
       author: a.author,
-      date: (a.publishedAt || a.createdAt).toISOString(),
+      date: new Date(a.publishedAt || a.createdAt).toISOString(),
       readTime,
       imageUrl: a.featuredImage,
     }

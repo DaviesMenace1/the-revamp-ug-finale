@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 import { Menu, ChevronDown, ShoppingBag, Search, Heart, User } from 'lucide-react'
 import NotificationBell from '@/components/notifications/notification-bell'
 import { cn } from '@/lib/utils'
@@ -52,6 +53,7 @@ const allNavLinks = [...primaryNavLinks, ...secondaryNavLinks]
 export function SiteHeader() {
   const CartContext = useCart()
   const cartCount = CartContext ? CartContext.cartCount : 0
+  const { user } = useUser()
   const [scrolled, setScrolled] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
@@ -319,9 +321,17 @@ export function SiteHeader() {
                   )}
                   aria-label="Account"
 
-              >
-                <User size={18} className="sm:w-[20px] sm:h-[20px]" />
-              </Link>
+                >
+                  {user?.imageUrl ? (
+                    <img
+                      src={user.imageUrl}
+                      alt=""
+                      className="size-5 rounded-full object-cover ring-1 ring-current/20"
+                    />
+                  ) : (
+                    <User size={18} className="sm:w-[20px] sm:h-[20px]" />
+                  )}
+                </Link>
 
               {/* Shopping Cart Icon */}
               <Link

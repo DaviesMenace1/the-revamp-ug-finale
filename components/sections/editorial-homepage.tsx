@@ -134,26 +134,45 @@ function EditorialHero() {
           preload="metadata"
           aria-label="Atmospheric architecture footage"
         />
-        <div className="absolute inset-0 bg-black/35" aria-hidden="true" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-black/20" aria-hidden="true" />
-        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1440px] px-5 pb-10 sm:px-8 sm:pb-16 lg:px-12 lg:pb-20">
-          <div className="max-w-3xl">
-            <Eyebrow light>The Revamp House · Uganda / East Africa</Eyebrow>
-            <h1 className="mt-5 max-w-3xl font-serif text-[clamp(3.25rem,12vw,8.5rem)] font-light leading-[0.86] tracking-[-0.035em]">
+        <div className="absolute inset-0 bg-black/42" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-black/45" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-transparent to-black/25" aria-hidden="true" />
+
+        <div className="absolute inset-x-0 top-0 mx-auto flex max-w-[1440px] items-center justify-between px-5 pt-28 sm:px-8 sm:pt-32 lg:px-12">
+          <p className="text-[9px] uppercase tracking-[0.28em] text-white/65">The Revamp House · Uganda / East Africa</p>
+          <p className="hidden text-[9px] uppercase tracking-[0.28em] text-white/55 sm:block">01 / 01</p>
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 mx-auto flex max-w-[1440px] flex-col gap-8 px-5 pb-9 sm:px-8 sm:pb-14 lg:flex-row lg:items-end lg:justify-between lg:px-12 lg:pb-16">
+          <div className="max-w-4xl">
+            <p className="text-[10px] uppercase tracking-[0.26em] text-white/60">Spaces that feel like you.</p>
+            <h1 className="mt-4 max-w-4xl font-serif text-[clamp(3.3rem,11vw,8.5rem)] font-light leading-[0.82] tracking-[-0.04em]">
               The architecture
               <span className="block italic text-gold-light">of refined living.</span>
             </h1>
-            <div className="mt-8 flex flex-col gap-7 border-t border-white/20 pt-6 sm:flex-row sm:items-end sm:justify-between">
-              <p className="max-w-md text-sm leading-6 text-white/72 sm:text-base">Bespoke interiors, architecture and objects composed around the way you live.</p>
-              <div className="flex shrink-0 flex-wrap gap-x-6 gap-y-3">
-                <TextLink href="/book-consultation" light>Begin a project</TextLink>
-                <TextLink href="/portfolio" light>View our work</TextLink>
-              </div>
+          </div>
+
+          <div className="flex shrink-0 flex-col items-start gap-5 lg:items-end lg:pb-1">
+            <p className="max-w-xs text-sm leading-6 text-white/72 lg:text-right">Interiors, architecture and objects composed around the way you live.</p>
+            <div className="flex items-center gap-3">
+              <Link href="/book-consultation" className="inline-flex min-h-12 items-center gap-3 rounded-full bg-white px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-black transition-transform hover:-translate-y-0.5 hover:bg-gold-light">
+                Begin a project
+                <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+              <Link href="/portfolio" aria-label="View our work" className="flex size-12 items-center justify-center rounded-full border border-white/40 text-white transition-colors hover:border-gold hover:text-gold">
+                <ArrowUpRight size={17} aria-hidden="true" />
+              </Link>
             </div>
           </div>
         </div>
-        <div className="absolute bottom-5 right-5 hidden items-center gap-3 text-[9px] uppercase tracking-[0.24em] text-white/50 sm:flex lg:right-12">
-          <span className="h-px w-8 bg-white/40" /> Scroll to enter
+
+        <div className="absolute bottom-5 left-5 hidden items-center gap-3 text-[9px] uppercase tracking-[0.24em] text-white/55 sm:flex lg:left-12">
+          <span className="h-px w-8 bg-white/45" /> Scroll to enter
+        </div>
+
+        <div className="absolute right-5 top-[48%] hidden w-48 overflow-hidden rounded-2xl border border-white/20 bg-black/35 p-2 backdrop-blur-md sm:block lg:right-12 lg:top-[50%] lg:w-56">
+          <img src={HERO_POSTER} alt="Revamp interior detail" className="aspect-[4/3] w-full rounded-xl object-cover opacity-85" loading="eager" />
+          <div className="flex items-center justify-between px-1.5 pb-1 pt-2"><span className="text-[9px] uppercase tracking-[0.16em] text-white/65">Interior / Architecture</span><ArrowUpRight size={13} className="text-white/75" aria-hidden="true" /></div>
         </div>
       </div>
     </section>
@@ -187,7 +206,7 @@ function PhilosophySection() {
 function ServiceWorld({ services, loading }: { services: Service[]; loading: boolean }) {
   const visible = services.slice(0, 6)
   return (
-    <section className="bg-canvas px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
+    <section className="bg-canvas dark:bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]">
         <div className="grid gap-8 border-b border-foreground/15 pb-8 md:grid-cols-[0.7fr_1.3fr] md:items-end">
           <div>
@@ -301,11 +320,11 @@ function ProcessSection() {
     ['05', 'Deliver', 'Logistics, installation, styling and final detailing.'],
   ]
   return (
-    <section className="border-y border-foreground/10 bg-canvas px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
+    <section className="border-y border-foreground/10 bg-canvas dark:bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
       <div className="mx-auto grid max-w-[1440px] gap-12 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20">
-        <div><Eyebrow>04 — The Revamp approach</Eyebrow><h2 className="mt-5 max-w-md font-serif text-5xl font-light leading-[0.9] sm:text-7xl">From vision<br /><span className="italic text-foreground/45">to reality.</span></h2><p className="mt-7 max-w-sm text-sm leading-7 text-foreground/60">We are not simply a designer who hands over drawings. We stay with the work until the final detail is in place.</p></div>
+        <div><Eyebrow>04 — The Revamp approach</Eyebrow><h2 className="mt-5 max-w-md font-serif text-5xl font-light leading-[0.9] sm:text-7xl">From vision<br /><span className="italic text-foreground/60">to reality.</span></h2><p className="mt-7 max-w-sm text-sm leading-7 text-foreground/60">We are not simply a designer who hands over drawings. We stay with the work until the final detail is in place.</p></div>
         <div className="border-t border-foreground/15">
-          {steps.map(([number, title, description]) => <div key={number} className="grid grid-cols-[2.5rem_0.75fr_1fr] gap-3 border-b border-foreground/15 py-5 sm:grid-cols-[3rem_0.65fr_1fr] sm:gap-6"><span className="text-[10px] tracking-[0.18em] text-foreground/45">{number}</span><h3 className="font-serif text-2xl font-light leading-none sm:text-3xl">{title}</h3><p className="text-xs leading-5 text-foreground/55 sm:text-sm sm:leading-6">{description}</p></div>)}
+          {steps.map(([number, title, description]) => <div key={number} className="grid grid-cols-[2.5rem_0.75fr_1fr] gap-3 border-b border-foreground/15 py-5 sm:grid-cols-[3rem_0.65fr_1fr] sm:gap-6"><span className="text-[10px] tracking-[0.18em] text-foreground/60">{number}</span><h3 className="font-serif text-2xl font-light leading-none sm:text-3xl">{title}</h3><p className="text-xs leading-5 text-foreground/65 sm:text-sm sm:leading-6">{description}</p></div>)}
         </div>
       </div>
     </section>
@@ -327,7 +346,7 @@ function GallerySection({ products, loading }: { products: Product[]; loading: b
 function JournalSection({ articles, loading }: { articles: Article[]; loading: boolean }) {
   const selected = articles.slice(0, 3)
   return (
-    <section className="border-t border-foreground/10 bg-canvas px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
+    <section className="border-t border-foreground/10 bg-canvas dark:bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
       <div className="mx-auto max-w-[1440px]"><div className="mb-10 flex flex-col gap-6 border-b border-foreground/15 pb-7 md:flex-row md:items-end md:justify-between"><div><Eyebrow>06 — Journal</Eyebrow><h2 className="mt-4 font-serif text-5xl font-light leading-none sm:text-7xl">Editorial perspectives.</h2></div><TextLink href="/journal">Read the journal</TextLink></div>{loading ? <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5" aria-busy="true" aria-label="Loading journal">{[1, 2, 3].map((item) => <div key={item} className={`animate-pulse bg-foreground/10 ${item === 1 ? 'col-span-2 aspect-[16/9] md:col-span-1' : 'aspect-[4/5]'}`} />)}</div> : selected.length ? <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">{selected.map((article, index) => <Link key={article.id || article.slug} href={`/journal/${encodeURIComponent(article.slug)}`} className={`group ${index === 0 ? 'col-span-2 md:col-span-1' : index === 1 ? 'mt-8 md:mt-14' : ''}`}><div className={`overflow-hidden bg-canvas-dark ${index === 0 ? 'aspect-[16/10]' : 'aspect-[4/5]'}`}><img src={article.image || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]} alt={article.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" /></div><div className="mt-3"><div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] uppercase tracking-[0.18em] text-foreground/45"><span>{article.category || 'Studio notes'}</span>{article.publishedAt && <span>{shortDate(article.publishedAt)}</span>}</div><h3 className="mt-2 font-serif text-2xl font-light leading-[0.95] sm:text-3xl">{article.title}</h3>{article.excerpt && <p className="mt-2 line-clamp-2 text-xs leading-5 text-foreground/55">{article.excerpt}</p>}</div></Link>)}</div> : <div className="border border-dashed border-foreground/20 px-6 py-12 text-center"><p className="font-serif text-3xl font-light">Notes from the studio, soon.</p><Link href="/journal" className="mt-4 inline-flex text-[10px] uppercase tracking-[0.18em] text-foreground/60 underline underline-offset-4">Visit the journal</Link></div>}</div>
     </section>
   )

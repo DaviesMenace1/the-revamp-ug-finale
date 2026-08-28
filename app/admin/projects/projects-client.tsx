@@ -9,6 +9,7 @@ import Image from 'next/image'
 import { CldUploadWidget } from 'next-cloudinary'
 import { createProject, updateProject, deleteProject } from '@/lib/actions/projects'
 import { StructuredListEditor } from '@/components/admin/structured-list-editor'
+import { SingleImageUpload } from '@/components/admin/single-image-upload'
 
 function ImageUpload({
   value = [],
@@ -283,7 +284,7 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
 
             <div className="md:col-span-2 mt-2"><h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2">Media & Galleries</h3></div>
 
-            <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-1">Main Cover Thumbnail URL</label><Input value={formData.thumbnailImage} onChange={(e) => setFormData({ ...formData, thumbnailImage: e.target.value })} placeholder="https://res.cloudinary.com/..." className="rounded-none" /></div>
+            <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-2">Main Cover Thumbnail</label><SingleImageUpload value={formData.thumbnailImage} onChange={(thumbnailImage) => setFormData({ ...formData, thumbnailImage })} label="Upload cover thumbnail" /></div>
 
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-muted-foreground mb-2">Project Key Showcase Images</label>

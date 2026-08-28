@@ -1,5 +1,6 @@
 'use client'
 import { Plus, Trash2 } from 'lucide-react'
+import { SingleImageUpload } from '@/components/admin/single-image-upload'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -38,7 +39,7 @@ export function StructuredListEditor({ kind, value, onChange }: { kind: EditorKi
       {items.map((item, index) => (
         <div key={index} className="space-y-2 border border-border/60 bg-background p-3">
           <div className="flex items-center justify-between"><span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">{copy.title} {index + 1}</span><button type="button" onClick={() => remove(index)} className="text-muted-foreground hover:text-destructive" aria-label={`Delete ${copy.title} ${index + 1}`}><Trash2 className="size-4" /></button></div>
-          {kind === 'story' && <><Input placeholder="Eyebrow, e.g. Our approach" value={item.eyebrow || ''} onChange={(e) => update(index, 'eyebrow', e.target.value)} /><Input placeholder="Section title" value={item.title || ''} onChange={(e) => update(index, 'title', e.target.value)} /><Textarea placeholder="Section text" rows={4} value={item.body || ''} onChange={(e) => update(index, 'body', e.target.value)} /><Input placeholder="Supporting image URL (optional)" value={item.image || ''} onChange={(e) => update(index, 'image', e.target.value)} /></>}
+          {kind === 'story' && <><Input placeholder="Eyebrow, e.g. Our approach" value={item.eyebrow || ''} onChange={(e) => update(index, 'eyebrow', e.target.value)} /><Input placeholder="Section title" value={item.title || ''} onChange={(e) => update(index, 'title', e.target.value)} /><Textarea placeholder="Section text" rows={4} value={item.body || ''} onChange={(e) => update(index, 'body', e.target.value)} /><SingleImageUpload value={item.image || ''} onChange={(image) => update(index, 'image', image)} label="Upload supporting image (optional)" /></>}
           {kind === 'process' && <><Input placeholder="Step title" value={item.title || ''} onChange={(e) => update(index, 'title', e.target.value)} /><Textarea placeholder="What happens in this step" rows={3} value={item.description || ''} onChange={(e) => update(index, 'description', e.target.value)} /></>}
           {kind === 'faq' && <><Input placeholder="Question" value={item.question || ''} onChange={(e) => update(index, 'question', e.target.value)} /><Textarea placeholder="Answer" rows={3} value={item.answer || ''} onChange={(e) => update(index, 'answer', e.target.value)} /></>}
           {kind === 'highlight' && <div className="grid gap-2 sm:grid-cols-2"><Input placeholder="Label, e.g. Location" value={item.label || ''} onChange={(e) => update(index, 'label', e.target.value)} /><Input placeholder="Value, e.g. Dubai, UAE" value={item.value || ''} onChange={(e) => update(index, 'value', e.target.value)} /></div>}

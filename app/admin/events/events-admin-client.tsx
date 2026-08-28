@@ -1,5 +1,6 @@
 'use client'
 
+import { SingleImageUpload } from '@/components/admin/single-image-upload'
 import { useState, useTransition } from 'react'
 import { CalendarDays, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { createEvent, deleteEvent, updateEvent } from '@/lib/actions/events'
@@ -136,7 +137,7 @@ export default function EventsAdminClient({ events: initialEvents }: { events: E
             <label className="grid gap-2 text-sm font-medium text-foreground"><span>Description</span><textarea value={form.description} onChange={(event) => setField('description', event.target.value)} rows={4} maxLength={4000} placeholder="What will members or trade partners experience?" className="w-full resize-y border border-input bg-background px-3 py-3 text-sm font-normal leading-6 outline-none focus:ring-2 focus:ring-primary/30" /></label>
             <div className="grid gap-4 sm:grid-cols-2"><Field label="Date and time" type="datetime-local" value={form.eventDate} onChange={(value) => setField('eventDate', value)} /><SelectField label="Format" value={form.meetingMode} onChange={(value) => setField('meetingMode', value)} options={[['virtual', 'Virtual · Google Meet created automatically'], ['in_person', 'In person · venue required']]} /></div>
             {form.meetingMode === 'in_person' && <Field label="Venue location" value={form.location} onChange={(value) => setField('location', value)} placeholder="Kyanja studio" />}
-            <div className="grid gap-4 sm:grid-cols-2"><Field label="Capacity (optional)" type="number" value={form.capacity} onChange={(value) => setField('capacity', value)} placeholder="50" /><Field label="Image URL (optional)" value={form.image} onChange={(value) => setField('image', value)} placeholder="https://…" /></div>
+            <div className="grid gap-4 sm:grid-cols-2"><Field label="Capacity (optional)" type="number" value={form.capacity} onChange={(value) => setField('capacity', value)} placeholder="50" /><div><label className="mb-2 block text-sm font-medium text-foreground">Image (optional)</label><SingleImageUpload value={form.image} onChange={(image) => setField('image', image)} label="Upload event image" /></div></div>
             <div className="grid gap-4 sm:grid-cols-2"><SelectField label="Audience" value={form.membershipTier} onChange={(value) => setField('membershipTier', value)} options={[['all', 'Membership + trade'], ['membership', 'Membership only'], ['trade', 'Trade only']]} /><SelectField label="Status" value={form.status} onChange={(value) => setField('status', value)} options={[['draft', 'Draft'], ['published', 'Published'], ['cancelled', 'Cancelled']]} /></div>
             <Button type="button" onClick={save} disabled={isPending} className="min-h-11 w-full rounded-none sm:w-fit">{isPending ? 'Saving…' : editingId ? 'Save changes' : 'Create event'}</Button>
           </div>

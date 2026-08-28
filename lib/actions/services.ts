@@ -44,6 +44,7 @@ export async function createServiceCategory(data: {
         description: data.description || null,
         icon: data.icon || null,
         image: data.image || null,
+        status: 'published',
       })
       .returning()
 
@@ -131,6 +132,7 @@ export async function createService(data: {
         processSteps: data.processSteps || [],
         faqs: data.faqs || [],
         highlights: data.highlights || [],
+        status: 'published',
       })
       .returning()
 

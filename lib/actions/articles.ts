@@ -35,6 +35,7 @@ export async function createArticle(data: {
 }) {
   if (!(await getCurrentUserWithRole(['admin', 'editor'])).authorized) return { success: false, error: 'You are not authorized to manage articles.' }
   try {
+    const status = data.status === 'draft' ? 'draft' : 'published'
     const [article] = await db
       .insert(articles)
       .values({
@@ -47,8 +48,8 @@ export async function createArticle(data: {
         featuredImage: data.featuredImage || null,
         gallery: data.gallery || [],
         storySections: data.storySections || [],
-        status: data.status || 'draft',
-        publishedAt: data.status === 'published' ? new Date() : null,
+        status,
+        publishedAt: status === 'published' ? new Date() : null,
       })
       .returning()
 
@@ -78,8 +79,9 @@ export async function updateArticle(
   if (!(await getCurrentUserWithRole(['admin', 'editor'])).authorized) return { success: false, error: 'You are not authorized to manage articles.' }
   try {
     const patch: Record<string, unknown> = { ...data, updatedAt: new Date() }
+    if (data.status !== undefined) patch.status = data.status === 'draft' ? 'draft' : 'published'
 
-    if (data.status === 'published') {
+    if (patch.status === 'published') {
       const existing = await db.query.articles.findFirst({
         where: eq(articles.id, id),
         columns: { publishedAt: true },

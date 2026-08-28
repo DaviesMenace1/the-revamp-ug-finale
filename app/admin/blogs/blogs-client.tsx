@@ -36,7 +36,7 @@ const emptyForm: ArticleForm = {
   featuredImage: '',
   gallery: [],
   storySections: [],
-  status: 'draft',
+  status: 'published',
 }
 
 export default function BlogsClient({ initialArticles = [], loadError = null }: { initialArticles: Article[]; loadError?: string | null }) {

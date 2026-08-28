@@ -15,6 +15,8 @@ type ProjectInput = Partial<typeof projects.$inferInsert> & {
   images?: unknown
   gallery?: unknown
   relatedProjects?: unknown
+  storySections?: unknown
+  highlights?: unknown
   budget?: unknown
   progress?: unknown
   dueDate?: unknown
@@ -88,6 +90,8 @@ function normalizedProjectData(data: ProjectInput, includeDefaults = false) {
   if (data.gallery !== undefined) next.gallery = stringArray(data.gallery)
   if (data.tags !== undefined) next.tags = stringArray(data.tags)
   if (data.relatedProjects !== undefined) next.relatedProjects = stringArray(data.relatedProjects)
+  if (data.storySections !== undefined && Array.isArray(data.storySections)) next.storySections = data.storySections.slice(0, 30)
+  if (data.highlights !== undefined && Array.isArray(data.highlights)) next.highlights = data.highlights.slice(0, 20)
   if (data.featured !== undefined && typeof data.featured === 'boolean') next.featured = data.featured
   if (data.publishStatus !== undefined) next.publishStatus = textValue(data.publishStatus, 50)
   if (data.status !== undefined && typeof data.status === 'string' && PROJECT_STATUSES.includes(data.status as (typeof PROJECT_STATUSES)[number])) next.status = data.status

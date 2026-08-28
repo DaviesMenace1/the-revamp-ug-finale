@@ -85,6 +85,8 @@ const defaultForm: {
   tags: string
   images: string[]
   gallery: string[]
+  storySections: unknown[]
+  highlights: unknown[]
   publishStatus: string
   year: string
   progress: string
@@ -92,7 +94,7 @@ const defaultForm: {
 } = {
   title: '', slug: '', clientName: '', client: '', location: '', category: '', subCategory: '', designer: '', budget: '',
   description: '', longDescription: '', shortDescription: '', thumbnailImage: '', tags: '',
-  images: [], gallery: [], publishStatus: 'published', year: '', progress: '0', dueDate: '',
+  images: [], gallery: [], storySections: [], highlights: [], publishStatus: 'published', year: '', progress: '0', dueDate: '',
 }
 
 export default function ProjectsClient({ initialProjects = [], loadError = null }: { initialProjects: any[]; loadError?: string | null }) {
@@ -127,7 +129,7 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
       thumbnailImage: project.thumbnailImage || '',
       tags: Array.isArray(project.tags) ? project.tags.join(', ') : '',
       images: project.images || [],
-      gallery: project.gallery || [],
+      gallery: project.gallery || [], storySections: project.storySections || [], highlights: project.highlights || [],
       publishStatus: project.publishStatus || 'published',
       year: project.year || '',
       progress: project.progress != null ? String(project.progress) : '0',
@@ -162,6 +164,7 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
       tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
       progress: formData.progress ? parseInt(formData.progress, 10) : 0,
       dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
+      storySections: formData.storySections, highlights: formData.highlights,
     }
 
     setActionError(null)
@@ -267,6 +270,11 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-muted-foreground mb-1">Full Project Story</label>
               <textarea value={formData.longDescription} onChange={(e) => setFormData({ ...formData, longDescription: e.target.value })} rows={5} className="w-full px-3 py-2 border border-input rounded-none bg-background text-sm resize-none" placeholder="Explain spatial layout, material selections, and lighting strategy..." />
+            </div>
+
+            <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
+              <div><label className="block text-xs font-medium text-muted-foreground mb-1">Story Sections (JSON)</label><textarea value={JSON.stringify(formData.storySections, null, 2)} onChange={(e) => { try { setFormData({ ...formData, storySections: JSON.parse(e.target.value) }) } catch {} }} rows={7} className="w-full px-3 py-2 border border-input rounded-none bg-background text-sm" placeholder='[{"eyebrow":"The story","title":"...","body":"...","image":"https://..."}]' /></div>
+              <div><label className="block text-xs font-medium text-muted-foreground mb-1">Project Highlights (JSON)</label><textarea value={JSON.stringify(formData.highlights, null, 2)} onChange={(e) => { try { setFormData({ ...formData, highlights: JSON.parse(e.target.value) }) } catch {} }} rows={7} className="w-full px-3 py-2 border border-input rounded-none bg-background text-sm" placeholder='[{"label":"Scope","value":"Full interior renovation"}]' /></div>
             </div>
 
             <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-1">Tags (Comma-separated)</label><Input value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} placeholder="minimalist, hardwood, accent-lighting" className="rounded-none" /></div>

@@ -898,6 +898,8 @@ export const projects = pgTable(
     dueDate: timestamp("due_date"),
     images: jsonb("images").default([]),
     gallery: jsonb("gallery").default([]),
+    storySections: jsonb("story_sections").$type<any[]>().default([]),
+    highlights: jsonb("highlights").$type<any[]>().default([]),
     thumbnailImage: text("thumbnail_image"),
     designer: varchar("designer", { length: 255 }),
     status: projectStatusEnum("status").default(
@@ -945,6 +947,8 @@ export const articles = pgTable(
     category: varchar("category", { length: 100 }),
     tags: jsonb("tags").default([]),
     featuredImage: text("featured_image"),
+    gallery: jsonb("gallery").$type<string[]>().default([]),
+    storySections: jsonb("story_sections").$type<any[]>().default([]),
     rating: decimal("rating", {
       precision: 3,
       scale: 2,
@@ -1519,6 +1523,10 @@ export const services = pgTable(
     icon: varchar("icon", { length: 100 }),
     image: text("image"),
     gallery: jsonb("gallery").default([]),
+    storySections: jsonb("story_sections").$type<any[]>().default([]),
+    processSteps: jsonb("process_steps").$type<any[]>().default([]),
+    faqs: jsonb("faqs").$type<any[]>().default([]),
+    highlights: jsonb("highlights").$type<any[]>().default([]),
     order: integer("order").default(0),
     featured: boolean("featured").default(false),
     seoTitle: varchar("seo_title", { length: 255 }),

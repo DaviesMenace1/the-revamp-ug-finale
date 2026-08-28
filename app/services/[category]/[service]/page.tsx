@@ -71,6 +71,9 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const serviceUrl = `${SITE_URL}/services/${encodeURIComponent(category.slug)}/${encodeURIComponent(service.slug)}`
   const serviceImage = service.ogImage || service.image || undefined
   const serviceContent = getServicePageContent(service.name, category.name)
+  const storySections = Array.isArray(service.storySections) ? service.storySections as Array<{ eyebrow?: string; title: string; body: string; image?: string; imagePosition?: 'left' | 'right' }> : []
+  const processSteps = Array.isArray(service.processSteps) && service.processSteps.length ? service.processSteps as Array<{ title: string; description: string }> : serviceContent.process.map((item) => ({ title: item.title, description: item.description }))
+  const faqs = Array.isArray(service.faqs) && service.faqs.length ? service.faqs as Array<{ question: string; answer: string }> : serviceContent.faqs
   const inquiryHref = `/contact?interest=quote_request&service=${encodeURIComponent(service.name)}`
 
   return (
@@ -130,13 +133,16 @@ export default async function ServiceDetailPage({ params }: PageProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
               <div className="md:col-span-2 space-y-8">
                 <div>
-                  <h2 className="font-serif text-3xl font-light text-foreground mb-4">
-                    Overview
-                  </h2>
-                  <p className="text-foreground/70 leading-relaxed">
-                    {service.longDescription || service.description}
-                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-primary">The brief</p>
+                  <h2 className="mt-3 font-serif text-4xl font-light leading-tight text-foreground">{service.name}, considered from the inside out.</h2>
+                  <p className="mt-5 text-foreground/70 leading-8">{service.longDescription || service.description}</p>
                 </div>
+                {storySections.map((section, index) => (
+                  <article key={`${section.title}-${index}`} className={`grid gap-8 items-center ${section.image ? 'md:grid-cols-2' : ''}`}>
+                    <div className={section.imagePosition === 'right' ? 'md:order-first' : ''}><p className="text-[10px] uppercase tracking-[0.25em] text-primary">{section.eyebrow || 'Studio perspective'}</p><h2 className="mt-3 font-serif text-3xl font-light">{section.title}</h2><p className="mt-4 whitespace-pre-line leading-8 text-muted-foreground">{section.body}</p></div>
+                    {section.image && <img src={section.image} alt={section.title} className="aspect-[4/3] w-full object-cover" />}
+                  </article>
+                ))}
 
                 {Array.isArray(service.gallery) && service.gallery.length > 0 && (
                   <div>
@@ -175,9 +181,9 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                     Our Process
                   </h2>
                   <div className="space-y-4">
-                    {serviceContent.process.map((item) => (
-                      <div key={item.step} className="flex gap-4 pb-4 border-b border-border/20 last:border-0">
-                        <div className="text-2xl font-light text-muted-foreground">{item.step}</div>
+                    {processSteps.map((item, index) => (
+                      <div key={`${item.title}-${index}`} className="flex gap-4 pb-4 border-b border-border/20 last:border-0">
+                        <div className="text-2xl font-light text-muted-foreground">{String(index + 1).padStart(2, '0')}</div>
                         <div>
                           <h3 className="font-medium text-foreground">{item.title}</h3>
                           <p className="text-sm text-foreground/60 mt-1">{item.description}</p>
@@ -224,7 +230,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                 <div>
                   <h2 className="font-serif text-3xl font-light text-foreground mb-4">Frequently asked</h2>
                   <div className="divide-y divide-border border-y border-border/60">
-                    {serviceContent.faqs.map((faq) => (
+                    {faqs.map((faq) => (
                       <details key={faq.question} className="group py-4">
                         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-foreground">
                           {faq.question}

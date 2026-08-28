@@ -98,6 +98,10 @@ export async function createService(data: {
   icon?: string
   image?: string
   gallery?: string[]
+  storySections?: unknown[]
+  processSteps?: unknown[]
+  faqs?: unknown[]
+  highlights?: unknown[]
 }) {
   if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
@@ -112,6 +116,10 @@ export async function createService(data: {
         icon: data.icon || null,
         image: data.image || null,
         gallery: data.gallery || [],
+        storySections: data.storySections || [],
+        processSteps: data.processSteps || [],
+        faqs: data.faqs || [],
+        highlights: data.highlights || [],
       })
       .returning()
 
@@ -133,6 +141,10 @@ export async function updateService(
     icon: string
     image: string
     gallery: string[]
+    storySections: unknown[]
+    processSteps: unknown[]
+    faqs: unknown[]
+    highlights: unknown[]
     status: string
     featured: boolean
   }>,

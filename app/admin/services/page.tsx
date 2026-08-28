@@ -18,6 +18,10 @@ export default async function AdminServicesPage() {
   const formattedServices = allServices.map((s) => ({
     ...s,
     gallery: Array.isArray(s.gallery) ? (s.gallery as string[]) : [],
+    storySections: Array.isArray(s.storySections) ? s.storySections : [],
+    processSteps: Array.isArray(s.processSteps) ? s.processSteps : [],
+    faqs: Array.isArray(s.faqs) ? s.faqs : [],
+    highlights: Array.isArray(s.highlights) ? s.highlights : [],
     createdAt: s.createdAt.toISOString(),
     updatedAt: s.updatedAt.toISOString(),
   }))

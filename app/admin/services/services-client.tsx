@@ -34,6 +34,10 @@ type Service = {
   longDescription: string | null
   image: string | null
   gallery: string[]
+  storySections: unknown[]
+  processSteps: unknown[]
+  faqs: unknown[]
+  highlights: unknown[] | null
   status: string | null
   featured: boolean | null
 }
@@ -45,6 +49,7 @@ const emptyServiceForm = {
   longDescription: '',
   image: '',
   gallery: [] as string[],
+  storySections: [] as unknown[], processSteps: [] as unknown[], faqs: [] as unknown[], highlights: [] as unknown[],
 }
 
 export default function ServicesClient({
@@ -109,7 +114,7 @@ export default function ServicesClient({
       description: service.description ?? '',
       longDescription: service.longDescription ?? '',
       image: service.image ?? '',
-      gallery: service.gallery ?? [],
+      gallery: service.gallery ?? [], storySections: service.storySections ?? [], processSteps: service.processSteps ?? [], faqs: service.faqs ?? [], highlights: service.highlights ?? [],
     })
     setEditingServiceId(service.id)
     setShowServiceForm(true)
@@ -291,6 +296,12 @@ export default function ServicesClient({
                 value={serviceForm.longDescription}
                 onChange={(e) => setServiceForm((f) => ({ ...f, longDescription: e.target.value }))}
               />
+              <div className="grid gap-3 md:grid-cols-2">
+                <Textarea placeholder='Story sections JSON: [{"eyebrow":"Approach","title":"...","body":"...","image":"https://..."}]' rows={6} value={JSON.stringify(serviceForm.storySections, null, 2)} onChange={(e) => { try { setServiceForm((f) => ({ ...f, storySections: JSON.parse(e.target.value) })) } catch {} }} />
+                <Textarea placeholder='Process steps JSON: [{"title":"Initial meeting","description":"..."}]' rows={6} value={JSON.stringify(serviceForm.processSteps, null, 2)} onChange={(e) => { try { setServiceForm((f) => ({ ...f, processSteps: JSON.parse(e.target.value) })) } catch {} }} />
+                <Textarea placeholder='FAQs JSON: [{"question":"...","answer":"..."}]' rows={5} value={JSON.stringify(serviceForm.faqs, null, 2)} onChange={(e) => { try { setServiceForm((f) => ({ ...f, faqs: JSON.parse(e.target.value) })) } catch {} }} />
+                <Textarea placeholder='Highlights JSON: [{"label":"Location","value":"Kampala"}]' rows={5} value={JSON.stringify(serviceForm.highlights, null, 2)} onChange={(e) => { try { setServiceForm((f) => ({ ...f, highlights: JSON.parse(e.target.value) })) } catch {} }} />
+              </div>
               <div>
                 <label className="text-sm font-medium text-foreground">Gallery</label>
                 <div className="mt-2">
@@ -299,7 +310,7 @@ export default function ServicesClient({
                     onChange={(gallery) =>
                       setServiceForm((f) => ({ ...f, gallery, image: f.image || gallery[0] || '' }))
                     }
-                    maxImages={8}
+                    maxImages={40}
                   />
                 </div>
               </div>

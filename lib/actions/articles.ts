@@ -21,6 +21,8 @@ export async function createArticle(data: {
   author?: string
   category?: string
   featuredImage?: string
+  gallery?: string[]
+  storySections?: unknown[]
   status?: string
 }) {
   if (!(await getCurrentUserWithRole(['admin', 'editor'])).authorized) return { success: false, error: 'You are not authorized to manage articles.' }
@@ -35,6 +37,8 @@ export async function createArticle(data: {
         author: data.author || null,
         category: data.category || null,
         featuredImage: data.featuredImage || null,
+        gallery: data.gallery || [],
+        storySections: data.storySections || [],
         status: data.status || 'draft',
         publishedAt: data.status === 'published' ? new Date() : null,
       })
@@ -57,6 +61,8 @@ export async function updateArticle(
     author: string
     category: string
     featuredImage: string
+    gallery: string[]
+    storySections: unknown[]
     status: string
   }>,
 ) {

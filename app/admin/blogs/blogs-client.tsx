@@ -18,17 +18,23 @@ type Article = {
   author: string | null
   category: string | null
   featuredImage: string | null
+  gallery: string[] | null
+  storySections: unknown[] | null
   status: string | null
   createdAt: string
 }
 
-const emptyForm = {
+type ArticleForm = { title: string; excerpt: string; content: string; author: string; category: string; featuredImage: string; gallery: string[]; storySections: unknown[]; status: string }
+
+const emptyForm: ArticleForm = {
   title: '',
   excerpt: '',
   content: '',
   author: '',
   category: '',
   featuredImage: '',
+  gallery: [],
+  storySections: [],
   status: 'draft',
 }
 
@@ -37,7 +43,7 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
   const [searchTerm, setSearchTerm] = useState('')
   const [isPending, startTransition] = useTransition()
 
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState<ArticleForm>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
 
@@ -61,6 +67,8 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
       author: article.author ?? '',
       category: article.category ?? '',
       featuredImage: article.featuredImage ?? '',
+      gallery: article.gallery ?? [],
+      storySections: article.storySections ?? [],
       status: article.status ?? 'draft',
     })
     setEditingId(article.id)
@@ -89,6 +97,8 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
             author: res.article.author,
             category: res.article.category,
             featuredImage: res.article.featuredImage,
+            gallery: res.article.gallery ?? [],
+            storySections: res.article.storySections ?? [],
             status: res.article.status,
             createdAt: new Date(res.article.createdAt).toISOString(),
           }
@@ -232,6 +242,11 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
                 </div>
               </div>
 
+              <div>
+                <label className="text-sm font-medium text-foreground">Article gallery</label>
+                <ImageUpload value={form.gallery} onChange={(gallery) => setForm((f) => ({ ...f, gallery }))} maxImages={12} />
+              </div>
+              <Textarea placeholder='Story sections JSON: [{"eyebrow":"Journal","title":"...","body":"...","image":"https://..."}]' rows={6} value={JSON.stringify(form.storySections, null, 2)} onChange={(e) => { try { setForm((f) => ({ ...f, storySections: JSON.parse(e.target.value) })) } catch {} }} />
               <select
                 value={form.status}
                 onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}

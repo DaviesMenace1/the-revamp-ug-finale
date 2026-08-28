@@ -1,6 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 
@@ -17,14 +23,52 @@ export type HomepageArticle = {
 const FALLBACK_IMAGE =
   'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg'
 
+const AUTO_SCROLL_SPEED = 24
+
+function cleanText(value: unknown): string {
+  if (typeof value !== 'string') return ''
+
+  return value
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\\n/g, '\n')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function normaliseImage(value: unknown): string | null {
-  if (typeof value !== 'string') return null
+  if (typeof value !== 'string') {
+    if (Array.isArray(value)) {
+      const first = value.find(
+        (item): item is string =>
+          typeof item === 'string' &&
+          /^https?:\/\//i.test(item.trim()),
+      )
+
+      return first?.trim() || null
+    }
+
+    return null
+  }
 
   let candidate: unknown = value.trim()
 
   if (!candidate) return null
 
-  for (let i = 0; i < 3; i += 1) {
+  /*
+   * Handles:
+   *
+   * "https://..."
+   *
+   * ["https://...", "https://..."]
+   *
+   * "[\"https://...\", \"https://...\"]"
+   *
+   * JSON encoded more than once.
+   */
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     if (typeof candidate !== 'string') break
 
     const trimmed = candidate.trim()
@@ -47,27 +91,72 @@ function normaliseImage(value: unknown): string | null {
         /^https?:\/\//i.test(item.trim()),
     )
 
-    return first?.trim() ?? null
+    return first?.trim() || null
   }
 
-  return typeof candidate === 'string' &&
+  if (
+    typeof candidate === 'string' &&
     /^https?:\/\//i.test(candidate.trim())
-    ? candidate.trim()
-    : null
+  ) {
+    return candidate.trim()
+  }
+
+  return null
 }
 
-function normaliseArticles(payload: unknown): HomepageArticle[] {
-  if (!payload || typeof payload !== 'object') return []
+function calculateReadTime(content: string): string {
+  const words = cleanText(content)
+    .split(/\s+/)
+    .filter(Boolean).length
+
+  if (!words) return '3 min read'
+
+  return `${Math.max(1, Math.ceil(words / 200))} min read`
+}
+
+function formatDate(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    return ''
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  return date.toLocaleDateString('en-UG', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+function normaliseArticles(
+  payload: unknown,
+): HomepageArticle[] {
+  if (!payload || typeof payload !== 'object') {
+    return []
+  }
 
   const root = payload as Record<string, unknown>
-  const data = root.data
 
-  if (!Array.isArray(data)) return []
+  const possibleData =
+    root.data ??
+    root.articles ??
+    root.items
 
-  return data.flatMap((entry) => {
-    if (!entry || typeof entry !== 'object') return []
+  if (!Array.isArray(possibleData)) {
+    return []
+  }
 
-    const article = entry as Record<string, unknown>
+  return possibleData.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return []
+    }
+
+    const article =
+      entry as Record<string, unknown>
 
     const slug =
       typeof article.slug === 'string'
@@ -76,62 +165,44 @@ function normaliseArticles(payload: unknown): HomepageArticle[] {
 
     const title =
       typeof article.title === 'string'
-        ? article.title.trim()
+        ? cleanText(article.title)
         : ''
 
-    if (!slug || !title) return []
+    if (!slug || !title) {
+      return []
+    }
 
     const category =
-      typeof article.category === 'string' &&
-      article.category.trim()
-        ? article.category.trim()
-        : 'Design Journal'
+      cleanText(
+        article.category ??
+          article.categoryName ??
+          article.type,
+      ) || 'Design Journal'
 
     const excerpt =
-      typeof article.excerpt === 'string' &&
-      article.excerpt.trim()
-        ? article.excerpt.trim()
-        : title
+      cleanText(
+        article.excerpt ??
+          article.summary ??
+          article.description,
+      ) || title
 
     const content =
-      typeof article.content === 'string'
-        ? article.content.replace(/\\n/g, '\n')
-        : ''
-
-    const rawDate =
-      typeof article.publishedAt === 'string'
-        ? article.publishedAt
-        : typeof article.published_at === 'string'
-          ? article.published_at
-          : ''
-
-    const parsedDate = rawDate
-      ? new Date(rawDate)
-      : null
+      cleanText(article.content)
 
     const date =
-      parsedDate &&
-      !Number.isNaN(parsedDate.getTime())
-        ? parsedDate.toLocaleDateString('en-UG', {
-            month: 'long',
-            year: 'numeric',
-          })
-        : ''
-
-    const wordCount = content
-      .split(/\s+/)
-      .filter(Boolean)
-      .length
-
-    const readTime = `${Math.max(
-      1,
-      Math.ceil(wordCount / 200),
-    )} min read`
+      formatDate(
+        article.publishedAt ??
+          article.published_at ??
+          article.createdAt ??
+          article.created_at,
+      )
 
     const image =
-      normaliseImage(article.featuredImage) ??
-      normaliseImage(article.featured_image) ??
-      FALLBACK_IMAGE
+      normaliseImage(
+        article.featuredImage ??
+          article.featured_image ??
+          article.image,
+      ) ?? FALLBACK_IMAGE
 
     return [
       {
@@ -140,7 +211,9 @@ function normaliseArticles(payload: unknown): HomepageArticle[] {
         title,
         excerpt,
         date,
-        readTime,
+        readTime: calculateReadTime(
+          content,
+        ),
         image,
       },
     ]
@@ -153,31 +226,47 @@ export function JournalSection({
   articles?: HomepageArticle[]
 }) {
   const [articles, setArticles] =
-    useState<HomepageArticle[]>(initialArticles)
+    useState<HomepageArticle[]>(
+      initialArticles,
+    )
 
-  const [isLoading, setIsLoading] = useState(
-    initialArticles.length === 0,
-  )
+  const [isLoading, setIsLoading] =
+    useState(
+      initialArticles.length === 0,
+    )
 
-  const railRef = useRef<HTMLDivElement>(null)
+  const railRef =
+    useRef<HTMLDivElement | null>(null)
 
-  const animationRef = useRef<number | null>(null)
+  const animationFrameRef =
+    useRef<number | null>(null)
 
-  const isDraggingRef = useRef(false)
+  const lastFrameTimeRef =
+    useRef<number | null>(null)
 
-  const dragStartXRef = useRef(0)
+  const isDraggingRef =
+    useRef(false)
 
-  const dragStartScrollLeftRef = useRef(0)
+  const pointerStartXRef =
+    useRef(0)
 
-  const lastFrameTimeRef = useRef<number | null>(null)
+  const startingScrollLeftRef =
+    useRef(0)
+
+  const resumeTimeoutRef =
+    useRef<ReturnType<
+      typeof setTimeout
+    > | null>(null)
+
+  const [isUserInteracting, setIsUserInteracting] =
+    useState(false)
 
   /*
-   * The rail is intentionally always moving.
-   * User interaction temporarily pauses movement,
-   * then movement resumes on release.
+   * Fetch the live Journal records.
+   *
+   * If the server already supplied articles,
+   * we use those and avoid another request.
    */
-  const isInteractingRef = useRef(false)
-
   useEffect(() => {
     if (initialArticles.length > 0) {
       setArticles(initialArticles)
@@ -185,9 +274,10 @@ export function JournalSection({
       return
     }
 
-    const controller = new AbortController()
+    const controller =
+      new AbortController()
 
-    async function fetchArticles() {
+    async function loadArticles() {
       try {
         const response = await fetch(
           '/api/articles?limit=8',
@@ -199,11 +289,12 @@ export function JournalSection({
 
         if (!response.ok) {
           throw new Error(
-            `Articles request failed: ${response.status}`,
+            `Journal request failed: ${response.status}`,
           )
         }
 
-        const payload = await response.json()
+        const payload =
+          await response.json()
 
         const nextArticles =
           normaliseArticles(payload)
@@ -212,7 +303,7 @@ export function JournalSection({
       } catch (error) {
         if (!controller.signal.aborted) {
           console.error(
-            '[JournalSection]',
+            '[JournalSection] Unable to load articles',
             error,
           )
 
@@ -225,7 +316,7 @@ export function JournalSection({
       }
     }
 
-    void fetchArticles()
+    void loadArticles()
 
     return () => {
       controller.abort()
@@ -233,13 +324,24 @@ export function JournalSection({
   }, [initialArticles])
 
   /*
-   * Continuous scrolling.
+   * Keep only one duplicated set.
    *
-   * We render the article list twice.
-   * Once the scroll position reaches the midpoint,
-   * we jump back by exactly half of the content width.
+   * The second copy allows the rail to move
+   * continuously without reaching an empty end.
+   */
+  const railArticles = useMemo(
+    () => [...articles, ...articles],
+    [articles],
+  )
+
+  /*
+   * Immediately start the continuous movement.
    *
-   * Because both halves are identical, the jump is invisible.
+   * There is intentionally:
+   *
+   * - no hover dependency
+   * - no "play" button
+   * - no initial user interaction
    */
   useEffect(() => {
     const rail = railRef.current
@@ -248,91 +350,136 @@ export function JournalSection({
       return
     }
 
-    let frame: number
-
     lastFrameTimeRef.current =
       performance.now()
 
-    const speed = 28
-
-    const animate = (timestamp: number) => {
+    const animate = (
+      timestamp: number,
+    ) => {
       const previous =
         lastFrameTimeRef.current ??
         timestamp
 
       const delta =
-        timestamp - previous
+        Math.min(
+          timestamp - previous,
+          50,
+        )
 
       lastFrameTimeRef.current =
         timestamp
 
-      if (!isInteractingRef.current) {
+      if (
+        !isDraggingRef.current &&
+        !isUserInteracting
+      ) {
         rail.scrollLeft +=
-          (speed * delta) / 1000
+          (AUTO_SCROLL_SPEED *
+            delta) /
+          1000
       }
 
-      const midpoint =
+      const loopPoint =
         rail.scrollWidth / 2
 
       if (
-        midpoint > 0 &&
-        rail.scrollLeft >= midpoint
+        loopPoint > 0 &&
+        rail.scrollLeft >= loopPoint
       ) {
-        rail.scrollLeft -= midpoint
+        rail.scrollLeft -= loopPoint
       }
 
-      frame =
-        requestAnimationFrame(animate)
+      animationFrameRef.current =
+        requestAnimationFrame(
+          animate,
+        )
     }
 
-    /*
-     * Start immediately.
-     *
-     * There is deliberately no hover condition here.
-     */
-    frame =
-      requestAnimationFrame(animate)
-
-    animationRef.current = frame
-
-    return () => {
-      cancelAnimationFrame(frame)
-      animationRef.current = null
-      lastFrameTimeRef.current = null
-    }
-  }, [articles.length])
-
-  function scrollByAmount(
-    direction: 'left' | 'right',
-  ) {
-    const rail = railRef.current
-
-    if (!rail) return
-
-    const amount =
-      Math.max(
-        320,
-        Math.min(
-          rail.clientWidth * 0.72,
-          680,
-        ),
+    animationFrameRef.current =
+      requestAnimationFrame(
+        animate,
       )
 
-    isInteractingRef.current = true
+    return () => {
+      if (
+        animationFrameRef.current !==
+        null
+      ) {
+        cancelAnimationFrame(
+          animationFrameRef.current,
+        )
+      }
 
-    rail.scrollBy({
-      left:
-        direction === 'right'
-          ? amount
-          : -amount,
-      behavior: 'smooth',
-    })
+      animationFrameRef.current = null
+      lastFrameTimeRef.current = null
+    }
+  }, [
+    articles.length,
+    isUserInteracting,
+  ])
 
-    window.setTimeout(() => {
-      isInteractingRef.current = false
-    }, 700)
-  }
+  /*
+   * Clear delayed resume timers.
+   */
+  useEffect(() => {
+    return () => {
+      if (resumeTimeoutRef.current) {
+        clearTimeout(
+          resumeTimeoutRef.current,
+        )
+      }
+    }
+  }, [])
 
+  const temporarilyPause = useCallback(
+    (duration = 450) => {
+      setIsUserInteracting(true)
+
+      if (resumeTimeoutRef.current) {
+        clearTimeout(
+          resumeTimeoutRef.current,
+        )
+      }
+
+      resumeTimeoutRef.current =
+        setTimeout(() => {
+          setIsUserInteracting(false)
+        }, duration)
+    },
+    [],
+  )
+
+  const moveRail = useCallback(
+    (direction: 'left' | 'right') => {
+      const rail = railRef.current
+
+      if (!rail) return
+
+      temporarilyPause(800)
+
+      const amount =
+        Math.max(
+          320,
+          Math.min(
+            rail.clientWidth * 0.72,
+            720,
+          ),
+        )
+
+      rail.scrollBy({
+        left:
+          direction === 'right'
+            ? amount
+            : -amount,
+        behavior: 'smooth',
+      })
+    },
+    [temporarilyPause],
+  )
+
+  /*
+   * Pointer / touch dragging.
+   */
   function handlePointerDown(
     event: React.PointerEvent<HTMLDivElement>,
   ) {
@@ -342,12 +489,12 @@ export function JournalSection({
 
     isDraggingRef.current = true
 
-    isInteractingRef.current = true
+    setIsUserInteracting(true)
 
-    dragStartXRef.current =
+    pointerStartXRef.current =
       event.clientX
 
-    dragStartScrollLeftRef.current =
+    startingScrollLeftRef.current =
       rail.scrollLeft
 
     rail.setPointerCapture(
@@ -369,14 +516,14 @@ export function JournalSection({
 
     const distance =
       event.clientX -
-      dragStartXRef.current
+      pointerStartXRef.current
 
     rail.scrollLeft =
-      dragStartScrollLeftRef.current -
+      startingScrollLeftRef.current -
       distance
   }
 
-  function handlePointerUp(
+  function finishPointerInteraction(
     event: React.PointerEvent<HTMLDivElement>,
   ) {
     const rail = railRef.current
@@ -394,61 +541,49 @@ export function JournalSection({
     }
 
     /*
-     * Resume automatically after the
-     * pointer interaction is finished.
+     * Resume automatically.
      */
-    window.setTimeout(() => {
-      isInteractingRef.current = false
-    }, 120)
-  }
-
-  function handlePointerCancel(
-    event: React.PointerEvent<HTMLDivElement>,
-  ) {
-    const rail = railRef.current
-
-    isDraggingRef.current = false
-
-    if (
-      rail?.hasPointerCapture(
-        event.pointerId,
-      )
-    ) {
-      rail.releasePointerCapture(
-        event.pointerId,
+    if (resumeTimeoutRef.current) {
+      clearTimeout(
+        resumeTimeoutRef.current,
       )
     }
 
-    isInteractingRef.current = false
+    resumeTimeoutRef.current =
+      setTimeout(() => {
+        setIsUserInteracting(false)
+      }, 250)
   }
 
   if (isLoading) {
     return (
-      <section className="section-pad overflow-hidden bg-background">
+      <section className="overflow-hidden bg-background py-20 md:py-28 lg:py-32">
         <div className="mx-auto max-w-[1440px] px-6 lg:px-12">
-          <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mb-12 flex items-end justify-between">
             <div>
-              <div className="mb-4 h-px w-12 bg-primary" />
+              <div className="mb-5 h-px w-12 bg-primary" />
 
-              <div className="h-12 w-56 animate-pulse bg-muted/40" />
+              <div className="h-14 w-64 animate-pulse bg-muted/40" />
             </div>
           </div>
 
-          <div className="flex gap-5 overflow-hidden">
-            {[1, 2, 3, 4].map((item) => (
-              <div
-                key={item}
-                className="w-[82vw] flex-none sm:w-[58vw] md:w-[42vw] lg:w-[31vw]"
-              >
-                <div className="aspect-[4/3] animate-pulse bg-muted/40" />
+          <div className="flex gap-14 overflow-hidden">
+            {[1, 2, 3, 4].map(
+              (item) => (
+                <div
+                  key={item}
+                  className="w-[78vw] flex-none sm:w-[55vw] md:w-[42vw] lg:w-[31vw]"
+                >
+                  <div className="aspect-[4/3] animate-pulse bg-muted/40" />
 
-                <div className="mt-5 h-3 w-28 animate-pulse bg-muted/40" />
+                  <div className="mt-6 h-3 w-20 animate-pulse bg-muted/40" />
 
-                <div className="mt-3 h-8 w-4/5 animate-pulse bg-muted/40" />
+                  <div className="mt-4 h-8 w-4/5 animate-pulse bg-muted/40" />
 
-                <div className="mt-3 h-4 w-full animate-pulse bg-muted/40" />
-              </div>
-            ))}
+                  <div className="mt-4 h-5 w-full animate-pulse bg-muted/40" />
+                </div>
+              ),
+            )}
           </div>
         </div>
       </section>
@@ -457,27 +592,29 @@ export function JournalSection({
 
   if (articles.length === 0) {
     return (
-      <section className="section-pad overflow-hidden bg-background">
+      <section className="overflow-hidden bg-background py-20 md:py-28 lg:py-32">
         <div className="mx-auto max-w-[1440px] px-6 lg:px-12">
-          <div className="flex flex-col gap-6 border-y border-border py-12 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-8 border-y border-border py-12 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <div className="mb-4 h-px w-12 bg-primary" />
+              <div className="mb-5 h-px w-12 bg-primary" />
 
-              <h2 className="font-serif text-4xl font-light leading-tight text-foreground md:text-5xl lg:text-6xl">
+              <h2 className="font-serif text-5xl font-light leading-none text-foreground md:text-6xl lg:text-7xl">
                 The Journal
               </h2>
 
-              <p className="mt-4 max-w-xl text-sm leading-7 text-muted-foreground">
-                Thoughts on spaces, materials, sourcing, and the work of making a room feel like your own.
+              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+                Thoughts on spaces, materials,
+                sourcing, and the work of making
+                a room feel like your own.
               </p>
             </div>
 
             <Link
               href="/journal"
-              className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.18em] text-primary transition-colors hover:text-foreground"
+              className="inline-flex items-center gap-3 text-xs font-medium uppercase tracking-[0.18em] text-primary transition-colors hover:text-foreground"
             >
               Visit the Journal
-              <ArrowRight size={14} />
+              <ArrowRight size={15} />
             </Link>
           </div>
         </div>
@@ -485,74 +622,92 @@ export function JournalSection({
     )
   }
 
-  /*
-   * Duplicate the article list for the seamless loop.
-   */
-  const railArticles = [
-    ...articles,
-    ...articles,
-  ]
-
   return (
-    <section className="section-pad overflow-hidden bg-background">
+    <section className="overflow-hidden bg-background py-20 md:py-28 lg:py-32">
       <div className="mx-auto max-w-[1440px] px-6 lg:px-12">
-        <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        {/* HEADER */}
+        <div className="mb-12 flex flex-col gap-7 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="mb-4 h-px w-12 bg-primary" />
+            <div className="mb-5 h-px w-12 bg-primary" />
 
-            <div className="flex flex-wrap items-end gap-x-5 gap-y-2">
-              <h2 className="font-serif text-4xl font-light leading-none text-foreground md:text-5xl lg:text-6xl">
+            <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
+              <h2 className="font-serif text-5xl font-light leading-none text-foreground md:text-6xl lg:text-7xl">
                 The Journal
               </h2>
 
-              <span className="pb-1 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-                Ideas / Spaces / Living
+              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Spaces / Materials / Living
               </span>
             </div>
+
+            <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
+              Thoughts, observations and stories
+              from the world of refined living.
+            </p>
           </div>
 
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-7">
             <Link
               href="/journal"
-              className="inline-flex min-h-10 items-center gap-2 text-xs uppercase tracking-[0.18em] text-primary transition-colors hover:text-foreground"
+              className="inline-flex items-center gap-3 text-xs font-medium uppercase tracking-[0.18em] text-primary transition-colors hover:text-foreground"
             >
               View all
-              <ArrowRight size={14} />
+              <ArrowRight size={15} />
             </Link>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center">
               <button
                 type="button"
                 aria-label="Previous journal stories"
                 onClick={() =>
-                  scrollByAmount('left')
+                  moveRail('left')
                 }
-                className="flex size-10 items-center justify-center border border-border text-foreground transition-colors hover:border-primary hover:text-primary"
+                className="flex size-11 items-center justify-center border-y border-l border-border text-foreground transition-colors hover:border-primary hover:text-primary"
               >
-                <ArrowLeft size={15} />
+                <ArrowLeft size={16} />
               </button>
 
               <button
                 type="button"
                 aria-label="Next journal stories"
                 onClick={() =>
-                  scrollByAmount('right')
+                  moveRail('right')
                 }
-                className="flex size-10 items-center justify-center border border-border text-foreground transition-colors hover:border-primary hover:text-primary"
+                className="flex size-11 items-center justify-center border border-border text-foreground transition-colors hover:border-primary hover:text-primary"
               >
-                <ArrowRight size={15} />
+                <ArrowRight size={16} />
               </button>
             </div>
           </div>
         </div>
 
+        {/* CONTINUOUS EDITORIAL RAIL */}
         <div
           ref={railRef}
-          className="flex touch-pan-y cursor-grab gap-5 overflow-x-auto overscroll-x-contain pb-4 select-none [scrollbar-width:none] active:cursor-grabbing [&::-webkit-scrollbar]:hidden"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
+          className={[
+            'flex gap-14 overflow-x-auto',
+            'overscroll-x-contain',
+            'pb-5',
+            'select-none',
+            'touch-pan-y',
+            isDraggingRef.current
+              ? 'cursor-grabbing'
+              : 'cursor-grab',
+            '[scrollbar-width:none]',
+            '[&::-webkit-scrollbar]:hidden',
+          ].join(' ')}
+          onPointerDown={
+            handlePointerDown
+          }
+          onPointerMove={
+            handlePointerMove
+          }
+          onPointerUp={
+            finishPointerInteraction
+          }
+          onPointerCancel={
+            finishPointerInteraction
+          }
         >
           {railArticles.map(
             (article, index) => (
@@ -560,9 +715,10 @@ export function JournalSection({
                 key={`${article.slug}-${index}`}
                 href={`/journal/${article.slug}`}
                 draggable={false}
-                className="group w-[82vw] flex-none sm:w-[58vw] md:w-[42vw] lg:w-[31vw]"
+                className="group block w-[82vw] flex-none sm:w-[57vw] md:w-[42vw] lg:w-[30vw]"
               >
                 <article>
+                  {/* IMAGE */}
                   <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                     {article.image ? (
                       <img
@@ -574,44 +730,66 @@ export function JournalSection({
                             ? 'eager'
                             : 'lazy'
                         }
-                        className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.035]"
+                        onError={(
+                          event,
+                        ) => {
+                          const image =
+                            event.currentTarget
+
+                          if (
+                            image.src !==
+                            FALLBACK_IMAGE
+                          ) {
+                            image.src =
+                              FALLBACK_IMAGE
+                          }
+                        }}
+                        className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.025]"
                       />
                     ) : (
-                      <div
-                        className="h-full w-full bg-muted"
-                        aria-hidden="true"
-                      />
+                      <div className="flex h-full w-full items-center justify-center bg-muted">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                          The Revamp UG
+                        </span>
+                      </div>
                     )}
-
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                   </div>
 
-                  <div className="mt-5 flex items-center justify-between gap-4">
-                    <span className="text-[10px] uppercase tracking-[0.22em] text-primary">
+                  {/* CATEGORY */}
+                  <div className="mt-6">
+                    <span className="text-xs font-medium uppercase tracking-[0.12em] text-foreground">
                       {article.category}
                     </span>
-
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                      {article.readTime}
-                    </span>
                   </div>
 
-                  <h3 className="mt-3 max-w-xl font-serif text-2xl font-light leading-[1.08] text-foreground transition-colors duration-300 group-hover:text-primary md:text-3xl">
+                  {/* TITLE */}
+                  <h3 className="mt-3 max-w-[560px] font-sans text-[25px] font-semibold leading-[1.12] tracking-[-0.025em] text-foreground transition-colors duration-300 group-hover:text-primary sm:text-[28px] lg:text-[30px]">
                     {article.title}
                   </h3>
 
-                  <p className="mt-3 line-clamp-3 max-w-xl text-sm leading-6 text-muted-foreground">
+                  {/* EXCERPT */}
+                  <p className="mt-4 max-w-[560px] text-[17px] leading-[1.45] text-muted-foreground">
                     {article.excerpt}
                   </p>
 
-                  <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                      {article.date}
-                    </span>
+                  {/* DATE / READ TIME */}
+                  <div className="mt-5 flex items-center gap-4 text-xs text-muted-foreground">
+                    {article.date && (
+                      <span>
+                        {article.date}
+                      </span>
+                    )}
 
-                    <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-foreground transition-colors group-hover:text-primary">
-                      Read story
-                      <ArrowRight size={13} />
+                    {article.date &&
+                      article.readTime && (
+                        <span
+                          aria-hidden="true"
+                          className="h-1 w-1 rounded-full bg-muted-foreground/50"
+                        />
+                      )}
+
+                    <span>
+                      {article.readTime}
                     </span>
                   </div>
                 </article>
@@ -620,9 +798,10 @@ export function JournalSection({
           )}
         </div>
 
-        <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+        {/* FOOTER CONTROLS */}
+        <div className="mt-7 flex items-center justify-between border-t border-border pt-5">
           <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Moving through the journal
+            Explore the journal
           </span>
 
           <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -636,3 +815,5 @@ export function JournalSection({
     </section>
   )
 }
+
+export default JournalSection

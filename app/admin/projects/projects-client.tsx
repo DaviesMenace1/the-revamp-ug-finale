@@ -42,6 +42,7 @@ function ImageUpload({
 
         {value.length < maxImages && (
           <CldUploadWidget
+            options={{ multiple: true, maxFiles: Math.max(1, maxImages - value.length) }}
             uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'revamp_preset'}
             onSuccess={(result: any) => {
               if (result?.info?.secure_url) {
@@ -273,6 +274,7 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
             </div>
 
             <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
+              <p className="md:col-span-2 text-xs leading-5 text-muted-foreground">These fields are lists: <strong>[]</strong> means empty. Add objects inside the brackets to create story blocks or project highlights.</p>
               <div><label className="block text-xs font-medium text-muted-foreground mb-1">Story Sections (JSON)</label><textarea value={JSON.stringify(formData.storySections, null, 2)} onChange={(e) => { try { setFormData({ ...formData, storySections: JSON.parse(e.target.value) }) } catch {} }} rows={7} className="w-full px-3 py-2 border border-input rounded-none bg-background text-sm" placeholder='[{"eyebrow":"The story","title":"...","body":"...","image":"https://..."}]' /></div>
               <div><label className="block text-xs font-medium text-muted-foreground mb-1">Project Highlights (JSON)</label><textarea value={JSON.stringify(formData.highlights, null, 2)} onChange={(e) => { try { setFormData({ ...formData, highlights: JSON.parse(e.target.value) }) } catch {} }} rows={7} className="w-full px-3 py-2 border border-input rounded-none bg-background text-sm" placeholder='[{"label":"Scope","value":"Full interior renovation"}]' /></div>
             </div>

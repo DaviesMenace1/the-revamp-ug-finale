@@ -296,6 +296,7 @@ export default function ServicesClient({
                 value={serviceForm.longDescription}
                 onChange={(e) => setServiceForm((f) => ({ ...f, longDescription: e.target.value }))}
               />
+              <p className="md:col-span-2 text-xs leading-5 text-muted-foreground">These fields use lists: <strong>[]</strong> means no items yet. Keep the brackets and edit the example objects inside them. You can paste valid JSON, or leave a field as [] until you are ready to add content.</p>
               <div className="grid gap-3 md:grid-cols-2">
                 <Textarea placeholder='Story sections JSON: [{"eyebrow":"Approach","title":"...","body":"...","image":"https://..."}]' rows={6} value={JSON.stringify(serviceForm.storySections, null, 2)} onChange={(e) => { try { setServiceForm((f) => ({ ...f, storySections: JSON.parse(e.target.value) })) } catch {} }} />
                 <Textarea placeholder='Process steps JSON: [{"title":"Initial meeting","description":"..."}]' rows={6} value={JSON.stringify(serviceForm.processSteps, null, 2)} onChange={(e) => { try { setServiceForm((f) => ({ ...f, processSteps: JSON.parse(e.target.value) })) } catch {} }} />

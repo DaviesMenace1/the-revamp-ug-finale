@@ -246,6 +246,7 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
                 <label className="text-sm font-medium text-foreground">Article gallery</label>
                 <ImageUpload value={form.gallery} onChange={(gallery) => setForm((f) => ({ ...f, gallery }))} maxImages={12} />
               </div>
+              <p className="text-xs leading-5 text-muted-foreground">Story sections are a list. <strong>[]</strong> means no structured sections yet; leave it empty to use the regular article content.</p>
               <Textarea placeholder='Story sections JSON: [{"eyebrow":"Journal","title":"...","body":"...","image":"https://..."}]' rows={6} value={JSON.stringify(form.storySections, null, 2)} onChange={(e) => { try { setForm((f) => ({ ...f, storySections: JSON.parse(e.target.value) })) } catch {} }} />
               <select
                 value={form.status}

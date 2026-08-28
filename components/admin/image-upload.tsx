@@ -39,6 +39,7 @@ export function ImageUpload({
 
         {value.length < maxImages && (
           <CldUploadWidget
+            options={{ multiple: true, maxFiles: Math.max(1, maxImages - value.length) }}
             uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'revamp_preset'}
             onSuccess={(result: any) => {
               if (result?.info?.secure_url) {

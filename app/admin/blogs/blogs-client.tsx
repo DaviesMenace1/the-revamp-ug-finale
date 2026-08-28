@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Plus, Edit, Trash2, Search, X } from 'lucide-react'
 import { ImageUpload } from '@/components/admin/image-upload'
 import { createArticle, updateArticle, deleteArticle } from '@/lib/actions/articles'
+import { StructuredListEditor } from '@/components/admin/structured-list-editor'
 
 type Article = {
   id: string
@@ -246,8 +247,7 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
                 <label className="text-sm font-medium text-foreground">Article gallery</label>
                 <ImageUpload value={form.gallery} onChange={(gallery) => setForm((f) => ({ ...f, gallery }))} maxImages={12} />
               </div>
-              <p className="text-xs leading-5 text-muted-foreground">Story sections are a list. <strong>[]</strong> means no structured sections yet; leave it empty to use the regular article content.</p>
-              <Textarea placeholder='Story sections JSON: [{"eyebrow":"Journal","title":"...","body":"...","image":"https://..."}]' rows={6} value={JSON.stringify(form.storySections, null, 2)} onChange={(e) => { try { setForm((f) => ({ ...f, storySections: JSON.parse(e.target.value) })) } catch {} }} />
+              <StructuredListEditor kind="story" value={form.storySections} onChange={(storySections) => setForm((f) => ({ ...f, storySections }))} />
               <select
                 value={form.status}
                 onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}

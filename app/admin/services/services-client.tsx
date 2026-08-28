@@ -15,7 +15,7 @@ import {
   updateService,
   deleteService,
 } from '@/lib/actions/services'
-
+import { StructuredListEditor } from '@/components/admin/structured-list-editor'
 type ServiceCategory = {
   id: string
   name: string
@@ -296,13 +296,10 @@ export default function ServicesClient({
                 value={serviceForm.longDescription}
                 onChange={(e) => setServiceForm((f) => ({ ...f, longDescription: e.target.value }))}
               />
-              <p className="md:col-span-2 text-xs leading-5 text-muted-foreground">These fields use lists: <strong>[]</strong> means no items yet. Keep the brackets and edit the example objects inside them. You can paste valid JSON, or leave a field as [] until you are ready to add content.</p>
-              <div className="grid gap-3 md:grid-cols-2">
-                <Textarea placeholder='Story sections JSON: [{"eyebrow":"Approach","title":"...","body":"...","image":"https://..."}]' rows={6} value={JSON.stringify(serviceForm.storySections, null, 2)} onChange={(e) => { try { setServiceForm((f) => ({ ...f, storySections: JSON.parse(e.target.value) })) } catch {} }} />
-                <Textarea placeholder='Process steps JSON: [{"title":"Initial meeting","description":"..."}]' rows={6} value={JSON.stringify(serviceForm.processSteps, null, 2)} onChange={(e) => { try { setServiceForm((f) => ({ ...f, processSteps: JSON.parse(e.target.value) })) } catch {} }} />
-                <Textarea placeholder='FAQs JSON: [{"question":"...","answer":"..."}]' rows={5} value={JSON.stringify(serviceForm.faqs, null, 2)} onChange={(e) => { try { setServiceForm((f) => ({ ...f, faqs: JSON.parse(e.target.value) })) } catch {} }} />
-                <Textarea placeholder='Highlights JSON: [{"label":"Location","value":"Kampala"}]' rows={5} value={JSON.stringify(serviceForm.highlights, null, 2)} onChange={(e) => { try { setServiceForm((f) => ({ ...f, highlights: JSON.parse(e.target.value) })) } catch {} }} />
-              </div>
+              <StructuredListEditor kind="story" value={serviceForm.storySections} onChange={(storySections) => setServiceForm((f) => ({ ...f, storySections }))} />
+              <StructuredListEditor kind="process" value={serviceForm.processSteps} onChange={(processSteps) => setServiceForm((f) => ({ ...f, processSteps }))} />
+              <StructuredListEditor kind="faq" value={serviceForm.faqs} onChange={(faqs) => setServiceForm((f) => ({ ...f, faqs }))} />
+              <StructuredListEditor kind="highlight" value={serviceForm.highlights} onChange={(highlights) => setServiceForm((f) => ({ ...f, highlights }))} />
               <div>
                 <label className="text-sm font-medium text-foreground">Gallery</label>
                 <div className="mt-2">

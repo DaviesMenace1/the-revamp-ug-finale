@@ -8,6 +8,7 @@ import { Plus, Search, X, Upload, Edit, Trash2, Eye, MapPin, Tag } from 'lucide-
 import Image from 'next/image'
 import { CldUploadWidget } from 'next-cloudinary'
 import { createProject, updateProject, deleteProject } from '@/lib/actions/projects'
+import { StructuredListEditor } from '@/components/admin/structured-list-editor'
 
 function ImageUpload({
   value = [],
@@ -274,9 +275,8 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
             </div>
 
             <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
-              <p className="md:col-span-2 text-xs leading-5 text-muted-foreground">These fields are lists: <strong>[]</strong> means empty. Add objects inside the brackets to create story blocks or project highlights.</p>
-              <div><label className="block text-xs font-medium text-muted-foreground mb-1">Story Sections (JSON)</label><textarea value={JSON.stringify(formData.storySections, null, 2)} onChange={(e) => { try { setFormData({ ...formData, storySections: JSON.parse(e.target.value) }) } catch {} }} rows={7} className="w-full px-3 py-2 border border-input rounded-none bg-background text-sm" placeholder='[{"eyebrow":"The story","title":"...","body":"...","image":"https://..."}]' /></div>
-              <div><label className="block text-xs font-medium text-muted-foreground mb-1">Project Highlights (JSON)</label><textarea value={JSON.stringify(formData.highlights, null, 2)} onChange={(e) => { try { setFormData({ ...formData, highlights: JSON.parse(e.target.value) }) } catch {} }} rows={7} className="w-full px-3 py-2 border border-input rounded-none bg-background text-sm" placeholder='[{"label":"Scope","value":"Full interior renovation"}]' /></div>
+              <StructuredListEditor kind="story" value={formData.storySections} onChange={(storySections) => setFormData({ ...formData, storySections })} />
+              <StructuredListEditor kind="highlight" value={formData.highlights} onChange={(highlights) => setFormData({ ...formData, highlights })} />
             </div>
 
             <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-1">Tags (Comma-separated)</label><Input value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} placeholder="minimalist, hardwood, accent-lighting" className="rounded-none" /></div>

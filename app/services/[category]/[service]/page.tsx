@@ -74,6 +74,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const storySections = Array.isArray(service.storySections) ? service.storySections as Array<{ eyebrow?: string; title: string; body: string; image?: string; imagePosition?: 'left' | 'right' }> : []
   const processSteps = Array.isArray(service.processSteps) && service.processSteps.length ? service.processSteps as Array<{ title: string; description: string }> : serviceContent.process.map((item) => ({ title: item.title, description: item.description }))
   const faqs = Array.isArray(service.faqs) && service.faqs.length ? service.faqs as Array<{ question: string; answer: string }> : serviceContent.faqs
+  const galleryImages = Array.isArray(service.gallery) ? service.gallery.filter((url): url is string => typeof url === 'string' && url.trim().length > 0) : []
   const inquiryHref = `/contact?interest=quote_request&service=${encodeURIComponent(service.name)}`
 
   return (
@@ -124,6 +125,8 @@ export default async function ServiceDetailPage({ params }: PageProps) {
               <p className="max-w-2xl text-lg text-muted-foreground font-light">
                 {service.description}
               </p>
+              {service.image && <img src={service.image} alt={service.name} className="mt-8 aspect-[16/8] w-full object-cover" />}
+              {galleryImages.length > 0 && <div className="mt-4 grid grid-cols-3 gap-3">{galleryImages.slice(0, 3).map((url, index) => <img key={`${url}-${index}`} src={url} alt={`${service.name} preview ${index + 1}`} className="aspect-[4/3] w-full object-cover" />)}</div>}
             </div>
           </div>
         </section>
@@ -143,6 +146,8 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                     {section.image && <img src={section.image} alt={section.title} className="aspect-[4/3] w-full object-cover" />}
                   </article>
                 ))}
+
+                {Array.isArray(service.highlights) && service.highlights.length > 0 && <div><h2 className="font-serif text-3xl font-light text-foreground mb-4">Highlights</h2><div className="grid gap-4 sm:grid-cols-2">{(service.highlights as Array<{ label?: string; value?: string }>).map((highlight, index) => <div key={`${highlight.label}-${index}`} className="border-l-2 border-gold/50 pl-4"><p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{highlight.label || `Detail ${index + 1}`}</p><p className="mt-1 text-foreground/80">{highlight.value}</p></div>)}</div></div>}
 
                 {Array.isArray(service.gallery) && service.gallery.length > 0 && (
                   <div>

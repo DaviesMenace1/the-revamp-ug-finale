@@ -299,23 +299,35 @@ export async function POST(request: Request) {
       await releaseCollectionPromotionForOrder(createdOrder.id)
       return NextResponse.json({ error: 'The order could not be prepared for fulfilment.' }, { status: 500 })
     }
-    await db.insert(orderTrackingEvents).values({ orderId: createdOrder.id, shipmentId: createdShipment.id, status: shipmentStatus, note: paymentMode === 'pay_on_delivery' ? 'Order placed with payment due at fulfilment.' : 'Order created and awaiting payment confirmation.', customerVisible: true })
+    try {
+      await db.insert(orderTrackingEvents).values({ orderId: createdOrder.id, shipmentId: createdShipment.id, status: shipmentStatus, note: paymentMode === 'pay_on_delivery' ? 'Order placed with payment due at fulfilment.' : 'Order created and awaiting payment confirmation.', customerVisible: true })
+    } catch (error) {
+      console.error('[checkout] tracking event could not be recorded:', error)
+    }
 
     if (paymentMode === 'pay_on_delivery') {
-      await markCollectionPromotionApplied(createdOrder.id)
+      try {
+        await markCollectionPromotionApplied(createdOrder.id)
+      } catch (error) {
+        console.error('[checkout] promotion could not be marked applied:', error)
+      }
       const deliveryMessage = deliveryMethod === 'pickup_station' && shippingAddress.pickupStation && typeof shippingAddress.pickupStation === 'object'
         ? `Pickup at ${String((shippingAddress.pickupStation as Record<string, unknown>).name || 'your selected station')}.`
         : `Door delivery to ${String(shippingAddress.city || shippingAddress.address || 'your saved address')}.`
-      await notifyUser({
-        userId: localUser.id,
-        type: 'order_placed_pay_on_delivery',
-        priority: 'important',
-        title: `Order ${txRef} confirmed`,
-        message: `Your pay-on-delivery order is confirmed. Payment is due when your order is delivered or collected. ${deliveryMessage}`,
-        actionUrl: `/client/orders?order=${encodeURIComponent(createdOrder.id)}`,
-        metadata: { orderId: createdOrder.id, orderNumber: txRef, status: 'confirmed', total: amountAfterPoints.toFixed(2), currency: expectedCurrency, paymentMode, deliveryAddress: shippingAddress, items: orderItems, trackingCode },
-        channels: ['in_app', 'push', 'email'],
-      })
+      try {
+        await notifyUser({
+          userId: localUser.id,
+          type: 'order_placed_pay_on_delivery',
+          priority: 'important',
+          title: `Order ${txRef} confirmed`,
+          message: `Your pay-on-delivery order is confirmed. Payment is due when your order is delivered or collected. ${deliveryMessage}`,
+          actionUrl: `/client/orders?order=${encodeURIComponent(createdOrder.id)}`,
+          metadata: { orderId: createdOrder.id, orderNumber: txRef, status: 'confirmed', total: amountAfterPoints.toFixed(2), currency: expectedCurrency, paymentMode, deliveryAddress: shippingAddress, items: orderItems, trackingCode },
+          channels: ['in_app', 'push', 'email'],
+        })
+      } catch (error) {
+        console.error('[checkout] order notification could not be delivered:', error)
+      }
       return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, status: 'placed', orderStatus: 'confirmed', paymentStatus: 'pending', amount: amountAfterPoints, discountUgx, promotionCode: promotionResult?.success ? promotionResult.quote.promotion.code : null, promotionDiscountUgx })
     }
 

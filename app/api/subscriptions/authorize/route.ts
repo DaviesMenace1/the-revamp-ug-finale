@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     if (!subscription) return Response.json({ error: 'Subscription payment was not found.' }, { status: 404 })
     if (subscription.status === 'active') return Response.json({ status: 'paid', subscriptionId: subscription.id })
 
-    const authorization = authorizationType === 'pin' ? await encryptFlutterwavePin(code) : { type: 'otp', value: code }
+    const authorization = authorizationType === 'pin' ? { type: 'pin', pin: await encryptFlutterwavePin(code) } : { type: 'otp', otp: { code } }
     const update = await updateFlutterwaveCharge(chargeId, authorization, randomUUID())
     const charge = update.payload?.data
     if (!update.response?.ok || !charge) return Response.json({ error: update.payload?.error?.message || update.payload?.message || 'The payment authorization was not accepted.' }, { status: update.response?.status || 502 })

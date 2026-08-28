@@ -69,6 +69,7 @@ export type FlutterwavePaymentMethod =
 
 const TOKEN_URL = 'https://idp.flutterwave.com/realms/flutterwave/protocol/openid-connect/token'
 const SANDBOX_BASE_URL = 'https://developersandbox-api.flutterwave.com'
+const LIVE_BASE_URL = 'https://f4bexperience.flutterwave.com'
 
 let cachedAccessToken: { value: string; expiresAt: number } | null = null
 
@@ -87,7 +88,7 @@ export function getFlutterwaveConfig(): FlutterwaveConfig {
   const encryptionKey = clean(process.env.FLUTTERWAVE_ENCRYPTION_KEY) || null
   if (!clientId || !clientSecret) return { ok: false, mode, reason: 'missing_client_credentials' }
 
-  const baseUrl = mode === 'sandbox' ? SANDBOX_BASE_URL : clean(process.env.FLUTTERWAVE_V4_BASE_URL)
+  const baseUrl = mode === 'sandbox' ? SANDBOX_BASE_URL : clean(process.env.FLUTTERWAVE_V4_BASE_URL) || LIVE_BASE_URL
   if (!baseUrl || !/^https:\/\//i.test(baseUrl)) return { ok: false, mode, reason: 'invalid_base_url' }
   return { ok: true, mode, clientId, clientSecret, encryptionKey, baseUrl: baseUrl.replace(/\/$/, '') }
 }
@@ -140,12 +141,23 @@ async function flutterwaveRequest<T>(path: string, init: RequestInit = {}) {
   headers.set('Content-Type', 'application/json')
   headers.set('Accept', 'application/json')
   headers.set('X-Trace-Id', traceId())
-  let response = await fetchWithTimeout(`${config.baseUrl}${path}`, { ...init, headers })
+  let response: Response
+  try {
+    response = await fetchWithTimeout(`${config.baseUrl}${path}`, { ...init, headers })
+  } catch (error) {
+    console.error('[flutterwave] request failed', { path, error })
+    return { config, response: new Response(null, { status: 503 }), payload: { status: 'failed', message: 'Flutterwave could not be reached. Check the payment provider configuration and try again.' } as FlutterwaveResponse<T> }
+  }
   if (response.status === 401) {
     try {
       token = await getAccessToken(config, true)
       headers.set('Authorization', `Bearer ${token}`)
-      response = await fetchWithTimeout(`${config.baseUrl}${path}`, { ...init, headers })
+      try {
+        response = await fetchWithTimeout(`${config.baseUrl}${path}`, { ...init, headers })
+      } catch (error) {
+        console.error('[flutterwave] retry request failed', { path, error })
+        return { config, response: new Response(null, { status: 503 }), payload: { status: 'failed', message: 'Flutterwave could not be reached. Check the payment provider configuration and try again.' } as FlutterwaveResponse<T> }
+      }
     } catch {
       return { config, response, payload: { status: 'failed', message: 'Flutterwave OAuth authentication failed.' } as FlutterwaveResponse<T> }
     }

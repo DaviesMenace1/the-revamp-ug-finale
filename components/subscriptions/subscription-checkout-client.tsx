@@ -34,7 +34,8 @@ function money(amount: string) {
 }
 
 function requestId() {
-  return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  return `00000000-0000-4000-8000-${Math.random().toString(16).slice(2).padEnd(12, '0').slice(0, 12)}`
 }
 
 export default function SubscriptionCheckoutClient({
@@ -159,10 +160,6 @@ export default function SubscriptionCheckoutClient({
         setMessage('Payment verified. Your program access is now active.')
         return
       }
-      if (data?.status === 'pending') {
-        setMessage(typeof data.message === 'string' ? data.message : 'Payment was received and is being finalized. Please check your portal shortly.')
-        return
-      }
       if (data?.chargeId && (data.authorizationType === 'pin' || data.authorizationType === 'otp')) {
         setChallenge({ subscriptionId: data.subscriptionId, txRef: data.txRef, chargeId: data.chargeId, authorizationType: data.authorizationType })
         setMessage(data.authorizationType === 'pin' ? 'Enter the Sandbox card PIN to continue.' : 'Enter the Sandbox OTP to complete payment.')
@@ -170,6 +167,10 @@ export default function SubscriptionCheckoutClient({
       }
       if (typeof data?.paymentInstruction === 'string' && data.paymentInstruction) {
         setMessage(data.paymentInstruction)
+        return
+      }
+      if (data?.status === 'pending') {
+        setMessage(typeof data.message === 'string' ? data.message : 'Payment was received and is being finalized. Please check your portal shortly.')
         return
       }
       throw new Error('Flutterwave did not return a usable authorization step. Please try again.')

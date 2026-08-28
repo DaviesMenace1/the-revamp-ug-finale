@@ -7,6 +7,7 @@ import {
   loyaltyReferrals,
   loyaltyTransactions,
   orders,
+  consultationPaymentIntents,
   users,
 } from '@/lib/db/schema'
 import { getSetting } from '@/lib/actions/settings'
@@ -368,6 +369,37 @@ export async function reservePointsForOrder(userId: string, orderId: string, req
   return result.applied
     ? { success: true, points, discountUgx }
     : { success: false, error: 'Points have already been applied to this order.' }
+}
+
+export async function quotePointsForConsultation(userId: string, baseAmount: number, requestedPoints: number) {
+  const rules = await getLoyaltyRules()
+  if (!rules.enabled) return { success: false as const, error: 'Loyalty rewards are currently unavailable.' }
+  const account = await getOrCreateLoyaltyAccount(userId)
+  const maximumDiscount = Math.floor(Math.max(0, Number(baseAmount) || 0) * (rules.redemptionCapPercent / 100))
+  const maximumPoints = Math.min(account.balancePoints, Math.floor(maximumDiscount / rules.redemptionUgxPerPoint))
+  const points = Math.min(Math.max(0, Math.floor(Number(requestedPoints) || 0)), maximumPoints)
+  if (requestedPoints > 0 && points <= 0) return { success: false as const, error: 'This consultation is not eligible for a points discount yet.' }
+  return { success: true as const, points, discountUgx: points * rules.redemptionUgxPerPoint, balancePoints: account.balancePoints, maximumPoints }
+}
+
+export async function reservePointsForConsultation(userId: string, paymentIntentId: string, points: number, discountUgx: number) {
+  const rules = await getLoyaltyRules()
+  if (!rules.enabled || points <= 0) return { success: true as const, points: 0, discountUgx: 0 }
+  const account = await getOrCreateLoyaltyAccount(userId)
+  const result = await db.transaction((transaction) => applyLedgerDeltaInTransaction(transaction, {
+    accountId: account.id, userId, points: -Math.floor(points), type: 'redemption_hold',
+    eventKey: `redemption_hold:consultation:${paymentIntentId}`,
+    description: `Points held for consultation ${paymentIntentId.slice(0, 8).toUpperCase()}`,
+    metadata: { discountUgx, paymentIntentId }, rules,
+  }))
+  return result.applied ? { success: true as const, points: Math.floor(points), discountUgx } : { success: false as const, error: 'Points have already been applied to this consultation.' }
+}
+
+export async function releasePointsForConsultation(paymentIntentId: string) {
+  const [hold] = await db.select({ userId: loyaltyTransactions.userId, accountId: loyaltyTransactions.accountId, points: loyaltyTransactions.points, metadata: loyaltyTransactions.metadata }).from(loyaltyTransactions).where(and(eq(loyaltyTransactions.type, 'redemption_hold'), sql`${loyaltyTransactions.metadata}->>'paymentIntentId' = ${paymentIntentId}`)).limit(1)
+  if (!hold || hold.points >= 0) return { released: false }
+  const released = await applyLedgerDelta({ accountId: hold.accountId, userId: hold.userId, points: Math.abs(hold.points), type: 'redemption_release', eventKey: `redemption_release:consultation:${paymentIntentId}`, description: 'Returned unused consultation points', metadata: { paymentIntentId }, rules: await getLoyaltyRules() })
+  return { released: released.applied }
 }
 
 export async function releasePointsForOrder(orderId: string) {

@@ -5,6 +5,8 @@ import { asc, eq } from 'drizzle-orm'
 import ServicesListingClient from './services-listing-client'
 import { safeQuery } from '@/lib/server/safe-query'
 import { SchemaScript } from '@/components/seo/schema-script'
+import { SiteHeader } from '@/components/site-header'
+import { SiteFooter } from '@/components/site-footer'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,7 +70,9 @@ export default async function ServicesPage() {
   return (
     <>
       <SchemaScript schema={{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'The Revamp UG Services', url: `${SITE_URL}/services`, mainEntity: { '@type': 'ItemList', itemListElement: itemList } }} />
+      <SiteHeader />
       <ServicesListingClient categories={grouped} />
+      <SiteFooter />
     </>
   )
 }

@@ -107,7 +107,7 @@ export function SiteFooter() {
               </h4>
               <ul className="space-y-3">
                 {links.map((link) => (
-                  <li key={link.href}>
+                  <li key={`${group}-${link.href}-${link.label}`}>
                     <Link
                       href={link.href}
                       className="font-sans text-sm text-background/50 hover:text-background transition-colors"

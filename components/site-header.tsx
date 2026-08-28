@@ -245,7 +245,7 @@ export function SiteHeader() {
                         {link.submenu.map((subitem) => (
                           <Link
                 prefetch={false}
-                            key={subitem.href}
+                            key={`${subitem.href}-${subitem.label}`}
                             href={subitem.href}
                             className="block px-4 py-2 text-xs uppercase tracking-wider text-foreground/70 hover:text-gold hover:bg-muted/50 border-b border-border/30 last:border-b-0 transition-colors"
                           >
@@ -428,7 +428,7 @@ export function SiteHeader() {
                       {link.submenu.map((subitem) => (
                         <Link
                 prefetch={false}
-                          key={subitem.href}
+                          key={`${subitem.href}-${subitem.label}`}
                           href={subitem.href}
                           onClick={() => setDrawerOpen(false)}
                           className="block py-2 text-xs uppercase tracking-wider text-foreground/70 hover:text-gold transition-colors"

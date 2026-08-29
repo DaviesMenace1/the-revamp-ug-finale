@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useRef, useState } from 'react'
 import { useSignIn, useSignUp } from '@clerk/nextjs'
 import { ArrowRight, Check, Loader2, ShieldCheck } from 'lucide-react'
 import { FaGoogle, FaLinkedinIn } from 'react-icons/fa'
@@ -161,6 +161,36 @@ function Field({
   )
 }
 
+function VerificationCodeBoxes({ value, onChange, onComplete, disabled = false }: { value: string; onChange: (value: string) => void; onComplete?: (value: string) => void; disabled?: boolean }) {
+  const refs = useRef<Array<HTMLInputElement | null>>([])
+  const digits = value.replace(/\D/g, '').slice(0, 6).split('')
+  const update = (index: number, raw: string) => {
+    const incoming = raw.replace(/\D/g, '')
+    if (!incoming) {
+      const next = digits.slice()
+      next[index] = ''
+      onChange(next.join(''))
+      return
+    }
+    const next = digits.slice()
+    incoming.split('').forEach((digit, offset) => { if (index + offset < 6) next[index + offset] = digit })
+    const nextValue = next.join('').slice(0, 6)
+    onChange(nextValue)
+    refs.current[Math.min(index + incoming.length, 5)]?.focus()
+    if (nextValue.length === 6) onComplete?.(nextValue)
+  }
+  return (
+    <div className="grid gap-2">
+      <span className="text-xs font-medium text-foreground">Verification code</span>
+      <div className="grid grid-cols-6 gap-2" role="group" aria-label="Six digit verification code">
+        {Array.from({ length: 6 }, (_, index) => (
+          <input key={index} ref={(element) => { refs.current[index] = element }} value={digits[index] || ''} onChange={(event) => update(index, event.target.value)} onKeyDown={(event) => { if (event.key === 'Backspace' && !digits[index] && index > 0) refs.current[index - 1]?.focus(); if (event.key === 'ArrowLeft' && index > 0) refs.current[index - 1]?.focus(); if (event.key === 'ArrowRight' && index < 5) refs.current[index + 1]?.focus() }} onPaste={(event) => { event.preventDefault(); update(index, event.clipboardData.getData('text')) }} inputMode="numeric" pattern="[0-9]*" maxLength={6} autoComplete={index === 0 ? 'one-time-code' : 'off'} aria-label={`Verification digit ${index + 1}`} disabled={disabled} className="h-12 w-full rounded-md border border-border bg-background/70 text-center font-serif text-xl text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 sm:h-14" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   const { signIn } = useSignIn()
   const [email, setEmail] = useState('')
@@ -171,6 +201,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+  const verifyFormRef = useRef<HTMLFormElement>(null)
 
   const isLoaded = !!signIn
   const destination = redirectUrl || '/account'
@@ -360,15 +391,8 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       }
     >
       {verifying ? (
-        <form onSubmit={verify} className="grid gap-5">
-          <Field
-            label="Verification code"
-            value={code}
-            onChange={setCode}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="123456"
-          />
+          <form ref={verifyFormRef} onSubmit={verify} className="grid gap-5">
+          <VerificationCodeBoxes value={code} onChange={setCode} disabled={loading} onComplete={() => window.setTimeout(() => verifyFormRef.current?.requestSubmit(), 0)} />
           <InfoText message={info} />
           <ErrorText message={error} />
           <AuthButton disabled={!isLoaded || loading}>
@@ -445,6 +469,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+  const verifyFormRef = useRef<HTMLFormElement>(null)
 
   const isLoaded = !!signUp
   const destination = redirectUrl || '/account'
@@ -596,15 +621,8 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
       }
     >
       {step === 'verify' ? (
-        <form onSubmit={verify} className="grid gap-5">
-          <Field
-            label="Verification code"
-            value={code}
-            onChange={setCode}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            required
-          />
+        <form ref={verifyFormRef} onSubmit={verify} className="grid gap-5">
+          <VerificationCodeBoxes value={code} onChange={setCode} disabled={loading} onComplete={() => window.setTimeout(() => verifyFormRef.current?.requestSubmit(), 0)} />
           <InfoText message={info} />
           <ErrorText message={error} />
           <AuthButton disabled={!isLoaded || loading}>
@@ -696,6 +714,7 @@ export function CustomResetPassword() {
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const verifyFormRef = useRef<HTMLFormElement>(null)
 
   const isLoaded = !!signIn
 
@@ -840,15 +859,8 @@ export function CustomResetPassword() {
           <AuthButton disabled={!isLoaded || loading}>{loading ? 'Updating…' : 'Update password'}</AuthButton>
         </form>
       ) : (
-        <form onSubmit={submit} className="grid gap-5">
-          <Field
-            label={step === 'email' ? 'Email address' : 'Verification code'}
-            type={step === 'email' ? 'email' : 'text'}
-            value={step === 'email' ? email : code}
-            onChange={step === 'email' ? setEmail : setCode}
-            autoComplete={step === 'email' ? 'email' : 'one-time-code'}
-            inputMode={step === 'email' ? 'email' : 'numeric'}
-          />
+        <form ref={step === 'code' ? verifyFormRef : undefined} onSubmit={submit} className="grid gap-5">
+          {step === 'email' ? <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" /> : <VerificationCodeBoxes value={code} onChange={setCode} disabled={loading} onComplete={() => window.setTimeout(() => verifyFormRef.current?.requestSubmit(), 0)} />}
           <InfoText message={info} />
           <ErrorText message={error} />
           <AuthButton disabled={!isLoaded || loading}>
@@ -875,7 +887,7 @@ export function CustomResetPassword() {
 
 function AuthCard({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-sm sm:p-8">
+    <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-2 rounded-2xl border border-white/40 bg-card/85 p-5 shadow-[0_24px_80px_rgba(25,20,15,0.16)] backdrop-blur-sm duration-300 sm:p-8">
       <div className="mb-7">
         <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-primary">{eyebrow}</p>
         <h2 className="font-serif text-3xl leading-tight text-foreground">{title}</h2>

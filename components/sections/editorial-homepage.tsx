@@ -134,7 +134,7 @@ function EditorialHero() {
   }, [reducedMotion, slides.length])
 
   return (
-    <section className="relative h-[138svh] min-h-[760px] bg-background p-3 sm:p-5 lg:p-7" aria-label="The Revamp UG introduction">
+    <section className="relative h-[100svh] min-h-[640px] bg-background p-3 sm:h-[118svh] sm:min-h-[760px] sm:p-5 lg:h-[138svh] lg:p-7" aria-label="The Revamp UG introduction">
       <div className="sticky top-3 h-[calc(100svh-1.5rem)] min-h-[700px] overflow-hidden rounded-[2rem] border border-border bg-obsidian text-white shadow-2xl sm:top-5 sm:h-[calc(100svh-2.5rem)] lg:top-7 lg:h-[calc(100svh-3.5rem)]">
         <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" src={HERO_VIDEO} poster={HERO_POSTER} muted playsInline loop autoPlay preload="metadata" aria-label="Atmospheric architecture footage" />
         <div className="absolute inset-0 bg-black/42" aria-hidden="true" />
@@ -143,10 +143,10 @@ function EditorialHero() {
 
         <div className="absolute inset-x-0 top-0 mx-auto flex max-w-[1440px] items-center justify-between px-5 pt-28 sm:px-8 sm:pt-32 lg:px-12"><p className="text-[9px] uppercase tracking-[0.28em] text-white/65">The Revamp House · Uganda / East Africa</p><p className="hidden text-[9px] uppercase tracking-[0.28em] text-white/55 sm:block">0{currentSlide + 1} / 03</p></div>
 
-        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1440px] px-5 pb-9 sm:px-8 sm:pb-14 lg:px-12 lg:pb-16">
-          <div className="grid gap-8 lg:grid-cols-[1fr_0.42fr] lg:items-end">
-            <div className="max-w-4xl"><p className="text-[10px] uppercase tracking-[0.26em] text-white/60">{slide.subtitle}</p><h1 key={slide.title} className="mt-4 max-w-4xl animate-in fade-in slide-in-from-bottom-2 hero-heading font-serif text-[clamp(2.7rem,8vw,6.5rem)] font-light leading-[0.82] tracking-[-0.04em]">{slide.title}</h1></div>
-            <div className="flex flex-col items-start gap-5 lg:items-end"><p className="max-w-xs text-sm leading-6 text-white/72 lg:text-right">Bespoke interiors, architecture and objects composed around the way you live.</p><Link href={slide.href} className="inline-flex min-h-12 items-center gap-3 rounded-full bg-white px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-black transition-transform hover:-translate-y-0.5 hover:bg-gold-light">{slide.cta}<ArrowRight size={14} aria-hidden="true" /></Link></div>
+        <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1440px] px-5 pb-9 text-center sm:px-8 sm:pb-14 lg:px-12 lg:pb-16 lg:text-left">
+          <div className="grid gap-6 lg:grid-cols-[1fr_0.42fr] lg:items-end lg:gap-8">
+            <div className="mx-auto max-w-4xl lg:mx-0"><p className="text-[10px] uppercase tracking-[0.26em] text-white/60">{slide.subtitle}</p><h1 key={slide.title} className="mt-4 max-w-4xl animate-in fade-in slide-in-from-bottom-2 hero-heading font-serif text-[clamp(2.7rem,8vw,6.5rem)] font-light leading-[0.88] tracking-[-0.04em]">{slide.title}</h1></div>
+            <div className="flex flex-col items-center gap-4 lg:items-end lg:gap-5"><p className="max-w-xs text-sm leading-6 text-white/72 lg:text-right">Bespoke interiors, architecture and objects composed around the way you live.</p><Link href={slide.href} className="inline-flex min-h-12 items-center justify-center gap-3 rounded-full bg-white px-6 text-[10px] font-semibold uppercase tracking-[0.16em] text-black transition-transform hover:-translate-y-0.5 hover:bg-gold-light">{slide.cta}<ArrowRight size={14} aria-hidden="true" /></Link></div>
           </div>
           <div className="mt-9 flex items-center justify-between border-t border-white/20 pt-4"><div className="flex items-center gap-2" aria-label="Hero slides">{slides.map((item, index) => <button key={item.title} type="button" onClick={() => setCurrentSlide(index)} aria-label={`Show slide ${index + 1}`} className={cn('h-1.5 rounded-full transition-all', currentSlide === index ? 'w-12 bg-gold-light' : 'w-6 bg-white/35 hover:bg-white/60')} />)}</div><div className="hidden gap-6 text-[9px] uppercase tracking-[0.2em] text-white/55 sm:flex"><span>03 ways to begin</span><Link href="/book-consultation" className="text-white/80 transition-colors hover:text-gold-light">Book a consultation <ArrowUpRight size={12} className="ml-1 inline" aria-hidden="true" /></Link></div></div>
         </div>
@@ -163,7 +163,7 @@ function PhilosophySection() {
     <section className="border-b border-foreground/10 bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto grid max-w-[1440px] items-start gap-12 lg:grid-cols-[0.55fr_1fr_0.7fr] lg:gap-16">
         <div>
-          <Eyebrow>Why , The Revamp UG</Eyebrow>
+          <Eyebrow>Why Choose The Revamp UG</Eyebrow>
           <p className="mt-6 max-w-[13rem] text-xs leading-6 text-foreground/65">Two decades of excellence in luxury architecture, interiors and considered living.</p>
         </div>
         <div>
@@ -186,16 +186,16 @@ function PhilosophySection() {
 function ServiceWorld({ services, loading }: { services: Service[]; loading: boolean }) {
   const visible = services.slice(0, 6)
   return (
-    <section className="bg-canvas dark:bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
+    <section className="bg-canvas dark:bg-background px-5 py-12 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]">
-        <div className="grid gap-8 border-b border-foreground/15 pb-8 md:grid-cols-[0.7fr_1.3fr] md:items-end">
+        <div className="grid gap-5 border-b border-foreground/15 pb-6 text-center md:grid-cols-[0.7fr_1.3fr] md:items-end md:text-left md:pb-8">
           <div>
-            <Eyebrow>Explore Our Services</Eyebrow>
-            <h2 className="mt-4 max-w-md font-serif text-4xl font-light leading-[0.95] sm:text-6xl">Architectural Mastery</h2>
+            <Eyebrow>01  -  Explore our services</Eyebrow>
+            <h2 className="mx-auto mt-3 max-w-md font-serif text-4xl font-light leading-[0.95] sm:text-6xl md:mx-0">Architectural Mastery</h2>
           </div>
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8 md:items-end">
             <p className="max-w-lg text-sm leading-7 text-foreground/60">From conceptual design to structural excellence, we craft spaces that inspire</p>
-            <TextLink href="/services">Explore All Services</TextLink>
+            <Link href="/services" className="inline-flex min-h-11 items-center justify-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-transform hover:-translate-y-0.5 hover:bg-gold hover:text-foreground">Explore more services <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
           </div>
         </div>
 
@@ -204,12 +204,12 @@ function ServiceWorld({ services, loading }: { services: Service[]; loading: boo
             {[1, 2, 3, 4, 5, 6].map((item) => <div key={item} className={`animate-pulse bg-foreground/10 ${item % 2 === 0 ? 'mt-7 h-56' : 'h-64'}`} />)}
           </div>
         ) : visible.length ? (
-          <div className="mt-10 grid grid-cols-2 gap-x-3 gap-y-9 sm:gap-x-5 md:grid-cols-3 md:gap-y-12">
+          <div className="mt-7 grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-10 md:grid-cols-3 md:gap-y-12">
             {visible.map((service, index) => (
               <Link
                 key={`${service.categorySlug}-${service.serviceSlug}`}
                 href={`/services/${service.categorySlug}/${service.serviceSlug}`}
-                className={`group block ${index % 2 === 1 ? 'mt-7 md:mt-14' : ''} ${index === 2 ? 'md:-mt-2' : ''}`}
+                className={`group block ${index % 2 === 1 ? 'sm:mt-7 md:mt-14' : ''} ${index === 2 ? 'md:-mt-2' : ''}`}
               >
                 <div className={`relative overflow-hidden bg-canvas-dark ${index % 3 === 1 ? 'aspect-[4/5]' : 'aspect-[5/6]'}`}>
                   <img src={service.image || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]} alt={service.serviceName} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" />
@@ -240,7 +240,7 @@ function ImageStory({ image }: { image: string }) {
       <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-black/10" />
       <div className="relative mx-auto flex min-h-[31rem] max-w-[1440px] items-end px-5 py-12 sm:min-h-[38rem] sm:px-8 sm:py-16 lg:px-12">
         <div className="max-w-xl">
-          <Eyebrow light>Interior Design Excellence</Eyebrow>
+          <Eyebrow light>02  -  Interior design excellence</Eyebrow>
           <h2 className="mt-5 max-w-xl font-serif text-4xl font-light leading-[0.95] sm:text-6xl">Interior Design Excellence</h2>
           <p className="mt-6 max-w-sm text-sm leading-6 text-white/70">Every detail meticulously crafted to create spaces of unparalleled beauty</p>
           <div className="mt-8"><TextLink href="/portfolio" light>Explore All Services</TextLink></div>
@@ -252,14 +252,14 @@ function ImageStory({ image }: { image: string }) {
 
 function CollectionsPreview({ products }: { products: Product[] }) {
   const categories = [
-    ['Living Room', '/collections?category=Living%20Room', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487041/a09ebc5d8989908142fd7a8e84719c_bgmszd.jpg'],
-    ['Dining', '/collections?category=Dining', 'https://res.cloudinary.com/r8epy5mg/image/upload/L3D124S57ENDOVMIQNIUWLUFALUFX73OJNA8_4000x3000_efcwng.jpg'],
-    ['Bedroom', '/collections?category=Bedroom', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487069/L3D121S57ENDOVL2K7YUWLXMCLUFX7Y3MYQ8_1600x1200_kacydr.jpg'],
-    ['Kitchen', '/collections?category=Kitchen', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487074/L3D124S57ENDOVL3FJQUWLZS6LUFX7Y6XYI8_4000x3000_ryinvx.jpg'],
-    ['Bathroom', '/collections?category=Bathroom', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487081/L3D124S57ENDOVMIQGAUWIKKELUFX73OPYQ8_4000x3000_dpfpii.jpg'],
-    ['Lighting', '/collections?category=Lighting', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487080/L3D124S57ENDOVMH53YUWLVIELUFX73NCSY8_4000x3000_wsv3cj.jpg'],
-    ['Office', '/collections?category=Office', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785649986/Untitled-reception-20240830-171128_1_enmmlf.jpg'],
-    ['Outdoor', '/collections?category=Outdoor', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487052/IMG_3517_1_fq8p74.jpg'],
+    ['Living Room', '/collections?category=Living%20Room', 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=85'],
+    ['Dining', '/collections?category=Dining', 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=85'],
+    ['Bedroom', '/collections?category=Bedroom', 'https://images.unsplash.com/photo-1617104678098-de229db51175?auto=format&fit=crop&w=1200&q=85'],
+    ['Kitchen', '/collections?category=Kitchen', 'https://images.unsplash.com/photo-1556912167-f556f1f39fdf?auto=format&fit=crop&w=1200&q=85'],
+    ['Bathroom', '/collections?category=Bathroom', 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=85'],
+    ['Lighting', '/collections?category=Lighting', 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=1200&q=85'],
+    ['Office', '/collections?category=Office', 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=85'],
+    ['Outdoor', '/collections?category=Outdoor', 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=85'],
   ]
   return (
     <section className="bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
@@ -274,7 +274,7 @@ function ProjectFeature({ projects, loading }: { projects: Project[]; loading: b
     <section className="bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-10 flex flex-col gap-6 border-b border-foreground/15 pb-7 md:flex-row md:items-end md:justify-between">
-          <div><Eyebrow>Selected Work</Eyebrow><h2 className="mt-4 font-serif text-4xl font-light leading-none sm:text-6xl">Featured Projects</h2></div>
+          <div><Eyebrow>03  -  Selected work</Eyebrow><h2 className="mt-4 font-serif text-4xl font-light leading-none sm:text-6xl">Featured Projects</h2></div>
           <TextLink href="/portfolio">View All Projects</TextLink>
         </div>
         {loading ? (

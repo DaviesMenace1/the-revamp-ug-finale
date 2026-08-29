@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Analytics } from '@vercel/analytics/react'
-import { X } from 'lucide-react'
+import { Cookie, X } from 'lucide-react'
 
 export type ConsentState = {
   necessary: true
@@ -82,7 +82,7 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
       {children}
       {consent.analytics && <Analytics />}
       {ready && !hasDecision && <ConsentBanner onAccept={value.acceptAll} onReject={value.rejectOptional} onManage={value.openPreferences} />}
-      {ready && hasDecision && <button type="button" onClick={value.openPreferences} className="fixed bottom-3 left-3 z-[60] inline-flex min-h-11 items-center rounded-full border border-border bg-foreground px-4 text-xs font-medium text-background shadow-lg transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Cookie preferences</button>}
+      {ready && hasDecision && <button type="button" onClick={value.openPreferences} aria-label="Open cookie preferences" title="Cookie preferences" className="fixed bottom-3 left-3 z-[60] inline-flex size-11 items-center justify-center rounded-full border border-border bg-foreground text-background shadow-lg transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:h-11 sm:w-auto sm:px-4"><Cookie className="size-5 sm:mr-2" aria-hidden="true" /><span className="hidden text-xs font-medium sm:inline">Cookie preferences</span></button>}
       {showPreferences && <PreferencesDialog consent={consent} onSave={value.savePreferences} onClose={() => setShowPreferences(false)} />}
     </ConsentContext.Provider>
   )

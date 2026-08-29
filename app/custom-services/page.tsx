@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -19,7 +20,9 @@ const serviceTypes = [
   { id: 'other', label: 'Other', icon: FileText, description: 'Tell us what you need' },
 ]
 
-export default function CustomServicesPage() {
+function CustomServicesForm() {
+  const searchParams = useSearchParams()
+  const requestedService = searchParams.get('service')?.trim() || ''
   const [step, setStep] = useState(1)
   const [selectedService, setSelectedService] = useState<string | null>(null)
   const [formData, setFormData] = useState({
@@ -34,6 +37,13 @@ export default function CustomServicesPage() {
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+
+  useEffect(() => {
+    if (!requestedService) return
+    setSelectedService(requestedService)
+    setFormData((current) => ({ ...current, serviceType: requestedService }))
+    setStep(2)
+  }, [requestedService])
 
   const handleServiceSelect = (serviceId: string) => {
     setSelectedService(serviceId)
@@ -150,6 +160,7 @@ export default function CustomServicesPage() {
                     <p className="text-muted-foreground mb-8">
                       The more details you provide, the better we can understand your vision
                     </p>
+                    {selectedService && <p className="inline-flex rounded-full border border-accent/30 bg-accent/5 px-3 py-2 text-xs text-foreground">Selected service: <span className="ml-1 font-medium">{selectedService}</span></p>}
                   </div>
 
                   {/* Contact Information */}
@@ -336,4 +347,8 @@ export default function CustomServicesPage() {
       <SiteFooter />
     </>
   )
+}
+
+export default function CustomServicesPage() {
+  return <Suspense fallback={<main className="min-h-screen bg-background" aria-busy="true" />}><CustomServicesForm /></Suspense>
 }

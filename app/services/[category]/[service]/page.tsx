@@ -5,11 +5,10 @@ import { and, asc, eq } from 'drizzle-orm'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import Link from 'next/link'
-import { ArrowRight, ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateBreadcrumbSchema, generateServiceSchema } from '@/lib/seo/schema-generator'
-import { getServicePageContent } from '@/lib/service-content'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,12 +69,11 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const nextService = serviceIndex < publishedServices.length - 1 ? publishedServices[serviceIndex + 1] : null
   const serviceUrl = `${SITE_URL}/services/${encodeURIComponent(category.slug)}/${encodeURIComponent(service.slug)}`
   const serviceImage = service.ogImage || service.image || undefined
-  const serviceContent = getServicePageContent(service.name, category.name)
   const storySections = Array.isArray(service.storySections) ? service.storySections as Array<{ eyebrow?: string; title: string; body: string; image?: string; imagePosition?: 'left' | 'right' }> : []
-  const processSteps = Array.isArray(service.processSteps) && service.processSteps.length ? service.processSteps as Array<{ title: string; description: string }> : serviceContent.process.map((item) => ({ title: item.title, description: item.description }))
-  const faqs = Array.isArray(service.faqs) && service.faqs.length ? service.faqs as Array<{ question: string; answer: string }> : serviceContent.faqs
+  const processSteps = Array.isArray(service.processSteps) ? service.processSteps as Array<{ title: string; description: string }> : []
+  const faqs = Array.isArray(service.faqs) ? service.faqs as Array<{ question: string; answer: string }> : []
   const galleryImages = Array.isArray(service.gallery) ? service.gallery.filter((url): url is string => typeof url === 'string' && url.trim().length > 0) : []
-  const inquiryHref = `/contact?interest=quote_request&service=${encodeURIComponent(service.name)}`
+  const inquiryHref = `/custom-services?service=${encodeURIComponent(service.name)}`
 
   return (
     <>
@@ -167,72 +165,25 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                   </div>
                 )}
 
-                <div>
-                  <h2 className="font-serif text-3xl font-light text-foreground mb-4">
-                    {serviceContent.offerLabel}
-                  </h2>
-                  <ul className="space-y-3">
-                    {serviceContent.offerItems.map((item) => (
-                      <li key={item} className="flex items-start gap-3 text-foreground/70">
-                        <span className="text-gold mt-1">→</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h2 className="font-serif text-3xl font-light text-foreground mb-4">
-                    Our Process
-                  </h2>
+                {processSteps.length > 0 && <div>
+                  <h2 className="font-serif text-3xl font-light text-foreground mb-4">Our process</h2>
                   <div className="space-y-4">
-                    {processSteps.map((item, index) => (
-                      <div key={`${item.title}-${index}`} className="flex gap-4 pb-4 border-b border-border/20 last:border-0">
-                        <div className="text-2xl font-light text-muted-foreground">{String(index + 1).padStart(2, '0')}</div>
-                        <div>
-                          <h3 className="font-medium text-foreground">{item.title}</h3>
-                          <p className="text-sm text-foreground/60 mt-1">{item.description}</p>
-                        </div>
-                      </div>
-                    ))}
+                    {processSteps.map((item, index) => <div key={`${item.title}-${index}`} className="flex gap-4 pb-4 border-b border-border/20 last:border-0"><div className="text-2xl font-light text-muted-foreground">{String(index + 1).padStart(2, '0')}</div><div><h3 className="font-medium text-foreground">{item.title}</h3><p className="text-sm text-foreground/60 mt-1">{item.description}</p></div></div>)}
                   </div>
-                </div>
+                </div>}
               </div>
 
               <div className="md:col-span-1">
                 <div className="sticky top-24 space-y-6">
-                  <div className="p-6 bg-gold/5 border border-gold/20 rounded-lg">
-                    <h3 className="font-serif text-xl font-light text-foreground mb-2">
-                      {service.name}
-                    </h3>
-                    <p className="text-sm text-foreground/70">
-                      Part of our {category.name} services
-                    </p>
+                  <div className="rounded-lg border border-gold/20 bg-gold/5 p-6">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-primary">Ready when you are</p>
+                    <h3 className="mt-3 font-serif text-2xl font-light text-foreground">Start with {service.name}.</h3>
+                    <p className="mt-3 text-sm leading-6 text-foreground/70">Share a few details about your space and the studio will take it from there.</p>
                   </div>
-
-                  <Link
-                    href={inquiryHref}
-                    className="block w-full text-center px-6 py-3 bg-gold text-foreground rounded font-medium hover:bg-gold/90 transition-colors"
-                  >
-                    {serviceContent.inquiryLabel}
-                  </Link>
-
-                  <div className="p-6 border border-border/30 rounded-lg space-y-3">
-                    <p className="text-sm font-medium text-foreground">Have questions?</p>
-                    <p className="text-sm text-foreground/70">
-                      Contact our team to discuss how this service can transform your project.
-                    </p>
-                    <Link
-                      href={inquiryHref}
-                      className="inline-flex items-center gap-1 text-sm text-gold hover:text-gold/80 transition-colors"
-                    >
-                      Request a conversation
-                      <ArrowRight size={14} />
-                    </Link>
-                  </div>
+                  <Link href={inquiryHref} className="flex min-h-13 w-full items-center justify-center rounded bg-gold px-6 text-center font-medium text-foreground transition-colors hover:bg-gold/90">Request this service</Link>
                                 </div>
 
-                <div>
+                {faqs.length > 0 && <div>
                   <h2 className="font-serif text-3xl font-light text-foreground mb-4">Frequently asked</h2>
                   <div className="divide-y divide-border border-y border-border/60">
                     {faqs.map((faq) => (
@@ -245,7 +196,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                       </details>
                     ))}
                   </div>
-                </div>
+                </div>}
               </div>
             </div>
           </div>

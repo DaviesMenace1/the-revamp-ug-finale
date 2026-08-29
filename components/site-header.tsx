@@ -14,6 +14,7 @@ import {
   Search,
   ShoppingBag,
   User,
+  Bell,
   X,
 } from 'lucide-react'
 
@@ -152,7 +153,7 @@ const socialLinks = [
 
 export function SiteHeader() {
   const pathname = usePathname()
-  const { user } = useUser()
+  const { user, isSignedIn } = useUser()
 
   const cart = useCart()
   const cartCount = cart?.cartCount ?? 0
@@ -473,11 +474,8 @@ export function SiteHeader() {
 
               <div className="flex size-10 items-center justify-center">
                 <ThemeSwitcher />
-              </div>
-
-              {/* Notifications desktop */}
-
-              <div className="hidden lg:block">
+              </div>              {/* Notifications: visible on mobile and desktop */}
+              <div className="flex">
                 <NotificationBell
                   className={cn(
                     'size-10',
@@ -508,7 +506,7 @@ export function SiteHeader() {
                 href="/account"
                 prefetch={false}
                 className={cn(
-                  'flex size-10 shrink-0 items-center justify-center transition-colors',
+                  'hidden size-10 shrink-0 items-center justify-center transition-colors md:flex',
                   iconText,
                 )}
                 aria-label="Account"
@@ -530,7 +528,7 @@ export function SiteHeader() {
                 href="/cart"
                 prefetch={false}
                 className={cn(
-                  'relative hidden size-10 shrink-0 items-center justify-center transition-colors md:flex',
+                  'relative flex size-10 shrink-0 items-center justify-center transition-colors',
                   iconText,
                 )}
                 aria-label="Shopping cart"
@@ -544,6 +542,10 @@ export function SiteHeader() {
                 )}
               </Link>
 
+              {!isSignedIn && <div className={cn('hidden items-center gap-2 pl-2 md:flex', iconText)}>
+                <Link href="/sign-in" prefetch={false} className="text-[10px] uppercase tracking-[0.14em] transition-colors hover:text-gold">Sign in</Link>
+                <Link href="/sign-up" prefetch={false} className="inline-flex min-h-8 items-center rounded-full border border-current/40 px-3 text-[10px] uppercase tracking-[0.14em] transition-colors hover:border-gold hover:text-gold">Sign up</Link>
+              </div>}
               {/* MOBILE / TABLET MENU */}
 
               <button
@@ -689,6 +691,14 @@ export function SiteHeader() {
 
                 </nav>
 
+                {/* QUICK ACCOUNT ACTIONS */}
+                <div className="mt-8 grid grid-cols-2 gap-2 border-y border-border py-5">
+                  <Link href="/account" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center gap-2 border border-border px-3 text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><User className="size-4" aria-hidden="true" />Account</Link>
+                  <Link href="/wishlist" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center gap-2 border border-border px-3 text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><Heart className="size-4" aria-hidden="true" />Wishlist</Link>
+                  <Link href="/cart" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center gap-2 border border-border px-3 text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><ShoppingBag className="size-4" aria-hidden="true" />Cart{cartCount > 0 && <span className="ml-auto text-primary">{cartCount}</span>}</Link>
+                  <button type="button" onClick={() => { setMobileMenuOpen(false); window.setTimeout(() => document.querySelector<HTMLButtonElement>('[aria-label^="Notifications"]')?.click(), 50) }} className="flex min-h-11 items-center gap-2 border border-border px-3 text-left text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><Bell className="size-4" aria-hidden="true" />Notifications</button>
+                </div>
+                {!isSignedIn && <div className="grid grid-cols-2 gap-2 pt-4"><Link href="/sign-in" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center justify-center border border-border px-3 text-xs uppercase tracking-[0.12em] transition-colors hover:border-gold hover:text-gold">Sign in</Link><Link href="/sign-up" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center justify-center bg-foreground px-3 text-xs uppercase tracking-[0.12em] text-background transition-colors hover:bg-gold hover:text-foreground">Sign up</Link></div>}
                 {/* MORE FROM REVAMP */}
 
                 <div className="mt-10">

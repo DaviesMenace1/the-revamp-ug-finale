@@ -139,8 +139,7 @@ const socialLinks = [
   },
   {
     label: 'Facebook',
-    href: 'https://www.tiktok.com/@revamp_ree?_r=1&_t=ZS-986bYbyqHDg
-',
+    href: 'https://www.tiktok.com/@revamp_ree?_r=1&_t=ZS-986bYbyqHDg',
     icon: Facebook,
   },
 ]

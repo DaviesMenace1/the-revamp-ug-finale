@@ -47,6 +47,7 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
   const [form, setForm] = useState<ArticleForm>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase()
@@ -55,45 +56,65 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
   }, [list, searchTerm])
 
   function openNew() {
+    setActionError(null)
     setForm(emptyForm)
     setEditingId(null)
     setShowForm(true)
   }
 
   function openEdit(article: Article) {
+    setActionError(null)
     startTransition(async () => {
-      const result = await getArticleForAdmin(article.id)
-      if (!result.success || !result.article) return
-      const detail = result.article
-      setForm({
-        title: detail.title,
-        excerpt: detail.excerpt ?? '',
-        content: detail.content ?? '',
-        author: detail.author ?? '',
-        category: detail.category ?? '',
-        featuredImage: detail.featuredImage ?? '',
-        gallery: Array.isArray(detail.gallery) ? detail.gallery as string[] : [],
-        storySections: Array.isArray(detail.storySections) ? detail.storySections : [],
-        status: detail.status ?? 'draft',
-      })
-      setEditingId(detail.id)
-      setShowForm(true)
+      try {
+        const result = await getArticleForAdmin(article.id)
+        if (!result.success || !result.article) {
+          setActionError(result.error || 'The article could not be loaded. Refresh the page and try again.')
+          return
+        }
+        const detail = result.article
+        setForm({
+          title: detail.title,
+          excerpt: detail.excerpt ?? '',
+          content: detail.content ?? '',
+          author: detail.author ?? '',
+          category: detail.category ?? '',
+          featuredImage: detail.featuredImage ?? '',
+          gallery: Array.isArray(detail.gallery) ? detail.gallery as string[] : [],
+          storySections: Array.isArray(detail.storySections) ? detail.storySections : [],
+          status: detail.status ?? 'draft',
+        })
+        setEditingId(detail.id)
+        setShowForm(true)
+      } catch (error) {
+        console.error('Failed to load article editor:', error)
+        setActionError('The article editor could not be opened. Check your connection and try again.')
+      }
     })
   }
 
   function handleSave() {
-    if (!form.title.trim()) return
+    if (!form.title.trim()) {
+      setActionError('Add a title before saving this article.')
+      return
+    }
 
+    setActionError(null)
     startTransition(async () => {
-      if (editingId) {
-        const res = await updateArticle(editingId, form)
-        if (res.success) {
+      try {
+        if (editingId) {
+          const res = await updateArticle(editingId, form)
+          if (!res.success) {
+            setActionError(res.error || 'The article could not be saved.')
+            return
+          }
           setList((prev) => prev.map((a) => (a.id === editingId ? { ...a, ...form } : a)))
           setShowForm(false)
-        }
-      } else {
-        const res = await createArticle(form)
-        if (res.success && res.article) {
+        } else {
+          const res = await createArticle(form)
+          if (!res.success || !res.article) {
+            setActionError(res.error || 'The article could not be created.')
+            return
+          }
           const article: Article = {
             id: res.article.id,
             title: res.article.title,
@@ -111,16 +132,27 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
           setList((prev) => [article, ...prev])
           setShowForm(false)
         }
+      } catch (error) {
+        console.error('Failed to save article:', error)
+        setActionError('The article could not be saved. Check your connection and try again.')
       }
     })
   }
 
   function handleDelete(id: string) {
     if (!confirm('Delete this article?')) return
+    setActionError(null)
     startTransition(async () => {
-      const res = await deleteArticle(id)
-      if (res.success) {
+      try {
+        const res = await deleteArticle(id)
+        if (!res.success) {
+          setActionError(res.error || 'The article could not be deleted.')
+          return
+        }
         setList((prev) => prev.filter((a) => a.id !== id))
+      } catch (error) {
+        console.error('Failed to delete article:', error)
+        setActionError('The article could not be deleted. Check your connection and try again.')
       }
     })
   }
@@ -155,6 +187,8 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
         />
       </div>
 
+      {actionError && <div role="alert" className="rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{actionError}</div>}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((article) => (
           <Card key={article.id} className="overflow-hidden">
@@ -173,10 +207,10 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
                   {article.status}
                 </span>
                 <div className="flex gap-2">
-                  <button onClick={() => openEdit(article)}>
+                  <button type="button" onClick={() => openEdit(article)}>
                     <Edit className="w-4 h-4 text-muted-foreground" />
                   </button>
-                  <button onClick={() => handleDelete(article.id)}>
+                  <button type="button" onClick={() => handleDelete(article.id)}>
                     <Trash2 className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </div>
@@ -199,7 +233,7 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
               <h2 className="text-lg font-medium text-foreground">
                 {editingId ? 'Edit Article' : 'New Article'}
               </h2>
-              <button onClick={() => setShowForm(false)}>
+              <button type="button" onClick={() => setShowForm(false)}>
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
@@ -262,7 +296,7 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
                 <option value="published">Published</option>
               </select>
 
-              <Button disabled={isPending} onClick={handleSave} className="rounded-none w-full">
+              <Button type="button" disabled={isPending} onClick={handleSave} className="rounded-none w-full">
                 {editingId ? 'Save Changes' : 'Create Article'}
               </Button>
             </div>

@@ -107,49 +107,56 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [actionError, setActionError] = useState<string | null>(null)
+  const [actionMessage, setActionMessage] = useState<string | null>(null)
 
   const [formData, setFormData] = useState(defaultForm)
 
   const handleTitleChange = (title: string) => {
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-    setFormData({ ...formData, title, slug })
+    setFormData((current) => ({ ...current, title, slug }))
   }
 
   const handleEdit = (project: any) => {
     setActionError(null)
+    setActionMessage(null)
     startTransition(async () => {
-      const result = await getProjectForAdmin(project.id)
-      if (!result.success || !result.project) {
-        setActionError(result.error || 'Failed to load the project editor. Refresh the page and try again.')
-        return
+      try {
+        const result = await getProjectForAdmin(project.id)
+        if (!result.success || !result.project) {
+          setActionError(result.error || 'Failed to load the project editor. Refresh the page and try again.')
+          return
+        }
+        const detail = result.project
+        setFormData({
+          title: detail.title || '',
+          slug: detail.slug || '',
+          clientName: detail.clientName || '',
+          client: detail.client || '',
+          location: detail.location || '',
+          category: detail.category || '',
+          subCategory: detail.subCategory || '',
+          designer: detail.designer || '',
+          budget: detail.budget || '',
+          description: detail.description || '',
+          longDescription: detail.longDescription || '',
+          shortDescription: detail.shortDescription || '',
+          thumbnailImage: detail.thumbnailImage || '',
+          tags: Array.isArray(detail.tags) ? detail.tags.join(', ') : '',
+          images: Array.isArray(detail.images) ? detail.images as string[] : [],
+          gallery: Array.isArray(detail.gallery) ? detail.gallery as string[] : [],
+          storySections: Array.isArray(detail.storySections) ? detail.storySections : [],
+          highlights: Array.isArray(detail.highlights) ? detail.highlights : [],
+          publishStatus: detail.publishStatus || 'published',
+          year: detail.year || '',
+          progress: detail.progress != null ? String(detail.progress) : '0',
+          dueDate: detail.dueDate ? String(detail.dueDate).slice(0, 10) : '',
+        })
+        setEditingId(detail.id)
+        setIsFormOpen(true)
+      } catch (error) {
+        console.error('Failed to load project editor:', error)
+        setActionError('The project editor could not be opened. Check your connection and try again.')
       }
-      const detail = result.project
-      setFormData({
-        title: detail.title || '',
-        slug: detail.slug || '',
-        clientName: detail.clientName || '',
-        client: detail.client || '',
-        location: detail.location || '',
-        category: detail.category || '',
-        subCategory: detail.subCategory || '',
-        designer: detail.designer || '',
-        budget: detail.budget || '',
-        description: detail.description || '',
-        longDescription: detail.longDescription || '',
-        shortDescription: detail.shortDescription || '',
-        thumbnailImage: detail.thumbnailImage || '',
-        tags: Array.isArray(detail.tags) ? detail.tags.join(', ') : '',
-        images: Array.isArray(detail.images) ? detail.images as string[] : [],
-        gallery: Array.isArray(detail.gallery) ? detail.gallery as string[] : [],
-        storySections: Array.isArray(detail.storySections) ? detail.storySections : [],
-        highlights: Array.isArray(detail.highlights) ? detail.highlights : [],
-        publishStatus: detail.publishStatus || 'published',
-        year: detail.year || '',
-        progress: detail.progress != null ? String(detail.progress) : '0',
-        dueDate: detail.dueDate ? String(detail.dueDate).slice(0, 10) : '',
-      })
-      setEditingId(detail.id)
-      setIsFormOpen(true)
     })
   }
 
@@ -157,19 +164,26 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
     if (!confirm('Are you sure you want to delete this project?')) return
 
     setActionError(null)
+    setActionMessage(null)
     startTransition(async () => {
-      const res = await deleteProject(id)
-      if (res.success) {
-        setProjects((current) => current.filter((project) => project.id !== id))
-      } else {
-        setActionError(res.error || 'Failed to delete project. Refresh the page and try again.')
+      try {
+        const res = await deleteProject(id)
+        if (res.success) {
+          setProjects((current) => current.filter((project) => project.id !== id))
+          setActionMessage('Project deleted.')
+        } else {
+          setActionError(res.error || 'Failed to delete project. Refresh the page and try again.')
+        }
+      } catch (error) {
+        console.error('Failed to delete project:', error)
+        setActionError('The project could not be deleted. Check your connection and try again.')
       }
     })
   }
 
   const handleSubmit = async () => {
-    if (!formData.title) {
-      alert('Please enter a project title.')
+    if (!formData.title.trim()) {
+      setActionError('Add a project title before saving.')
       return
     }
 
@@ -182,24 +196,34 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
     }
 
     setActionError(null)
+    setActionMessage(null)
     startTransition(async () => {
-      if (editingId) {
-        const res = await updateProject(editingId, submissionData)
-        if (res.success) {
-          setProjects((current) => current.map((project) => project.id === editingId ? { ...project, ...submissionData, slug: res.project?.slug || submissionData.slug } : project))
-          setEditingId(null)
-          setIsFormOpen(false)
-          setFormData(defaultForm)
+      try {
+        if (editingId) {
+          const res = await updateProject(editingId, submissionData)
+          if (res.success) {
+            setProjects((current) => current.map((project) => project.id === editingId ? { ...project, ...submissionData, slug: res.project?.slug || submissionData.slug } : project))
+            setEditingId(null)
+            setIsFormOpen(false)
+            setFormData(defaultForm)
+            setActionMessage('Project updated.')
+          } else {
+            setActionError(res.error || 'Failed to update project. Check the fields and try again.')
+          }
         } else {
-          setActionError(res.error || 'Failed to update project. Check the fields and try again.')
+          const res = await createProject(submissionData)
+          if (res.success) {
+            setIsFormOpen(false)
+            setFormData(defaultForm)
+            setActionMessage('Project published.')
+            window.location.reload()
+          } else {
+            setActionError(res.error || 'Failed to create project. Check the fields and try again.')
+          }
         }
-      } else {
-        const res = await createProject(submissionData)
-        if (res.success) {
-          window.location.reload()
-        } else {
-          setActionError(res.error || 'Failed to create project. Check the fields and try again.')
-        }
+      } catch (error) {
+        console.error('Failed to save project:', error)
+        setActionError('The project could not be saved. Check your connection and try again.')
       }
     })
   }
@@ -237,6 +261,8 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
         </div>
       )}
 
+      {actionMessage && <div role="status" className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{actionMessage}</div>}
+
       {actionError && (
         <div role="alert" className="flex items-center justify-between gap-4 rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
           <span>{actionError}</span>
@@ -251,7 +277,7 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
             <h2 className="font-serif text-2xl font-light text-foreground">
               {editingId ? 'Edit Project Details' : 'Create New Project'}
             </h2>
-            <button onClick={() => { setIsFormOpen(false); setEditingId(null); }} className="text-muted-foreground hover:text-foreground">
+            <button type="button" onClick={() => { setIsFormOpen(false); setEditingId(null); }} className="text-muted-foreground hover:text-foreground">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -260,59 +286,59 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
             <div className="md:col-span-2"><h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2">Overview</h3></div>
 
             <div><label className="block text-xs font-medium text-muted-foreground mb-1">Project Title *</label><Input value={formData.title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Nakasero Luxury Residence" className="rounded-none" /></div>
-            <div><label className="block text-xs font-medium text-muted-foreground mb-1">URL Slug *</label><Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} placeholder="nakasero-luxury-residence" className="rounded-none" /></div>
-            <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-1">Short Teaser Description</label><Input value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Modern minimalist 4-bedroom architectural redesign..." className="rounded-none" /></div>
+            <div><label className="block text-xs font-medium text-muted-foreground mb-1">URL Slug *</label><Input value={formData.slug} onChange={(e) => setFormData((current) => ({ ...current, slug: e.target.value }))} placeholder="nakasero-luxury-residence" className="rounded-none" /></div>
+            <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-1">Short Teaser Description</label><Input value={formData.description} onChange={(e) => setFormData((current) => ({ ...current, description: e.target.value }))} placeholder="Modern minimalist 4-bedroom architectural redesign..." className="rounded-none" /></div>
 
             <div className="md:col-span-2 mt-2"><h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2">Specifications</h3></div>
 
-            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Client Name</label><Input value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value })} placeholder="Sarah Kiwanuka" className="rounded-none" /></div>
-            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Client (display label)</label><Input value={formData.client} onChange={(e) => setFormData({ ...formData, client: e.target.value })} placeholder="Private Residence" className="rounded-none" /></div>
-            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Location</label><Input value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="Kampala, Uganda" className="rounded-none" /></div>
-            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Category</label><Input value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} placeholder="Residential Interior" className="rounded-none" /></div>
-            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Sub-Category</label><Input value={formData.subCategory} onChange={(e) => setFormData({ ...formData, subCategory: e.target.value })} placeholder="Living Room" className="rounded-none" /></div>
-            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Lead Designer</label><Input value={formData.designer} onChange={(e) => setFormData({ ...formData, designer: e.target.value })} placeholder="Revamp Design Team" className="rounded-none" /></div>
-            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Estimated Budget ($)</label><Input type="number" value={formData.budget} onChange={(e) => setFormData({ ...formData, budget: e.target.value })} placeholder="45000" className="rounded-none" /></div>
-            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Year</label><Input value={formData.year} onChange={(e) => setFormData({ ...formData, year: e.target.value })} placeholder="2026" className="rounded-none" /></div>
-            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Completion Progress (%)</label><Input type="number" min="0" max="100" value={formData.progress} onChange={(e) => setFormData({ ...formData, progress: e.target.value })} placeholder="75" className="rounded-none" /></div>
-            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Due Date</label><Input type="date" value={formData.dueDate} onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} className="rounded-none" /></div>
+            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Client Name</label><Input value={formData.clientName} onChange={(e) => setFormData((current) => ({ ...current, clientName: e.target.value }))} placeholder="Sarah Kiwanuka" className="rounded-none" /></div>
+            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Client (display label)</label><Input value={formData.client} onChange={(e) => setFormData((current) => ({ ...current, client: e.target.value }))} placeholder="Private Residence" className="rounded-none" /></div>
+            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Location</label><Input value={formData.location} onChange={(e) => setFormData((current) => ({ ...current, location: e.target.value }))} placeholder="Kampala, Uganda" className="rounded-none" /></div>
+            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Category</label><Input value={formData.category} onChange={(e) => setFormData((current) => ({ ...current, category: e.target.value }))} placeholder="Residential Interior" className="rounded-none" /></div>
+            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Sub-Category</label><Input value={formData.subCategory} onChange={(e) => setFormData((current) => ({ ...current, subCategory: e.target.value }))} placeholder="Living Room" className="rounded-none" /></div>
+            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Lead Designer</label><Input value={formData.designer} onChange={(e) => setFormData((current) => ({ ...current, designer: e.target.value }))} placeholder="Revamp Design Team" className="rounded-none" /></div>
+            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Estimated Budget ($)</label><Input type="number" value={formData.budget} onChange={(e) => setFormData((current) => ({ ...current, budget: e.target.value }))} placeholder="45000" className="rounded-none" /></div>
+            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Year</label><Input value={formData.year} onChange={(e) => setFormData((current) => ({ ...current, year: e.target.value }))} placeholder="2026" className="rounded-none" /></div>
+            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Completion Progress (%)</label><Input type="number" min="0" max="100" value={formData.progress} onChange={(e) => setFormData((current) => ({ ...current, progress: e.target.value }))} placeholder="75" className="rounded-none" /></div>
+            <div><label className="block text-xs font-medium text-muted-foreground mb-1">Due Date</label><Input type="date" value={formData.dueDate} onChange={(e) => setFormData((current) => ({ ...current, dueDate: e.target.value }))} className="rounded-none" /></div>
 
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-muted-foreground mb-1">Short Description (portfolio card summary)</label>
-              <textarea value={formData.shortDescription} onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })} rows={2} className="w-full px-3 py-2 border border-input rounded-none bg-background text-sm resize-none" placeholder="A one or two line summary shown on portfolio cards..." />
+              <textarea value={formData.shortDescription} onChange={(e) => setFormData((current) => ({ ...current, shortDescription: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-input rounded-none bg-background text-sm resize-none" placeholder="A one or two line summary shown on portfolio cards..." />
             </div>
 
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-muted-foreground mb-1">Full Project Story</label>
-              <textarea value={formData.longDescription} onChange={(e) => setFormData({ ...formData, longDescription: e.target.value })} rows={5} className="w-full px-3 py-2 border border-input rounded-none bg-background text-sm resize-none" placeholder="Explain spatial layout, material selections, and lighting strategy..." />
+              <textarea value={formData.longDescription} onChange={(e) => setFormData((current) => ({ ...current, longDescription: e.target.value }))} rows={5} className="w-full px-3 py-2 border border-input rounded-none bg-background text-sm resize-none" placeholder="Explain spatial layout, material selections, and lighting strategy..." />
             </div>
 
             <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
-              <StructuredListEditor kind="story" value={formData.storySections} onChange={(storySections) => setFormData({ ...formData, storySections })} />
-              <StructuredListEditor kind="highlight" value={formData.highlights} onChange={(highlights) => setFormData({ ...formData, highlights })} />
+              <StructuredListEditor kind="story" value={formData.storySections} onChange={(storySections) => setFormData((current) => ({ ...current, storySections }))} />
+              <StructuredListEditor kind="highlight" value={formData.highlights} onChange={(highlights) => setFormData((current) => ({ ...current, highlights }))} />
             </div>
 
-            <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-1">Tags (Comma-separated)</label><Input value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} placeholder="minimalist, hardwood, accent-lighting" className="rounded-none" /></div>
+            <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-1">Tags (Comma-separated)</label><Input value={formData.tags} onChange={(e) => setFormData((current) => ({ ...current, tags: e.target.value }))} placeholder="minimalist, hardwood, accent-lighting" className="rounded-none" /></div>
 
             <div className="md:col-span-2 mt-2"><h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-b pb-2">Media & Galleries</h3></div>
 
-            <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-2">Main Cover Thumbnail</label><SingleImageUpload value={formData.thumbnailImage} onChange={(thumbnailImage) => setFormData({ ...formData, thumbnailImage })} label="Upload cover thumbnail" /></div>
+            <div className="md:col-span-2"><label className="block text-xs font-medium text-muted-foreground mb-2">Main Cover Thumbnail</label><SingleImageUpload value={formData.thumbnailImage} onChange={(thumbnailImage) => setFormData((current) => ({ ...current, thumbnailImage }))} label="Upload cover thumbnail" /></div>
 
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-muted-foreground mb-2">Project Key Showcase Images</label>
-              <ImageUpload value={formData.images} onChange={(images) => setFormData({ ...formData, images })} maxImages={15} label="Upload Main Photo" />
+              <ImageUpload value={formData.images} onChange={(images) => setFormData((current) => ({ ...current, images }))} maxImages={15} label="Upload Main Photo" />
             </div>
 
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-muted-foreground mb-2">Extended Photo Gallery</label>
-              <ImageUpload value={formData.gallery} onChange={(gallery) => setFormData({ ...formData, gallery })} maxImages={40} label="Upload Gallery Detail" />
+              <ImageUpload value={formData.gallery} onChange={(gallery) => setFormData((current) => ({ ...current, gallery }))} maxImages={40} label="Upload Gallery Detail" />
             </div>
           </div>
 
           <div className="flex items-center gap-3 pt-4 border-t">
-            <Button onClick={handleSubmit} disabled={isPending} className="bg-primary text-primary-foreground rounded-none px-6">
+            <Button type="button" onClick={handleSubmit} disabled={isPending} className="bg-primary text-primary-foreground rounded-none px-6">
               {isPending ? 'Saving...' : editingId ? 'Update Project' : 'Publish Project'}
             </Button>
-            <Button onClick={() => { setIsFormOpen(false); setEditingId(null); }} variant="outline" className="rounded-none">
+            <Button type="button" onClick={() => { setIsFormOpen(false); setEditingId(null); }} variant="outline" className="rounded-none">
               Cancel
             </Button>
           </div>

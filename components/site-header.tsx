@@ -7,16 +7,19 @@ import { useUser } from '@clerk/nextjs'
 import {
   ArrowUpRight,
   ChevronDown,
-  Facebook,
   Heart,
-  Instagram,
-  Linkedin,
   Menu,
   Search,
   ShoppingBag,
   User,
   X,
 } from 'lucide-react'
+
+import {
+  FaInstagram,
+  FaTiktok,
+  FaSnapchatGhost,
+} from 'react-icons/fa'
 
 import NotificationBell from '@/components/notifications/notification-bell'
 import { ThemeSwitcher } from '@/components/theme-switcher'
@@ -130,17 +133,17 @@ const socialLinks = [
   {
     label: 'Instagram',
     href: 'https://www.instagram.com/therevamp_ug?igsh=Nnl3YnY5NGN6eDht',
-    icon: Instagram,
+    icon: FaInstagram,
   },
   {
-    label: 'LinkedIn',
+    label: 'Snapchat',
     href: 'https://www.snapchat.com/add/ree_onit?share_id=llRDQ3VnVrE&locale=en-US',
-    icon: Linkedin,
+    icon: FaSnapchatGhost,
   },
   {
-    label: 'Facebook',
+    label: 'Tiktok',
     href: 'https://www.tiktok.com/@revamp_ree?_r=1&_t=ZS-986bYbyqHDg',
-    icon: Facebook,
+    icon: FaTiktok,
   },
 ]
 

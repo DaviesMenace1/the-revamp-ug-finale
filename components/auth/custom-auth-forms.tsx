@@ -430,6 +430,8 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
         </form>
       ) : (
         <form onSubmit={submit} className="grid gap-5">
+          <div className="grid gap-3"><p className="text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Continue with</p><OAuthButtons onOAuth={oauth} loading={oauthLoading} /></div>
+          <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground"><span className="h-px flex-1 bg-border" />Or<span className="h-px flex-1 bg-border" /></div>
           <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" />
           <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
           <div className="flex justify-end">
@@ -445,7 +447,6 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
               </>
             )}
           </AuthButton>
-          <div className="grid gap-3 pt-2"><p className="text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Continue with</p><OAuthButtons onOAuth={oauth} loading={oauthLoading} /></div>
           <p className="text-center text-sm text-muted-foreground">
             New here?{' '}
             <Link
@@ -652,6 +653,8 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
         </form>
       ) : (
         <form onSubmit={submit} className="grid gap-5">
+          <div className="grid gap-3"><p className="text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Continue with</p><OAuthButtons onOAuth={oauth} loading={oauthLoading} /></div>
+          <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground"><span className="h-px flex-1 bg-border" />Or<span className="h-px flex-1 bg-border" /></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="First name" value={firstName} onChange={setFirstName} autoComplete="given-name" required />
             <Field label="Last name" value={lastName} onChange={setLastName} autoComplete="family-name" required />
@@ -894,7 +897,7 @@ export function CustomResetPassword() {
 
 function AuthCard({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-2 rounded-2xl border border-white/45 bg-[#f5eee4]/72 p-5 text-foreground shadow-[0_28px_90px_rgba(18,13,9,0.34)] backdrop-blur-xl duration-300 sm:p-8">
+    <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-2 rounded-2xl border border-white/45 bg-[#f5eee4]/48 p-5 text-foreground shadow-[0_28px_90px_rgba(18,13,9,0.34)] backdrop-blur-xl duration-300 sm:p-8">
       <div className="mb-7">
         <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-primary">{eyebrow}</p>
         <h2 className="font-serif text-3xl leading-tight text-foreground">{title}</h2>

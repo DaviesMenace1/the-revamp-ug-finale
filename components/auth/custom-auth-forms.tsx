@@ -3,7 +3,8 @@
 import { FormEvent, useRef, useState } from 'react'
 import { useSignIn, useSignUp } from '@clerk/nextjs'
 import { ArrowRight, Check, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
-import { SiGoogle, SiLinkedin } from 'react-icons/si'
+import { FaLinkedinIn } from 'react-icons/fa'
+import { SiGoogle } from '@icons-pack/react-simple-icons'
 import Link from 'next/link'
 import { AUTH_NAME_MAX_LENGTH, AUTH_USERNAME_MAX_LENGTH, isBoundedAuthText, isValidAuthEmail, isValidAuthPassword, isValidVerificationCode, normalizeAuthEmail } from '@/lib/auth/input-validation'
 
@@ -118,7 +119,7 @@ function OAuthButtons({ onOAuth, loading }: { onOAuth: (strategy: OAuthStrategy)
         disabled={!!loading}
         className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
       >
-        <SiLinkedin color="default" size={18} aria-hidden="true" />
+        <FaLinkedinIn color="#0A66C2" size={18} aria-hidden="true" />
         {loading === 'oauth_linkedin_oidc' ? 'Connecting…' : 'Continue with LinkedIn'}
       </button>
     </div>

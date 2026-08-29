@@ -163,7 +163,7 @@ function PhilosophySection() {
     <section className="border-b border-foreground/10 bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto grid max-w-[1440px] items-start gap-12 lg:grid-cols-[0.55fr_1fr_0.7fr] lg:gap-16">
         <div>
-          <Eyebrow>Why Choose The Revamp UG</Eyebrow>
+          <Eyebrow>Why , The Revamp UG</Eyebrow>
           <p className="mt-6 max-w-[13rem] text-xs leading-6 text-foreground/65">Two decades of excellence in luxury architecture, interiors and considered living.</p>
         </div>
         <div>
@@ -190,7 +190,7 @@ function ServiceWorld({ services, loading }: { services: Service[]; loading: boo
       <div className="mx-auto max-w-[1440px]">
         <div className="grid gap-8 border-b border-foreground/15 pb-8 md:grid-cols-[0.7fr_1.3fr] md:items-end">
           <div>
-            <Eyebrow>01  -  Explore our services</Eyebrow>
+            <Eyebrow>Explore Our Services</Eyebrow>
             <h2 className="mt-4 max-w-md font-serif text-4xl font-light leading-[0.95] sm:text-6xl">Architectural Mastery</h2>
           </div>
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
@@ -240,7 +240,7 @@ function ImageStory({ image }: { image: string }) {
       <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-black/10" />
       <div className="relative mx-auto flex min-h-[31rem] max-w-[1440px] items-end px-5 py-12 sm:min-h-[38rem] sm:px-8 sm:py-16 lg:px-12">
         <div className="max-w-xl">
-          <Eyebrow light>02  -  Interior design excellence</Eyebrow>
+          <Eyebrow light>Interior Design Excellence</Eyebrow>
           <h2 className="mt-5 max-w-xl font-serif text-4xl font-light leading-[0.95] sm:text-6xl">Interior Design Excellence</h2>
           <p className="mt-6 max-w-sm text-sm leading-6 text-white/70">Every detail meticulously crafted to create spaces of unparalleled beauty</p>
           <div className="mt-8"><TextLink href="/portfolio" light>Explore All Services</TextLink></div>
@@ -252,14 +252,14 @@ function ImageStory({ image }: { image: string }) {
 
 function CollectionsPreview({ products }: { products: Product[] }) {
   const categories = [
-    ['Living Room', '/collections?category=Living%20Room', 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=85'],
-    ['Dining', '/collections?category=Dining', 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=85'],
-    ['Bedroom', '/collections?category=Bedroom', 'https://images.unsplash.com/photo-1617104678098-de229db51175?auto=format&fit=crop&w=1200&q=85'],
-    ['Kitchen', '/collections?category=Kitchen', 'https://images.unsplash.com/photo-1556912167-f556f1f39fdf?auto=format&fit=crop&w=1200&q=85'],
-    ['Bathroom', '/collections?category=Bathroom', 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=85'],
-    ['Lighting', '/collections?category=Lighting', 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=1200&q=85'],
-    ['Office', '/collections?category=Office', 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=85'],
-    ['Outdoor', '/collections?category=Outdoor', 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=85'],
+    ['Living Room', '/collections?category=Living%20Room', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487041/a09ebc5d8989908142fd7a8e84719c_bgmszd.jpg'],
+    ['Dining', '/collections?category=Dining', 'https://res.cloudinary.com/r8epy5mg/image/upload/L3D124S57ENDOVMIQNIUWLUFALUFX73OJNA8_4000x3000_efcwng.jpg'],
+    ['Bedroom', '/collections?category=Bedroom', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487069/L3D121S57ENDOVL2K7YUWLXMCLUFX7Y3MYQ8_1600x1200_kacydr.jpg'],
+    ['Kitchen', '/collections?category=Kitchen', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487074/L3D124S57ENDOVL3FJQUWLZS6LUFX7Y6XYI8_4000x3000_ryinvx.jpg'],
+    ['Bathroom', '/collections?category=Bathroom', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487081/L3D124S57ENDOVMIQGAUWIKKELUFX73OPYQ8_4000x3000_dpfpii.jpg'],
+    ['Lighting', '/collections?category=Lighting', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487080/L3D124S57ENDOVMH53YUWLVIELUFX73NCSY8_4000x3000_wsv3cj.jpg'],
+    ['Office', '/collections?category=Office', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785649986/Untitled-reception-20240830-171128_1_enmmlf.jpg'],
+    ['Outdoor', '/collections?category=Outdoor', 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487052/IMG_3517_1_fq8p74.jpg'],
   ]
   return (
     <section className="bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
@@ -274,7 +274,7 @@ function ProjectFeature({ projects, loading }: { projects: Project[]; loading: b
     <section className="bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-10 flex flex-col gap-6 border-b border-foreground/15 pb-7 md:flex-row md:items-end md:justify-between">
-          <div><Eyebrow>03  -  Selected work</Eyebrow><h2 className="mt-4 font-serif text-4xl font-light leading-none sm:text-6xl">Featured Projects</h2></div>
+          <div><Eyebrow>Selected Work</Eyebrow><h2 className="mt-4 font-serif text-4xl font-light leading-none sm:text-6xl">Featured Projects</h2></div>
           <TextLink href="/portfolio">View All Projects</TextLink>
         </div>
         {loading ? (

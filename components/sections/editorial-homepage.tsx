@@ -291,20 +291,17 @@ function CollectionsPreview({ products }: { products: Product[] }) {
 function ProjectFeature({ projects, loading }: { projects: Project[]; loading: boolean }) {
   const selected = projects.slice(0, 3)
   return (
-    <section className="bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
+    <section className="motion-reveal bg-background px-5 py-12 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]">
-        <div className="mb-10 flex flex-col gap-6 border-b border-foreground/15 pb-7 md:flex-row md:items-end md:justify-between">
-          <div><Eyebrow>03  -  Selected work</Eyebrow><h2 className="mt-4 font-serif text-4xl font-light leading-none sm:text-6xl">Featured Projects</h2></div>
-          <TextLink href="/portfolio">View All Projects</TextLink>
+        <div className="mb-7 flex flex-col items-center gap-4 border-b border-foreground/15 pb-6 text-center md:mb-10 md:flex-row md:items-end md:justify-between md:pb-7 md:text-left">
+          <div><Eyebrow>03  -  Selected work</Eyebrow><h2 className="mt-3 font-serif text-4xl font-light leading-none sm:text-6xl">Featured Projects</h2></div>
+          <Link href="/portfolio" className="inline-flex min-h-11 items-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-gold hover:text-foreground">View all projects <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
         </div>
         {loading ? (
-          <div className="grid gap-3 md:grid-cols-[1.25fr_0.75fr]" aria-busy="true" aria-label="Loading projects"><div className="h-[26rem] animate-pulse bg-canvas-dark md:h-[38rem]" /><div className="grid gap-3 md:grid-rows-2"><div className="h-64 animate-pulse bg-canvas-dark md:h-auto" /><div className="h-64 animate-pulse bg-canvas-dark md:h-auto" /></div></div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2" aria-busy="true" aria-label="Loading projects">{[1, 2, 3].map((item) => <div key={item} className="aspect-[16/7] animate-pulse rounded-xl bg-canvas-dark" />)}</div>
         ) : selected.length ? (
-          <div className="grid gap-3 md:grid-cols-[1.25fr_0.75fr]">
-            <ProjectTile project={selected[0]} index={0} feature />
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-1 md:grid-rows-2">
-              {selected.slice(1).map((project, index) => <ProjectTile key={project.id} project={project} index={index + 1} />)}
-            </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            {selected.map((project, index) => <ProjectTile key={project.id} project={project} index={index} />)}
           </div>
         ) : (
           <div className="border border-dashed border-foreground/20 px-6 py-16 text-center"><p className="font-serif text-3xl font-light">The portfolio is being composed.</p><Link href="/portfolio" className="mt-5 inline-flex text-[10px] uppercase tracking-[0.18em] text-foreground/60 underline underline-offset-4">Visit the portfolio</Link></div>
@@ -314,19 +311,13 @@ function ProjectFeature({ projects, loading }: { projects: Project[]; loading: b
   )
 }
 
-function ProjectTile({ project, index, feature = false }: { project: Project; index: number; feature?: boolean }) {
-  return (
-    <Link href={`/portfolio/${encodeURIComponent(project.slug)}`} className={`group relative block overflow-hidden bg-canvas-dark ${feature ? 'min-h-[26rem] md:min-h-[38rem]' : 'min-h-[18rem] md:min-h-0'}`}>
-      <img src={projectImage(project, index)} alt={project.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
-      <div className="absolute inset-x-5 bottom-5 sm:inset-x-7 sm:bottom-7">
-        <div className="flex items-end justify-between gap-4">
-          <div><p className="text-[9px] uppercase tracking-[0.22em] text-white/60">{project.category || 'Private residence'}{project.location ? ` · ${project.location}` : ''}</p><h3 className={`mt-2 font-serif font-light leading-none text-white ${feature ? 'text-4xl sm:text-6xl' : 'text-2xl sm:text-3xl'}`}>{project.title}</h3></div>
-          <ArrowUpRight size={18} className="mb-1 shrink-0 text-white/80 transition-transform duration-300 group-hover:-translate-y-1 group-hover:translate-x-1" aria-hidden="true" />
-        </div>
-      </div>
+function ProjectTile({ project, index }: { project: Project; index: number }) {
+  return <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-foreground/15 bg-card shadow-[0_14px_36px_rgba(0,0,0,0.10)] transition-shadow duration-300 hover:shadow-[0_20px_48px_rgba(0,0,0,0.16)]">
+    <Link href={`/portfolio/${encodeURIComponent(project.slug)}`} className="block">
+      <div className="relative aspect-[16/7] overflow-hidden bg-canvas-dark"><img src={projectImage(project, index)} alt={project.title} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" /><div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" /><span className="absolute left-3 top-3 text-[9px] uppercase tracking-[0.2em] text-white/70">{String(index + 1).padStart(2, '0')}</span><ArrowUpRight size={16} className="absolute right-3 top-3 text-white/80" aria-hidden="true" /></div>
     </Link>
-  )
+    <div className="flex flex-1 flex-col p-4 sm:p-5"><p className="text-[9px] uppercase tracking-[0.18em] text-primary">{project.category || 'Selected work'}{project.location ? ` · ${project.location}` : ''}</p><Link href={`/portfolio/${encodeURIComponent(project.slug)}`}><h3 className="mt-2 font-serif text-2xl font-light leading-none text-foreground transition-colors group-hover:text-primary sm:text-3xl">{project.title}</h3></Link>{project.description && <p className="mt-3 line-clamp-2 text-[11px] leading-5 text-foreground/65">{project.description}</p>}<Link href={`/portfolio/${encodeURIComponent(project.slug)}`} className="mt-4 inline-flex min-h-10 items-center justify-center rounded-full bg-foreground px-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-background transition-colors hover:bg-gold hover:text-foreground">View project <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link></div>
+  </article>
 }
 
 function ProcessSection() {
@@ -414,11 +405,11 @@ export function EditorialHomepage() {
     <>
       <EditorialHero />
       <ServiceWorld services={services} loading={loading} />
+      <ProjectFeature projects={projects} loading={loading} />
       <ImageStory image={storyImage} />
       <CollectionsPreview products={products} />
       <PhilosophySection />
       <GallerySection products={products} loading={loading} />
-      <ProjectFeature projects={projects} loading={loading} />
       <JournalSection articles={articles} loading={loading} />
       <section className="bg-obsidian px-5 py-20 text-white sm:px-8 sm:py-28 lg:px-12 lg:py-36"><div className="mx-auto grid max-w-[1440px] gap-10 md:grid-cols-[1fr_0.7fr] md:items-end"><div><Eyebrow light>A final thought</Eyebrow><blockquote className="mt-5 max-w-4xl font-serif text-4xl font-light leading-[0.95] sm:text-6xl lg:text-7xl">“The space should feel as though it could only ever have existed this way.”</blockquote></div><div className="md:pb-2"><p className="max-w-sm text-sm leading-7 text-white/60">Our white-glove service ensures every detail exceeds expectations, every project tells a story, and every client experiences true refinement.</p></div></div></section>
       <section className="bg-primary px-5 py-20 text-primary-foreground sm:px-8 sm:py-24 lg:px-12"><div className="mx-auto flex max-w-[1440px] flex-col gap-8 md:flex-row md:items-end md:justify-between"><div><Eyebrow>Request Our Catalog</Eyebrow><h2 className="mt-4 max-w-3xl font-serif text-3xl font-light leading-[0.95] sm:text-5xl">Request Our Catalog</h2><p className="mt-5 max-w-xl text-sm leading-7 text-primary-foreground/75">Access our comprehensive collection of luxury furnishings and design materials. Receive a beautifully curated PDF catalog delivered to your inbox.</p><p className="mt-3 text-xs text-primary-foreground/65">Earn 500 loyalty points when you request a catalog</p></div><Link href="/contact" className="inline-flex min-h-12 shrink-0 items-center gap-3 self-start rounded-full bg-accent px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent-foreground transition-transform hover:-translate-y-0.5 hover:bg-accent/85 md:self-end">Request Catalog Now <ArrowRight size={14} aria-hidden="true" /></Link></div></section>

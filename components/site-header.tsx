@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -33,9 +34,9 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 
-/* ========================================================================== */
+/* -------------------------------------------------------------------------- */
 /* TYPES                                                                      */
-/* ========================================================================== */
+/* -------------------------------------------------------------------------- */
 
 interface NavLink {
   label: string
@@ -44,9 +45,9 @@ interface NavLink {
   submenu?: NavLink[]
 }
 
-/* ========================================================================== */
-/* NAVIGATION                                                                 */
-/* ========================================================================== */
+/* -------------------------------------------------------------------------- */
+/* NAVIGATION DATA                                                            */
+/* -------------------------------------------------------------------------- */
 
 const primaryNavLinks: NavLink[] = [
   {
@@ -145,9 +146,9 @@ const socialLinks = [
   },
 ]
 
-/* ========================================================================== */
+/* -------------------------------------------------------------------------- */
 /* COMPONENT                                                                  */
-/* ========================================================================== */
+/* -------------------------------------------------------------------------- */
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -157,13 +158,14 @@ export function SiteHeader() {
   const cartCount = cart?.cartCount ?? 0
 
   const [scrolled, setScrolled] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false)
   const [servicesOpen, setServicesOpen] = useState(false)
 
   const servicesRef = useRef<HTMLDivElement>(null)
 
   const isHome = pathname === '/'
-  const transparentHeader = isHome && !scrolled
+  const headerDark = isHome && !scrolled
 
   /* ------------------------------------------------------------------------ */
   /* SCROLL                                                                   */
@@ -171,7 +173,7 @@ export function SiteHeader() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 30)
+      setScrolled(window.scrollY > 40)
     }
 
     handleScroll()
@@ -190,12 +192,32 @@ export function SiteHeader() {
   /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
-    setMenuOpen(false)
+    setMobileMenuOpen(false)
+    setDesktopMenuOpen(false)
     setServicesOpen(false)
   }, [pathname])
 
   /* ------------------------------------------------------------------------ */
-  /* CLICK OUTSIDE                                                            */
+  /* ESCAPE DESKTOP MENU                                                      */
+  /* ------------------------------------------------------------------------ */
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setDesktopMenuOpen(false)
+        setServicesOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
+  /* ------------------------------------------------------------------------ */
+  /* SERVICES CLICK OUTSIDE                                                   */
   /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
@@ -216,49 +238,69 @@ export function SiteHeader() {
   }, [])
 
   /* ------------------------------------------------------------------------ */
-  /* STYLES                                                                   */
+  /* BODY LOCK                                                                */
   /* ------------------------------------------------------------------------ */
 
-  const navColor = transparentHeader
+  useEffect(() => {
+    if (desktopMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [desktopMenuOpen])
+
+  const navText = headerDark
     ? 'text-white/75 hover:text-white'
     : 'text-foreground/70 hover:text-foreground'
 
-  const iconColor = transparentHeader
+  const iconText = headerDark
     ? 'text-white hover:text-gold'
     : 'text-foreground hover:text-gold'
 
-  const headerBackground = transparentHeader
-    ? 'bg-transparent'
-    : 'border-b border-border/60 bg-background/95 shadow-sm backdrop-blur-xl'
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/'
+
+    if (href === '/portfolio') {
+      return pathname.startsWith('/portfolio')
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
 
   return (
     <>
-      {/* ==================================================================== */}
-      {/* HEADER                                                              */}
-      {/* ==================================================================== */}
+      {/* ================================================================== */}
+      {/* HEADER                                                             */}
+      {/* ================================================================== */}
 
       <header
         className={cn(
-          'fixed inset-x-0 top-0 z-50 transition-all duration-500',
-          headerBackground,
+          'fixed inset-x-0 top-0 z-50 w-full transition-all duration-500',
+          scrolled || !isHome
+            ? 'border-b border-border/70 bg-background/95 shadow-sm backdrop-blur-xl'
+            : 'bg-transparent',
         )}
       >
-        <div className="mx-auto max-w-[1680px] px-4 sm:px-6 lg:px-10 xl:px-14">
+        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-10 xl:px-14">
 
-          <div className="grid h-[68px] grid-cols-[1fr_auto] items-center lg:h-[82px] lg:grid-cols-[1fr_auto_1fr]">
+          <div className="grid h-[68px] grid-cols-[1fr_auto] items-center md:h-[76px] lg:grid-cols-[1fr_auto_1fr] lg:h-[82px]">
 
-            {/* ============================================================= */}
-            {/* BRAND                                                         */}
-            {/* ============================================================= */}
+            {/* ============================================================ */}
+            {/* LOGO                                                          */}
+            {/* ============================================================ */}
 
-            <div className="flex items-center">
+            <div className="flex min-w-0 items-center">
 
               <Link
                 href="/"
                 prefetch={false}
                 className={cn(
-                  'font-serif text-[14px] uppercase tracking-[0.18em] transition-colors sm:text-[15px] lg:text-[18px]',
-                  transparentHeader
+                  'whitespace-nowrap font-serif text-[14px] uppercase tracking-[0.15em] transition-colors sm:text-[16px] lg:text-lg',
+                  headerDark
                     ? 'text-white'
                     : 'text-foreground',
                 )}
@@ -269,200 +311,193 @@ export function SiteHeader() {
 
             </div>
 
-            {/* ============================================================= */}
+            {/* ============================================================ */}
             {/* DESKTOP NAVIGATION                                            */}
-            {/* ============================================================= */}
+            {/* ============================================================ */}
 
             <nav
-              className="hidden items-center gap-7 xl:gap-9 lg:flex"
-              aria-label="Primary navigation"
+              className="hidden items-center justify-center gap-6 lg:flex xl:gap-8"
+              aria-label="Main navigation"
             >
               {primaryNavLinks.map((link) => {
-                const active =
-                  link.href === '/portfolio'
-                    ? pathname.startsWith('/portfolio')
-                    : pathname === link.href ||
-                      pathname.startsWith(`${link.href}/`)
 
-                if (link.submenu) {
+                if (!link.submenu) {
                   return (
-                    <div
+                    <Link
                       key={link.label}
-                      ref={servicesRef}
-                      className="relative"
+                      href={link.href}
+                      prefetch={false}
+                      className={cn(
+                        'relative py-8 text-[10px] font-medium uppercase tracking-[0.14em] transition-colors xl:text-[11px]',
+                        navText,
+                        isActive(link.href) && 'text-gold',
+                      )}
                     >
-                      <button
-                        onClick={() => setServicesOpen(!servicesOpen)}
-                        className={cn(
-                          'flex items-center gap-1.5 py-8 text-[10px] font-medium uppercase tracking-[0.16em] transition-colors xl:text-[11px]',
-                          navColor,
-                          active && 'text-gold',
-                        )}
-                      >
-                        {link.label}
+                      {link.label}
 
-                        <ChevronDown
-                          size={13}
-                          className={cn(
-                            'transition-transform duration-300',
-                            servicesOpen && 'rotate-180 text-gold',
-                          )}
-                        />
-                      </button>
-
-                      {/* SERVICES DROPDOWN */}
-
-                      <div
-                        className={cn(
-                          'absolute left-1/2 top-full w-[650px] -translate-x-1/2 pt-3 transition-all duration-300',
-                          servicesOpen
-                            ? 'visible translate-y-0 opacity-100'
-                            : 'invisible -translate-y-2 pointer-events-none opacity-0',
-                        )}
-                      >
-                        <div className="overflow-hidden border border-border bg-background shadow-2xl">
-
-                          <div className="grid grid-cols-[220px_1fr]">
-
-                            {/* Editorial side */}
-
-                            <div className="bg-foreground px-8 py-9 text-background">
-
-                              <p className="text-[9px] uppercase tracking-[0.24em] text-background/50">
-                                The Revamp UG
-                              </p>
-
-                              <h3 className="mt-5 font-serif text-3xl leading-[1.1]">
-                                Designed
-                                <br />
-                                around
-                                <br />
-                                your world.
-                              </h3>
-
-                              <Link
-                                href="/services"
-                                onClick={() => setServicesOpen(false)}
-                                className="mt-10 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-gold"
-                              >
-                                View all services
-                                <ArrowUpRight size={15} />
-                              </Link>
-
-                            </div>
-
-                            {/* Links */}
-
-                            <div className="divide-y divide-border/60">
-
-                              {link.submenu.map((item) => (
-                                <Link
-                                  key={item.label}
-                                  href={item.href}
-                                  prefetch={false}
-                                  onClick={() => setServicesOpen(false)}
-                                  className="group flex items-center justify-between px-8 py-5 transition-colors hover:bg-muted/40"
-                                >
-                                  <div>
-                                    <p className="font-serif text-xl transition-colors group-hover:text-gold">
-                                      {item.label}
-                                    </p>
-
-                                    {item.description && (
-                                      <p className="mt-1 text-xs text-muted-foreground">
-                                        {item.description}
-                                      </p>
-                                    )}
-                                  </div>
-
-                                  <ArrowUpRight
-                                    size={17}
-                                    className="text-muted-foreground transition-all group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-gold"
-                                  />
-                                </Link>
-                              ))}
-
-                            </div>
-
-                          </div>
-
-                        </div>
-                      </div>
-
-                    </div>
+                      {isActive(link.href) && (
+                        <span className="absolute bottom-[22px] left-0 h-px w-full bg-gold" />
+                      )}
+                    </Link>
                   )
                 }
 
                 return (
-                  <Link
+                  <div
                     key={link.label}
-                    href={link.href}
-                    prefetch={false}
-                    className={cn(
-                      'relative py-8 text-[10px] font-medium uppercase tracking-[0.16em] transition-colors xl:text-[11px]',
-                      navColor,
-                      active && 'text-gold',
-                    )}
+                    ref={servicesRef}
+                    className="relative"
+                    onMouseEnter={() => setServicesOpen(true)}
+                    onMouseLeave={() => setServicesOpen(false)}
                   >
-                    {link.label}
 
-                    {active && (
-                      <span className="absolute bottom-[22px] left-0 h-px w-full bg-gold" />
-                    )}
-                  </Link>
+                    <button
+                      onClick={() => setServicesOpen(!servicesOpen)}
+                      className={cn(
+                        'flex items-center gap-1 py-8 text-[10px] font-medium uppercase tracking-[0.14em] transition-colors xl:text-[11px]',
+                        navText,
+                        isActive(link.href) && 'text-gold',
+                      )}
+                    >
+                      {link.label}
+
+                      <ChevronDown
+                        size={13}
+                        className={cn(
+                          'transition-transform duration-300',
+                          servicesOpen && 'rotate-180',
+                        )}
+                      />
+                    </button>
+
+                    {/* SERVICES DROPDOWN */}
+
+                    <div
+                      className={cn(
+                        'absolute left-1/2 top-full w-[560px] -translate-x-1/2 pt-3 transition-all duration-300',
+                        servicesOpen
+                          ? 'visible translate-y-0 opacity-100'
+                          : 'invisible -translate-y-2 pointer-events-none opacity-0',
+                      )}
+                    >
+
+                      <div className="grid grid-cols-[190px_minmax(0,1fr)] overflow-hidden border border-border bg-background shadow-2xl">
+
+                        <div className="bg-foreground px-7 py-8 text-background">
+
+                          <p className="text-[9px] uppercase tracking-[0.22em] text-background/50">
+                            The Revamp UG
+                          </p>
+
+                          <h3 className="mt-5 font-serif text-[27px] leading-[1.05]">
+                            Designed
+                            <br />
+                            without
+                            <br />
+                            compromise.
+                          </h3>
+
+                          <Link
+                            href="/services"
+                            className="mt-8 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-gold"
+                          >
+                            View Services
+                            <ArrowUpRight size={14} />
+                          </Link>
+
+                        </div>
+
+                        <div className="divide-y divide-border">
+
+                          {link.submenu.map((item) => (
+                            <Link
+                              key={item.label}
+                              href={item.href}
+                              className="group flex items-center justify-between px-7 py-5 transition-colors hover:bg-muted/50"
+                            >
+
+                              <div>
+
+                                <p className="font-serif text-lg transition-colors group-hover:text-gold">
+                                  {item.label}
+                                </p>
+
+                                {item.description && (
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {item.description}
+                                  </p>
+                                )}
+
+                              </div>
+
+                              <ArrowUpRight
+                                size={17}
+                                className="text-muted-foreground transition-all group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:text-gold"
+                              />
+
+                            </Link>
+                          ))}
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                  </div>
                 )
               })}
             </nav>
 
-            {/* ============================================================= */}
+            {/* ============================================================ */}
             {/* ACTIONS                                                       */}
-            {/* ============================================================= */}
+            {/* ============================================================ */}
 
-            <div className="flex items-center justify-end gap-1">
+            <div className="flex items-center justify-end gap-0.5 sm:gap-1">
 
-              {/* Desktop search */}
+              {/* Search */}
 
               <Link
                 href="/search"
                 prefetch={false}
-                aria-label="Search"
                 className={cn(
-                  'hidden size-10 items-center justify-center transition-colors md:flex',
-                  iconColor,
+                  'hidden size-10 items-center justify-center transition-colors sm:flex',
+                  iconText,
                 )}
+                aria-label="Search"
               >
                 <Search size={18} />
               </Link>
 
               {/* Theme */}
 
-              <div className="hidden size-10 items-center justify-center sm:flex">
+              <div className="flex size-10 items-center justify-center">
                 <ThemeSwitcher />
               </div>
 
-              {/* Notifications */}
+              {/* Notifications desktop */}
 
-              <div className="hidden md:block">
+              <div className="hidden lg:block">
                 <NotificationBell
                   className={cn(
                     'size-10',
-                    transparentHeader
+                    headerDark
                       ? 'text-white'
                       : 'text-foreground',
                   )}
                 />
               </div>
 
-              {/* Wishlist */}
+              {/* Wishlist desktop */}
 
               <Link
                 href="/wishlist"
                 prefetch={false}
-                aria-label="Wishlist"
                 className={cn(
                   'hidden size-10 items-center justify-center xl:flex',
-                  iconColor,
+                  iconText,
                 )}
+                aria-label="Wishlist"
               >
                 <Heart size={18} />
               </Link>
@@ -472,11 +507,11 @@ export function SiteHeader() {
               <Link
                 href="/account"
                 prefetch={false}
-                aria-label="Account"
                 className={cn(
-                  'hidden size-10 items-center justify-center transition-colors sm:flex',
-                  iconColor,
+                  'flex size-10 shrink-0 items-center justify-center transition-colors',
+                  iconText,
                 )}
+                aria-label="Account"
               >
                 {user?.imageUrl ? (
                   <img
@@ -494,11 +529,11 @@ export function SiteHeader() {
               <Link
                 href="/cart"
                 prefetch={false}
-                aria-label="Shopping cart"
                 className={cn(
-                  'relative flex size-10 items-center justify-center transition-colors',
-                  iconColor,
+                  'relative hidden size-10 shrink-0 items-center justify-center transition-colors md:flex',
+                  iconText,
                 )}
+                aria-label="Shopping cart"
               >
                 <ShoppingBag size={18} />
 
@@ -509,17 +544,32 @@ export function SiteHeader() {
                 )}
               </Link>
 
-              {/* Mobile / Main menu */}
+              {/* MOBILE / TABLET MENU */}
 
               <button
-                onClick={() => setMenuOpen(true)}
-                aria-label="Open navigation"
+                onClick={() => setMobileMenuOpen(true)}
                 className={cn(
-                  'ml-1 flex size-11 items-center justify-center border transition-all duration-300',
-                  transparentHeader
-                    ? 'border-white/20 text-white hover:border-gold hover:text-gold'
-                    : 'border-border text-foreground hover:border-gold hover:text-gold',
+                  'flex size-10 shrink-0 items-center justify-center border transition-colors lg:hidden',
+                  headerDark
+                    ? 'border-white/20 text-white'
+                    : 'border-border text-foreground',
                 )}
+                aria-label="Open navigation"
+              >
+                <Menu size={19} />
+              </button>
+
+              {/* DESKTOP MENU */}
+
+              <button
+                onClick={() => setDesktopMenuOpen(true)}
+                className={cn(
+                  'ml-1 hidden size-11 items-center justify-center border transition-all duration-300 lg:flex',
+                  headerDark
+                    ? 'border-white/20 bg-black/10 text-white hover:border-gold hover:text-gold'
+                    : 'border-border bg-background text-foreground hover:border-gold hover:text-gold',
+                )}
+                aria-label="Open full navigation"
               >
                 <Menu size={20} />
               </button>
@@ -531,14 +581,13 @@ export function SiteHeader() {
         </div>
       </header>
 
-      {/* ==================================================================== */}
-      {/* FLOATING SOCIAL BUBBLE                                               */}
-      {/* This is intentionally FIXED and independent from the header          */}
-      {/* ==================================================================== */}
+      {/* ================================================================== */}
+      {/* FLOATING SOCIAL BUBBLE                                              */}
+      {/* ================================================================== */}
 
-      <div className="fixed right-4 top-[88px] z-40 hidden lg:block xl:right-8">
+      <div className="fixed right-5 top-1/2 z-40 hidden -translate-y-1/2 xl:block">
 
-        <div className="flex overflow-hidden rounded-full border border-border bg-background/95 shadow-xl backdrop-blur-xl">
+        <div className="flex flex-col overflow-hidden rounded-full border border-border/70 bg-background/90 shadow-xl backdrop-blur-xl">
 
           {socialLinks.map((social) => {
             const Icon = social.icon
@@ -549,8 +598,8 @@ export function SiteHeader() {
                 href={social.href}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="flex size-11 items-center justify-center border-b border-border/60 last:border-b-0 transition-all hover:bg-foreground hover:text-background"
                 aria-label={social.label}
-                className="flex size-11 items-center justify-center border-r border-border last:border-r-0 transition-all hover:bg-foreground hover:text-background"
               >
                 <Icon size={16} />
               </Link>
@@ -561,15 +610,18 @@ export function SiteHeader() {
 
       </div>
 
-      {/* ==================================================================== */}
-      {/* FULL NAVIGATION MENU                                                 */}
-      {/* ==================================================================== */}
+      {/* ================================================================== */}
+      {/* MOBILE + TABLET MENU                                               */}
+      {/* ================================================================== */}
 
-      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+      <Sheet
+        open={mobileMenuOpen}
+        onOpenChange={setMobileMenuOpen}
+      >
 
         <SheetContent
           side="right"
-          className="h-[100dvh] w-full max-w-none overflow-hidden border-none bg-background p-0 md:max-w-[680px] xl:max-w-[820px]"
+          className="w-full overflow-hidden border-l border-border bg-background p-0 sm:max-w-[680px] lg:hidden"
         >
 
           <SheetTitle className="sr-only">
@@ -578,236 +630,173 @@ export function SiteHeader() {
 
           <div className="flex h-full flex-col">
 
-            {/* ============================================================= */}
-            {/* MENU HEADER                                                   */}
-            {/* ============================================================= */}
+            {/* MOBILE HEADER */}
 
-            <div className="flex h-[68px] shrink-0 items-center justify-between border-b border-border px-5 sm:px-7 lg:h-[82px] lg:px-10">
+            <div className="flex h-[70px] shrink-0 items-center justify-between border-b border-border px-5 sm:px-8">
 
               <Link
                 href="/"
-                onClick={() => setMenuOpen(false)}
-                className="font-serif text-[15px] uppercase tracking-[0.18em] sm:text-lg"
+                onClick={() => setMobileMenuOpen(false)}
+                className="font-serif text-[15px] uppercase tracking-[0.15em] sm:text-lg"
               >
                 The Revamp
                 <span className="ml-1 text-gold">UG</span>
               </Link>
 
-              <div className="flex items-center gap-2">
-
-                {/* Mobile theme */}
-
-                <div className="flex size-10 items-center justify-center sm:hidden">
-                  <ThemeSwitcher />
-                </div>
-
-                {/* Close */}
-
-                <button
-                  onClick={() => setMenuOpen(false)}
-                  aria-label="Close navigation"
-                  className="flex size-10 items-center justify-center border border-border transition-colors hover:border-gold hover:text-gold"
-                >
-                  <X size={19} />
-                </button>
-
-              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex size-10 items-center justify-center border border-border transition-colors hover:border-gold hover:text-gold"
+                aria-label="Close navigation"
+              >
+                <X size={19} />
+              </button>
 
             </div>
 
-            {/* ============================================================= */}
-            {/* MENU CONTENT                                                  */}
-            {/* ============================================================= */}
+            {/* MENU CONTENT */}
 
             <div className="flex-1 overflow-y-auto">
 
-              <div className="grid lg:min-h-full lg:grid-cols-[1.15fr_0.85fr]">
+              <div className="px-5 py-8 sm:px-8 sm:py-10">
 
-                {/* ========================================================= */}
-                {/* LEFT / PRIMARY NAV                                        */}
-                {/* ========================================================= */}
+                <p className="mb-5 text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
+                  Explore The Revamp
+                </p>
 
-                <div className="px-5 py-7 sm:px-7 sm:py-9 lg:px-10 lg:py-12">
+                <nav>
 
-                  <p className="mb-5 text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
-                    Explore The Revamp
+                  {primaryNavLinks.map((link) => (
+                    <Link
+                      key={link.label}
+                      href={link.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={cn(
+                        'group flex items-center justify-between border-b border-border py-4 font-serif text-[28px] leading-none transition-colors sm:text-[34px]',
+                        isActive(link.href)
+                          ? 'text-gold'
+                          : 'hover:text-gold',
+                      )}
+                    >
+                      {link.label}
+
+                      <ArrowUpRight
+                        size={18}
+                        className="opacity-40 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1"
+                      />
+
+                    </Link>
+                  ))}
+
+                </nav>
+
+                {/* MORE FROM REVAMP */}
+
+                <div className="mt-10">
+
+                  <p className="mb-4 text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
+                    More From Revamp
                   </p>
 
-                  {/* Primary links */}
+                  <div className="border-t border-border">
 
-                  <nav className="border-t border-border">
-
-                    {primaryNavLinks.map((link) => {
-                      const active =
-                        pathname === link.href ||
-                        pathname.startsWith(`${link.href}/`)
-
-                      return (
-                        <Link
-                          key={link.label}
-                          href={link.href}
-                          prefetch={false}
-                          onClick={() => setMenuOpen(false)}
-                          className={cn(
-                            'group flex min-h-[58px] items-center justify-between border-b border-border py-3 font-serif text-[24px] transition-colors sm:text-[27px] lg:text-[30px]',
-                            active
-                              ? 'text-gold'
-                              : 'hover:text-gold',
-                          )}
-                        >
-                          {link.label}
-
-                          <ArrowUpRight
-                            size={17}
-                            className="text-muted-foreground transition-all group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-gold"
-                          />
-                        </Link>
-                      )
-                    })}
-
-                  </nav>
-
-                  {/* More from Revamp */}
-
-                  <div className="mt-8">
-
-                    <p className="mb-4 text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
-                      More From Revamp
-                    </p>
-
-                    <div className="grid border-t border-border sm:grid-cols-2">
-
-                      {exploreLinks.map((link) => (
-                        <Link
-                          key={link.label}
-                          href={link.href}
-                          prefetch={false}
-                          onClick={() => setMenuOpen(false)}
-                          className="flex min-h-[52px] items-center justify-between border-b border-border py-3 pr-2 text-sm transition-colors hover:text-gold sm:mr-6"
-                        >
-                          {link.label}
-
-                          <ArrowUpRight size={14} />
-                        </Link>
-                      ))}
-
-                    </div>
-
-                  </div>
-
-                  {/* Mobile quick actions */}
-
-                  <div className="mt-8 grid grid-cols-2 gap-3 lg:hidden">
-
-                    <Link
-                      href="/search"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex min-h-[48px] items-center justify-center gap-2 border border-border text-[10px] uppercase tracking-[0.14em]"
-                    >
-                      <Search size={15} />
-                      Search
-                    </Link>
-
-                    <Link
-                      href="/account"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex min-h-[48px] items-center justify-center gap-2 border border-border text-[10px] uppercase tracking-[0.14em]"
-                    >
-                      <User size={15} />
-                      Account
-                    </Link>
+                    {exploreLinks.map((link) => (
+                      <Link
+                        key={link.label}
+                        href={link.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center justify-between border-b border-border py-4 text-sm transition-colors hover:text-gold"
+                      >
+                        {link.label}
+                        <ArrowUpRight size={15} />
+                      </Link>
+                    ))}
 
                   </div>
 
                 </div>
 
-                {/* ========================================================= */}
-                {/* RIGHT / EDITORIAL PANEL                                   */}
-                {/* ========================================================= */}
+                {/* SUPPORT */}
 
-                <div className="border-t border-border bg-muted/20 px-5 py-8 sm:px-7 lg:border-l lg:border-t-0 lg:px-10 lg:py-12">
+                <div className="mt-10">
 
-                  <p className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
-                    Begin a project
+                  <p className="mb-4 text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
+                    Need Something Else?
                   </p>
 
-                  <h2 className="mt-4 max-w-md font-serif text-[28px] leading-[1.1] sm:text-4xl lg:text-[42px]">
+                  <div className="border-t border-border">
+
+                    {supportLinks.map((link) => (
+                      <Link
+                        key={link.label}
+                        href={link.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center justify-between border-b border-border py-3.5 text-sm transition-colors hover:text-gold"
+                      >
+                        {link.label}
+                        <ArrowUpRight size={14} />
+                      </Link>
+                    ))}
+
+                  </div>
+
+                </div>
+
+                {/* CTA */}
+
+                <div className="mt-10 border-t border-border pt-8">
+
+                  <p className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
+                    Begin A Project
+                  </p>
+
+                  <h2 className="mt-4 max-w-md font-serif text-[32px] leading-[1.05] sm:text-4xl">
                     The architecture
                     <br />
                     of refined living.
                   </h2>
 
-                  <p className="mt-5 max-w-md text-sm leading-6 text-muted-foreground">
+                  <p className="mt-4 max-w-md text-sm leading-6 text-muted-foreground">
                     From the first conversation to the final installation,
-                    we create considered spaces and experiences shaped
-                    around your world.
+                    we create considered spaces shaped around your world.
                   </p>
 
                   <Link
                     href="/book-consultation"
-                    onClick={() => setMenuOpen(false)}
-                    className="mt-7 inline-flex min-h-[50px] items-center gap-3 bg-foreground px-6 text-[10px] uppercase tracking-[0.16em] text-background transition-colors hover:bg-gold hover:text-white"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="mt-6 inline-flex min-h-12 items-center gap-3 bg-foreground px-6 text-[10px] uppercase tracking-[0.16em] text-background transition-colors hover:bg-gold"
                   >
-                    Book a Consultation
+                    Book A Consultation
                     <ArrowUpRight size={15} />
                   </Link>
 
-                  {/* Support */}
+                </div>
 
-                  <div className="mt-9 border-t border-border pt-7">
+                {/* SOCIALS */}
 
-                    <p className="mb-4 text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
-                      Need Something Else?
-                    </p>
+                <div className="mt-10 pb-6">
 
-                    <div className="grid gap-x-8 sm:grid-cols-2 lg:grid-cols-1">
+                  <p className="mb-4 text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
+                    Follow Our World
+                  </p>
 
-                      {supportLinks.map((link) => (
+                  <div className="flex gap-2">
+
+                    {socialLinks.map((social) => {
+                      const Icon = social.icon
+
+                      return (
                         <Link
-                          key={link.label}
-                          href={link.href}
-                          prefetch={false}
-                          onClick={() => setMenuOpen(false)}
-                          className="flex min-h-[42px] items-center justify-between border-b border-border/60 text-sm text-foreground/75 transition-colors hover:text-gold"
+                          key={social.label}
+                          href={social.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex size-10 items-center justify-center border border-border transition-colors hover:border-gold hover:text-gold"
+                          aria-label={social.label}
                         >
-                          {link.label}
-
-                          <ArrowUpRight size={14} />
+                          <Icon size={16} />
                         </Link>
-                      ))}
-
-                    </div>
-
-                  </div>
-
-                  {/* Social */}
-
-                  <div className="mt-8">
-
-                    <p className="mb-4 text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
-                      Follow Our World
-                    </p>
-
-                    <div className="flex gap-2">
-
-                      {socialLinks.map((social) => {
-                        const Icon = social.icon
-
-                        return (
-                          <Link
-                            key={social.label}
-                            href={social.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={social.label}
-                            className="flex size-10 items-center justify-center border border-border transition-colors hover:border-gold hover:text-gold"
-                          >
-                            <Icon size={16} />
-                          </Link>
-                        )
-                      })}
-
-                    </div>
+                      )
+                    })}
 
                   </div>
 
@@ -822,6 +811,233 @@ export function SiteHeader() {
         </SheetContent>
 
       </Sheet>
+
+      {/* ================================================================== */}
+      {/* DESKTOP EDITORIAL MEGA MENU                                        */}
+      {/* ================================================================== */}
+
+      <div
+        className={cn(
+          'fixed inset-0 z-[100] hidden lg:block transition-all duration-500',
+          desktopMenuOpen
+            ? 'visible opacity-100'
+            : 'invisible pointer-events-none opacity-0',
+        )}
+      >
+
+        {/* BACKDROP */}
+
+        <button
+          onClick={() => setDesktopMenuOpen(false)}
+          className="absolute inset-0 cursor-default bg-black/40 backdrop-blur-[6px]"
+          aria-label="Close navigation"
+        />
+
+        {/* PANEL */}
+
+        <aside
+          className={cn(
+            'absolute right-0 top-0 flex h-[100dvh] w-[min(1180px,78vw)] min-w-[900px] max-w-full flex-col overflow-hidden border-l border-border bg-background shadow-2xl transition-transform duration-500 ease-out',
+            desktopMenuOpen
+              ? 'translate-x-0'
+              : 'translate-x-full',
+          )}
+        >
+
+          {/* ============================================================ */}
+          {/* DESKTOP MENU HEADER                                           */}
+          {/* ============================================================ */}
+
+          <div className="flex h-[92px] shrink-0 items-center justify-between border-b border-border px-10 xl:px-14">
+
+            <Link
+              href="/"
+              onClick={() => setDesktopMenuOpen(false)}
+              className="font-serif text-xl uppercase tracking-[0.16em]"
+            >
+              The Revamp
+              <span className="ml-1 text-gold">UG</span>
+            </Link>
+
+            <button
+              onClick={() => setDesktopMenuOpen(false)}
+              className="flex size-12 items-center justify-center border border-border transition-colors hover:border-gold hover:text-gold"
+              aria-label="Close navigation"
+            >
+              {/*<X size={21} />*/}
+            </button>
+
+          </div>
+
+          {/* ============================================================ */}
+          {/* DESKTOP CONTENT                                               */}
+          {/* ============================================================ */}
+
+          <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+
+            {/* LEFT SIDE */}
+
+            <div className="min-w-0 overflow-y-auto px-10 py-12 xl:px-14">
+
+              <p className="mb-7 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                Explore The Revamp
+              </p>
+
+              <nav className="border-t border-border">
+
+                {primaryNavLinks.map((link) => (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    onClick={() => setDesktopMenuOpen(false)}
+                    className={cn(
+                      'group flex items-center justify-between border-b border-border py-5 font-serif text-3xl leading-none transition-colors xl:text-4xl',
+                      isActive(link.href)
+                        ? 'text-gold'
+                        : 'hover:text-gold',
+                    )}
+                  >
+                    {link.label}
+
+                    <ArrowUpRight
+                      size={20}
+                      className="opacity-35 transition-all duration-300 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:opacity-100"
+                    />
+
+                  </Link>
+                ))}
+
+              </nav>
+
+              {/* MORE */}
+
+              <div className="mt-12">
+
+                <p className="mb-5 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                  More From Revamp
+                </p>
+
+                <div className="grid grid-cols-2 gap-x-8 border-t border-border">
+
+                  {exploreLinks.map((link) => (
+                    <Link
+                      key={link.label}
+                      href={link.href}
+                      onClick={() => setDesktopMenuOpen(false)}
+                      className="group flex items-center justify-between border-b border-border py-4 text-sm transition-colors hover:text-gold"
+                    >
+                      <span>{link.label}</span>
+
+                      <ArrowUpRight
+                        size={14}
+                        className="opacity-40 transition-all group-hover:translate-x-1 group-hover:-translate-y-1"
+                      />
+                    </Link>
+                  ))}
+
+                </div>
+
+              </div>
+
+              {/* SOCIAL */}
+
+              <div className="mt-12">
+
+                <p className="mb-4 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                  Follow Our World
+                </p>
+
+                <div className="flex gap-2">
+
+                  {socialLinks.map((social) => {
+                    const Icon = social.icon
+
+                    return (
+                      <Link
+                        key={social.label}
+                        href={social.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex size-10 items-center justify-center border border-border transition-colors hover:border-gold hover:text-gold"
+                        aria-label={social.label}
+                      >
+                        <Icon size={16} />
+                      </Link>
+                    )
+                  })}
+
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* RIGHT EDITORIAL PANEL */}
+
+            <div className="min-w-0 overflow-y-auto border-l border-border bg-muted/20 px-10 py-12 xl:px-12">
+
+              <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                Begin A Project
+              </p>
+
+              <h2 className="mt-8 font-serif text-4xl leading-[1.05] xl:text-5xl">
+                The architecture
+                <br />
+                of refined living.
+              </h2>
+
+              <p className="mt-7 max-w-md text-sm leading-7 text-muted-foreground">
+                From the first conversation to the final installation,
+                we create considered spaces and experiences shaped
+                around your world.
+              </p>
+
+              <Link
+                href="/book-consultation"
+                onClick={() => setDesktopMenuOpen(false)}
+                className="mt-9 inline-flex min-h-[52px] items-center gap-3 bg-foreground px-7 text-[10px] uppercase tracking-[0.16em] text-background transition-colors hover:bg-gold hover:text-white"
+              >
+                Book A Consultation
+                <ArrowUpRight size={16} />
+              </Link>
+
+              {/* SUPPORT */}
+
+              <div className="mt-16 border-t border-border pt-8">
+
+                <p className="mb-5 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                  Need Something Else?
+                </p>
+
+                <div className="space-y-1">
+
+                  {supportLinks.map((link) => (
+                    <Link
+                      key={link.label}
+                      href={link.href}
+                      onClick={() => setDesktopMenuOpen(false)}
+                      className="group flex items-center justify-between border-b border-border/70 py-4 text-sm transition-colors hover:text-gold"
+                    >
+                      {link.label}
+
+                      <ArrowUpRight
+                        size={15}
+                        className="opacity-40 transition-all group-hover:translate-x-1 group-hover:-translate-y-1"
+                      />
+                    </Link>
+                  ))}
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </aside>
+
+      </div>
     </>
   )
 }

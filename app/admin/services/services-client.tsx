@@ -32,6 +32,12 @@ type Service = {
   slug: string
   description: string | null
   longDescription: string | null
+  visionStatement: string | null
+  whatWeSolve: string | null
+  approach: string | null
+  deliverables: string[] | null
+  relatedServices: string[] | null
+  relatedProjects: string[] | null
   image: string | null
   gallery: string[]
   storySections: unknown[]
@@ -47,6 +53,12 @@ const emptyServiceForm = {
   name: '',
   description: '',
   longDescription: '',
+  visionStatement: '',
+  whatWeSolve: '',
+  approach: '',
+  deliverables: [] as string[],
+  relatedServices: [] as string[],
+  relatedProjects: [] as string[],
   image: '',
   gallery: [] as string[],
   storySections: [] as unknown[], processSteps: [] as unknown[], faqs: [] as unknown[], highlights: [] as unknown[],
@@ -113,6 +125,12 @@ export default function ServicesClient({
       name: service.name,
       description: service.description ?? '',
       longDescription: service.longDescription ?? '',
+      visionStatement: service.visionStatement ?? '',
+      whatWeSolve: service.whatWeSolve ?? '',
+      approach: service.approach ?? '',
+      deliverables: service.deliverables ?? [],
+      relatedServices: service.relatedServices ?? [],
+      relatedProjects: service.relatedProjects ?? [],
       image: service.image ?? '',
       gallery: service.gallery ?? [], storySections: service.storySections ?? [], processSteps: service.processSteps ?? [], faqs: service.faqs ?? [], highlights: service.highlights ?? [],
     })
@@ -296,6 +314,15 @@ export default function ServicesClient({
                 value={serviceForm.longDescription}
                 onChange={(e) => setServiceForm((f) => ({ ...f, longDescription: e.target.value }))}
               />
+              <div className="grid gap-3 rounded border border-border/60 bg-muted/20 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Editorial template</p>
+                <Textarea placeholder="Vision statement" value={serviceForm.visionStatement} onChange={(e) => setServiceForm((f) => ({ ...f, visionStatement: e.target.value }))} />
+                <Textarea placeholder="What this service solves" value={serviceForm.whatWeSolve} onChange={(e) => setServiceForm((f) => ({ ...f, whatWeSolve: e.target.value }))} />
+                <Textarea placeholder="Our approach" value={serviceForm.approach} onChange={(e) => setServiceForm((f) => ({ ...f, approach: e.target.value }))} />
+                <Textarea placeholder="Deliverables, one per line" value={serviceForm.deliverables.join('\n')} onChange={(e) => setServiceForm((f) => ({ ...f, deliverables: e.target.value.split('\n').map((item) => item.trim()).filter(Boolean) }))} />
+                <Input placeholder="Related service slugs, comma separated" value={serviceForm.relatedServices.join(', ')} onChange={(e) => setServiceForm((f) => ({ ...f, relatedServices: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) }))} />
+                <Input placeholder="Related project slugs, comma separated" value={serviceForm.relatedProjects.join(', ')} onChange={(e) => setServiceForm((f) => ({ ...f, relatedProjects: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) }))} />
+              </div>
               <StructuredListEditor kind="story" value={serviceForm.storySections} onChange={(storySections) => setServiceForm((f) => ({ ...f, storySections }))} />
               <StructuredListEditor kind="process" value={serviceForm.processSteps} onChange={(processSteps) => setServiceForm((f) => ({ ...f, processSteps }))} />
               <StructuredListEditor kind="faq" value={serviceForm.faqs} onChange={(faqs) => setServiceForm((f) => ({ ...f, faqs }))} />

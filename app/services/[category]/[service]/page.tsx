@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateBreadcrumbSchema, generateServiceSchema } from '@/lib/seo/schema-generator'
+import { serviceTemplateFromRecord } from '@/lib/content/section-templates'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,9 +70,10 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const nextService = serviceIndex < publishedServices.length - 1 ? publishedServices[serviceIndex + 1] : null
   const serviceUrl = `${SITE_URL}/services/${encodeURIComponent(category.slug)}/${encodeURIComponent(service.slug)}`
   const serviceImage = service.ogImage || service.image || undefined
-  const storySections = Array.isArray(service.storySections) ? service.storySections as Array<{ eyebrow?: string; title: string; body: string; image?: string; imagePosition?: 'left' | 'right' }> : []
-  const processSteps = Array.isArray(service.processSteps) ? service.processSteps as Array<{ title: string; description: string }> : []
-  const faqs = Array.isArray(service.faqs) ? service.faqs as Array<{ question: string; answer: string }> : []
+  const serviceTemplate = serviceTemplateFromRecord(service as unknown as Record<string, unknown>)
+  const storySections = serviceTemplate.sections
+  const processSteps = serviceTemplate.processSteps
+  const faqs = serviceTemplate.faqs
   const galleryImages = Array.isArray(service.gallery) ? service.gallery.filter((url): url is string => typeof url === 'string' && url.trim().length > 0) : []
   const inquiryHref = `/custom-services?service=${encodeURIComponent(service.name)}`
 
@@ -134,9 +136,12 @@ export default async function ServiceDetailPage({ params }: PageProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
               <div className="md:col-span-2 space-y-8">
                 <div>
+                  {serviceTemplate.visionStatement && <p className="mb-6 border-l-2 border-gold/50 pl-4 font-serif text-2xl leading-8 text-foreground">{serviceTemplate.visionStatement}</p>}
                   <p className="text-[10px] uppercase tracking-[0.25em] text-primary">The brief</p>
                   <h2 className="mt-3 font-serif text-4xl font-light leading-tight text-foreground">{service.name}, considered from the inside out.</h2>
-                  <p className="mt-5 text-foreground/70 leading-8">{service.longDescription || service.description}</p>
+                  <p className="mt-5 text-foreground/70 leading-8">{serviceTemplate.whatWeSolve || service.longDescription || service.description}</p>
+                  {serviceTemplate.approach && <p className="mt-5 text-foreground/70 leading-8"><span className="font-medium text-foreground">Our approach. </span>{serviceTemplate.approach}</p>}
+                  {serviceTemplate.deliverables.length > 0 && <div className="mt-6 grid gap-2 sm:grid-cols-2">{serviceTemplate.deliverables.map((item) => <p key={item} className="border-b border-border/30 py-2 text-sm text-muted-foreground">{item}</p>)}</div>}
                 </div>
                 {storySections.map((section, index) => (
                   <article key={`${section.title}-${index}`} className={`grid gap-8 items-center ${section.image ? 'md:grid-cols-2' : ''}`}>

@@ -24,6 +24,7 @@ function slugify(input: string) {
 
 export async function createArticle(data: {
   title: string
+  introduction?: string
   excerpt?: string
   content?: string
   author?: string
@@ -31,6 +32,10 @@ export async function createArticle(data: {
   featuredImage?: string
   gallery?: string[]
   storySections?: unknown[]
+  pullQuotes?: unknown[]
+  relatedArticles?: string[]
+  relatedServices?: string[]
+  relatedProjects?: string[]
   status?: string
 }) {
   if (!(await getCurrentUserWithRole(['admin', 'editor'])).authorized) return { success: false, error: 'You are not authorized to manage articles.' }
@@ -40,6 +45,11 @@ export async function createArticle(data: {
       .insert(articles)
       .values({
         title: data.title,
+        introduction: data.introduction || null,
+        pullQuotes: data.pullQuotes || [],
+        relatedArticles: data.relatedArticles || [],
+        relatedServices: data.relatedServices || [],
+        relatedProjects: data.relatedProjects || [],
         slug: slugify(data.title),
         excerpt: data.excerpt || null,
         content: data.content?.trim() || '',
@@ -66,6 +76,7 @@ export async function updateArticle(
   id: string,
   data: Partial<{
     title: string
+    introduction: string
     excerpt: string
     content: string
     author: string
@@ -73,6 +84,10 @@ export async function updateArticle(
     featuredImage: string
     gallery: string[]
     storySections: unknown[]
+    pullQuotes: unknown[]
+    relatedArticles: string[]
+    relatedServices: string[]
+    relatedProjects: string[]
     status: string
   }>,
 ) {

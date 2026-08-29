@@ -23,7 +23,7 @@ export default async function AccountPage() {
       <>
         <SiteHeader />
         <main className="min-h-screen bg-background">
-        <div className="mx-auto flex w-full max-w-7xl gap-12 px-6 py-10 md:px-10 md:py-16 lg:px-12">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10 md:px-10 md:py-16 lg:flex-row lg:gap-12 lg:px-12">
           <AccountNavigation />
           <section className="flex min-w-0 flex-1 items-start">
             <PageLoadError
@@ -43,7 +43,7 @@ export default async function AccountPage() {
     <>
       <SiteHeader />
       <main className="min-h-screen bg-background">
-      <div className="mx-auto flex w-full max-w-7xl gap-12 px-6 py-10 md:px-10 md:py-16 lg:px-12">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10 md:px-10 md:py-16 lg:flex-row lg:gap-12 lg:px-12">
         <AccountNavigation />
         <div className="min-w-0 flex-1">
           <div className="mb-8 flex items-center justify-between border-b border-border/70 pb-5 lg:hidden">

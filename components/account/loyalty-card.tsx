@@ -57,19 +57,16 @@ export function LoyaltyCard({ data }: { data: LoyaltyCardData }) {
 
   return (
     <section id="loyalty" className="overflow-hidden border border-border bg-card" aria-labelledby="loyalty-heading">
-      <div className="border-b border-border/70 bg-primary px-5 py-6 text-primary-foreground sm:px-8 sm:py-8">
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="min-w-0">
-            <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-primary-foreground/70"><Sparkles className="size-3.5" aria-hidden="true" /> Revamp Rewards</p>
-            <h2 id="loyalty-heading" className="mt-3 font-serif text-3xl leading-tight sm:text-4xl">A little more in return.</h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-primary-foreground/75">Earn points as you shop, show up, and share considered living with someone new.</p>
-          </div>
-          <div className="shrink-0 text-left sm:text-right">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary-foreground/70">Available points</p>
-            <p className="mt-1 font-serif text-4xl leading-none sm:text-5xl">{format.format(data.balancePoints)}</p>
-            <p className="mt-2 text-xs text-primary-foreground/70">{data.tier} tier</p>
+      <div className="border-b border-border/70 bg-gradient-to-br from-primary via-primary to-primary/80 p-4 text-primary-foreground sm:p-6">
+        <div className="relative min-h-52 overflow-hidden rounded-2xl border border-white/20 bg-black/10 p-5 shadow-2xl sm:min-h-60 sm:p-7">
+          <div className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full border border-white/15" />
+          <div className="pointer-events-none absolute -bottom-24 -left-12 size-64 rounded-full border border-white/10" />
+          <div className="relative flex h-full flex-col justify-between gap-8">
+            <div className="flex items-start justify-between gap-4"><div><p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-primary-foreground/70"><Sparkles className="size-3.5" aria-hidden="true" /> Revamp Rewards</p><h2 id="loyalty-heading" className="mt-3 font-serif text-3xl leading-tight sm:text-4xl">A little more in return.</h2></div><span className="rounded-full border border-white/20 px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-primary-foreground/80">{data.tier} tier</span></div>
+            <div className="flex items-end justify-between gap-5"><div><p className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary-foreground/70">Member points</p><p className="mt-2 font-serif text-4xl leading-none sm:text-5xl">{format.format(data.balancePoints)}</p></div><div className="text-right text-xs text-primary-foreground/65"><p>REVAMP / {new Date().getFullYear()}</p><p className="mt-1 tracking-[0.18em]">•••• {String(data.balancePoints).slice(-4).padStart(4, '0')}</p></div></div>
           </div>
         </div>
+        <p className="mx-auto mt-4 max-w-xl px-1 text-sm leading-6 text-primary-foreground/75">Earn points as you shop, show up, and share considered living with someone new.</p>
       </div>
 
       <div className="grid gap-px border-b border-border bg-border sm:grid-cols-3">

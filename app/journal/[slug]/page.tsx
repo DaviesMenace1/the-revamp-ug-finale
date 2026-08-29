@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateArticleSchema } from '@/lib/seo/schema-generator'
+import { journalTemplateFromRecord } from '@/lib/content/section-templates'
 import { db } from '@/lib/db/client'
 import { articles } from '@/lib/db/schema'
 import { eq, ne, and, desc } from 'drizzle-orm'
@@ -75,9 +76,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const articleSchema = generateArticleSchema({ headline: article.title, description: (article.content || article.excerpt || '').substring(0, 160), image: heroImage, datePublished: publishedDate.toISOString(), author: article.author || 'The Revamp UG', category: article.category || 'Journal', options: { url: `${SITE_URL}/journal/${encodeURIComponent(article.slug)}`, datePublished: publishedDate.toISOString() } })
   const contentParagraphs = (article.content || '').replace(/\\n/g, '\n').split(/\n\s*\n/).map((block) => block.trim()).filter(Boolean)
   const galleryImages = getArticleImages(article.gallery)
-  const storySections = Array.isArray(article.storySections)
-    ? article.storySections.filter((section): section is { eyebrow?: string; title: string; body: string; image?: string } => Boolean(section && typeof section === 'object' && typeof (section as { title?: unknown }).title === 'string' && typeof (section as { body?: unknown }).body === 'string'))
-    : []
+  const journalTemplate = journalTemplateFromRecord(article as unknown as Record<string, unknown>)
+  const storySections = journalTemplate.sections
 
   return (
     <>
@@ -103,10 +103,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </section>
 
         <section className="py-16 md:py-24">
-          <div className="mx-auto max-w-3xl px-6 md:px-8"><article className="space-y-8 text-[1.08rem] leading-8 text-muted-foreground md:text-[1.15rem] md:leading-9">{contentParagraphs.map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>)}</article></div>
+          <div className="mx-auto max-w-3xl px-6 md:px-8">{journalTemplate.introduction && <p className="mb-10 font-serif text-2xl leading-8 text-foreground md:text-3xl">{journalTemplate.introduction}</p>}<article className="space-y-8 text-[1.08rem] leading-8 text-muted-foreground md:text-[1.15rem] md:leading-9">{contentParagraphs.map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>)}</article></div>
         </section>
 
-        {storySections.length > 0 && <section className="border-y border-border/20 py-16 md:py-24"><div className="mx-auto max-w-5xl space-y-12 px-6 md:px-8">{storySections.map((section, index) => <article key={`${section.title}-${index}`} className={`grid items-center gap-8 ${section.image ? 'md:grid-cols-2' : ''}`}><div className={section.image && index % 2 === 1 ? 'md:order-2' : ''}><p className="text-xs uppercase tracking-[0.18em] text-primary/80">{section.eyebrow || 'Editor’s note'}</p><h3 className="mt-3 font-serif text-3xl font-light text-foreground">{section.title}</h3><p className="mt-4 whitespace-pre-line text-[1.05rem] leading-8 text-muted-foreground">{section.body}</p></div>{section.image && <div className={index % 2 === 1 ? 'md:order-1' : ''}><Image src={section.image} alt={section.title} width={1200} height={900} className="aspect-[4/3] w-full object-cover" /></div>}</article>)}</div></section>}
+        {storySections.length > 0 && <section className="border-y border-border/20 py-16 md:py-24"><div className="mx-auto max-w-5xl space-y-12 px-6 md:px-8">{storySections.map((section, index) => section.kind === 'quote' ? <blockquote key={`${section.id}-${index}`} className="border-y border-border/50 py-8 font-serif text-3xl leading-tight text-foreground">“{section.quote || section.body}”{section.attribution && <cite className="mt-3 block font-sans text-xs not-italic uppercase tracking-[0.16em] text-primary">{section.attribution}</cite>}</blockquote> : <article key={`${section.id}-${index}`} className={`grid items-center gap-8 ${section.image ? 'md:grid-cols-2' : ''}`}><div className={section.image && index % 2 === 1 ? 'md:order-2' : ''}><p className="text-xs uppercase tracking-[0.18em] text-primary/80">{section.eyebrow || 'Editor’s note'}</p>{section.title && <h3 className="mt-3 font-serif text-3xl font-light text-foreground">{section.title}</h3>}{section.body && <p className="mt-4 whitespace-pre-line text-[1.05rem] leading-8 text-muted-foreground">{section.body}</p>}</div>{section.image && <div className={index % 2 === 1 ? 'md:order-1' : ''}><Image src={section.image} alt={section.title || article.title} width={1200} height={900} className="aspect-[4/3] w-full object-cover" />{section.caption && <p className="mt-2 text-xs text-muted-foreground">{section.caption}</p>}</div>}</article>)}</div></section>}
 
         {galleryImages.length > 0 && <section className="border-b border-border/20 py-16 md:py-24"><div className="mx-auto max-w-6xl space-y-8 px-6 md:px-8"><div><h2 className="font-serif text-4xl font-light text-foreground md:text-5xl">Gallery</h2></div><div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">{galleryImages.map((image, index) => <div key={`${image}-${index}`} className="relative aspect-[4/3] overflow-hidden bg-muted"><Image src={image} alt={`${article.title} gallery image ${index + 1}`} fill className="object-cover" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" /></div>)}</div></div></section>}
 

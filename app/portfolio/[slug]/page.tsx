@@ -7,6 +7,7 @@ import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateBreadcrumbSchema, generateProjectSchema } from '@/lib/seo/schema-generator'
+import { projectTemplateFromRecord } from '@/lib/content/section-templates'
 import LikeButton from '@/components/like-button'
 import { getProjectBySlug, getPublishedProjects } from '@/lib/db/queries'
 import { resolveProductImageUrls } from '@/lib/utils'
@@ -57,7 +58,8 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   const galleryImages = resolveProductImageUrls(project).slice(1)
   const description = project.shortDescription || project.description || 'A considered interior by The Revamp studio.'
   const storyParagraphs = (project.longDescription || '').split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean)
-  const storySections = Array.isArray(project.storySections) ? project.storySections as Array<{ eyebrow?: string; title: string; body: string; image?: string }> : []
+  const projectTemplate = projectTemplateFromRecord(project as unknown as Record<string, unknown>)
+  const storySections = projectTemplate.sections
   const projectUrl = `${SITE_URL}/portfolio/${encodeURIComponent(slug)}`
   const projectSchema = generateProjectSchema({
     name: project.title,
@@ -95,7 +97,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
 
         <section className="border-b border-border/70 px-5 py-14 sm:px-8 md:py-20 lg:px-16">
           <div className="mx-auto grid max-w-[1440px] gap-12 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="max-w-3xl motion-reveal"><p className="text-[10px] uppercase tracking-[0.25em] text-primary">The brief</p><h2 className="mt-4 font-serif text-4xl font-light leading-tight sm:text-5xl">A space shaped around its people.</h2><p className="mt-6 text-base leading-8 text-muted-foreground sm:text-lg">{description}</p></div>
+            <div className="max-w-3xl motion-reveal">{projectTemplate.designPhilosophy && <p className="mb-6 border-l-2 border-gold/50 pl-4 font-serif text-2xl leading-8 text-foreground">{projectTemplate.designPhilosophy}</p>}<p className="text-[10px] uppercase tracking-[0.25em] text-primary">The brief</p><h2 className="mt-4 font-serif text-4xl font-light leading-tight sm:text-5xl">A space shaped around its people.</h2><p className="mt-6 text-base leading-8 text-muted-foreground sm:text-lg">{projectTemplate.clientBrief || description}</p>{projectTemplate.materials.length > 0 && <div className="mt-6 flex flex-wrap gap-2">{projectTemplate.materials.map((material) => <span key={material} className="rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground">{material}</span>)}</div>}</div>
             <dl className="grid grid-cols-2 gap-x-8 gap-y-8 border-l border-border/70 pl-6 sm:pl-10">
               {project.location && <div><dt className="text-[10px] uppercase tracking-[0.2em] text-primary">Location</dt><dd className="mt-2 text-sm text-foreground">{project.location}</dd></div>}
               {project.year && <div><dt className="text-[10px] uppercase tracking-[0.2em] text-primary">Year</dt><dd className="mt-2 text-sm text-foreground">{project.year}</dd></div>}
@@ -110,7 +112,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
           </div>
         </section>
 
-        {(storySections.length > 0 || storyParagraphs.length > 0) && <section className="border-b border-border/70 px-5 py-14 sm:px-8 md:py-20 lg:px-16"><div className="mx-auto grid max-w-[1440px] gap-8 lg:grid-cols-[0.65fr_1.35fr]"><div><p className="text-[10px] uppercase tracking-[0.25em] text-primary">The story</p><h2 className="mt-4 font-serif text-4xl font-light leading-tight sm:text-5xl">The thinking behind the room.</h2></div><div className="space-y-10 text-base leading-8 text-muted-foreground sm:text-lg">{storySections.length > 0 ? storySections.map((section, index) => <article key={`${project.id}-story-${index}`} className="grid gap-6 md:grid-cols-2 md:items-center"><div><p className="text-[10px] uppercase tracking-[0.25em] text-primary">{section.eyebrow || "Project note"}</p><h3 className="mt-2 font-serif text-3xl font-light text-foreground">{section.title}</h3><p className="mt-4 whitespace-pre-line">{section.body}</p></div>{section.image && <Image src={section.image} alt={section.title} width={1200} height={900} className="aspect-[4/3] w-full object-cover" />}</article>) : storyParagraphs.map((paragraph, index) => <p key={`${project.id}-story-${index}`}>{paragraph}</p>)}</div></div></section>}
+        {(storySections.length > 0 || storyParagraphs.length > 0) && <section className="border-b border-border/70 px-5 py-14 sm:px-8 md:py-20 lg:px-16"><div className="mx-auto grid max-w-[1440px] gap-8 lg:grid-cols-[0.65fr_1.35fr]"><div><p className="text-[10px] uppercase tracking-[0.25em] text-primary">The story</p><h2 className="mt-4 font-serif text-4xl font-light leading-tight sm:text-5xl">The thinking behind the room.</h2></div><div className="space-y-10 text-base leading-8 text-muted-foreground sm:text-lg">{storySections.length > 0 ? storySections.map((section, index) => <article key={`${project.id}-story-${index}`} className="grid gap-6 md:grid-cols-2 md:items-center"><div><p className="text-[10px] uppercase tracking-[0.25em] text-primary">{section.eyebrow || "Project note"}</p><h3 className="mt-2 font-serif text-3xl font-light text-foreground">{section.title}</h3>{section.body && <p className="mt-4 whitespace-pre-line">{section.body}</p>}</div>{section.image && <Image src={section.image} alt={section.title || project.title} width={1200} height={900} className="aspect-[4/3] w-full object-cover" />}</article>) : storyParagraphs.map((paragraph, index) => <p key={`${project.id}-story-${index}`}>{paragraph}</p>)}</div></div></section>}
 
         {Array.isArray(project.highlights) && project.highlights.length > 0 && <section className="border-b border-border/70 bg-muted/20 px-5 py-12 sm:px-8 lg:px-16"><div className="mx-auto max-w-[1440px]"><p className="text-[10px] uppercase tracking-[0.25em] text-primary">Project highlights</p><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{(project.highlights as Array<{ label?: string; title?: string; value?: string; description?: string }>).map((highlight, index) => <div key={`${project.id}-highlight-${index}`} className="border-l border-primary/40 pl-4"><p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{highlight.label || highlight.title || `Detail ${index + 1}`}</p>{(highlight.value || highlight.description) && <p className="mt-2 text-sm leading-6 text-foreground">{highlight.value || highlight.description}</p>}</div>)}</div></div></section>}
 

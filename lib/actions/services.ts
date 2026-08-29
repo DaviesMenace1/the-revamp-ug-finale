@@ -107,6 +107,12 @@ export async function createService(data: {
   name: string
   description?: string
   longDescription?: string
+  visionStatement?: string
+  whatWeSolve?: string
+  approach?: string
+  deliverables?: string[]
+  relatedServices?: string[]
+  relatedProjects?: string[]
   icon?: string
   image?: string
   gallery?: string[]
@@ -125,6 +131,12 @@ export async function createService(data: {
         slug: slugify(data.name),
         description: data.description || null,
         longDescription: data.longDescription || null,
+        visionStatement: data.visionStatement || null,
+        whatWeSolve: data.whatWeSolve || null,
+        approach: data.approach || null,
+        deliverables: data.deliverables || [],
+        relatedServices: data.relatedServices || [],
+        relatedProjects: data.relatedProjects || [],
         icon: data.icon || null,
         image: data.image || null,
         gallery: data.gallery || [],
@@ -152,6 +164,12 @@ export async function updateService(
     name: string
     description: string
     longDescription: string
+    visionStatement: string
+    whatWeSolve: string
+    approach: string
+    deliverables: string[]
+    relatedServices: string[]
+    relatedProjects: string[]
     icon: string
     image: string
     gallery: string[]

@@ -193,7 +193,11 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
         {filtered.map((article) => (
           <Card key={article.id} className="overflow-hidden">
             {article.featuredImage && (
-              <img src={article.featuredImage} alt="" className="h-36 w-full object-cover" />
+              <>
+                {/* Admin-uploaded URLs may come from configured or legacy media hosts. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={article.featuredImage} alt="" className="h-36 w-full object-cover" />
+              </>
             )}
             <div className="p-4">
               <div className="flex items-center justify-between">

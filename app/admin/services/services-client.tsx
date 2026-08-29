@@ -9,7 +9,6 @@ import { Plus, Edit, Trash2, Search, X } from 'lucide-react'
 import { ImageUpload } from '@/components/admin/image-upload'
 import {
   createServiceCategory,
-  updateServiceCategory,
   deleteServiceCategory,
   createService,
   updateService,

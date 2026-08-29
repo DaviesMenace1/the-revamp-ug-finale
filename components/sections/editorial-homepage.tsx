@@ -294,7 +294,7 @@ function ProjectFeature({ projects, loading }: { projects: Project[]; loading: b
     <section className="motion-reveal bg-background px-5 py-12 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-7 flex flex-col items-center gap-4 border-b border-foreground/15 pb-6 text-center md:mb-10 md:flex-row md:items-end md:justify-between md:pb-7 md:text-left">
-          <div><h1 className="mt-3 font-serif text-6xl font-light leading-none sm:text-8xl">Featured Projects</h1></div>
+          <div><h1 className="mt-4 max-w-4xl font-serif text-6xl font-light leading-none sm:text-8xl">Featured Projects</h1></div>
           <Link href="/portfolio" className="inline-flex min-h-11 items-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-gold hover:text-foreground">View all projects <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
         </div>
         {loading ? (

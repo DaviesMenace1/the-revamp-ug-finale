@@ -1,0 +1,44 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import { Plus, Save, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { saveSetting } from '@/lib/actions/settings'
+
+import type { AboutContent, AboutEmployee, AboutReference, AboutCapability } from '@/lib/about-content'
+export type { AboutContent, AboutEmployee, AboutReference, AboutCapability } from '@/lib/about-content'
+
+const blankEmployee: AboutEmployee = { name: '', role: '', bio: '', image: '' }
+const blankCapability: AboutCapability = { title: '', description: '' }
+const blankReference: AboutReference = { title: '', category: '', description: '', image: '' }
+
+function Field({ label, value, onChange, multiline = false }: { label: string; value: string; onChange: (value: string) => void; multiline?: boolean }) {
+  return <label className="block space-y-2"><span className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{label}</span>{multiline ? <Textarea value={value} onChange={(event) => onChange(event.target.value)} rows={5} className="rounded-none" /> : <Input value={value} onChange={(event) => onChange(event.target.value)} className="rounded-none" />}</label>
+}
+
+export default function AboutClient({ initial }: { initial: AboutContent }) {
+  const [content, setContent] = useState(initial)
+  const [isPending, startTransition] = useTransition()
+  const [saved, setSaved] = useState(false)
+
+  function update<K extends keyof AboutContent>(key: K, value: AboutContent[K]) { setContent((current) => ({ ...current, [key]: value })) }
+  function save() { startTransition(async () => { const result = await saveSetting('aboutPage', content as unknown as Record<string, unknown>); if (result.success) { setSaved(true); setTimeout(() => setSaved(false), 2200) } }) }
+
+  return <div className="max-w-5xl space-y-8 p-6 sm:p-8">
+    <header><p className="text-[10px] uppercase tracking-[0.24em] text-primary">Page content</p><h1 className="mt-2 font-serif text-4xl font-light">About page</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Shape the public About experience without editing code. Changes here control the company story, founder story, capabilities, project references, media, and team directory.</p></header>
+
+    <section className="space-y-5 border border-border/70 bg-card p-5 sm:p-7"><h2 className="font-serif text-2xl font-light">Hero and company story</h2><div className="grid gap-5 sm:grid-cols-2"><Field label="Hero title" value={content.heroTitle} onChange={(value) => update('heroTitle', value)} /><Field label="Hero image URL" value={content.heroImage} onChange={(value) => update('heroImage', value)} /></div><Field label="Hero introduction" value={content.heroIntro} onChange={(value) => update('heroIntro', value)} multiline /><Field label="Story heading" value={content.storyTitle} onChange={(value) => update('storyTitle', value)} /><Field label="Company story" value={content.story} onChange={(value) => update('story', value)} multiline /><Field label="Story image URL" value={content.storyImage} onChange={(value) => update('storyImage', value)} /></section>
+
+    <section className="space-y-5 border border-border/70 bg-card p-5 sm:p-7"><h2 className="font-serif text-2xl font-light">Founder story</h2><Field label="Founder heading" value={content.founderTitle} onChange={(value) => update('founderTitle', value)} /><Field label="Founder story" value={content.founderStory} onChange={(value) => update('founderStory', value)} multiline /><Field label="Founder image URL" value={content.founderImage} onChange={(value) => update('founderImage', value)} /></section>
+
+    <section className="space-y-5 border border-border/70 bg-card p-5 sm:p-7"><div className="flex items-center justify-between gap-4"><div><h2 className="font-serif text-2xl font-light">Capabilities</h2><p className="mt-1 text-sm text-muted-foreground">Explain what the studio can take from first brief to final detail.</p></div><Button type="button" variant="outline" onClick={() => update('capabilities', [...content.capabilities, { ...blankCapability }])}><Plus className="mr-2 size-4" />Add capability</Button></div>{content.capabilities.map((item, index) => <div key={index} className="grid gap-4 border-t border-border/60 pt-5 sm:grid-cols-[0.7fr_1.3fr_auto]"><Field label="Title" value={item.title} onChange={(value) => update('capabilities', content.capabilities.map((row, i) => i === index ? { ...row, title: value } : row))} /><Field label="Description" value={item.description} onChange={(value) => update('capabilities', content.capabilities.map((row, i) => i === index ? { ...row, description: value } : row))} /><button type="button" aria-label="Remove capability" className="self-end p-2 text-muted-foreground hover:text-destructive" onClick={() => update('capabilities', content.capabilities.filter((_, i) => i !== index))}><Trash2 className="size-4" /></button></div>)}</section>
+
+    <section className="space-y-5 border border-border/70 bg-card p-5 sm:p-7"><div className="flex items-center justify-between gap-4"><div><h2 className="font-serif text-2xl font-light">Project references</h2><p className="mt-1 text-sm text-muted-foreground">Show the kind of work and capability clients can expect.</p></div><Button type="button" variant="outline" onClick={() => update('references', [...content.references, { ...blankReference }])}><Plus className="mr-2 size-4" />Add reference</Button></div>{content.references.map((item, index) => <div key={index} className="space-y-4 border-t border-border/60 pt-5"><div className="grid gap-4 sm:grid-cols-3"><Field label="Title" value={item.title} onChange={(value) => update('references', content.references.map((row, i) => i === index ? { ...row, title: value } : row))} /><Field label="Category" value={item.category} onChange={(value) => update('references', content.references.map((row, i) => i === index ? { ...row, category: value } : row))} /><Field label="Image URL" value={item.image} onChange={(value) => update('references', content.references.map((row, i) => i === index ? { ...row, image: value } : row))} /></div><div className="flex gap-3"><div className="flex-1"><Field label="Description" value={item.description} onChange={(value) => update('references', content.references.map((row, i) => i === index ? { ...row, description: value } : row))} multiline /></div><button type="button" aria-label="Remove reference" className="mt-7 p-2 text-muted-foreground hover:text-destructive" onClick={() => update('references', content.references.filter((_, i) => i !== index))}><Trash2 className="size-4" /></button></div></div>)}</section>
+
+    <section className="space-y-5 border border-border/70 bg-card p-5 sm:p-7"><div className="flex items-center justify-between gap-4"><div><h2 className="font-serif text-2xl font-light">Team directory</h2><p className="mt-1 text-sm text-muted-foreground">Add, edit, reorder, or remove employees shown publicly.</p></div><Button type="button" variant="outline" onClick={() => update('employees', [...content.employees, { ...blankEmployee }])}><Plus className="mr-2 size-4" />Add employee</Button></div>{content.employees.map((member, index) => <div key={index} className="space-y-4 border-t border-border/60 pt-5"><div className="grid gap-4 sm:grid-cols-3"><Field label="Name" value={member.name} onChange={(value) => update('employees', content.employees.map((row, i) => i === index ? { ...row, name: value } : row))} /><Field label="Role" value={member.role} onChange={(value) => update('employees', content.employees.map((row, i) => i === index ? { ...row, role: value } : row))} /><Field label="Portrait image URL" value={member.image} onChange={(value) => update('employees', content.employees.map((row, i) => i === index ? { ...row, image: value } : row))} /></div><div className="flex gap-3"><div className="flex-1"><Field label="Bio" value={member.bio} onChange={(value) => update('employees', content.employees.map((row, i) => i === index ? { ...row, bio: value } : row))} multiline /></div><button type="button" aria-label="Remove employee" className="mt-7 p-2 text-muted-foreground hover:text-destructive" onClick={() => update('employees', content.employees.filter((_, i) => i !== index))}><Trash2 className="size-4" /></button></div></div>)}</section>
+
+    <div className="sticky bottom-4 flex items-center justify-end gap-4 border border-border bg-background/95 p-3 shadow-lg backdrop-blur"><span className="text-sm text-emerald-700 dark:text-emerald-400" aria-live="polite">{saved ? 'About page saved' : ''}</span><Button type="button" onClick={save} disabled={isPending}><Save className="mr-2 size-4" />{isPending ? 'Saving…' : 'Save About page'}</Button></div>
+  </div>
+}

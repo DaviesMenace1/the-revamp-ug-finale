@@ -1,180 +1,40 @@
-'use client'
-
+import Image from 'next/image'
+import Link from 'next/link'
+import { ArrowUpRight } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
-import Link from 'next/link'
+import { getSetting } from '@/lib/actions/settings'
+import { DEFAULT_ABOUT, type AboutContent } from '@/lib/about-content'
 
-const teamMembers = [
-  {
-    name: 'Faridah Nakayiwa A ',
-    title: 'Founder & Creative Director',
-    bio: 'The visionary behind The Revamp UG, bringing together an East African point of view, considered spaces, and a wider design perspective.',
-    image: '/team/faridah-nakayiwa.webp',
-  },
-  {
-    name: 'Davis Musinguzi',
-    title: 'Technical Lead',
-    bio:'Coordinates technical projects, platform maintenance, and developer workflows.',
-    image: '/team/davis-musinguzi.jpg',
-  },
-]
+export const dynamic = 'force-dynamic'
 
-const practiceAreas = [
-  { title: 'Spaces', description: 'Interior design, architecture, renovation, and project direction shaped around how people live and work.' },
-  { title: 'Objects', description: 'Furniture, lighting, art, textiles, and custom pieces selected or developed for the room.' },
-  { title: 'Sourcing', description: 'A considered route through materials, makers, procurement, and the practical details behind a brief.' },
-  { title: 'Perspective', description: 'An East African point of view with room for global references, local collaboration, and individual expression.' },
-]
+export default async function AboutPage() {
+  const about = await getSetting<AboutContent>('aboutPage', DEFAULT_ABOUT)
+  const capabilities = Array.isArray(about.capabilities) ? about.capabilities : []
+  const references = Array.isArray(about.references) ? about.references : []
+  const employees = Array.isArray(about.employees) ? about.employees : []
+  const storyParagraphs = about.story.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean)
 
-export default function AboutPage() {
-  return (
-    <>
-      <SiteHeader />
-      <main className="min-h-screen bg-background">
-        {/* Hero */}
-        <section className="border-b border-border/20 bg-gradient-to-br from-background via-background to-muted/20 py-24 md:py-32">
-          <div className="mx-auto max-w-5xl px-6 md:px-8 space-y-6">
-            <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground">
-              About Revamp UG
-            </h1>
-            <p className="max-w-2xl text-xl text-muted-foreground font-light">
-              Transforming spaces and lives through thoughtful design, architecture, and global curation
-            </p>
-          </div>
-        </section>
+  return <>
+    <SiteHeader />
+    <main className="min-h-screen bg-background">
+      <section className="relative overflow-hidden border-b border-border/20 bg-obsidian text-ivory">
+        <div className="relative min-h-[36rem] sm:min-h-[42rem]"><Image src={about.heroImage} alt="The Revamp UG studio" fill priority className="object-cover opacity-65" sizes="100vw" /><div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/45 to-obsidian/10" /><div className="absolute inset-x-0 bottom-0 px-5 pb-12 sm:px-8 sm:pb-16 lg:px-16 lg:pb-20"><div className="mx-auto max-w-[1440px]"><p className="text-[10px] uppercase tracking-[0.28em] text-gold">The Revamp UG · Design house</p><h1 className="mt-5 max-w-4xl font-serif text-5xl font-light leading-[0.92] sm:text-7xl lg:text-[7rem]">{about.heroTitle}</h1><p className="mt-6 max-w-2xl text-base leading-7 text-ivory/75 sm:text-lg">{about.heroIntro}</p></div></div></div>
+      </section>
 
-        {/* Story */}
-        <section className="py-20 md:py-28 border-b border-border/20">
-          <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <div className="grid md:grid-cols-2 gap-16 items-center">
-              <div className="space-y-6">
-                <h2 className="font-serif text-4xl font-light text-foreground">Our Story</h2>
-                <p className="text-lg text-muted-foreground font-light leading-relaxed">
-                  Revamp UG was founded with a simple mission: to bring world-class design and architecture to East Africa.
-                  What started as a dream in Kampala has grown into a broader design studio for residential, commercial, hospitality, and sourcing briefs.
-                </p>
-                <p className="text-lg text-muted-foreground font-light leading-relaxed">
-                  We believe that exceptional design isn't a luxury; it's a necessity. Every project, from residential apartments
-                  to commercial spaces, deserves thoughtful design, quality materials, and meticulous execution.
-                </p>
-              </div>
-              <div className="h-96 bg-gradient-to-br from-muted to-muted/50 rounded-lg overflow-hidden" >
-                  <img
-                      src="https://res.cloudinary.com/r8epy5mg/image/upload/v1785658769/file_0000000044ec71f48458614b2de85725_l4eeso.png"
-                      alt="The Revamp UG design showcase"
-                      className="w-full h-full object-cover"
-                    />
-             </div>
-           </div>
-          </div>
-        </section>
+      <section className="border-b border-border/20 px-5 py-16 sm:px-8 md:py-24 lg:px-16"><div className="mx-auto grid max-w-[1440px] gap-12 lg:grid-cols-[0.75fr_1.25fr] lg:gap-24"><div><p className="text-[10px] uppercase tracking-[0.25em] text-primary">01 · The story</p><h2 className="mt-4 max-w-md font-serif text-4xl font-light leading-[0.96] sm:text-6xl">{about.storyTitle}</h2></div><div className="grid gap-8 sm:grid-cols-[1.2fr_0.8fr] sm:items-start"><div className="space-y-5 text-base leading-8 text-muted-foreground sm:text-lg">{storyParagraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div><div className="relative aspect-[4/5] overflow-hidden bg-muted"><Image src={about.storyImage} alt="The Revamp UG interior work" fill className="object-cover" sizes="(max-width: 640px) 100vw, 30vw" /></div></div></div></section>
 
-        {/* Mission & Values */}
-        <section className="py-20 md:py-28 border-b border-border/20 bg-muted/5">
-          <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <div className="grid md:grid-cols-2 gap-16">
-              <div className="space-y-4">
-                <h3 className="font-serif text-3xl font-light text-foreground">Our Mission</h3>
-                <p className="text-muted-foreground font-light leading-relaxed">
-                  To create exceptional spaces that inspire, function beautifully, and reflect the unique personalities
-                  and aspirations of our clients. We combine international design expertise with local knowledge to deliver
-                  truly transformative projects.
-                </p>
-              </div>
-              <div className="space-y-4">
-                <h3 className="font-serif text-3xl font-light text-foreground">Our Values</h3>
-                <ul className="space-y-3">
-                  {['Quality & Craftsmanship', 'Client-Centered Design', 'Global Vision, Local Touch', 'Sustainable Practices'].map(
-                    value => (
-                      <li key={value} className="flex items-start gap-3">
-                        <span className="text-primary/60 mt-1">•</span>
-                        <span className="text-muted-foreground font-light">{value}</span>
-                      </li>
-                    )
-                  )}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
+      <section className="border-b border-border/20 bg-muted/10 px-5 py-16 sm:px-8 md:py-24 lg:px-16"><div className="mx-auto grid max-w-[1440px] gap-12 lg:grid-cols-[1fr_1fr]"><div><p className="text-[10px] uppercase tracking-[0.25em] text-primary">02 · Founder’s note</p><h2 className="mt-4 max-w-lg font-serif text-4xl font-light leading-[0.96] sm:text-6xl">{about.founderTitle}</h2><p className="mt-6 max-w-xl whitespace-pre-line text-base leading-8 text-muted-foreground sm:text-lg">{about.founderStory}</p></div><div className="relative min-h-[24rem] overflow-hidden bg-muted"><Image src={about.founderImage} alt="The Revamp UG founder" fill className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" /></div></div></section>
 
-        {/* Practice */}
-        <section className="border-b border-border/20 py-20 md:py-28">
-          <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <div className="mb-12 max-w-2xl"><p className="text-[10px] uppercase tracking-[0.24em] text-primary">The practice</p><h2 className="mt-4 font-serif text-4xl font-light text-foreground sm:text-5xl">A connected way of working.</h2><p className="mt-4 text-base leading-7 text-muted-foreground">The work moves between space, object, sourcing, and point of view. Each brief begins with its own context.</p></div>
-            <div className="grid gap-px bg-border sm:grid-cols-2">{practiceAreas.map((area) => <article key={area.title} className="bg-background p-6 sm:p-8"><h3 className="font-serif text-3xl font-light text-foreground">{area.title}</h3><p className="mt-3 text-sm leading-7 text-muted-foreground">{area.description}</p></article>)}</div>
-          </div>
-        </section>
+      {capabilities.length > 0 && <section className="border-b border-border/20 px-5 py-16 sm:px-8 md:py-24 lg:px-16"><div className="mx-auto max-w-[1440px]"><div className="mb-10 max-w-2xl"><p className="text-[10px] uppercase tracking-[0.25em] text-primary">03 · Capabilities</p><h2 className="mt-4 font-serif text-4xl font-light sm:text-6xl">How we work.</h2></div><div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-4">{capabilities.map((item, index) => <article key={`${item.title}-${index}`} className="bg-background p-6 sm:p-8"><span className="text-[10px] tracking-[0.18em] text-primary">0{index + 1}</span><h3 className="mt-8 font-serif text-3xl font-light">{item.title}</h3><p className="mt-4 text-sm leading-7 text-muted-foreground">{item.description}</p></article>)}</div></div></section>}
 
-        {/* Team */}
-        <section className="py-20 md:py-28 border-b border-border/20 bg-muted/5">
-          <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <h2 className="font-serif text-4xl font-light text-foreground mb-16 text-center">Meet Our Team</h2>
-            <div className="grid md:grid-cols-2 gap-12">
-              {teamMembers.map(member => (
-                <div key={member.name} className="space-y-4 p-6 rounded-lg border border-border/20 hover:border-primary/20 transition-colors">
-                  <div className="relative h-80 overflow-hidden rounded-lg mb-4 bg-gradient-to-br from-muted to-muted/50">
-                    {member.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={member.image || "/placeholder.svg"}
-                        alt={`Portrait of ${member.name}`}
-                        className="absolute inset-0 h-full w-full object-cover object-top"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="font-serif text-5xl font-light text-primary/40">
-                          {member.name
-                            .split(' ')
-                            .map(n => n[0])
-                            .slice(0, 2)
-                            .join('')}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="font-serif text-2xl font-light text-foreground">{member.name}</h3>
-                  <p className="text-primary/80 font-medium text-sm uppercase tracking-wider">{member.title}</p>
-                  <p className="text-muted-foreground font-light leading-relaxed">{member.bio}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+      {references.length > 0 && <section className="border-b border-border/20 bg-obsidian px-5 py-16 text-ivory sm:px-8 md:py-24 lg:px-16"><div className="mx-auto max-w-[1440px]"><div className="mb-10 flex items-end justify-between gap-6"><div><p className="text-[10px] uppercase tracking-[0.25em] text-gold">04 · Selected references</p><h2 className="mt-4 font-serif text-4xl font-light sm:text-6xl">Work with intention.</h2></div><Link href="/portfolio" className="hidden items-center gap-2 text-xs uppercase tracking-[0.15em] text-ivory/70 sm:inline-flex">View portfolio <ArrowUpRight className="size-4" /></Link></div><div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{references.map((item, index) => <article key={`${item.title}-${index}`} className="group">{item.image && <div className="relative aspect-[4/3] overflow-hidden bg-white/10"><Image src={item.image} alt={item.title} fill className="object-cover transition-transform duration-700 group-hover:scale-105" sizes="(max-width: 640px) 100vw, 33vw" /></div>}<p className="mt-4 text-[10px] uppercase tracking-[0.18em] text-gold">{item.category}</p><h3 className="mt-2 font-serif text-3xl font-light">{item.title}</h3><p className="mt-3 text-sm leading-6 text-ivory/65">{item.description}</p></article>)}</div></div></section>}
 
-        {/* CTA */}
-        <section className="py-20 md:py-24">
-          <div className="mx-auto max-w-3xl px-6 md:px-8 text-center space-y-8">
-            <div className="space-y-4">
-              <h2 className="font-serif text-4xl font-light text-foreground">
-                Let's Create Something Beautiful Together
-              </h2>
-              <p className="text-lg text-muted-foreground font-light">
-                Ready to transform your space? Get in touch with our team.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Button
-                asChild
-                size="lg"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none font-light text-base px-8 py-6"
-              >
-                <Link href="/book-consultation">Book Consultation</Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="rounded-none font-light text-base px-8 py-6"
-              >
-                <Link href="/contact">Contact Us</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      </main>
-      <SiteFooter />
-    </>
-  )
+      {employees.length > 0 && <section className="border-b border-border/20 px-5 py-16 sm:px-8 md:py-24 lg:px-16"><div className="mx-auto max-w-[1440px]"><div className="mb-10 text-center"><p className="text-[10px] uppercase tracking-[0.25em] text-primary">05 · The people</p><h2 className="mt-4 font-serif text-4xl font-light sm:text-6xl">The studio behind the work.</h2></div><div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{employees.map((member, index) => <article key={`${member.name}-${index}`} className="border border-border/60 bg-card p-4"><div className="relative aspect-[4/5] overflow-hidden bg-muted">{member.image ? <Image src={member.image} alt={`Portrait of ${member.name}`} fill className="object-cover object-top" sizes="(max-width: 640px) 100vw, 25vw" /> : <div className="flex h-full items-center justify-center font-serif text-5xl text-primary/40">{member.name.slice(0, 1)}</div>}</div><h3 className="mt-5 font-serif text-2xl font-light">{member.name}</h3><p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-primary">{member.role}</p><p className="mt-3 text-sm leading-6 text-muted-foreground">{member.bio}</p></article>)}</div></div></section>}
+
+      <section className="px-5 py-16 text-center sm:px-8 md:py-24"><p className="text-[10px] uppercase tracking-[0.25em] text-primary">Begin a conversation</p><h2 className="mx-auto mt-4 max-w-2xl font-serif text-4xl font-light sm:text-6xl">Bring us the room, the question, or the ambition.</h2><div className="mt-8 flex flex-wrap justify-center gap-3"><Button asChild className="min-h-12 rounded-none px-7 text-xs uppercase tracking-[0.16em]"><Link href="/book-consultation">Book a consultation</Link></Button><Button asChild variant="outline" className="min-h-12 rounded-none px-7 text-xs uppercase tracking-[0.16em]"><Link href="/contact">Contact the studio</Link></Button></div></section>
+    </main>
+    <SiteFooter />
+  </>
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ArrowUpRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ProductCard } from '@/components/collections/product-card'
 
 type Service = {
   categorySlug: string
@@ -81,11 +82,35 @@ function shortDate(value?: string | null) {
 }
 
 function Eyebrow({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
-  return (
-    <p className={`text-[10px] uppercase tracking-[0.28em] ${light ? 'text-white/60' : 'text-foreground/65'}`}>
-      {children}
-    </p>
-  )
+  return <p className={`text-[10px] uppercase tracking-[0.28em] ${light ? 'text-white/60' : 'text-foreground/65'}`}>{children}</p>
+}
+
+function AnimatedMetric({ value, suffix = '' }: { value: number; suffix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [display, setDisplay] = useState(0)
+  const [started, setStarted] = useState(false)
+
+  useEffect(() => {
+    const element = ref.current
+    if (!element || started) return
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return
+      setStarted(true)
+      const duration = 1200
+      const start = performance.now()
+      const tick = (now: number) => {
+        const progress = Math.min(1, (now - start) / duration)
+        setDisplay(Math.round(value * (1 - Math.pow(1 - progress, 3))))
+        if (progress < 1) requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+      observer.disconnect()
+    }, { threshold: 0.45 })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [started, value])
+
+  return <span ref={ref}>{display.toLocaleString('en-UG')}{suffix}</span>
 }
 
 function TextLink({ href, children, light = false }: { href: string; children: React.ReactNode; light?: boolean }) {
@@ -160,7 +185,7 @@ function EditorialHero() {
 
 function PhilosophySection() {
   return (
-    <section className="border-b border-foreground/10 bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
+    <section className="motion-reveal border-b border-foreground/10 bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto grid max-w-[1440px] items-start gap-12 lg:grid-cols-[0.55fr_1fr_0.7fr] lg:gap-16">
         <div>
           <Eyebrow>Why Choose The Revamp UG</Eyebrow>
@@ -172,7 +197,7 @@ function PhilosophySection() {
             <p className="max-w-md text-sm leading-7 text-foreground/70">We deliver complete luxury living solutions, from architectural conception through final installation. Our white-glove service ensures every detail exceeds expectations, every project tells a story, and every client experiences true refinement.</p>
             <TextLink href="/about">Meet the studio</TextLink>
           </div>
-          <div className="mt-10 grid max-w-2xl grid-cols-2 gap-4 border-t border-foreground/15 pt-5 sm:grid-cols-5"><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">250+</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Projects Completed</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">5000+</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Products Available</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">500+</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Clients Served</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">8</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Categories</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl">15+</p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Years Experience</p></div></div>
+          <div className="mt-10 grid max-w-2xl grid-cols-2 gap-4 border-t border-foreground/15 pt-5 sm:grid-cols-5"><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl"><AnimatedMetric value={250} suffix="+" /></p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Projects Completed</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl"><AnimatedMetric value={5000} suffix="+" /></p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Products Available</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl"><AnimatedMetric value={500} suffix="+" /></p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Clients Served</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl"><AnimatedMetric value={8} /></p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Categories</p></div><div><p className="font-serif text-3xl font-light text-gold sm:text-4xl"><AnimatedMetric value={15} suffix="+" /></p><p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-foreground/60">Years Experience</p></div></div>
         </div>
         <div className="relative mt-2 aspect-[4/5] overflow-hidden bg-canvas-dark sm:mt-8 lg:mt-0">
           <img src={HERO_POSTER} alt="Material and architectural detail in a Revamp interior" className="h-full w-full object-cover grayscale-[0.15] transition-transform duration-700 hover:scale-105" loading="lazy" />
@@ -204,25 +229,20 @@ function ServiceWorld({ services, loading }: { services: Service[]; loading: boo
             {[1, 2, 3, 4, 5, 6].map((item) => <div key={item} className={`animate-pulse bg-foreground/10 ${item % 2 === 0 ? 'mt-7 h-56' : 'h-64'}`} />)}
           </div>
         ) : visible.length ? (
-          <div className="mt-7 grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-10 md:grid-cols-3 md:gap-y-12">
+          <div className="mt-7 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 md:gap-y-12">
             {visible.map((service, index) => (
-              <Link
-                key={`${service.categorySlug}-${service.serviceSlug}`}
-                href={`/services/${service.categorySlug}/${service.serviceSlug}`}
-                className={`group block ${index % 2 === 1 ? 'sm:mt-7 md:mt-14' : ''} ${index === 2 ? 'md:-mt-2' : ''}`}
-              >
-                <div className={`relative overflow-hidden bg-canvas-dark ${index % 3 === 1 ? 'aspect-[4/5]' : 'aspect-[5/6]'}`}>
-                  <img src={service.image || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]} alt={service.serviceName} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent opacity-70" />
-                  <span className="absolute left-3 top-3 text-[9px] uppercase tracking-[0.2em] text-white/70">{String(index + 1).padStart(2, '0')}</span>
-                  <ArrowUpRight size={16} className="absolute right-3 top-3 text-white/75 transition-transform duration-300 group-hover:-translate-y-1 group-hover:translate-x-1" aria-hidden="true" />
-                  <div className="absolute inset-x-3 bottom-3">
-                    <p className="text-[9px] uppercase tracking-[0.18em] text-white/60">{service.categoryName}</p>
-                    <h3 className="mt-1 font-serif text-xl font-light leading-none text-white sm:text-2xl">{service.serviceName}</h3>
+              <article key={`${service.categorySlug}-${service.serviceSlug}`} className={`group flex h-full flex-col overflow-hidden rounded-xl border border-foreground/15 bg-background shadow-[0_14px_36px_rgba(0,0,0,0.10)] transition-shadow duration-300 hover:shadow-[0_20px_48px_rgba(0,0,0,0.16)] ${index % 2 === 1 ? 'sm:mt-7 md:mt-14' : ''} ${index === 2 ? 'md:-mt-2' : ''}`}>
+                <Link href={`/services/${service.categorySlug}/${service.serviceSlug}`} className="block">
+                  <div className="relative aspect-[16/7] overflow-hidden bg-canvas-dark sm:aspect-[4/3]">
+                    <img src={service.image || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]} alt={service.serviceName} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80" />
+                    <span className="absolute left-3 top-3 text-[9px] uppercase tracking-[0.2em] text-white/70">{String(index + 1).padStart(2, '0')}</span>
+                    <ArrowUpRight size={16} className="absolute right-3 top-3 text-white/75" aria-hidden="true" />
+                    <div className="absolute inset-x-3 bottom-3"><p className="text-[9px] uppercase tracking-[0.18em] text-white/60">{service.categoryName}</p><h3 className="mt-1 font-serif text-xl font-light leading-none text-white sm:text-2xl">{service.serviceName}</h3></div>
                   </div>
-                </div>
-                <p className="mt-3 max-w-[15rem] text-[11px] leading-5 text-foreground/65">{service.description || 'A considered service, shaped around the architecture and the life within it.'}</p>
-              </Link>
+                </Link>
+                <div className="flex flex-1 flex-col p-4 sm:p-5"><p className="line-clamp-2 text-[11px] leading-5 text-foreground/65">{service.description || 'A considered service, shaped around the architecture and the life within it.'}</p><Link href={`/custom-services?service=${encodeURIComponent(service.serviceName)}`} className="mt-4 inline-flex min-h-10 items-center justify-center rounded-full bg-foreground px-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-background transition-colors hover:bg-gold hover:text-foreground">Request this service <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link></div>
+              </article>
             ))}
           </div>
         ) : (
@@ -335,7 +355,7 @@ function GallerySection({ products, loading }: { products: Product[]; loading: b
     <section className="bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-10 flex flex-col gap-6 border-b border-foreground/15 pb-7 md:flex-row md:items-end md:justify-between"><div><Eyebrow>05  -  New arrivals</Eyebrow><h2 className="mt-4 max-w-xl font-serif text-4xl font-light leading-[0.95] sm:text-6xl">New Arrivals</h2><p className="mt-5 max-w-md text-sm leading-6 text-foreground/60">Latest luxury furnishings from our curated collection</p></div><TextLink href="/collections">View Collection</TextLink></div>
-        {loading ? <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5" aria-busy="true" aria-label="Loading collection">{[1, 2, 3, 4].map((item) => <div key={item} className={`animate-pulse bg-canvas-dark ${item % 2 ? 'aspect-[4/5]' : 'mt-8 aspect-[4/5]'}`} />)}</div> : selected.length ? <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-5 md:grid-cols-4 md:gap-y-0 md:items-start md:gap-5">{selected.map((product, index) => <Link key={product.id} href={`/collections/${encodeURIComponent(product.slug)}`} className={`group block ${index % 2 === 1 ? 'md:mt-12' : ''}`}><div className={`overflow-hidden bg-canvas-dark ${index % 2 === 0 ? 'aspect-[4/5]' : 'aspect-[4/5]'}`}><img src={productImage(product, index)} alt={product.name} className="h-full w-full object-cover mix-blend-multiply dark:mix-blend-normal transition-transform duration-700 group-hover:scale-105" loading="lazy" /></div><div className="mt-3 flex items-start justify-between gap-3"><div><h3 className="font-serif text-xl font-light leading-none">{product.name}</h3><p className="mt-1 line-clamp-2 text-[10px] leading-4 text-foreground/60">{product.description || 'A selected object from The Revamp gallery.'}</p></div><ArrowUpRight size={14} className="mt-1 shrink-0 text-foreground/60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" /></div></Link>)}</div> : null}
+        {loading ? <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5" aria-busy="true" aria-label="Loading collection">{[1, 2, 3, 4].map((item) => <div key={item} className={`animate-pulse bg-canvas-dark ${item % 2 ? 'aspect-[4/5]' : 'mt-8 aspect-[4/5]'}`} />)}</div> : selected.length ? <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-4 md:items-start md:gap-5">{selected.map((product, index) => <div key={product.id} className={index % 2 === 1 ? 'md:mt-12' : ''}><ProductCard product={product} featured={index === 0} /></div>)}</div> : null}
       </div>
     </section>
   )

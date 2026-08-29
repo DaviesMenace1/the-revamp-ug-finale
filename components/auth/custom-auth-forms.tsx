@@ -2,7 +2,7 @@
 
 import { FormEvent, useRef, useState } from 'react'
 import { useSignIn, useSignUp } from '@clerk/nextjs'
-import { ArrowRight, Check, Loader2, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Check, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { FaGoogle, FaLinkedinIn } from 'react-icons/fa'
 import Link from 'next/link'
 import { AUTH_NAME_MAX_LENGTH, AUTH_USERNAME_MAX_LENGTH, isBoundedAuthText, isValidAuthEmail, isValidAuthPassword, isValidVerificationCode, normalizeAuthEmail } from '@/lib/auth/input-validation'
@@ -109,7 +109,7 @@ function OAuthButtons({ onOAuth, loading }: { onOAuth: (strategy: OAuthStrategy)
         disabled={!!loading}
         className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
       >
-        <FaGoogle className="size-4" aria-hidden="true" />
+        <FaGoogle className="size-4 text-[#4285F4]" aria-hidden="true" />
         {loading === 'oauth_google' ? 'Connecting…' : 'Continue with Google'}
       </button>
       <button
@@ -118,7 +118,7 @@ function OAuthButtons({ onOAuth, loading }: { onOAuth: (strategy: OAuthStrategy)
         disabled={!!loading}
         className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
       >
-        <FaLinkedinIn className="size-4" aria-hidden="true" />
+        <FaLinkedinIn className="size-4 text-[#0A66C2]" aria-hidden="true" />
         {loading === 'oauth_linkedin_oidc' ? 'Connecting…' : 'Continue with LinkedIn'}
       </button>
     </div>
@@ -144,19 +144,27 @@ function Field({
   inputMode?: 'text' | 'numeric' | 'email'
   required?: boolean
 }) {
+  const [passwordVisible, setPasswordVisible] = useState(false)
   return (
     <label className="grid gap-2 text-sm font-medium">
       <span>{label}</span>
-      <input
-        required={required}
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        autoComplete={autoComplete}
-        inputMode={inputMode}
-        placeholder={placeholder}
-        className="h-12 border border-border bg-background px-3 outline-none ring-primary/30 transition focus:ring-2"
-      />
+      <div className="relative">
+        <input
+          required={required}
+          type={type === 'password' && passwordVisible ? 'text' : type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete={autoComplete}
+          inputMode={inputMode}
+          placeholder={placeholder}
+          className="h-12 w-full border border-border bg-background/75 px-3 pr-12 outline-none ring-primary/30 transition focus:ring-2"
+        />
+        {type === 'password' && (
+          <button type="button" onClick={() => setPasswordVisible((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground" aria-label={passwordVisible ? 'Hide password' : 'Show password'}>
+            {passwordVisible ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+          </button>
+        )}
+      </div>
     </label>
   )
 }
@@ -422,8 +430,6 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
         </form>
       ) : (
         <form onSubmit={submit} className="grid gap-5">
-          <OAuthButtons onOAuth={oauth} loading={oauthLoading} />
-          <Divider />
           <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" />
           <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
           <div className="flex justify-end">
@@ -439,6 +445,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
               </>
             )}
           </AuthButton>
+          <div className="grid gap-3 pt-2"><p className="text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Continue with</p><OAuthButtons onOAuth={oauth} loading={oauthLoading} /></div>
           <p className="text-center text-sm text-muted-foreground">
             New here?{' '}
             <Link
@@ -645,8 +652,6 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
         </form>
       ) : (
         <form onSubmit={submit} className="grid gap-5">
-          <OAuthButtons onOAuth={oauth} loading={oauthLoading} />
-          <Divider />
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="First name" value={firstName} onChange={setFirstName} autoComplete="given-name" required />
             <Field label="Last name" value={lastName} onChange={setLastName} autoComplete="family-name" required />
@@ -654,6 +659,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
           <Field label="Username" value={username} onChange={setUsername} autoComplete="username" required />
           <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" required />
           <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="new-password" required />
+          <p className="-mt-2 text-xs leading-5 text-muted-foreground">Use 8–128 characters. Choose a unique password with a mix of letters, numbers, and symbols.</p>
 
           {/* Terms & Privacy Policy Checkbox */}
           <div className="flex items-start gap-3 text-xs text-muted-foreground">
@@ -688,6 +694,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
               </>
             )}
           </AuthButton>
+          <div className="grid gap-3 pt-2"><p className="text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Continue with</p><OAuthButtons onOAuth={oauth} loading={oauthLoading} /></div>
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{' '}
             <Link
@@ -887,7 +894,7 @@ export function CustomResetPassword() {
 
 function AuthCard({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-2 rounded-2xl border border-white/40 bg-card/85 p-5 shadow-[0_24px_80px_rgba(25,20,15,0.16)] backdrop-blur-sm duration-300 sm:p-8">
+    <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-2 rounded-2xl border border-white/45 bg-[#f5eee4]/72 p-5 text-foreground shadow-[0_28px_90px_rgba(18,13,9,0.34)] backdrop-blur-xl duration-300 sm:p-8">
       <div className="mb-7">
         <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-primary">{eyebrow}</p>
         <h2 className="font-serif text-3xl leading-tight text-foreground">{title}</h2>
@@ -898,13 +905,6 @@ function AuthCard({ eyebrow, title, description, children }: { eyebrow: string; 
   )
 }
 
-function Divider() {
-  return (
-    <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-      <span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" />
-    </div>
-  )
-}
 
 export function AuthIntro({ title, description }: { title: string; description: string }) {
   return (

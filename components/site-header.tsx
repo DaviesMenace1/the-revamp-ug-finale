@@ -1,469 +1,694 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { Menu, ChevronDown, ShoppingBag, Search, Heart, User } from 'lucide-react'
-import NotificationBell from '@/components/notifications/notification-bell'
+import {
+  ChevronDown,
+  Heart,
+  Menu,
+  Search,
+  ShoppingBag,
+  User,
+} from 'lucide-react'
+
 import { cn } from '@/lib/utils'
 import { useCart } from '@/lib/context/cart-context'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { ThemeSwitcher } from '@/components/theme-switcher'
-{/*import PromotionBanner from '@/components/promotions/promotion-banner'*/}
+import NotificationBell from '@/components/notifications/notification-bell'
 
-  interface NavLink {
-    label: string
-    href: string
-    submenu?: NavLink[]
-  }
+interface NavLink {
+  label: string
+  href: string
+  submenu?: NavLink[]
+}
 
-  // Primary links shown directly in the header bar
-  const primaryNavLinks: NavLink[] = [
-  { label: 'About', href: '/about' },
-  { 
-    label: 'Services', 
+/* -------------------------------------------------------------------------- */
+/*                           PRIMARY NAVIGATION                               */
+/* -------------------------------------------------------------------------- */
+
+const primaryNavLinks: NavLink[] = [
+  {
+    label: 'About',
+    href: '/about',
+  },
+  {
+    label: 'Services',
     href: '/services',
     submenu: [
-      { label: 'Interior Design', href: '/services' },
-      { label: 'Architecture', href: '/services/architecture' },
-      { label: 'Custom Services', href: '/custom-services' },
-      { label: 'View all services', href: '/services' },
-    ]
+      {
+        label: 'Interior Design',
+        href: '/services',
+      },
+      {
+        label: 'Architecture',
+        href: '/services/architecture',
+      },
+      {
+        label: 'Custom Services',
+        href: '/custom-services',
+      },
+      {
+        label: 'View All Services',
+        href: '/services',
+      },
+    ],
   },
-  { label: 'Projects', href: '/portfolio' },
-  { label: 'Collections', href: '/collections' },
-  { label: 'Journal', href: '/journal' },
-  { label: 'FAQs', href: '/faqs' },
+  {
+    label: 'Projects',
+    href: '/portfolio',
+  },
+  {
+    label: 'Collections',
+    href: '/collections',
+  },
+  {
+    label: 'Journal',
+    href: '/journal',
+  },
 ]
 
-// Secondary links available via the Drawer/Sheet
+/* -------------------------------------------------------------------------- */
+/*                          EXPANDED MENU NAVIGATION                          */
+/* -------------------------------------------------------------------------- */
+
 const secondaryNavLinks: NavLink[] = [
-  { label: 'Source With Revamp', href: '/source-with-revamp' },
-  { label: 'Trade Program', href: '/trade-program' },
-  { label: 'Membership', href: '/membership-program' },
-  { label: 'Request a Quote', href: '/request-quote' },
-  { label: 'Product Inquiry', href: '/product-inquiry' },
-  { label: 'Contact', href: '/contact' },
+  {
+    label: 'FAQs',
+    href: '/faqs',
+  },
+  {
+    label: 'Source With Revamp',
+    href: '/source-with-revamp',
+  },
+  {
+    label: 'Trade Program',
+    href: '/trade-program',
+  },
+  {
+    label: 'Membership',
+    href: '/membership-program',
+  },
+  {
+    label: 'Request a Quote',
+    href: '/request-quote',
+  },
+  {
+    label: 'Product Inquiry',
+    href: '/product-inquiry',
+  },
+  {
+    label: 'Contact',
+    href: '/contact',
+  },
 ]
 
-// Complete list rendered inside the Drawer
 const allNavLinks = [...primaryNavLinks, ...secondaryNavLinks]
 
+/* -------------------------------------------------------------------------- */
+/*                               SITE HEADER                                  */
+/* -------------------------------------------------------------------------- */
+
 export function SiteHeader() {
-  const CartContext = useCart()
-  const cartCount = CartContext ? CartContext.cartCount : 0
+  const pathname = usePathname()
   const { user } = useUser()
+
+  const CartContext = useCart()
+  const cartCount = CartContext?.cartCount ?? 0
+
   const [scrolled, setScrolled] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
-  const [desktopDropdownOpen, setDesktopDropdownOpen] = useState<string | null>(null)
+  const [desktopDropdownOpen, setDesktopDropdownOpen] = useState<string | null>(
+    null,
+  )
 
-  const pathname = usePathname()
-  const isHome = pathname === '/'
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  const isHome = pathname === '/'
+
+  const isSolidHeader = scrolled || !isHome
+
+  /* ------------------------------------------------------------------------ */
+  /*                              SCROLL STATE                                */
+  /* ------------------------------------------------------------------------ */
+
   useEffect(() => {
-    const onScroll = () => {
-      const currentScroll = window.scrollY || document.documentElement.scrollTop
-      setScrolled(currentScroll > 40)
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 40)
     }
 
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    handleScroll()
+
+    window.addEventListener('scroll', handleScroll, {
+      passive: true,
+    })
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
   }, [])
 
-  // Close desktop dropdown on outside click
+  /* ------------------------------------------------------------------------ */
+  /*                         CLOSE DESKTOP DROPDOWN                            */
+  /* ------------------------------------------------------------------------ */
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setDesktopDropdownOpen(null)
       }
     }
+
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [])
 
-  // Close menus on page route changes
+  /* ------------------------------------------------------------------------ */
+  /*                         CLOSE MENUS ON NAVIGATION                         */
+  /* ------------------------------------------------------------------------ */
+
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDesktopDropdownOpen(null)
-      setDrawerOpen(false)
-    }, 0)
-    return () => window.clearTimeout(timer)
+    setDesktopDropdownOpen(null)
+    setDrawerOpen(false)
+    setOpenSubmenu(null)
   }, [pathname])
 
   const toggleSubmenu = (href: string) => {
-    setOpenSubmenu(prev => (prev === href ? null : href))
+    setOpenSubmenu((previous) =>
+      previous === href ? null : href,
+    )
   }
 
   const toggleDesktopDropdown = (href: string) => {
-    setDesktopDropdownOpen(prev => (prev === href ? null : href))
+    setDesktopDropdownOpen((previous) =>
+      previous === href ? null : href,
+    )
   }
+
+  const textColor = isSolidHeader
+    ? 'text-foreground'
+    : 'text-white'
+
+  const mutedTextColor = isSolidHeader
+    ? 'text-foreground/70 hover:text-foreground'
+    : 'text-white/70 hover:text-white'
 
   return (
     <>
+      {/* ================================================================== */}
+      {/*                            FIXED HEADER                            */}
+      {/* ================================================================== */}
+
       <div className="fixed inset-x-0 top-0 z-50">
-        {/*<PromotionBanner />*/}
         <header
-        className={cn(
-          'relative w-full transition-all duration-300',
-          scrolled || !isHome
-            ? 'bg-background/95 backdrop-blur-md border-b border-border'
-            : 'bg-transparent',
-        )}
-      >
-        <div className="mx-auto max-w-[1440px] px-2 sm:px-6 lg:px-12">
-          <div className="flex min-h-16 items-center justify-between md:min-h-20">
-          
-            {/* 1. LEFT SECTION */}
-            <div className="flex items-center gap-1 sm:gap-2">
-              {/* Mobile Only: Menu & Search */}
-              <div className="hidden">
+          className={cn(
+            'relative w-full transition-all duration-500 ease-out',
+            isSolidHeader
+              ? 'border-b border-border bg-background/95 backdrop-blur-xl'
+              : 'bg-transparent',
+          )}
+        >
+          <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-10 xl:px-12">
+            <div className="relative flex min-h-16 items-center md:min-h-20">
+
+              {/* ========================================================== */}
+              {/* LEFT: MENU + BRAND                                        */}
+              {/* ========================================================== */}
+
+              <div className="z-10 flex items-center gap-2 sm:gap-3">
+
+                {/* MENU */}
                 <button
-                  className={cn(
-                    'flex size-11 items-center justify-center transition-colors',
-                    scrolled || !isHome ? 'text-foreground' : 'text-white',
-                  )}
+                  type="button"
                   onClick={() => setDrawerOpen(true)}
-                  aria-label="Open menu"
+                  className={cn(
+                    'flex size-10 items-center justify-center transition-colors duration-300 hover:text-gold sm:size-11',
+                    textColor,
+                  )}
+                  aria-label="Open full menu"
                 >
-                  <Menu size={20} />
+                  <Menu size={21} strokeWidth={1.5} />
                 </button>
 
+                {/* BRAND */}
                 <Link
-                prefetch={false}
-                  href="/search"
-                  className={cn(
-                    'hidden size-11 items-center justify-center hover:text-gold transition-colors lg:flex',
-                    scrolled || !isHome ? 'text-foreground' : 'text-white',
-                  )}
-                  aria-label="Search"
-                >
-                  <Search size={18} />
-                </Link>
-              </div>
-
-              {/* Desktop Only: Brand Logo */}
-              <div className="hidden md:flex items-center">
-                <Link
-                prefetch={false}
+                  prefetch={false}
                   href="/"
                   className={cn(
-                    'font-serif text-xl md:text-2xl font-light tracking-widest uppercase transition-colors',
-                    scrolled || !isHome ? 'text-foreground' : 'text-white',
+                    'font-serif text-xs font-medium tracking-[0.14em] uppercase transition-colors duration-300 sm:text-sm md:text-base lg:text-lg',
+                    textColor,
                   )}
                 >
                   The Revamp
-                  <span className="text-gold ml-1">UG</span>
+                  <span className="ml-1 text-gold">UG</span>
                 </Link>
               </div>
-            </div>
 
-            {/* 2. CENTER SECTION */}
-            {/* Mobile: Clean Logo */}
-            <div className="mr-auto flex items-center justify-start px-0 text-left md:hidden">
-              <Link
-                prefetch={false}
-                href="/"
-                className={cn(
-                  'font-serif text-xs sm:text-sm font-medium tracking-wider uppercase transition-colors whitespace-nowrap',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-              >
-                The Revamp<span className="text-gold ml-0.5">UG</span>
-              </Link>
-            </div>
+              {/* ========================================================== */}
+              {/* DESKTOP CENTER: FLOATING NAVIGATION PILL                  */}
+              {/* ========================================================== */}
 
-            {/* Desktop: Navigation Links with Fixed Dropdown */}
-            <nav className="hidden md:flex items-center gap-6 lg:gap-8" aria-label="Main navigation" ref={dropdownRef}>
-              {primaryNavLinks.map((link) => (
-                <div 
-                  key={link.href} 
-                  className="relative group"
-                  onMouseEnter={() => link.submenu && setDesktopDropdownOpen(link.href)}
-                  onMouseLeave={() => link.submenu && setDesktopDropdownOpen(null)}
+              <div className="absolute left-1/2 hidden -translate-x-1/2 xl:block">
+                <nav
+                  ref={dropdownRef}
+                  aria-label="Main navigation"
+                  className={cn(
+                    'relative flex items-center rounded-full px-2 py-1.5 transition-all duration-500',
+                    isSolidHeader
+                      ? 'border border-border bg-foreground text-background shadow-lg shadow-black/5'
+                      : 'border border-white/15 bg-black/25 text-white backdrop-blur-xl',
+                  )}
                 >
-                  {link.submenu ? (
-                    <div className="flex items-center gap-1 cursor-pointer">
-                      <Link
-                prefetch={false}
-                        href={link.href}
-                        className={cn(
-                          'font-sans text-xs lg:text-sm tracking-wide uppercase transition-colors',
-                          scrolled || !isHome ? 'text-foreground/80 hover:text-foreground' : 'text-white/80 hover:text-white',
-                          pathname.startsWith(link.href) && 'text-gold',
-                        )}
-                      >
-                        {link.label}
-                      </Link>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          toggleDesktopDropdown(link.href)
+                  {primaryNavLinks.map((link) => {
+                    const isActive =
+                      link.href === '/services'
+                        ? pathname.startsWith('/services')
+                        : pathname === link.href
+
+                    return (
+                      <div
+                        key={link.label}
+                        className="relative"
+                        onMouseEnter={() => {
+                          if (link.submenu) {
+                            setDesktopDropdownOpen(link.href)
+                          }
                         }}
-                        className={cn(
-                          'flex size-11 items-center justify-center transition-colors',
-                          scrolled || !isHome ? 'text-foreground/80 hover:text-foreground' : 'text-white/80 hover:text-white'
-                        )}
-                        aria-expanded={desktopDropdownOpen === link.href}
-                        aria-label={`Toggle ${link.label} submenu`}
+                        onMouseLeave={() => {
+                          if (link.submenu) {
+                            setDesktopDropdownOpen(null)
+                          }
+                        }}
                       >
-                        <ChevronDown 
-                          size={14} 
-                          className={cn(
-                            'transition-transform duration-200 opacity-70',
-                            desktopDropdownOpen === link.href && 'rotate-180 text-gold'
-                          )} 
-                        />
-                      </button>
-                    </div>
-                  ) : (
-                    <Link
-                prefetch={false}
-                      href={link.href}
-                      className={cn(
-                        'font-sans text-xs lg:text-sm tracking-wide uppercase transition-colors',
-                        scrolled || !isHome ? 'text-foreground/80 hover:text-foreground' : 'text-white/80 hover:text-white',
-                        pathname === link.href && 'text-gold',
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  )}
-                
-                  {/* Dropdown Container */}
-                  {link.submenu && (
-                    <div
-                      className={cn(
-                        'absolute left-0 top-full pt-2 w-64 transition-all duration-200 z-50',
-                        desktopDropdownOpen === link.href
-                          ? 'opacity-100 visible translate-y-0'
-                          : 'opacity-0 invisible -translate-y-2 pointer-events-none'
-                      )}
-                    >
-                      <div className="bg-background border border-border shadow-xl rounded-sm py-2 max-h-80 overflow-y-auto">
-                        {link.submenu.map((subitem) => (
+                        {/* ------------------------------------------------ */}
+                        {/* STANDARD LINK                                  */}
+                        {/* ------------------------------------------------ */}
+
+                        {!link.submenu && (
                           <Link
-                prefetch={false}
-                            key={`${subitem.href}-${subitem.label}`}
-                            href={subitem.href}
-                            className="block px-4 py-2 text-xs uppercase tracking-wider text-foreground/70 hover:text-gold hover:bg-muted/50 border-b border-border/30 last:border-b-0 transition-colors"
+                            prefetch={false}
+                            href={link.href}
+                            className={cn(
+                              'relative flex items-center rounded-full px-4 py-2.5 text-[10px] font-medium tracking-[0.13em] uppercase transition-all duration-300',
+
+                              isActive
+                                ? isSolidHeader
+                                  ? 'bg-background text-foreground'
+                                  : 'bg-white/15 text-white'
+                                : isSolidHeader
+                                  ? 'text-background/70 hover:text-background'
+                                  : 'text-white/70 hover:text-white',
+                            )}
                           >
-                            {subitem.label}
+                            {link.label}
+
+                            {/* ACTIVE INDICATOR */}
+                            {isActive && (
+                              <span className="absolute inset-x-5 bottom-1 h-px bg-gold" />
+                            )}
                           </Link>
-                        ))}
+                        )}
+
+                        {/* ------------------------------------------------ */}
+                        {/* LINK WITH SUBMENU                              */}
+                        {/* ------------------------------------------------ */}
+
+                        {link.submenu && (
+                          <>
+                            <div
+                              className={cn(
+                                'flex items-center rounded-full transition-all duration-300',
+
+                                isActive
+                                  ? isSolidHeader
+                                    ? 'bg-background'
+                                    : 'bg-white/15'
+                                  : '',
+                              )}
+                            >
+                              <Link
+                                prefetch={false}
+                                href={link.href}
+                                className={cn(
+                                  'relative px-4 py-2.5 text-[10px] font-medium tracking-[0.13em] uppercase transition-colors',
+
+                                  isActive
+                                    ? isSolidHeader
+                                      ? 'text-foreground'
+                                      : 'text-white'
+                                    : isSolidHeader
+                                      ? 'text-background/70 hover:text-background'
+                                      : 'text-white/70 hover:text-white',
+                                )}
+                              >
+                                {link.label}
+
+                                {isActive && (
+                                  <span className="absolute inset-x-4 bottom-1 h-px bg-gold" />
+                                )}
+                              </Link>
+
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  toggleDesktopDropdown(link.href)
+                                }}
+                                className={cn(
+                                  'mr-1 flex size-7 items-center justify-center transition-colors',
+
+                                  isSolidHeader
+                                    ? 'text-background/60 hover:text-background'
+                                    : 'text-white/60 hover:text-white',
+                                )}
+                                aria-label={`Toggle ${link.label} menu`}
+                                aria-expanded={
+                                  desktopDropdownOpen === link.href
+                                }
+                              >
+                                <ChevronDown
+                                  size={13}
+                                  strokeWidth={1.5}
+                                  className={cn(
+                                    'transition-transform duration-300',
+                                    desktopDropdownOpen === link.href &&
+                                      'rotate-180 text-gold',
+                                  )}
+                                />
+                              </button>
+                            </div>
+
+                            {/* ------------------------------------------ */}
+                            {/* SERVICES DROPDOWN                           */}
+                            {/* ------------------------------------------ */}
+
+                            <div
+                              className={cn(
+                                'absolute left-0 top-full w-72 pt-4 transition-all duration-300',
+
+                                desktopDropdownOpen === link.href
+                                  ? 'visible translate-y-0 opacity-100'
+                                  : 'invisible -translate-y-2 opacity-0 pointer-events-none',
+                              )}
+                            >
+                              <div className="overflow-hidden border border-border bg-background shadow-2xl">
+                                <div className="border-b border-border px-5 py-4">
+                                  <span className="font-serif text-lg">
+                                    {link.label}
+                                  </span>
+                                </div>
+
+                                <div className="py-2">
+                                  {link.submenu.map((subitem) => (
+                                    <Link
+                                      prefetch={false}
+                                      key={`${subitem.href}-${subitem.label}`}
+                                      href={subitem.href}
+                                      className="group flex items-center justify-between px-5 py-3 text-xs tracking-[0.12em] uppercase text-foreground/70 transition-colors hover:bg-muted/50 hover:text-gold"
+                                    >
+                                      {subitem.label}
+
+                                      <span className="translate-x-0 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+                                        →
+                                      </span>
+                                    </Link>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </nav>
-
-            {/* 3. RIGHT SECTION */}
-            <div className="flex items-center gap-0 sm:gap-1.5 md:gap-3">
-              {/* Compact mobile search */}
-              <Link
-                prefetch={false}
-                href="/search"
-                className={cn(
-                  'hidden size-10 items-center justify-center transition-colors hover:text-gold sm:flex sm:size-11 md:hidden',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-                aria-label="Search"
-              >
-                <Search size={19} />
-              </Link>
-
-              {/* Desktop Search Icon */}
-              <Link
-                prefetch={false}
-                href="/search"
-                className={cn(
-                  'hidden size-11 items-center justify-center md:flex hover:text-gold transition-colors',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-                aria-label="Search"
-              >
-                <Search size={20} />
-              </Link>
-
-              {/* Theme Switcher */}
-              <div className="flex scale-90 sm:scale-100 md:flex">
-                <ThemeSwitcher />
+                    )
+                  })}
+                </nav>
               </div>
 
-              {/* Notifications */}
-              <NotificationBell className={cn('size-10 sm:size-11', scrolled || !isHome ? 'text-foreground' : 'text-white')} />
+              {/* ========================================================== */}
+              {/* RIGHT: ESSENTIAL UTILITIES                                */}
+              {/* ========================================================== */}
 
-              {/* Wishlist Icon */}
-              <Link
-                prefetch={false}
-                href="/wishlist"
-                                  className={cn(
-                    'hidden size-11 items-center justify-center hover:text-gold transition-colors lg:flex',
-                    scrolled || !isHome ? 'text-foreground' : 'text-white',
+              <div className="z-10 ml-auto flex items-center gap-0.5 sm:gap-1 md:gap-2">
+
+                {/* SEARCH */}
+                <Link
+                  prefetch={false}
+                  href="/search"
+                  className={cn(
+                    'hidden size-10 items-center justify-center transition-colors duration-300 hover:text-gold sm:flex sm:size-11',
+                    textColor,
                   )}
-                  aria-label="Wishlist"
+                  aria-label="Search"
+                >
+                  <Search size={19} strokeWidth={1.5} />
+                </Link>
 
-              >
-                <Heart size={18} className="sm:w-[20px] sm:h-[20px]" />
-              </Link>
-
-              {/* Profile / Account Icon */}
-              <Link
-                prefetch={false}
-                href="/account"
-                                  className={cn(
-                    'flex size-10 items-center justify-center hover:text-gold transition-colors sm:size-11',
-                    scrolled || !isHome ? 'text-foreground' : 'text-white',
+                {/* ACCOUNT */}
+                <Link
+                  prefetch={false}
+                  href="/account"
+                  className={cn(
+                    'flex size-10 items-center justify-center transition-colors duration-300 hover:text-gold sm:size-11',
+                    textColor,
                   )}
                   aria-label="Account"
-
                 >
                   {user?.imageUrl ? (
                     <img
                       src={user.imageUrl}
                       alt=""
-                      className="size-5 rounded-full object-cover ring-1 ring-current/20"
+                      className="size-6 rounded-full object-cover ring-1 ring-current/20"
                     />
                   ) : (
-                    <User size={18} className="sm:w-[20px] sm:h-[20px]" />
+                    <User size={19} strokeWidth={1.5} />
                   )}
                 </Link>
 
-              {/* Shopping Cart Icon */}
-              <Link
-                prefetch={false}
-                href="/cart"
-                className={cn(
-                  'relative flex size-10 items-center justify-center hover:text-gold transition-colors sm:size-11',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-                aria-label="Shopping Cart"
-              >
-                <ShoppingBag size={18} className="sm:w-[20px] sm:h-[20px]" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gold text-white text-[9px] sm:text-[10px] font-bold rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
+                {/* SHOPPING BAG */}
+                <Link
+                  prefetch={false}
+                  href="/cart"
+                  className={cn(
+                    'relative flex size-10 items-center justify-center transition-colors duration-300 hover:text-gold sm:size-11',
+                    textColor,
+                  )}
+                  aria-label="Shopping Bag"
+                >
+                  <ShoppingBag size={19} strokeWidth={1.5} />
 
-              {/* Compact mobile menu */}
-              <button
-                className={cn(
-                  'flex size-10 items-center justify-center transition-colors sm:size-11 md:hidden',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-                onClick={() => setDrawerOpen(true)}
-                aria-label="Open menu"
-              >
-                <Menu size={22} />
-              </button>
-
-              {/* Desktop Drawer Toggle */}
-              <button
-                className={cn(
-                  'hidden size-11 items-center justify-center md:flex ml-1 transition-colors',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-                onClick={() => setDrawerOpen(true)}
-                aria-label="Open full menu"
-              >
-                <Menu size={22} />
-              </button>
+                  {cartCount > 0 && (
+                    <span className="absolute right-0 top-0 flex size-4 items-center justify-center rounded-full bg-gold text-[9px] font-semibold text-white">
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
+              </div>
             </div>
-
           </div>
-        </div>
         </header>
       </div>
 
-      {/* Side Drawer */}
+      {/* ================================================================== */}
+      {/*                          EXPANDED MENU                             */}
+      {/* ================================================================== */}
+
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="right" className="safe-bottom w-full max-w-md border-border bg-background p-0">
-          <SheetTitle className="sr-only">Main Navigation Menu</SheetTitle>
-          <div className="flex flex-col h-full">
-            {/* Header section inside Drawer */}
-            <div className="flex items-center justify-between px-6 h-20 border-b border-border">
-              <span className="font-serif text-xl tracking-widest uppercase">
-                The Revamp<span className="text-gold ml-1">UG</span>
-              </span>
-              {/*  <button onClick={() => setDrawerOpen(false)} className="text-foreground/60 hover:text-foreground p-2">
-                <X size={20} />
-              </button>*/}
+        <SheetContent
+          side="right"
+          className="safe-bottom w-full max-w-md border-border bg-background p-0"
+        >
+          <SheetTitle className="sr-only">
+            Main Navigation Menu
+          </SheetTitle>
+
+          <div className="flex h-full flex-col">
+
+            {/* ============================================================ */}
+            {/* DRAWER HEADER                                               */}
+            {/* ============================================================ */}
+
+            <div className="flex h-20 items-center justify-between border-b border-border px-6">
+              <Link
+                prefetch={false}
+                href="/"
+                onClick={() => setDrawerOpen(false)}
+                className="font-serif text-lg tracking-[0.12em] uppercase"
+              >
+                The Revamp
+                <span className="ml-1 text-gold">UG</span>
+              </Link>
             </div>
 
-            {/* Navigation links inside Drawer */}
-            <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-6 py-6" aria-label="Expanded menu navigation">
-              {allNavLinks.map((link) => (
-                <div key={link.href} className="border-b border-border/40">
-                  {link.submenu ? (
-                    <button
-                      onClick={() => toggleSubmenu(link.href)}
-                      aria-expanded={openSubmenu === link.href}
-                      className={cn(
-                        'flex min-h-11 w-full items-center justify-between py-4 text-left font-sans text-sm uppercase tracking-widest text-foreground/80 transition-colors hover:text-gold',
-                        pathname === link.href && 'text-gold',
-                      )}
-                    >
-                      <span>{link.label}</span>
-                      <ChevronDown
-                        size={16}
-                        className={cn(
-                          'transition-transform duration-200',
-                          openSubmenu === link.href && 'rotate-180'
-                        )}
-                      />
-                    </button>
-                  ) : (
-                    <Link
-                prefetch={false}
-                      href={link.href}
-                      onClick={() => setDrawerOpen(false)}
-                      className={cn(
-                        'block w-full font-sans text-sm tracking-widest uppercase py-4 text-foreground/80 hover:text-gold transition-colors',
-                        pathname === link.href && 'text-gold',
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  )}
+            {/* ============================================================ */}
+            {/* MAIN NAVIGATION                                             */}
+            {/* ============================================================ */}
 
-                  {/* Submenu expansion inside drawer */}
-                  {link.submenu && openSubmenu === link.href && (
-                    <div className="bg-muted/30 mb-2 rounded-sm border-l-2 border-gold pl-4 py-2">
-                      {link.submenu.map((subitem) => (
-                        <Link
-                prefetch={false}
-                          key={`${subitem.href}-${subitem.label}`}
-                          href={subitem.href}
-                          onClick={() => setDrawerOpen(false)}
-                          className="block py-2 text-xs uppercase tracking-wider text-foreground/70 hover:text-gold transition-colors"
+            <nav
+              className="flex flex-1 flex-col overflow-y-auto px-6 py-5"
+              aria-label="Expanded menu navigation"
+            >
+              {allNavLinks.map((link) => {
+                const isActive =
+                  link.href === '/services'
+                    ? pathname.startsWith('/services')
+                    : pathname === link.href
+
+                return (
+                  <div
+                    key={`${link.href}-${link.label}`}
+                    className="border-b border-border/40"
+                  >
+                    {/* SUBMENU */}
+                    {link.submenu ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => toggleSubmenu(link.href)}
+                          aria-expanded={openSubmenu === link.href}
+                          className={cn(
+                            'flex w-full items-center justify-between py-4 text-left text-sm tracking-[0.12em] uppercase transition-colors',
+
+                            isActive
+                              ? 'text-gold'
+                              : 'text-foreground/80 hover:text-gold',
+                          )}
                         >
-                          {subitem.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                          {link.label}
+
+                          <ChevronDown
+                            size={16}
+                            strokeWidth={1.5}
+                            className={cn(
+                              'transition-transform duration-300',
+                              openSubmenu === link.href && 'rotate-180',
+                            )}
+                          />
+                        </button>
+
+                        {openSubmenu === link.href && (
+                          <div className="mb-3 border-l border-gold bg-muted/20 py-2 pl-5">
+                            {link.submenu.map((subitem) => (
+                              <Link
+                                prefetch={false}
+                                key={`${subitem.href}-${subitem.label}`}
+                                href={subitem.href}
+                                onClick={() => setDrawerOpen(false)}
+                                className="block py-2.5 text-xs tracking-[0.12em] uppercase text-foreground/65 transition-colors hover:text-gold"
+                              >
+                                {subitem.label}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <Link
+                        prefetch={false}
+                        href={link.href}
+                        onClick={() => setDrawerOpen(false)}
+                        className={cn(
+                          'block py-4 text-sm tracking-[0.12em] uppercase transition-colors',
+
+                          isActive
+                            ? 'text-gold'
+                            : 'text-foreground/80 hover:text-gold',
+                        )}
+                      >
+                        {link.label}
+                      </Link>
+                    )}
+                  </div>
+                )
+              })}
             </nav>
 
-            {/* Bottom Actions */}
-            <div className="mt-auto flex flex-col gap-3 border-t border-border p-6">
-              <div className="flex min-h-12 items-center justify-between border border-border px-4">
-                <span className="text-xs uppercase tracking-widest text-foreground/70">Theme</span>
-                <ThemeSwitcher />
+            {/* ============================================================ */}
+            {/* DRAWER UTILITIES                                            */}
+            {/* ============================================================ */}
+
+            <div className="border-t border-border px-6 py-5">
+
+              {/* ACCOUNT UTILITIES */}
+
+              <div className="grid grid-cols-2 gap-2">
+
+                <Link
+                  prefetch={false}
+                  href="/wishlist"
+                  onClick={() => setDrawerOpen(false)}
+                  className="flex min-h-12 items-center justify-center gap-2 border border-border text-xs tracking-[0.1em] uppercase transition-colors hover:border-gold hover:text-gold"
+                >
+                  <Heart size={15} strokeWidth={1.5} />
+                  Wishlist
+                </Link>
+
+                <Link
+                  prefetch={false}
+                  href="/account"
+                  onClick={() => setDrawerOpen(false)}
+                  className="flex min-h-12 items-center justify-center gap-2 border border-border text-xs tracking-[0.1em] uppercase transition-colors hover:border-gold hover:text-gold"
+                >
+                  <User size={15} strokeWidth={1.5} />
+                  Account
+                </Link>
+
+                <Link
+                  prefetch={false}
+                  href="/cart"
+                  onClick={() => setDrawerOpen(false)}
+                  className="flex min-h-12 items-center justify-center gap-2 border border-border text-xs tracking-[0.1em] uppercase transition-colors hover:border-gold hover:text-gold"
+                >
+                  <ShoppingBag size={15} strokeWidth={1.5} />
+                  Bag
+                  {cartCount > 0 && ` (${cartCount})`}
+                </Link>
+
+                <div className="flex min-h-12 items-center justify-center border border-border">
+                  <ThemeSwitcher />
+                </div>
               </div>
-              <Link prefetch={false} href="/client/tickets" onClick={() => setDrawerOpen(false)} className="flex min-h-12 items-center justify-center rounded bg-foreground px-5 py-4 text-xs uppercase tracking-widest text-background transition-colors hover:bg-gold hover:text-white">
-                Support Tickets
-              </Link>
-              <Link prefetch={false} href="/book-consultation" onClick={() => setDrawerOpen(false)} className="flex min-h-12 items-center justify-center rounded bg-foreground px-5 py-4 text-xs uppercase tracking-widest text-background transition-colors hover:bg-gold hover:text-white">
-                Book a Consultation
-              </Link>
+
+              {/* NOTIFICATIONS */}
+
+              <div className="mt-3 flex min-h-12 items-center justify-between border border-border px-4">
+                <span className="text-xs tracking-[0.1em] uppercase text-foreground/70">
+                  Notifications
+                </span>
+
+                <NotificationBell className="size-10 text-foreground" />
+              </div>
+
+              {/* CLIENT ACTIONS */}
+
+              <div className="mt-5 grid gap-2">
+
+                <Link
+                  prefetch={false}
+                  href="/client/tickets"
+                  onClick={() => setDrawerOpen(false)}
+                  className="flex min-h-12 items-center justify-center border border-border px-5 text-xs tracking-[0.12em] uppercase transition-colors hover:border-gold hover:text-gold"
+                >
+                  Support Tickets
+                </Link>
+
+                <Link
+                  prefetch={false}
+                  href="/book-consultation"
+                  onClick={() => setDrawerOpen(false)}
+                  className="flex min-h-12 items-center justify-center bg-foreground px-5 text-xs tracking-[0.12em] uppercase text-background transition-colors hover:bg-gold hover:text-white"
+                >
+                  Book a Consultation
+                </Link>
+              </div>
             </div>
           </div>
         </SheetContent>
@@ -471,6 +696,6 @@ export function SiteHeader() {
     </>
   )
 }
-
+     
 
 

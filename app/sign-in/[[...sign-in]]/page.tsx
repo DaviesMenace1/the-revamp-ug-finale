@@ -4,7 +4,7 @@
 import { useEffect } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { useSearchParams } from 'next/navigation'
-import { CustomSignIn, AuthIntro } from '@/components/auth/custom-auth-forms'
+import { CustomSignIn } from '@/components/auth/custom-auth-forms'
 import { safeRedirect } from '@/lib/auth/safe-redirect'
 
 export default function SignInPage() {
@@ -30,14 +30,8 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-6 py-16">
-      <div className="flex w-full max-w-6xl flex-col items-center gap-10 lg:flex-row lg:justify-between lg:gap-20">
-        <AuthIntro
-          title="Welcome back to your world of considered living."
-          description="Sign in to manage saved pieces, orders, consultations, membership, and your design journey."
-        />
-        <CustomSignIn redirectUrl={redirectUrl} />
-      </div>
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-8 sm:px-6 sm:py-12">
+      <CustomSignIn redirectUrl={redirectUrl} />
     </main>
   )
 }

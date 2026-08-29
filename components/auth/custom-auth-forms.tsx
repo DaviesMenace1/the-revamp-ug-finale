@@ -5,7 +5,6 @@ import { useSignIn, useSignUp } from '@clerk/nextjs'
 import { ArrowRight, Check, Loader2, ShieldCheck } from 'lucide-react'
 import { FaGoogle, FaLinkedinIn } from 'react-icons/fa'
 import Link from 'next/link'
-import TurnstileChallenge, { turnstileConfigured } from './turnstile-challenge'
 import { AUTH_NAME_MAX_LENGTH, AUTH_USERNAME_MAX_LENGTH, isBoundedAuthText, isValidAuthEmail, isValidAuthPassword, isValidVerificationCode, normalizeAuthEmail } from '@/lib/auth/input-validation'
 
 type OAuthStrategy = 'oauth_google' | 'oauth_linkedin_oidc'
@@ -29,26 +28,6 @@ async function authorizeAuthAttempt(identifier?: string) {
     const retryAfter = Number(response.headers.get('Retry-After'))
     const retryMessage = Number.isFinite(retryAfter) && retryAfter > 0 ? ` Try again in about ${retryAfter} seconds.` : ''
     throw new Error(`${result?.error || 'Authentication attempts are temporarily limited.'}${retryMessage}`)
-  }
-}
-
-async function verifyTurnstileToken(token: string) {
-  const controller = new AbortController()
-  const timeout = window.setTimeout(() => controller.abort(), 6_000)
-
-  try {
-    const response = await fetch('/api/auth/turnstile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, action: 'auth' }),
-      signal: controller.signal,
-    })
-    const result = (await response.json().catch(() => null)) as { verified?: boolean; error?: string } | null
-    if (!response.ok || !result?.verified) {
-      throw new Error(result?.error || 'Security verification failed. Refresh the challenge and try again.')
-    }
-  } finally {
-    window.clearTimeout(timeout)
   }
 }
 
@@ -192,8 +171,6 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
-  const [turnstileResetKey, setTurnstileResetKey] = useState(0)
 
   const isLoaded = !!signIn
   const destination = redirectUrl || '/account'
@@ -278,24 +255,17 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       setError('Use a password between 8 and 128 characters without control characters.')
       return
     }
-    if (turnstileConfigured() && !turnstileToken) {
-      setError('Complete the security verification before signing in.')
-      return
-    }
 
     setLoading(true)
     setError(null)
     setInfo(null)
     try {
-      if (turnstileToken) await verifyTurnstileToken(turnstileToken)
       await authorizeAuthAttempt(normalizedEmail)
       const { error: passwordError } = await signIn.password({ identifier: normalizedEmail, password })
       if (passwordError) throw passwordError
       await advance()
     } catch (err) {
       console.error(' Sign-in error:', err)
-      setTurnstileToken(null)
-      setTurnstileResetKey((key) => key + 1)
       setError(clerkErrorMessage(err, 'Unable to sign in. Check your details and try again.'))
     } finally {
       setLoading(false)
@@ -358,15 +328,10 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
 
   const oauth = async (strategy: OAuthStrategy) => {
     if (!signIn) return
-    if (turnstileConfigured() && !turnstileToken) {
-      setError('Complete the security verification before continuing.')
-      return
-    }
 
     setOauthLoading(strategy)
     setError(null)
     try {
-      if (turnstileToken) await verifyTurnstileToken(turnstileToken)
       await authorizeAuthAttempt()
       // Redirects the browser to the provider; only returns here on error.
       const { error: ssoError } = await signIn.sso({
@@ -377,8 +342,6 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       if (ssoError) throw ssoError
     } catch (err) {
       console.error('[v0] OAuth start error:', err)
-      setTurnstileToken(null)
-      setTurnstileResetKey((key) => key + 1)
       setError(clerkErrorMessage(err, 'Unable to connect to the provider. Try again.'))
       setOauthLoading(null)
     }
@@ -388,12 +351,12 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
 
   return (
     <AuthCard
-      eyebrow={step === 'verify-device' ? 'New device detected' : verifying ? 'Verify your sign-in' : 'Welcome back'}
+      eyebrow={step === 'verify-device' ? 'New device detected' : verifying ? 'Email verification' : 'Sign in'}
       title={verifying ? 'Enter your verification code' : 'Sign in to your account'}
       description={
         verifying
           ? `We've sent a verification code to ${email}. Enter it below to finish signing in on this device.`
-          : 'Continue your considered design journey.'
+          : 'Enter your details to continue.'
       }
     >
       {verifying ? (
@@ -439,7 +402,6 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
           <Divider />
           <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" />
           <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
-          <TurnstileChallenge onToken={setTurnstileToken} resetKey={turnstileResetKey} />
           <div className="flex justify-end">
             <Link href="/reset-password" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">
               Forgot password?
@@ -483,8 +445,6 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
-  const [turnstileResetKey, setTurnstileResetKey] = useState(0)
 
   const isLoaded = !!signUp
   const destination = redirectUrl || '/account'
@@ -519,16 +479,10 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
       return
     }
 
-    if (turnstileConfigured() && !turnstileToken) {
-      setError('Complete the security verification before creating your account.')
-      return
-    }
-
     setLoading(true)
     setError(null)
     setInfo(null)
     try {
-      if (turnstileToken) await verifyTurnstileToken(turnstileToken)
       const normalizedEmail = normalizeAuthEmail(email)
       if (!isValidAuthEmail(normalizedEmail)) throw new Error('Enter a valid email address.')
       if (!isValidAuthPassword(password)) throw new Error('Use a password between 8 and 128 characters without control characters.')
@@ -558,8 +512,6 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
       }
     } catch (err) {
       console.error('[v0] Sign-up error:', err)
-      setTurnstileToken(null)
-      setTurnstileResetKey((key) => key + 1)
       setError(clerkErrorMessage(err, 'Unable to create your account. Check your details and try again.'))
     } finally {
       setLoading(false)
@@ -616,14 +568,9 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
 
   const oauth = async (strategy: OAuthStrategy) => {
     if (!signUp) return
-    if (turnstileConfigured() && !turnstileToken) {
-      setError('Complete the security verification before continuing.')
-      return
-    }
     setOauthLoading(strategy)
     setError(null)
     try {
-      if (turnstileToken) await verifyTurnstileToken(turnstileToken)
       await authorizeAuthAttempt()
       const { error: ssoError } = await signUp.sso({
         strategy,
@@ -633,8 +580,6 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
       if (ssoError) throw ssoError
     } catch (err) {
       console.error('[v0] Sign-up OAuth start error:', err)
-      setTurnstileToken(null)
-      setTurnstileResetKey((key) => key + 1)
       setError(clerkErrorMessage(err, 'Unable to connect to the provider. Try again.'))
       setOauthLoading(null)
     }
@@ -642,12 +587,12 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
 
   return (
     <AuthCard
-      eyebrow={step === 'verify' ? 'Verify your email' : 'Start here'}
+      eyebrow={step === 'verify' ? 'Email verification' : 'Create account'}
       title={step === 'verify' ? 'Check your inbox' : 'Create your account'}
       description={
         step === 'verify'
           ? `We sent a six-digit code to ${email}.`
-          : 'A personal space for pieces, projects, and possibilities.'
+          : 'Enter your details to get started.'
       }
     >
       {step === 'verify' ? (
@@ -691,7 +636,6 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
           <Field label="Username" value={username} onChange={setUsername} autoComplete="username" required />
           <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" required />
           <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="new-password" required />
-          <TurnstileChallenge onToken={setTurnstileToken} resetKey={turnstileResetKey} />
 
           {/* Terms & Privacy Policy Checkbox */}
           <div className="flex items-start gap-3 text-xs text-muted-foreground">
@@ -752,8 +696,6 @@ export function CustomResetPassword() {
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
-  const [turnstileResetKey, setTurnstileResetKey] = useState(0)
 
   const isLoaded = !!signIn
 
@@ -763,17 +705,12 @@ export function CustomResetPassword() {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
-    if (step === 'email' && turnstileConfigured() && !turnstileToken) {
-      setError('Complete the security verification before requesting a reset code.')
-      return
-    }
     setLoading(true)
     setError(null)
     setInfo(null)
     try {
       if (step === 'email') {
-        if (turnstileToken) await verifyTurnstileToken(turnstileToken)
-        const normalizedEmail = normalizeAuthEmail(email)
+          const normalizedEmail = normalizeAuthEmail(email)
         if (!isValidAuthEmail(normalizedEmail)) throw new Error('Enter a valid email address.')
         await authorizeAuthAttempt(normalizedEmail)
         const { error: createError } = await signIn.create({ identifier: normalizedEmail })
@@ -805,8 +742,6 @@ export function CustomResetPassword() {
       }
     } catch (err) {
       console.error('[v0] Reset-password error:', err)
-      setTurnstileToken(null)
-      setTurnstileResetKey((key) => key + 1)
       setError(clerkErrorMessage(err, 'That code was not accepted. Try again.'))
     } finally {
       setLoading(false)
@@ -914,7 +849,6 @@ export function CustomResetPassword() {
             autoComplete={step === 'email' ? 'email' : 'one-time-code'}
             inputMode={step === 'email' ? 'email' : 'numeric'}
           />
-          {step === 'email' && <TurnstileChallenge onToken={setTurnstileToken} resetKey={turnstileResetKey} />}
           <InfoText message={info} />
           <ErrorText message={error} />
           <AuthButton disabled={!isLoaded || loading}>
@@ -941,7 +875,7 @@ export function CustomResetPassword() {
 
 function AuthCard({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="w-full max-w-md border border-border bg-card p-6 shadow-sm sm:p-8">
+    <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-sm sm:p-8">
       <div className="mb-7">
         <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-primary">{eyebrow}</p>
         <h2 className="font-serif text-3xl leading-tight text-foreground">{title}</h2>

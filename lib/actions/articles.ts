@@ -22,6 +22,19 @@ function slugify(input: string) {
     .replace(/(^-|-$)/g, '')
 }
 
+export async function getArticleForAdmin(id: string) {
+  if (!(await getCurrentUserWithRole(['admin', 'editor'])).authorized) return { success: false, error: 'You are not authorized to manage articles.' }
+  try {
+    if (!id || typeof id !== 'string') return { success: false, error: 'A valid article is required.' }
+    const article = await db.query.articles.findFirst({ where: eq(articles.id, id) })
+    if (!article) return { success: false, error: 'Article not found. Refresh the blogs page and try again.' }
+    return { success: true, article }
+  } catch (error) {
+    console.error('Failed to load article for editing:', error)
+    return { success: false, error: 'Failed to load the article editor. Refresh the page and try again.' }
+  }
+}
+
 export async function createArticle(data: {
   title: string
   introduction?: string

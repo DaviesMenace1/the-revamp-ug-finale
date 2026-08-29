@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Edit, Trash2, Search, X } from 'lucide-react'
 import { ImageUpload } from '@/components/admin/image-upload'
-import { createArticle, updateArticle, deleteArticle } from '@/lib/actions/articles'
+import { createArticle, getArticleForAdmin, updateArticle, deleteArticle } from '@/lib/actions/articles'
 import { StructuredListEditor } from '@/components/admin/structured-list-editor'
 
 type Article = {
@@ -15,12 +15,12 @@ type Article = {
   title: string
   slug: string
   excerpt: string | null
-  content: string | null
+  content?: string | null
   author: string | null
   category: string | null
   featuredImage: string | null
-  gallery: string[] | null
-  storySections: unknown[] | null
+  gallery?: string[] | null
+  storySections?: unknown[] | null
   status: string | null
   createdAt: string
 }
@@ -61,19 +61,24 @@ export default function BlogsClient({ initialArticles = [], loadError = null }: 
   }
 
   function openEdit(article: Article) {
-    setForm({
-      title: article.title,
-      excerpt: article.excerpt ?? '',
-      content: article.content ?? '',
-      author: article.author ?? '',
-      category: article.category ?? '',
-      featuredImage: article.featuredImage ?? '',
-      gallery: article.gallery ?? [],
-      storySections: article.storySections ?? [],
-      status: article.status ?? 'draft',
+    startTransition(async () => {
+      const result = await getArticleForAdmin(article.id)
+      if (!result.success || !result.article) return
+      const detail = result.article
+      setForm({
+        title: detail.title,
+        excerpt: detail.excerpt ?? '',
+        content: detail.content ?? '',
+        author: detail.author ?? '',
+        category: detail.category ?? '',
+        featuredImage: detail.featuredImage ?? '',
+        gallery: Array.isArray(detail.gallery) ? detail.gallery as string[] : [],
+        storySections: Array.isArray(detail.storySections) ? detail.storySections : [],
+        status: detail.status ?? 'draft',
+      })
+      setEditingId(detail.id)
+      setShowForm(true)
     })
-    setEditingId(article.id)
-    setShowForm(true)
   }
 
   function handleSave() {

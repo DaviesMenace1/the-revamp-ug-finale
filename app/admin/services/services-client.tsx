@@ -14,6 +14,7 @@ import {
   createService,
   updateService,
   deleteService,
+  getServiceForAdmin,
 } from '@/lib/actions/services'
 import { StructuredListEditor } from '@/components/admin/structured-list-editor'
 type ServiceCategory = {
@@ -31,19 +32,19 @@ type Service = {
   name: string
   slug: string
   description: string | null
-  longDescription: string | null
-  visionStatement: string | null
-  whatWeSolve: string | null
-  approach: string | null
-  deliverables: string[] | null
-  relatedServices: string[] | null
-  relatedProjects: string[] | null
+  longDescription?: string | null
+  visionStatement?: string | null
+  whatWeSolve?: string | null
+  approach?: string | null
+  deliverables?: string[] | null
+  relatedServices?: string[] | null
+  relatedProjects?: string[] | null
   image: string | null
-  gallery: string[]
-  storySections: unknown[]
-  processSteps: unknown[]
-  faqs: unknown[]
-  highlights: unknown[] | null
+  gallery?: string[] | null
+  storySections?: unknown[] | null
+  processSteps?: unknown[] | null
+  faqs?: unknown[] | null
+  highlights?: unknown[] | null
   status: string | null
   featured: boolean | null
 }
@@ -67,9 +68,11 @@ const emptyServiceForm = {
 export default function ServicesClient({
   initialCategories = [],
   initialServices = [],
+  loadError = null,
 }: {
   initialCategories: ServiceCategory[]
   initialServices: Service[]
+  loadError?: string | null
 }) {
   const [categories, setCategories] = useState(initialCategories)
   const [servicesList, setServicesList] = useState(initialServices)
@@ -120,22 +123,34 @@ export default function ServicesClient({
   }
 
   function openEditService(service: Service) {
-    setServiceForm({
-      categoryId: service.categoryId,
-      name: service.name,
-      description: service.description ?? '',
-      longDescription: service.longDescription ?? '',
-      visionStatement: service.visionStatement ?? '',
-      whatWeSolve: service.whatWeSolve ?? '',
-      approach: service.approach ?? '',
-      deliverables: service.deliverables ?? [],
-      relatedServices: service.relatedServices ?? [],
-      relatedProjects: service.relatedProjects ?? [],
-      image: service.image ?? '',
-      gallery: service.gallery ?? [], storySections: service.storySections ?? [], processSteps: service.processSteps ?? [], faqs: service.faqs ?? [], highlights: service.highlights ?? [],
+    startTransition(async () => {
+      const result = await getServiceForAdmin(service.id)
+      if (!result.success || !result.service) {
+        alert(result.error || 'Failed to load the service editor. Refresh the page and try again.')
+        return
+      }
+      const detail = result.service
+      setServiceForm({
+        categoryId: detail.categoryId,
+        name: detail.name,
+        description: detail.description ?? '',
+        longDescription: detail.longDescription ?? '',
+        visionStatement: detail.visionStatement ?? '',
+        whatWeSolve: detail.whatWeSolve ?? '',
+        approach: detail.approach ?? '',
+        deliverables: Array.isArray(detail.deliverables) ? detail.deliverables as string[] : [],
+        relatedServices: Array.isArray(detail.relatedServices) ? detail.relatedServices as string[] : [],
+        relatedProjects: Array.isArray(detail.relatedProjects) ? detail.relatedProjects as string[] : [],
+        image: detail.image ?? '',
+        gallery: Array.isArray(detail.gallery) ? detail.gallery as string[] : [],
+        storySections: Array.isArray(detail.storySections) ? detail.storySections : [],
+        processSteps: Array.isArray(detail.processSteps) ? detail.processSteps : [],
+        faqs: Array.isArray(detail.faqs) ? detail.faqs : [],
+        highlights: Array.isArray(detail.highlights) ? detail.highlights : [],
+      })
+      setEditingServiceId(detail.id)
+      setShowServiceForm(true)
     })
-    setEditingServiceId(service.id)
-    setShowServiceForm(true)
   }
 
   function handleSaveService() {
@@ -172,6 +187,7 @@ export default function ServicesClient({
 
   return (
     <div className="space-y-8 p-8">
+      {loadError && <div role="status" className="flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-400/30 dark:bg-amber-950/30 dark:text-amber-100"><span>{loadError}</span><button type="button" onClick={() => window.location.reload()} className="font-medium underline underline-offset-4">Retry</button></div>}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-serif text-4xl font-light text-foreground">Services</h1>

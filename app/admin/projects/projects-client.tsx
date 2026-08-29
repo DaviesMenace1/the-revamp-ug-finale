@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Plus, Search, X, Upload, Edit, Trash2, Eye, MapPin, Tag } from 'lucide-react'
 import Image from 'next/image'
 import { CldUploadWidget } from 'next-cloudinary'
-import { createProject, updateProject, deleteProject } from '@/lib/actions/projects'
+import { createProject, getProjectForAdmin, updateProject, deleteProject } from '@/lib/actions/projects'
 import { StructuredListEditor } from '@/components/admin/structured-list-editor'
 import { SingleImageUpload } from '@/components/admin/single-image-upload'
 
@@ -116,30 +116,41 @@ export default function ProjectsClient({ initialProjects = [], loadError = null 
   }
 
   const handleEdit = (project: any) => {
-    setFormData({
-      title: project.title || '',
-      slug: project.slug || '',
-      clientName: project.clientName || '',
-      client: project.client || '',
-      location: project.location || '',
-      category: project.category || '',
-      subCategory: project.subCategory || '',
-      designer: project.designer || '',
-      budget: project.budget || '',
-      description: project.description || '',
-      longDescription: project.longDescription || '',
-      shortDescription: project.shortDescription || '',
-      thumbnailImage: project.thumbnailImage || '',
-      tags: Array.isArray(project.tags) ? project.tags.join(', ') : '',
-      images: project.images || [],
-      gallery: project.gallery || [], storySections: project.storySections || [], highlights: project.highlights || [],
-      publishStatus: project.publishStatus || 'published',
-      year: project.year || '',
-      progress: project.progress != null ? String(project.progress) : '0',
-      dueDate: project.dueDate ? String(project.dueDate).slice(0, 10) : '',
+    setActionError(null)
+    startTransition(async () => {
+      const result = await getProjectForAdmin(project.id)
+      if (!result.success || !result.project) {
+        setActionError(result.error || 'Failed to load the project editor. Refresh the page and try again.')
+        return
+      }
+      const detail = result.project
+      setFormData({
+        title: detail.title || '',
+        slug: detail.slug || '',
+        clientName: detail.clientName || '',
+        client: detail.client || '',
+        location: detail.location || '',
+        category: detail.category || '',
+        subCategory: detail.subCategory || '',
+        designer: detail.designer || '',
+        budget: detail.budget || '',
+        description: detail.description || '',
+        longDescription: detail.longDescription || '',
+        shortDescription: detail.shortDescription || '',
+        thumbnailImage: detail.thumbnailImage || '',
+        tags: Array.isArray(detail.tags) ? detail.tags.join(', ') : '',
+        images: Array.isArray(detail.images) ? detail.images as string[] : [],
+        gallery: Array.isArray(detail.gallery) ? detail.gallery as string[] : [],
+        storySections: Array.isArray(detail.storySections) ? detail.storySections : [],
+        highlights: Array.isArray(detail.highlights) ? detail.highlights : [],
+        publishStatus: detail.publishStatus || 'published',
+        year: detail.year || '',
+        progress: detail.progress != null ? String(detail.progress) : '0',
+        dueDate: detail.dueDate ? String(detail.dueDate).slice(0, 10) : '',
+      })
+      setEditingId(detail.id)
+      setIsFormOpen(true)
     })
-    setEditingId(project.id)
-    setIsFormOpen(true)
   }
 
   const handleDelete = async (id: string) => {

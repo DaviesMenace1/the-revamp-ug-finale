@@ -95,6 +95,28 @@ export async function getProjects(limit = 10, offset = 0) {
       limit,
       offset,
       orderBy: desc(projects.createdAt),
+      columns: {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        shortDescription: true,
+        category: true,
+        subCategory: true,
+        clientName: true,
+        client: true,
+        location: true,
+        budget: true,
+        progress: true,
+        projectKind: true,
+        year: true,
+        publishStatus: true,
+        thumbnailImage: true,
+        images: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   } catch (error) {
     console.error('Error fetching projects:', error);

@@ -26,6 +26,19 @@ function slugify(input: string) {
     .replace(/(^-|-$)/g, '')
 }
 
+export async function getServiceForAdmin(id: string) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
+  try {
+    if (!id || typeof id !== 'string') return { success: false, error: 'A valid service is required.' }
+    const service = await db.query.services.findFirst({ where: eq(services.id, id) })
+    if (!service) return { success: false, error: 'Service not found. Refresh the page and try again.' }
+    return { success: true, service }
+  } catch (error) {
+    console.error('Failed to load service for editing:', error)
+    return { success: false, error: 'Failed to load the service editor. Refresh the page and try again.' }
+  }
+}
+
 // --- Categories ---
 
 export async function createServiceCategory(data: {

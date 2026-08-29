@@ -128,6 +128,19 @@ async function ensureUniqueSlug(slug: string, excludeId?: string) {
   return `${slug.slice(0, 255 - suffix.length)}${suffix}`
 }
 
+export async function getProjectForAdmin(id: string) {
+  await requirePortalUser(['admin'], '/admin/projects')
+  try {
+    if (!id || typeof id !== 'string') return { success: false, error: 'A valid project is required.' }
+    const project = await db.query.projects.findFirst({ where: eq(projects.id, id) })
+    if (!project) return { success: false, error: 'Project not found. Refresh the projects page and try again.' }
+    return { success: true, project }
+  } catch (error) {
+    console.error('Failed to load project for editing:', error)
+    return { success: false, error: 'Failed to load the project editor. Refresh the page and try again.' }
+  }
+}
+
 export async function createProject(data: ProjectInput) {
   await requirePortalUser(['admin'], '/admin/projects')
   try {

@@ -215,8 +215,8 @@ function ServiceWorld({ services, loading }: { services: Service[]; loading: boo
       <div className="mx-auto max-w-[1440px]">
         <div className="grid gap-5 border-b border-foreground/15 pb-6 text-center md:grid-cols-[0.7fr_1.3fr] md:items-end md:text-left md:pb-8">
           <div>
-            <Eyebrow>01  -  Explore our services</Eyebrow>
-            <h2 className="mx-auto mt-3 max-w-md font-serif text-4xl font-light leading-[0.95] sm:text-6xl md:mx-0">Architectural Mastery</h2>
+            <Eyebrow>Explore our services</Eyebrow>
+            <h2 className="mx-auto mt-3 max-w-md font-serif text-6xl font-light leading-[0.95] sm:text-8xl md:mx-0">Architectural Mastery</h2>
           </div>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8 md:items-end">
             <p className="max-w-lg text-sm leading-7 text-foreground/60">From conceptual design to structural excellence, we craft spaces that inspire</p>
@@ -260,8 +260,8 @@ function ImageStory({ image }: { image: string }) {
       <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-black/10" />
       <div className="relative mx-auto flex min-h-[31rem] max-w-[1440px] items-end px-5 py-12 sm:min-h-[38rem] sm:px-8 sm:py-16 lg:px-12">
         <div className="max-w-xl">
-          <Eyebrow light>02  -  Interior design excellence</Eyebrow>
-          <h2 className="mt-5 max-w-xl font-serif text-4xl font-light leading-[0.95] sm:text-6xl">Interior Design Excellence</h2>
+          <Eyebrow light>Interior design excellence</Eyebrow>
+          <h2 className="mt-5 max-w-xl font-serif text-6xl font-light leading-[0.95] sm:text-8xl">Interior Design Excellence</h2>
           <p className="mt-6 max-w-sm text-sm leading-6 text-white/70">Every detail meticulously crafted to create spaces of unparalleled beauty</p>
           <div className="mt-8"><TextLink href="/portfolio" light>Explore All Services</TextLink></div>
         </div>
@@ -283,7 +283,7 @@ function CollectionsPreview({ products }: { products: Product[] }) {
   ]
   return (
     <section className="bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
-      <div className="mx-auto max-w-[1440px]"><div className="mb-10 text-center sm:mb-14"><Eyebrow>Collections</Eyebrow><h2 className="mt-4 font-serif text-4xl font-light leading-none sm:text-6xl">Collections</h2><p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">Explore our curated selection of luxury furnishings and design elements</p></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">{categories.map(([name, href, curatedImage], index) => { const product = products.length ? products[index % products.length] : null; const image = curatedImage || (product ? productImage(product, index) : FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]); return <Link key={name} href={href} className={`group relative aspect-[4/5] overflow-hidden bg-card ${index % 3 === 1 ? 'sm:mt-10' : ''}`}><img src={image} alt={`${name} collection`} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" /><div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" /><div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3"><h3 className="font-sans text-sm font-medium text-white sm:text-base">{name}</h3><ArrowUpRight size={15} className="text-white/80" aria-hidden="true" /></div></Link> })}</div></div>
+      <div className="mx-auto max-w-[1440px]"><div className="mb-10 text-center sm:mb-14"><h2 className="mt-4 font-serif text-4xl font-light leading-none sm:text-6xl">Collections</h2><p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">Explore our curated selection of luxury furnishings and design elements</p></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">{categories.map(([name, href, curatedImage], index) => { const product = products.length ? products[index % products.length] : null; const image = curatedImage || (product ? productImage(product, index) : FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]); return <Link key={name} href={href} className={`group relative aspect-[4/5] overflow-hidden bg-card ${index % 3 === 1 ? 'sm:mt-10' : ''}`}><img src={image} alt={`${name} collection`} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" /><div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" /><div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3"><h3 className="font-sans text-sm font-medium text-white sm:text-base">{name}</h3><ArrowUpRight size={15} className="text-white/80" aria-hidden="true" /></div></Link> })}</div></div>
     </section>
   )
 }
@@ -294,7 +294,7 @@ function ProjectFeature({ projects, loading }: { projects: Project[]; loading: b
     <section className="motion-reveal bg-background px-5 py-12 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-7 flex flex-col items-center gap-4 border-b border-foreground/15 pb-6 text-center md:mb-10 md:flex-row md:items-end md:justify-between md:pb-7 md:text-left">
-          <div><Eyebrow>03  -  Selected work</Eyebrow><h2 className="mt-3 font-serif text-4xl font-light leading-none sm:text-6xl">Featured Projects</h2></div>
+          <div><h2 className="mt-3 font-serif text-6xl font-light leading-none sm:text-8xl">Featured Projects</h2></div>
           <Link href="/portfolio" className="inline-flex min-h-11 items-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-gold hover:text-foreground">View all projects <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
         </div>
         {loading ? (
@@ -331,7 +331,7 @@ function ProcessSection() {
   return (
     <section className="border-y border-foreground/10 bg-canvas dark:bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
       <div className="mx-auto grid max-w-[1440px] gap-12 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20">
-        <div><Eyebrow>04  -  The Revamp approach</Eyebrow><h2 className="mt-5 max-w-md font-serif text-4xl font-light leading-[0.95] sm:text-6xl">From vision<br /><span className="italic text-foreground/60">to reality.</span></h2><p className="mt-7 max-w-sm text-sm leading-7 text-foreground/60">We are not simply a designer who hands over drawings. We stay with the work until the final detail is in place.</p></div>
+        <div><Eyebrow>The Revamp approach</Eyebrow><h2 className="mt-5 max-w-md font-serif text-5xl font-light leading-[0.95] sm:text-7xl">From vision<br /><span className="italic text-foreground/60">to reality.</span></h2><p className="mt-7 max-w-sm text-sm leading-7 text-foreground/60">We are not simply a designer who hands over drawings. We stay with the work until the final detail is in place.</p></div>
         <div className="border-t border-foreground/15">
           {steps.map(([number, title, description]) => <div key={number} className="grid grid-cols-[2.5rem_0.75fr_1fr] gap-3 border-b border-foreground/15 py-5 sm:grid-cols-[3rem_0.65fr_1fr] sm:gap-6"><span className="text-[10px] tracking-[0.18em] text-foreground/60">{number}</span><h3 className="font-serif text-2xl font-light leading-none sm:text-3xl">{title}</h3><p className="text-xs leading-5 text-foreground/65 sm:text-sm sm:leading-6">{description}</p></div>)}
         </div>

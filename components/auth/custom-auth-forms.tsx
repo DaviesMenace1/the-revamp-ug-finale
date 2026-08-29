@@ -3,7 +3,7 @@
 import { FormEvent, useRef, useState } from 'react'
 import { useSignIn, useSignUp } from '@clerk/nextjs'
 import { ArrowRight, Check, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
-import { FaGoogle, FaLinkedinIn } from 'react-icons/fa'
+import { SiGoogle, SiLinkedin } from 'react-icons/si'
 import Link from 'next/link'
 import { AUTH_NAME_MAX_LENGTH, AUTH_USERNAME_MAX_LENGTH, isBoundedAuthText, isValidAuthEmail, isValidAuthPassword, isValidVerificationCode, normalizeAuthEmail } from '@/lib/auth/input-validation'
 
@@ -109,7 +109,7 @@ function OAuthButtons({ onOAuth, loading }: { onOAuth: (strategy: OAuthStrategy)
         disabled={!!loading}
         className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
       >
-        <FaGoogle className="size-4 text-[#4285F4]" aria-hidden="true" />
+        <SiGoogle color="default" size={18} aria-hidden="true" />
         {loading === 'oauth_google' ? 'Connecting…' : 'Continue with Google'}
       </button>
       <button
@@ -118,7 +118,7 @@ function OAuthButtons({ onOAuth, loading }: { onOAuth: (strategy: OAuthStrategy)
         disabled={!!loading}
         className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
       >
-        <FaLinkedinIn className="size-4 text-[#0A66C2]" aria-hidden="true" />
+        <SiLinkedin color="default" size={18} aria-hidden="true" />
         {loading === 'oauth_linkedin_oidc' ? 'Connecting…' : 'Continue with LinkedIn'}
       </button>
     </div>
@@ -430,8 +430,6 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
         </form>
       ) : (
         <form onSubmit={submit} className="grid gap-5">
-          <div className="grid gap-3"><p className="text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Continue with</p><OAuthButtons onOAuth={oauth} loading={oauthLoading} /></div>
-          <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground"><span className="h-px flex-1 bg-border" />Or<span className="h-px flex-1 bg-border" /></div>
           <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" />
           <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
           <div className="flex justify-end">
@@ -440,6 +438,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
             </Link>
           </div>
           <ErrorText message={error} />
+          <div className="grid gap-3 pt-2"><p className="text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Continue with</p><OAuthButtons onOAuth={oauth} loading={oauthLoading} /></div>
           <AuthButton disabled={!isLoaded || loading}>
             {loading ? 'Signing in…' : (
               <>
@@ -697,7 +696,6 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
               </>
             )}
           </AuthButton>
-          <div className="grid gap-3 pt-2"><p className="text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Continue with</p><OAuthButtons onOAuth={oauth} loading={oauthLoading} /></div>
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{' '}
             <Link
@@ -897,7 +895,7 @@ export function CustomResetPassword() {
 
 function AuthCard({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-2 rounded-2xl border border-white/45 bg-[#f5eee4]/48 p-5 text-foreground shadow-[0_28px_90px_rgba(18,13,9,0.34)] backdrop-blur-xl duration-300 sm:p-8">
+    <div className="w-full max-w-[calc(100vw-2rem)] overflow-hidden animate-in fade-in slide-in-from-bottom-2 rounded-2xl border border-white/45 bg-[#f5eee4]/30 p-5 text-foreground shadow-[0_28px_90px_rgba(18,13,9,0.34)] backdrop-blur-xl duration-300 sm:p-8">
       <div className="mb-7">
         <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-primary">{eyebrow}</p>
         <h2 className="font-serif text-3xl leading-tight text-foreground">{title}</h2>

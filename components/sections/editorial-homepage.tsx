@@ -216,7 +216,7 @@ function ServiceWorld({ services, loading }: { services: Service[]; loading: boo
         <div className="grid gap-5 border-b border-foreground/15 pb-6 text-center md:grid-cols-[0.7fr_1.3fr] md:items-end md:text-left md:pb-8">
           <div>
             <Eyebrow>Explore our services</Eyebrow>
-            <h2 className="mx-auto mt-3 max-w-md font-serif text-6xl font-light leading-[0.95] sm:text-8xl md:mx-0">Architectural Mastery</h2>
+            <h2 className="mx-auto mt-3 max-w-md font-serif text-10xl font-light leading-[0.95] sm:text-14xl md:mx-0">Architectural Mastery</h2>
           </div>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8 md:items-end">
             <p className="max-w-lg text-sm leading-7 text-foreground/60">From conceptual design to structural excellence, we craft spaces that inspire</p>
@@ -261,7 +261,7 @@ function ImageStory({ image }: { image: string }) {
       <div className="relative mx-auto flex min-h-[31rem] max-w-[1440px] items-end px-5 py-12 sm:min-h-[38rem] sm:px-8 sm:py-16 lg:px-12">
         <div className="max-w-xl">
           <Eyebrow light>Interior design excellence</Eyebrow>
-          <h2 className="mt-5 max-w-xl font-serif text-6xl font-light leading-[0.95] sm:text-8xl">Interior Design Excellence</h2>
+          <h2 className="mt-5 max-w-xl font-serif text-10xl font-light leading-[0.95] sm:text-14xl">Interior Design Excellence</h2>
           <p className="mt-6 max-w-sm text-sm leading-6 text-white/70">Every detail meticulously crafted to create spaces of unparalleled beauty</p>
           <div className="mt-8"><TextLink href="/portfolio" light>Explore All Services</TextLink></div>
         </div>

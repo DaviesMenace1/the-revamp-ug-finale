@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@clerk/nextjs'
-import { Bell, CheckCheck, Loader2, RefreshCw } from 'lucide-react'
+import { Bell, CheckCheck, Loader2, RefreshCw, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Notification = {
@@ -46,6 +46,16 @@ export default function NotificationBell({ className }: NotificationBellProps) {
   const [pushMessage, setPushMessage] = useState('')
   const loadingRef = useRef(false)
   const lastLoadedAtRef = useRef(0)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const closeOnOutsideTap = (event: PointerEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsideTap)
+    return () => document.removeEventListener('pointerdown', closeOnOutsideTap)
+  }, [open])
 
   const load = useCallback(async (force = false) => {
     if (loadingRef.current || (!force && Date.now() - lastLoadedAtRef.current < 10_000)) return
@@ -164,13 +174,13 @@ export default function NotificationBell({ className }: NotificationBellProps) {
   }
 
   return (
-    <div className="relative">
+    <div ref={panelRef} className="relative">
       <button type="button" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`} aria-expanded={open} onClick={() => { setOpen((value) => !value); if (!open) { void load(); void refreshPushStatus() } }} className={cn('relative flex size-11 items-center justify-center rounded-full transition-colors hover:bg-muted hover:text-foreground', className)}>
         <Bell className="size-5" aria-hidden="true" />
         {unreadCount > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[9px] font-bold text-obsidian">{unreadCount > 9 ? '9+' : unreadCount}</span>}
       </button>
-      {open && <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-border bg-background p-4 text-foreground shadow-xl" role="dialog" aria-label="Notifications">
-        <div className="flex items-center justify-between gap-3"><p className="font-serif text-xl">Notifications</p>{unreadCount > 0 && <button type="button" onClick={() => void markRead()} className="inline-flex min-h-10 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"><CheckCheck className="size-3.5" />Mark all read</button>}</div>
+      {open && <div className="fixed inset-x-2 top-16 z-50 max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-xl border border-border bg-background p-4 text-foreground shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:max-h-[min(42rem,calc(100vh-4rem))] sm:w-[min(22rem,calc(100vw-2rem))]" role="dialog" aria-label="Notifications">
+        <div className="flex items-center justify-between gap-3"><p className="font-serif text-xl">Notifications</p><div className="flex items-center gap-2">{unreadCount > 0 && <button type="button" onClick={() => void markRead()} className="inline-flex min-h-10 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"><CheckCheck className="size-3.5" />Mark all read</button>}<button type="button" aria-label="Close notifications" onClick={() => setOpen(false)} className="inline-flex min-h-10 items-center gap-1 rounded px-2 text-xs uppercase tracking-[0.12em] text-muted-foreground hover:bg-muted hover:text-foreground"><X className="size-3.5" />Close</button></div></div>
         <div className="mt-4 rounded-lg border border-border/70 bg-muted/30 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-foreground">Browser alerts</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Get reminders and important account updates even when this page is closed.</p></div>{pushStatus.optedIn && pushStatus.hasToken ? <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700">Enabled</span> : pushStatus.permission === 'denied' ? <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-rose-700">Blocked</span> : pushStatus.permission === 'unavailable' ? <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Unavailable</span> : <button type="button" onClick={() => void requestPushPermission()} disabled={pushRequesting} className="min-h-10 shrink-0 rounded bg-foreground px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-background disabled:opacity-60">{pushRequesting ? 'Enabling…' : pushStatus.permission === 'granted' ? 'Enable device' : 'Allow alerts'}</button>}</div>{pushMessage && <p role="status" aria-live="polite" className="mt-2 text-xs leading-relaxed text-muted-foreground">{pushMessage}</p>}{pushStatus.permission === 'granted' && !pushStatus.optedIn && !pushMessage && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Browser permission is allowed, but this device is not currently subscribed to OneSignal push.</p>}{pushStatus.permission === 'denied' && !pushMessage && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Allow notifications from this site in your browser’s address-bar settings.</p>}</div>
         {!authLoaded || loading || (isSignedIn && apiAuthenticated === null) ? <div className="flex justify-center py-8"><Loader2 className="size-5 animate-spin text-primary" aria-label="Loading notifications" /></div> : (!isSignedIn || apiAuthenticated === false) ? <div className="py-6 text-center"><p className="text-sm text-muted-foreground">Sign in to view your notifications.</p><Link href="/sign-in?redirect_url=%2Faccount" onClick={() => setOpen(false)} className="mt-3 inline-flex min-h-10 items-center justify-center rounded bg-foreground px-4 text-xs uppercase tracking-[0.14em] text-background">Sign in</Link></div> : error ? <div className="py-5 text-center"><p role="alert" className="text-sm text-muted-foreground">{error}</p><button type="button" onClick={() => void load(true)} className="mt-3 inline-flex min-h-10 items-center gap-2 text-xs uppercase tracking-[0.14em] text-primary"><RefreshCw className="size-3.5" />Retry</button></div> : notifications.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">You are all caught up.</p> : <div className="mt-3 max-h-80 space-y-1 overflow-y-auto">{notifications.slice(0, 20).map((notification) => { const content = <div className={`rounded-lg p-3 text-left transition-colors hover:bg-muted/70 ${notification.readAt ? 'opacity-65' : 'bg-primary/5'}`}><p className="text-sm font-medium text-foreground">{notification.title}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{notification.message}</p><p className="mt-2 text-[10px] text-muted-foreground">{new Date(notification.createdAt).toLocaleString()}</p></div>; return notification.actionUrl ? <Link key={notification.id} href={notification.actionUrl} onClick={() => { void markRead(notification.id); setOpen(false) }}>{content}</Link> : <button key={notification.id} type="button" onClick={() => void markRead(notification.id)} className="block w-full">{content}</button> })}</div>}
       </div>}

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowUpRight, CalendarDays, Heart, ShoppingBag } from 'lucide-react'
+import { ArrowUpRight, CalendarDays, Heart, MessageCircle, ShoppingBag, UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useCart } from '@/lib/context/cart-context' // 👈 Import useCart
 import { LoyaltyCard } from './loyalty-card'
@@ -84,6 +84,16 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
       )}
 
       {loyalty && <LoyaltyCard data={loyalty} />}
+
+      <section className="flex flex-col gap-5" aria-labelledby="priority-heading">
+        <SectionHeading id="priority-heading" eyebrow="Your next move" title="The essentials, at a glance." />
+        <div className="grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+          <AccountCard href="/client" icon={<ArrowUpRight aria-hidden="true" />} title="Client Portal" detail="Projects and milestones" />
+          <AccountCard href="/client/consultations" icon={<CalendarDays aria-hidden="true" />} title="Consultations" detail={nextConsultation ? 'Upcoming conversation' : 'Book or view consultations'} />
+          <AccountCard href="/client/messages" icon={<MessageCircle aria-hidden="true" />} title="Messages" detail="Speak with the team" />
+          <AccountCard href="/user-profile" icon={<UserRound aria-hidden="true" />} title="Profile" detail="Personal details and security" />
+        </div>
+      </section>
 
       <section className="flex flex-col gap-5" aria-labelledby="shopping-heading">
         <SectionHeading

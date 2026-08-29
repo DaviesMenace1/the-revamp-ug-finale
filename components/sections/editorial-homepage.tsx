@@ -252,18 +252,18 @@ function ImageStory({ image }: { image: string }) {
 
 function CollectionsPreview({ products }: { products: Product[] }) {
   const categories = [
-    ['Living Room', '/collections?category=Living%20Room'],
-    ['Dining', '/collections?category=Dining'],
-    ['Bedroom', '/collections?category=Bedroom'],
-    ['Kitchen', '/collections?category=Kitchen'],
-    ['Bathroom', '/collections?category=Bathroom'],
-    ['Lighting', '/collections?category=Lighting'],
-    ['Office', '/collections?category=Office'],
-    ['Outdoor', '/collections?category=Outdoor'],
+    ['Living Room', '/collections?category=Living%20Room', 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=85'],
+    ['Dining', '/collections?category=Dining', 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=85'],
+    ['Bedroom', '/collections?category=Bedroom', 'https://images.unsplash.com/photo-1617104678098-de229db51175?auto=format&fit=crop&w=1200&q=85'],
+    ['Kitchen', '/collections?category=Kitchen', 'https://images.unsplash.com/photo-1556912167-f556f1f39fdf?auto=format&fit=crop&w=1200&q=85'],
+    ['Bathroom', '/collections?category=Bathroom', 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=85'],
+    ['Lighting', '/collections?category=Lighting', 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=1200&q=85'],
+    ['Office', '/collections?category=Office', 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=85'],
+    ['Outdoor', '/collections?category=Outdoor', 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=85'],
   ]
   return (
     <section className="bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
-      <div className="mx-auto max-w-[1440px]"><div className="mb-10 text-center sm:mb-14"><Eyebrow>Collections</Eyebrow><h2 className="mt-4 font-serif text-4xl font-light leading-none sm:text-6xl">Collections</h2><p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">Explore our curated selection of luxury furnishings and design elements</p></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">{categories.map(([name, href], index) => { const product = products.length ? products[index % products.length] : null; const image = product ? productImage(product, index) : FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]; return <Link key={name} href={href} className={`group relative aspect-[4/5] overflow-hidden bg-card ${index % 3 === 1 ? 'sm:mt-10' : ''}`}><img src={image} alt={name} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" /><div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" /><div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3"><h3 className="font-sans text-sm font-medium text-white sm:text-base">{name}</h3><ArrowUpRight size={15} className="text-white/80" aria-hidden="true" /></div></Link> })}</div></div>
+      <div className="mx-auto max-w-[1440px]"><div className="mb-10 text-center sm:mb-14"><Eyebrow>Collections</Eyebrow><h2 className="mt-4 font-serif text-4xl font-light leading-none sm:text-6xl">Collections</h2><p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">Explore our curated selection of luxury furnishings and design elements</p></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">{categories.map(([name, href, curatedImage], index) => { const product = products.length ? products[index % products.length] : null; const image = curatedImage || (product ? productImage(product, index) : FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]); return <Link key={name} href={href} className={`group relative aspect-[4/5] overflow-hidden bg-card ${index % 3 === 1 ? 'sm:mt-10' : ''}`}><img src={image} alt={`${name} collection`} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" /><div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" /><div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3"><h3 className="font-sans text-sm font-medium text-white sm:text-base">{name}</h3><ArrowUpRight size={15} className="text-white/80" aria-hidden="true" /></div></Link> })}</div></div>
     </section>
   )
 }

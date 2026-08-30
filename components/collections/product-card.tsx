@@ -142,6 +142,7 @@ export function ProductCard({ product, featured = false, className, style }: { p
 
         <button type="button" onClick={handleQuickAdd} disabled={!availability.canAdd} aria-label={availability.canAdd ? `Add ${product.name} to cart` : `${product.name} is sold out`} className={cn('absolute bottom-2.5 right-2.5 z-20 flex size-10 items-center justify-center rounded-full bg-background text-foreground shadow-md transition-all duration-200 hover:bg-gold hover:text-obsidian focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:bottom-3 sm:right-3 sm:size-11', !availability.canAdd && 'cursor-not-allowed opacity-60 hover:bg-background hover:text-foreground')}>
           {justAdded ? <Check size={16} aria-hidden="true" /> : <ShoppingBag size={16} aria-hidden="true" />}
+          Add to Cart
         </button>
       </div>
 

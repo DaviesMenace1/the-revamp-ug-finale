@@ -23,5 +23,5 @@ export default async function TradePricing() {
   const currentTierTitle = member?.tier ? TIER_KEY_MAP[member.tier] ?? null : null
   const currentPlanKey = member?.tier === 'standard' ? 'entry' : member?.tier ?? null
 
-  return <TradePricingClient currentTierTitle={currentTierTitle} currentPlanKey={currentPlanKey} discountRate={member?.discountRate ? Number(member.discountRate) : null} subscriptionPlans={pricing.trade} />
+  return <TradePricingClient currentTierTitle={currentTierTitle} currentPlanKey={currentPlanKey} hasActiveSubscription={member?.status === 'active'} discountRate={member?.discountRate ? Number(member.discountRate) : null} subscriptionPlans={pricing.trade} />
 }

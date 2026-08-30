@@ -14,11 +14,13 @@ const faqs = [
 export default function TradePricingClient({
   currentTierTitle,
   currentPlanKey,
+  hasActiveSubscription,
   discountRate,
   subscriptionPlans,
 }: {
   currentTierTitle: string | null
   currentPlanKey: string | null
+  hasActiveSubscription: boolean
   discountRate: number | null
   subscriptionPlans: SubscriptionPlanOption[]
 }) {
@@ -45,9 +47,9 @@ export default function TradePricingClient({
         </div>
 
         <div>
-          <h2 className="mb-2 font-serif text-2xl font-light text-foreground">Choose your plan</h2>
-          <p className="mb-8 max-w-2xl text-sm leading-6 text-muted-foreground">Trade access activates immediately after verified payment. Choose monthly flexibility or an annual plan for a better value.</p>
-          <SubscriptionCheckoutClient program="trade" plans={subscriptionPlans} currentPlan={currentPlanKey} />
+          <h2 className="mb-2 font-serif text-2xl font-light text-foreground">{hasActiveSubscription ? 'Your trade plan' : 'Choose your plan'}</h2>
+          <p className="mb-8 max-w-2xl text-sm leading-6 text-muted-foreground">{hasActiveSubscription ? 'Your trade access is active. Review your pricing relationship and account benefits below.' : 'Trade access activates immediately after verified payment. Choose monthly flexibility or an annual plan for a better value.'}</p>
+          <SubscriptionCheckoutClient program="trade" plans={subscriptionPlans} currentPlan={currentPlanKey} hasActiveSubscription={hasActiveSubscription} />
         </div>
 
         <div className="space-y-4">

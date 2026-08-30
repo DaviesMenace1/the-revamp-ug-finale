@@ -42,10 +42,12 @@ export default function SubscriptionCheckoutClient({
   program,
   plans,
   currentPlan,
+  hasActiveSubscription = false,
 }: {
   program: SubscriptionProgram
   plans: SubscriptionPlanOption[]
   currentPlan?: string | null
+  hasActiveSubscription?: boolean
 }) {
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual')
   const [selectedPlanKey, setSelectedPlanKey] = useState(plans[0]?.key || '')
@@ -179,6 +181,21 @@ export default function SubscriptionCheckoutClient({
     } finally {
       setLoading(false)
     }
+  }
+
+  if (hasActiveSubscription) {
+    return (
+      <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 sm:p-7" role="status">
+        <div className="flex items-start gap-4">
+          <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.24em] text-primary">Subscription active</p>
+            <h2 className="mt-2 font-serif text-2xl text-foreground">Your access is already active.</h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">You are already subscribed to this programme. Your benefits and account access are available without another payment.</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!plans.length) {

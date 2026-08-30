@@ -16,5 +16,5 @@ export default async function MembershipBenefits() {
   const membership = await db.query.memberships.findFirst({ where: eq(memberships.userId, user.id) })
   const pricing = await getSubscriptionPricing()
 
-  return <MembershipBenefitsClient currentTier={membership?.membershipType ?? null} subscriptionPlans={pricing.membership} />
+  return <MembershipBenefitsClient currentTier={membership?.membershipType ?? null} hasActiveSubscription={membership?.status === 'active'} subscriptionPlans={pricing.membership} />
 }

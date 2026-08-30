@@ -25,9 +25,11 @@ const perks = [
 
 export default function MembershipBenefitsClient({
   currentTier,
+  hasActiveSubscription,
   subscriptionPlans,
 }: {
   currentTier: string | null
+  hasActiveSubscription: boolean
   subscriptionPlans: SubscriptionPlanOption[]
 }) {
   return (
@@ -66,7 +68,7 @@ export default function MembershipBenefitsClient({
         <div>
           <h2 className="mb-2 font-serif text-2xl font-light text-foreground">Membership plans</h2>
           <p className="mb-8 text-sm leading-6 text-muted-foreground">Choose monthly flexibility or save with an annual plan. Your access activates after verified payment.</p>
-          <SubscriptionCheckoutClient program="membership" plans={subscriptionPlans} currentPlan={currentTier} />
+          <SubscriptionCheckoutClient program="membership" plans={subscriptionPlans} currentPlan={currentTier} hasActiveSubscription={hasActiveSubscription} />
         </div>
       </div>
     </PortalLayout>

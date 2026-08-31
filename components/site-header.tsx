@@ -28,6 +28,7 @@ import NotificationBell from '@/components/notifications/notification-bell'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useCart } from '@/lib/context/cart-context'
 import { cn } from '@/lib/utils'
+import { LuxuryAccountIcon, LuxuryBagIcon, LuxuryCloseIcon, LuxuryMenuIcon, LuxurySearchIcon } from '@/components/ui/luxury-nav-icons'
 
 import {
   Sheet,
@@ -467,7 +468,7 @@ export function SiteHeader() {
                 )}
                 aria-label="Search"
               >
-                <Search size={18} />
+                <LuxurySearchIcon size={19} />
               </Link>
 
               {/* Theme */}
@@ -497,7 +498,7 @@ export function SiteHeader() {
                 )}
                 aria-label="Wishlist"
               >
-                <Heart size={18} />
+                <Heart size={18} strokeWidth={1} />
               </Link>
 
               {/* Account */}
@@ -518,7 +519,7 @@ export function SiteHeader() {
                     className="size-5 rounded-full object-cover"
                   />
                 ) : (
-                  <User size={18} />
+                  <LuxuryAccountIcon size={19} />
                 )}
               </Link>
 
@@ -533,7 +534,7 @@ export function SiteHeader() {
                 )}
                 aria-label="Shopping cart"
               >
-                <ShoppingBag size={18} />
+                <LuxuryBagIcon size={19} />
 
                 {cartCount > 0 && (
                   <span className="absolute right-0 top-0 flex size-4 items-center justify-center rounded-full bg-gold text-[8px] font-bold text-white">
@@ -559,7 +560,7 @@ export function SiteHeader() {
                   )}
                   aria-label="Open navigation"
                 >
-                  <Menu size={19} />
+                  <LuxuryMenuIcon size={20} />
                 </button>
                 <div className={cn('absolute right-0 top-full z-50 flex size-11 translate-y-[-1px] items-center justify-center rounded-b-[1.35rem] border border-t-0 bg-background/95 p-0.5 shadow-lg backdrop-blur-xl', headerDark ? 'border-white/30 text-white' : 'border-border text-foreground', '[&_button]:size-10 [&_button]:text-current [&_button:hover]:bg-current/10')}>
                   <ThemeSwitcher />
@@ -578,7 +579,7 @@ export function SiteHeader() {
                 )}
                 aria-label="Open full navigation"
               >
-                <Menu size={20} />
+                <LuxuryMenuIcon size={20} />
               </button>
 
             </div>
@@ -655,7 +656,7 @@ export function SiteHeader() {
                 className="flex size-10 items-center justify-center border border-border transition-colors hover:border-gold hover:text-gold"
                 aria-label="Close navigation"
               >
-                <X size={19} />
+                <LuxuryCloseIcon size={19} />
               </button>
 
             </div>

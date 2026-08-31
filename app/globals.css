@@ -209,6 +209,25 @@
     overflow-x: hidden;
     font-feature-settings: 'kern' 1, 'liga' 1;
   }
+  main, header, footer, section, article, nav, aside, form {
+    min-width: 0;
+    max-width: 100%;
+  }
+  main > *, section > *, article > *, form > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  h1, h2, h3, h4, p, a, button, label, th, td {
+    overflow-wrap: anywhere;
+  }
+  table {
+    max-width: 100%;
+  }
+  [data-scroll-container], .table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
   img,
   video,
   canvas,
@@ -283,11 +302,30 @@
   .mobile-scroll-row {
     scrollbar-width: thin;
     overscroll-behavior-inline: contain;
+    max-width: 100%;
+  }
+
+  .safe-inline-grid {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  }
+
+  .safe-card {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   @media (max-width: 380px) {
     .section-pad {
       @apply py-16;
+    }
+    .page-gutter {
+      padding-inline: 1rem;
+    }
+    .safe-card {
+      padding-inline: 1rem;
     }
   }
 

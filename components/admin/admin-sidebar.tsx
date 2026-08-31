@@ -33,6 +33,7 @@ import {
   PanelLeftOpen,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { LuxuryCloseIcon, LuxuryMenuIcon } from '@/components/ui/luxury-nav-icons'
 import { hasPermission, type AdminPermission, type UserRole } from '@/lib/auth/permissions'
 
 const sidebarItems: Array<{ label: string; href: string; icon: typeof BarChart3; permission: AdminPermission }> = [
@@ -159,7 +160,7 @@ export default function AdminSidebar({ role }: { role: UserRole }) {
 
       <div className="md:hidden">
         <button type="button" aria-label={mobileOpen ? 'Close admin navigation' : 'Open admin navigation'} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)} className="fixed left-2.5 top-2.5 z-50 flex size-11 items-center justify-center rounded-lg border border-border/70 bg-background/95 text-foreground shadow-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-          {mobileOpen ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
+          {mobileOpen ? <LuxuryCloseIcon size={20} /> : <LuxuryMenuIcon size={20} />}
         </button>
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="safe-bottom w-[min(20rem,calc(100vw-1rem))] border-border bg-card p-0">

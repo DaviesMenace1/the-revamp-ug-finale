@@ -3,7 +3,7 @@
 import { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X } from 'lucide-react'
+import { LuxuryCloseIcon, LuxuryMenuIcon } from '@/components/ui/luxury-nav-icons'
 import NotificationBell from '@/components/notifications/notification-bell'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useState } from 'react'
@@ -68,7 +68,7 @@ export function PortalLayout({
                 aria-label={mobileMenuOpen ? 'Close portal navigation' : 'Open portal navigation'}
                 className="md:hidden flex size-11 items-center justify-center rounded hover:bg-muted transition-colors"
               >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              {mobileMenuOpen ? <LuxuryCloseIcon size={20} /> : <LuxuryMenuIcon size={20} />}
               </button>
             </div>
           </div>

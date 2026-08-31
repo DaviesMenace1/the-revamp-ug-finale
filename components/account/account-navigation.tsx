@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useClerk } from '@clerk/nextjs'
-import { LogOut } from 'lucide-react'
+import { LuxuryLogOut } from '@/components/icons/luxury-icons'
 
 const groups = [
   { label: 'My account', links: [['Overview', '/account'], ['Orders', '/orders'], ['Wishlist', '/wishlist'], ['Cart', '/cart']] },
@@ -28,7 +28,7 @@ export function AccountNavigation() {
   ))
 
   const signOutButton = <button type="button" onClick={() => signOut({ redirectUrl: '/' })} className="flex min-h-10 items-center gap-2 rounded-md py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-primary">
-    <LogOut className="size-4 shrink-0" aria-hidden="true" />
+    <LuxuryLogOut className="size-4 shrink-0" aria-hidden="true" />
     Sign out
   </button>
 

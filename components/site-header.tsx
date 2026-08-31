@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, ChevronDown, ShoppingBag, Search, Heart, User } from 'lucide-react'
+import { LuxuryChevronDown, LuxuryHeart, LuxuryMenu, LuxurySearch, LuxuryShoppingBag, LuxuryUser } from '@/components/icons/luxury-icons'
 import NotificationBell from '@/components/notifications/notification-bell'
 import { cn } from '@/lib/utils'
 import { useCart } from '@/lib/context/cart-context'
@@ -127,7 +127,7 @@ export function SiteHeader() {
                   onClick={() => setDrawerOpen(true)}
                   aria-label="Open menu"
                 >
-                  <Menu size={20} />
+                  <LuxuryMenu size={20} />
                 </button>
 
                 <Link
@@ -139,7 +139,7 @@ export function SiteHeader() {
                   )}
                   aria-label="Search"
                 >
-                  <Search size={18} />
+                  <LuxurySearch size={18} />
                 </Link>
               </div>
 
@@ -208,7 +208,7 @@ export function SiteHeader() {
                         aria-expanded={desktopDropdownOpen === link.href}
                         aria-label={`Toggle ${link.label} submenu`}
                       >
-                        <ChevronDown 
+                        <LuxuryChevronDown
                           size={14} 
                           className={cn(
                             'transition-transform duration-200 opacity-70',
@@ -271,7 +271,7 @@ export function SiteHeader() {
                 )}
                 aria-label="Search"
               >
-                <Search size={19} />
+                <LuxurySearch size={19} />
               </Link>
 
               {/* Desktop Search Icon */}
@@ -284,7 +284,7 @@ export function SiteHeader() {
                 )}
                 aria-label="Search"
               >
-                <Search size={20} />
+                <LuxurySearch size={20} />
               </Link>
 
               {/* Theme Switcher */}
@@ -306,7 +306,7 @@ export function SiteHeader() {
                   aria-label="Wishlist"
 
               >
-                <Heart size={18} className="sm:w-[20px] sm:h-[20px]" />
+                <LuxuryHeart size={18} className="sm:w-[20px] sm:h-[20px]" />
               </Link>
 
               {/* Profile / Account Icon */}
@@ -320,7 +320,7 @@ export function SiteHeader() {
                   aria-label="Account"
 
               >
-                <User size={18} className="sm:w-[20px] sm:h-[20px]" />
+                <LuxuryUser size={18} className="sm:w-[20px] sm:h-[20px]" />
               </Link>
 
               {/* Shopping Cart Icon */}
@@ -333,7 +333,7 @@ export function SiteHeader() {
                 )}
                 aria-label="Shopping Cart"
               >
-                <ShoppingBag size={18} className="sm:w-[20px] sm:h-[20px]" />
+                <LuxuryShoppingBag size={18} className="sm:w-[20px] sm:h-[20px]" />
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-gold text-white text-[9px] sm:text-[10px] font-bold rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center">
                     {cartCount}
@@ -350,7 +350,7 @@ export function SiteHeader() {
                 onClick={() => setDrawerOpen(true)}
                 aria-label="Open menu"
               >
-                <Menu size={22} />
+                <LuxuryMenu size={22} />
               </button>
 
               {/* Desktop Drawer Toggle */}
@@ -362,7 +362,7 @@ export function SiteHeader() {
                 onClick={() => setDrawerOpen(true)}
                 aria-label="Open full menu"
               >
-                <Menu size={22} />
+                <LuxuryMenu size={22} />
               </button>
             </div>
 
@@ -400,7 +400,7 @@ export function SiteHeader() {
                       )}
                     >
                       <span>{link.label}</span>
-                      <ChevronDown
+                      <LuxuryChevronDown
                         size={16}
                         className={cn(
                           'transition-transform duration-200',

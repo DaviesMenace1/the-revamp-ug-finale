@@ -4,57 +4,60 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { SignOutButton } from '@clerk/nextjs'
+import type { LucideProps } from 'lucide-react'
 import {
-  BarChart3,
-  Package,
-  FolderOpen,
-  FolderKanban,
-  Users,
-  ShoppingCart,
-  Truck,
-  FileText,
-  FileCog,
-  Receipt,
-  Settings,
-  LogOut,
-  Grid3x3,
-  Briefcase,
-  HelpCircle,
-  MessageSquare,
-  LifeBuoy,
-  CalendarDays,
-  Gift,
-  Megaphone,
-  Menu,
-  X,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from 'lucide-react'
+  LuxuryBarChart3,
+  LuxuryBriefcase,
+  LuxuryCalendarDays,
+  LuxuryFileCog,
+  LuxuryFileText,
+  LuxuryFolderKanban,
+  LuxuryFolderOpen,
+  LuxuryGift,
+  LuxuryGrid3x3,
+  LuxuryHelpCircle,
+  LuxuryLifeBuoy,
+  LuxuryLogOut,
+  LuxuryMenu,
+  LuxuryMegaphone,
+  LuxuryMessageSquare,
+  LuxuryPackage,
+  LuxuryPanelLeftClose,
+  LuxuryPanelLeftOpen,
+  LuxuryReceipt,
+  LuxurySettings,
+  LuxuryShoppingCart,
+  LuxuryTruck,
+  LuxuryUsers,
+  LuxuryX,
+} from '@/components/icons/luxury-icons'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { hasPermission, type AdminPermission, type UserRole } from '@/lib/auth/permissions'
 
-const sidebarItems: Array<{ label: string; href: string; icon: typeof BarChart3; permission: AdminPermission }> = [
-  { label: 'Dashboard', href: '/admin', icon: BarChart3, permission: 'view_admin' },
-  { label: 'Products', href: '/admin/products', icon: Package, permission: 'manage_content' },
-  { label: 'Categories', href: '/admin/categories', icon: Grid3x3, permission: 'manage_content' },
-  { label: 'Services', href: '/admin/services', icon: Briefcase, permission: 'manage_content' },
-  { label: 'FAQs', href: '/admin/faqs', icon: HelpCircle, permission: 'manage_content' },
-  { label: 'Projects (Portfolio)', href: '/admin/projects', icon: FolderOpen, permission: 'manage_projects' },
-  { label: 'Client Projects', href: '/admin/client-projects', icon: FolderKanban, permission: 'manage_projects' },
-  { label: 'Billing', href: '/admin/billing', icon: Receipt, permission: 'view_finance' },
-  { label: 'Refund Requests', href: '/admin/billing/refunds', icon: Receipt, permission: 'view_finance' },
-  { label: 'Finance Documents', href: '/admin/finance/documents', icon: FileCog, permission: 'view_finance' },
-  { label: 'Orders', href: '/admin/orders', icon: ShoppingCart, permission: 'view_orders' },
-  { label: 'Logistics', href: '/admin/logistics', icon: Truck, permission: 'manage_logistics' },
-  { label: 'Messages', href: '/admin/messages', icon: MessageSquare, permission: 'manage_support' },
-  { label: 'Support Tickets', href: '/admin/tickets', icon: LifeBuoy, permission: 'manage_support' },
-  { label: 'Users', href: '/admin/users', icon: Users, permission: 'manage_staff' },
-  { label: 'Consultations', href: '/admin/consultations', icon: FileText, permission: 'manage_projects' },
-  { label: 'Events', href: '/admin/events', icon: CalendarDays, permission: 'manage_content' },
-  { label: 'Community', href: '/admin/community', icon: Megaphone, permission: 'manage_content' },
-  { label: 'Loyalty Rewards', href: '/admin/loyalty', icon: Gift, permission: 'manage_loyalty' },
-  { label: 'Studio Inquiries', href: '/admin/service-requests', icon: MessageSquare, permission: 'manage_support' },
-  { label: 'Settings', href: '/admin/settings', icon: Settings, permission: 'manage_settings' },
+type SidebarIcon = React.ComponentType<LucideProps>
+
+const sidebarItems: Array<{ label: string; href: string; icon: SidebarIcon; permission: AdminPermission }> = [
+  { label: 'Dashboard', href: '/admin', icon: LuxuryBarChart3, permission: 'view_admin' },
+  { label: 'Products', href: '/admin/products', icon: LuxuryPackage, permission: 'manage_content' },
+  { label: 'Categories', href: '/admin/categories', icon: LuxuryGrid3x3, permission: 'manage_content' },
+  { label: 'Services', href: '/admin/services', icon: LuxuryBriefcase, permission: 'manage_content' },
+  { label: 'FAQs', href: '/admin/faqs', icon: LuxuryHelpCircle, permission: 'manage_content' },
+  { label: 'Projects (Portfolio)', href: '/admin/projects', icon: LuxuryFolderOpen, permission: 'manage_projects' },
+  { label: 'Client Projects', href: '/admin/client-projects', icon: LuxuryFolderKanban, permission: 'manage_projects' },
+  { label: 'Billing', href: '/admin/billing', icon: LuxuryReceipt, permission: 'view_finance' },
+  { label: 'Refund Requests', href: '/admin/billing/refunds', icon: LuxuryReceipt, permission: 'view_finance' },
+  { label: 'Finance Documents', href: '/admin/finance/documents', icon: LuxuryFileCog, permission: 'view_finance' },
+  { label: 'Orders', href: '/admin/orders', icon: LuxuryShoppingCart, permission: 'view_orders' },
+  { label: 'Logistics', href: '/admin/logistics', icon: LuxuryTruck, permission: 'manage_logistics' },
+  { label: 'Messages', href: '/admin/messages', icon: LuxuryMessageSquare, permission: 'manage_support' },
+  { label: 'Support Tickets', href: '/admin/tickets', icon: LuxuryLifeBuoy, permission: 'manage_support' },
+  { label: 'Users', href: '/admin/users', icon: LuxuryUsers, permission: 'manage_staff' },
+  { label: 'Consultations', href: '/admin/consultations', icon: LuxuryFileText, permission: 'manage_projects' },
+  { label: 'Events', href: '/admin/events', icon: LuxuryCalendarDays, permission: 'manage_content' },
+  { label: 'Community', href: '/admin/community', icon: LuxuryMegaphone, permission: 'manage_content' },
+  { label: 'Loyalty Rewards', href: '/admin/loyalty', icon: LuxuryGift, permission: 'manage_loyalty' },
+  { label: 'Studio Inquiries', href: '/admin/service-requests', icon: LuxuryMessageSquare, permission: 'manage_support' },
+  { label: 'Settings', href: '/admin/settings', icon: LuxurySettings, permission: 'manage_settings' },
 ]
 
 function isItemActive(pathname: string, href: string) {
@@ -99,7 +102,7 @@ function AdminSignOut({ collapsed = false }: { collapsed?: boolean }) {
         title={collapsed ? 'Sign out' : undefined}
         className={`flex min-h-11 w-full items-center rounded-lg py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${collapsed ? 'justify-center px-2' : 'gap-3 px-3'}`}
       >
-        <LogOut className="size-4 shrink-0" aria-hidden="true" />
+        <LuxuryLogOut className="size-4 shrink-0" aria-hidden="true" />
         <span className={collapsed ? 'sr-only' : undefined}>Sign Out</span>
       </button>
     </SignOutButton>
@@ -137,7 +140,7 @@ function DesktopSidebar({ role }: { role: UserRole }) {
       <div className={`flex min-h-16 items-center border-b border-border/50 ${collapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
         <AdminBrand collapsed={collapsed} />
         <button type="button" onClick={toggle} aria-label={collapsed ? 'Expand admin navigation' : 'Collapse admin navigation'} title={collapsed ? 'Expand navigation' : 'Collapse navigation'} className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-          {collapsed ? <PanelLeftOpen className="size-4" aria-hidden="true" /> : <PanelLeftClose className="size-4" aria-hidden="true" />}
+          {collapsed ? <LuxuryPanelLeftOpen className="size-4" aria-hidden="true" /> : <LuxuryPanelLeftClose className="size-4" aria-hidden="true" />}
         </button>
       </div>
       <div className={`flex-1 py-4 ${collapsed ? 'px-2' : 'px-3'}`}><AdminNav role={role} collapsed={collapsed} /></div>
@@ -155,7 +158,7 @@ export default function AdminSidebar({ role }: { role: UserRole }) {
 
       <div className="md:hidden">
         <button type="button" aria-label={mobileOpen ? 'Close admin navigation' : 'Open admin navigation'} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)} className="fixed left-2.5 top-2.5 z-50 flex size-11 items-center justify-center rounded-lg border border-border/70 bg-background/95 text-foreground shadow-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-          {mobileOpen ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
+          {mobileOpen ? <LuxuryX className="size-5" aria-hidden="true" /> : <LuxuryMenu className="size-5" aria-hidden="true" />}
         </button>
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="safe-bottom w-[min(20rem,calc(100vw-1rem))] border-border bg-card p-0">

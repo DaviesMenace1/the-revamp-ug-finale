@@ -1,8 +1,8 @@
 'use client';
 
 import { useTheme } from '@/lib/theme-provider';
-import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { LuxuryMoon, LuxurySun } from '@/components/icons/luxury-icons';
 
 export function ThemeSwitcher() {
   const { theme, toggleTheme } = useTheme();
@@ -16,9 +16,9 @@ export function ThemeSwitcher() {
       aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
       {theme === 'light' ? (
-        <Moon className="h-5 w-5 transition-all duration-300 ease-in-out" />
+        <LuxuryMoon className="h-5 w-5 transition-all duration-300 ease-in-out" />
       ) : (
-        <Sun className="h-5 w-5 transition-all duration-300 ease-in-out" />
+        <LuxurySun className="h-5 w-5 transition-all duration-300 ease-in-out" />
       )}
       <span className="sr-only">Toggle theme</span>
     </Button>
@@ -37,7 +37,7 @@ export function ThemeSwitcherDropdown() {
         className="h-7 w-7 rounded-full"
         aria-label="Light mode"
       >
-        <Sun className="h-4 w-4" />
+        <LuxurySun className="h-4 w-4" />
       </Button>
       <Button
         variant={theme === 'dark' ? 'default' : 'ghost'}
@@ -46,7 +46,7 @@ export function ThemeSwitcherDropdown() {
         className="h-7 w-7 rounded-full"
         aria-label="Dark mode"
       >
-        <Moon className="h-4 w-4" />
+        <LuxuryMoon className="h-4 w-4" />
       </Button>
     </div>
   );

@@ -24,30 +24,3 @@ export function ThemeSwitcher() {
     </Button>
   );
 }
-
-export function ThemeSwitcherDropdown() {
-  const { theme, setTheme } = useTheme();
-
-  return (
-    <div className="flex items-center gap-1 rounded-full border border-border p-1">
-      <Button
-        variant={theme === 'light' ? 'default' : 'ghost'}
-        size="icon"
-        onClick={() => setTheme('light')}
-        className="h-7 w-7 rounded-full"
-        aria-label="Light mode"
-      >
-        <Sun className="h-4 w-4" />
-      </Button>
-      <Button
-        variant={theme === 'dark' ? 'default' : 'ghost'}
-        size="icon"
-        onClick={() => setTheme('dark')}
-        className="h-7 w-7 rounded-full"
-        aria-label="Dark mode"
-      >
-        <Moon className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}

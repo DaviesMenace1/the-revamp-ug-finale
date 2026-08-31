@@ -313,7 +313,7 @@ function ProjectFeature({ projects, loading }: { projects: Project[]; loading: b
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-7 flex flex-col items-center gap-4 border-b border-foreground/15 pb-6 text-center md:mb-10 md:pb-7">
           <div><h1 className="mx-auto mt-4 max-w-4xl font-serif text-[clamp(2.8rem,6vw,5.5rem)] font-light leading-[0.9] tracking-[-0.03em]">Featured Projects</h1></div>
-          <Link href="/portfolio" className="inline-flex min-h-11 items-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-gold hover:text-foreground">View all projects <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
+          
         </div>
         {loading ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2" aria-busy="true" aria-label="Loading projects">{[1, 2, 3].map((item) => <div key={item} className="aspect-[16/7] animate-pulse rounded-xl bg-canvas-dark" />)}</div>
@@ -325,6 +325,7 @@ function ProjectFeature({ projects, loading }: { projects: Project[]; loading: b
           <div className="border border-dashed border-foreground/20 px-6 py-16 text-center"><p className="font-serif text-3xl font-light">The portfolio is being composed.</p><Link href="/portfolio" className="mt-5 inline-flex text-[10px] uppercase tracking-[0.18em] text-foreground/60 underline underline-offset-4">Visit the portfolio</Link></div>
         )}
       </div>
+      <Link href="/portfolio" className="inline-flex min-h-11 items-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-gold hover:text-foreground">View all projects <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
     </section>
   )
 }

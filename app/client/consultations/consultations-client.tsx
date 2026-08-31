@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { ArrowRight, Building2, Calendar, Clock3, Download, FileText, MapPin, MessageSquare, Receipt, Video } from 'lucide-react'
+import { ArrowRight, Building2, Calendar, Clock3, Download, FileText, MapPin, MessageSquare, Receipt, Video } from '@/components/ui/luxury-icons'
 import { isConsultationHistory } from '@/lib/consultations/lifecycle'
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Card } from '@/components/ui/card'

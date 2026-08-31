@@ -11,7 +11,7 @@ import {
   Archive,
   ExternalLink,
   Pencil,
-} from "lucide-react"
+} from '@/components/ui/luxury-icons'
 
 import { db } from "@/lib/db"
 import {

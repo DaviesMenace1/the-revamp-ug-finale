@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowUpRight, Search } from 'lucide-react'
+import { ArrowUpRight, Search } from '@/components/ui/luxury-icons'
 import { DEFAULT_PRODUCT_IMAGE, resolveProductImageUrls } from '@/lib/utils'
 
 type ProductRecord = {

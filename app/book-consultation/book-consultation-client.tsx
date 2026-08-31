@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Building2, Check, Clock3, CreditCard, MapPin, Smartphone, Video } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { Building2, Check, Clock3, CreditCard, MapPin, Smartphone, Video } from '@/components/ui/luxury-icons'
+import type { LucideIcon } from '@/components/ui/luxury-icons'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import ConsultationNotificationPrompt from '@/components/notifications/consultation-notification-prompt'

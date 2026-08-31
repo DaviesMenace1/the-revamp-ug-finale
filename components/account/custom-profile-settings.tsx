@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react'
 import { useClerk, useSession, useSessionList, useUser } from '@clerk/nextjs'
-import { Check, Laptop, Loader2, LogOut, Smartphone, Upload } from 'lucide-react'
+import { Check, Laptop, Loader2, LogOut, Smartphone, Upload } from '@/components/ui/luxury-icons'
 
 export function CustomProfileSettings() {
   const { isLoaded, user } = useUser(); const { session: currentSession } = useSession(); const { signOut } = useClerk(); const { sessions } = useSessionList();

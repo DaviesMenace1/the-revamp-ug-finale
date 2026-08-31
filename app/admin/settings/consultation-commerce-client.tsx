@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Pause, Play, Plus, Save } from 'lucide-react'
+import { Check, Pause, Play, Plus, Save } from '@/components/ui/luxury-icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { saveSetting } from '@/lib/actions/settings'

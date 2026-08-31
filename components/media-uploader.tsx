@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, AlertCircle, CheckCircle } from '@/components/ui/luxury-icons';
 import { MEDIA_TYPES } from '@/lib/media/config';
 
 interface MediaUploaderProps {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, Clock3, Tag } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Clock3, Tag } from '@/components/ui/luxury-icons'
 
 export type PublicPromotion = {
   id: string

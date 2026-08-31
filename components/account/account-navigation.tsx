@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useClerk } from '@clerk/nextjs'
-import { Home, LogOut, Menu, X, Settings, ShieldCheck, ArrowUpRight } from 'lucide-react'
+import { Home, LogOut, Menu, X, Settings, ShieldCheck, ArrowUpRight } from '@/components/ui/luxury-icons'
 import { useEffect, useState } from 'react'
 
 const groups = [

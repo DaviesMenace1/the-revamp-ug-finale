@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
-import { Check, CheckCheck, FileText, Inbox, Link2, Loader2, MessageSquare, Paperclip, RefreshCw, Search, Send, X } from 'lucide-react'
+import { Check, CheckCheck, FileText, Inbox, Link2, Loader2, MessageSquare, Paperclip, RefreshCw, Search, Send, X } from '@/components/ui/luxury-icons'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

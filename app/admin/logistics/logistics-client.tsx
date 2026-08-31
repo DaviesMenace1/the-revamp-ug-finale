@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import { AlertTriangle, CheckCircle2, Clock3, MapPin, PackageCheck, Search, Truck, UserRound } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock3, MapPin, PackageCheck, Search, Truck, UserRound } from '@/components/ui/luxury-icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { updateShipmentStatus, assignShipment } from '@/lib/actions/logistics'

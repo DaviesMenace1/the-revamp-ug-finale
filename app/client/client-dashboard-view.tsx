@@ -1,7 +1,7 @@
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
-import { ArrowUpRight, Calendar, FileText, MessageSquare, Package, ShoppingBag } from 'lucide-react'
+import { ArrowUpRight, Calendar, FileText, MessageSquare, Package, ShoppingBag } from '@/components/ui/luxury-icons'
 import { formatMoney } from '@/lib/utils'
 
 const clientNavItems = [

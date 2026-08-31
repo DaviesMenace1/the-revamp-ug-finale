@@ -31,7 +31,7 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
-} from 'lucide-react'
+} from '@/components/ui/luxury-icons'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { LuxuryCloseIcon, LuxuryMenuIcon } from '@/components/ui/luxury-nav-icons'
 import { hasPermission, type AdminPermission, type UserRole } from '@/lib/auth/permissions'

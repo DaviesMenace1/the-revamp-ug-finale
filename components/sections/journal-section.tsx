@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight } from '@/components/ui/luxury-icons'
 
 export type HomepageArticle = {
   slug: string

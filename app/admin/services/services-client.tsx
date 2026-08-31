@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Edit, Trash2, Search, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, X } from '@/components/ui/luxury-icons'
 import { ImageUpload } from '@/components/admin/image-upload'
 import {
   createServiceCategory,

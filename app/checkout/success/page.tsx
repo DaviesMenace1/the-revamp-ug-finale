@@ -17,7 +17,7 @@ import {
   ArrowRight,
   Loader2,
   Sparkles,
-} from 'lucide-react'
+} from '@/components/ui/luxury-icons'
 
 function parseObject(value: unknown): Record<string, any> {
   if (typeof value !== 'string') return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {}

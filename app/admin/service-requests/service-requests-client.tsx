@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import { ArrowRight, Mail, MessageSquare, Phone, Search } from 'lucide-react'
+import { ArrowRight, Mail, MessageSquare, Phone, Search } from '@/components/ui/luxury-icons'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'

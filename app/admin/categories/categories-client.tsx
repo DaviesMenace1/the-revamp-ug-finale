@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ChevronRight, ChevronDown, Plus, Trash2, X } from 'lucide-react'
+import { ChevronRight, ChevronDown, Plus, Trash2, X } from '@/components/ui/luxury-icons'
 import {
   createDepartment,
   deleteDepartment,

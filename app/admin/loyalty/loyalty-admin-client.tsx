@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Check, ClipboardCheck, Gift, RefreshCw, Save, SlidersHorizontal, Users } from 'lucide-react'
+import { Check, ClipboardCheck, Gift, RefreshCw, Save, SlidersHorizontal, Users } from '@/components/ui/luxury-icons'
 import { adjustPointsAsAdmin, updateLoyaltyRules } from '@/lib/actions/loyalty'
 
  type AdminData = {

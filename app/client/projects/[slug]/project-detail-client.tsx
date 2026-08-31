@@ -5,7 +5,7 @@ import { useRef, useState, useTransition } from 'react'
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Check, CheckSquare, Clock, Download, ExternalLink, FileText, Loader2, MessageSquare, Square, Upload } from 'lucide-react'
+import { ArrowLeft, Check, CheckSquare, Clock, Download, ExternalLink, FileText, Loader2, MessageSquare, Square, Upload } from '@/components/ui/luxury-icons'
 
 import Image from 'next/image'
 import Link from 'next/link'

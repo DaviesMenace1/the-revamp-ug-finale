@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useState, useTransition } from 'react'
-import { Calendar, MapPin, Users } from 'lucide-react'
+import { Calendar, MapPin, Users } from '@/components/ui/luxury-icons'
 import { rsvpToEvent, cancelRsvp } from '@/lib/actions/events'
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Badge } from '@/components/ui/badge'

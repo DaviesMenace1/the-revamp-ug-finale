@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ArrowUpRight, ChevronDown, Search, X } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, ChevronDown, Search, X } from '@/components/ui/luxury-icons'
 import { cn } from '@/lib/utils'
 
 const DEFAULT_FALLBACK_IMAGE = 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487078/L3D124S57ENDOVLZRRYUWLZS6LUFX7Y3WLA8_4000x3000_gb14hk.jpg'

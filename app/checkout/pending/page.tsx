@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, RefreshCw, ShoppingBag } from 'lucide-react'
+import { Loader2, RefreshCw, ShoppingBag } from '@/components/ui/luxury-icons'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import { useCart } from '@/lib/context/cart-context'

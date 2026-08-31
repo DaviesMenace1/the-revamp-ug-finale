@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Edit, Trash2, Search, X, ChevronDown, Loader2 } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, X, ChevronDown, Loader2 } from '@/components/ui/luxury-icons'
 import { cn } from '@/lib/utils'
 
 const FAQ_CATEGORIES = [

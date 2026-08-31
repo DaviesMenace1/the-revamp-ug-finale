@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import { Separator } from '@/components/ui/separator'
 import { NewsletterSignup } from '@/components/newsletter-signup'
-import type { IconType } from 'react-icons'
-import { FaInstagram, FaSnapchatGhost, FaLinkedinIn } from 'react-icons/fa'
-import { SiTiktok } from 'react-icons/si'
+import type { IconType } from '@/components/ui/luxury-icons'
+import { FaInstagram, FaSnapchatGhost, FaLinkedinIn } from '@/components/ui/luxury-icons'
+import { SiTiktok } from '@/components/ui/luxury-icons'
 import { CookiePreferencesTrigger } from '@/components/privacy/cookie-consent-provider'
 import { siteContact } from '@/lib/site-config'
 

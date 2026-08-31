@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ChevronLeft, ChevronRight, Play } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight, Play } from '@/components/ui/luxury-icons'
 import { cn } from '@/lib/utils'
 
 interface Slide {

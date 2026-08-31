@@ -7,7 +7,7 @@ import {
   Heart,
   ShoppingBag,
   Trash2,
-} from 'lucide-react'
+} from '@/components/ui/luxury-icons'
 import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'

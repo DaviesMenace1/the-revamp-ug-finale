@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { MessageSquare, Send } from 'lucide-react'
+import { MessageSquare, Send } from '@/components/ui/luxury-icons'
 import { addProjectNote } from '@/lib/actions/project-assets'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, CalendarDays, Heart, Package, UserRound, BriefcaseBusiness, ShoppingBag, ShieldCheck, MapPin, Settings, Bell } from 'lucide-react'
+import { ArrowRight, CalendarDays, Heart, Package, UserRound, BriefcaseBusiness, ShoppingBag, ShieldCheck, MapPin, Settings, Bell } from '@/components/ui/luxury-icons'
 import { useEffect, useState } from 'react'
 import { useCart } from '@/lib/context/cart-context'
 

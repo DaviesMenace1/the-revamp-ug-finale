@@ -2,7 +2,7 @@
 
 import { SingleImageUpload } from '@/components/admin/single-image-upload'
 import { useState, useTransition } from 'react'
-import { Megaphone, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Megaphone, Pencil, Plus, Trash2, X } from '@/components/ui/luxury-icons'
 import { createCommunityPost, deleteCommunityPost, updateCommunityPost } from '@/lib/actions/community'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'

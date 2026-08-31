@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@clerk/nextjs'
-import { CheckCheck, Loader2, RefreshCw, X } from 'lucide-react'
+import { CheckCheck, Loader2, RefreshCw, X } from '@/components/ui/luxury-icons'
 import { cn } from '@/lib/utils'
 import { LuxuryBellIcon } from '@/components/ui/luxury-nav-icons'
 

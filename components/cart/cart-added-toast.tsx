@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect } from 'react'
-import { X } from 'lucide-react'
+import { X } from '@/components/ui/luxury-icons'
 import { formatMoney, normalizeCurrency } from '@/lib/utils'
 
 export type CartToastData = {

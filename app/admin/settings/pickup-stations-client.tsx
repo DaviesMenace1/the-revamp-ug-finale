@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, ExternalLink, Pencil, Plus, Search, Save, Trash2, X } from 'lucide-react'
+import { Check, ExternalLink, Pencil, Plus, Search, Save, Trash2, X } from '@/components/ui/luxury-icons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'

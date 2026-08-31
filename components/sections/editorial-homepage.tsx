@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ArrowUpRight } from 'lucide-react'
+import { ArrowRight, ArrowUpRight } from '@/components/ui/luxury-icons'
 import { cn } from '@/lib/utils'
 import { ProductCard } from '@/components/collections/product-card'
 

@@ -3,7 +3,7 @@
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
-import { DollarSign, Package, Download } from 'lucide-react'
+import { DollarSign, Package, Download } from '@/components/ui/luxury-icons'
 
 const tradeNavItems = [
   { label: 'Dashboard', href: '/trade' },

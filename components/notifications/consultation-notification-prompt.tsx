@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Bell, Check, ShieldCheck, X } from 'lucide-react'
+import { Bell, Check, ShieldCheck, X } from '@/components/ui/luxury-icons'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
 type PushStatus = {

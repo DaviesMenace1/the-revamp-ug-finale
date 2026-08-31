@@ -14,7 +14,7 @@ import {
   Mail,
   Phone,
   CreditCard,
-} from 'lucide-react'
+} from '@/components/ui/luxury-icons'
 import { updateOrderStatus, deleteOrder } from '@/lib/actions/orders'
 import { formatMoney } from '@/lib/utils'
 import { getOrderItemOptionLines } from '@/lib/orders/order-item-options'

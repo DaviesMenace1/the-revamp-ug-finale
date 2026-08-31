@@ -4,7 +4,7 @@ import { useState, useTransition, useMemo } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, Send, LifeBuoy } from 'lucide-react'
+import { Search, Send, LifeBuoy } from '@/components/ui/luxury-icons'
 import {
   getTicketMessages,
   replyToTicketAsAdmin,

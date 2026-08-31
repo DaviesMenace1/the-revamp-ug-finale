@@ -1,7 +1,7 @@
 'use client'
 
 import { PortalLayout } from '@/components/portals/portal-layout'
-import { FileText, Video, Download } from 'lucide-react'
+import { FileText, Video, Download } from '@/components/ui/luxury-icons'
 
 const tradeNavItems = [
   { label: 'Dashboard', href: '/trade' },

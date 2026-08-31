@@ -1,5 +1,5 @@
 'use client'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from '@/components/ui/luxury-icons'
 import { SingleImageUpload } from '@/components/admin/single-image-upload'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

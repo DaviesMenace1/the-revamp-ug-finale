@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowUpRight, BarChart3, Boxes, ClipboardList, FolderKanban, RefreshCw, UsersRound } from 'lucide-react'
+import { ArrowUpRight, BarChart3, Boxes, ClipboardList, FolderKanban, RefreshCw, UsersRound } from '@/components/ui/luxury-icons'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 

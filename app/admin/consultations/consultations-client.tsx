@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
 import { isConsultationHistory } from '@/lib/consultations/lifecycle'
-import { Building2, Calendar, CheckCircle2, Clock3, MapPin, MessageSquare, Plus, Search, Trash2, Video, X } from 'lucide-react'
+import { Building2, Calendar, CheckCircle2, Clock3, MapPin, MessageSquare, Plus, Search, Trash2, Video, X } from '@/components/ui/luxury-icons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'

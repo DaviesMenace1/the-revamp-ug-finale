@@ -1,6 +1,6 @@
 'use client'
 
-import { X, Upload } from 'lucide-react'
+import { X, Upload } from '@/components/ui/luxury-icons'
 import Image from 'next/image'
 import { CldUploadWidget } from 'next-cloudinary'
 

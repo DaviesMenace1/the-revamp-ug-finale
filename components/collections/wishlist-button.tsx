@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Heart } from 'lucide-react'
+import { Heart } from '@/components/ui/luxury-icons'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 

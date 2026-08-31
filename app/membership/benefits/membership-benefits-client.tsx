@@ -1,7 +1,7 @@
 'use client'
 
 import { PortalLayout } from '@/components/portals/portal-layout'
-import { Check, Zap, Gift } from 'lucide-react'
+import { Check, Zap, Gift } from '@/components/ui/luxury-icons'
 import SubscriptionCheckoutClient, { type SubscriptionPlanOption } from '@/components/subscriptions/subscription-checkout-client'
 import BrowserNotificationPrompt from '@/components/notifications/browser-notification-prompt'
 

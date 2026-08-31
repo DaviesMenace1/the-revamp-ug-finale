@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { CheckCircle2, Loader2, RefreshCw, XCircle } from 'lucide-react'
+import { CheckCircle2, Loader2, RefreshCw, XCircle } from '@/components/ui/luxury-icons'
 import { reconcileRefundRequest, reviewRefundRequest } from '@/lib/actions/order-lifecycle'
 
 interface RefundRow {

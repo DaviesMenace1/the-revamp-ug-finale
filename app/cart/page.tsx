@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
+import { ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from '@/components/ui/luxury-icons'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { useCart } from '@/lib/context/cart-context'

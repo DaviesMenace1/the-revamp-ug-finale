@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Card } from '@/components/ui/card'
-import { ArrowUpRight, CalendarDays, Download, FileText, Search } from 'lucide-react'
+import { ArrowUpRight, CalendarDays, Download, FileText, Search } from '@/components/ui/luxury-icons'
 
 const clientNavItems = [
   { label: 'Dashboard', href: '/client' },

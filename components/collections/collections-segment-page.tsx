@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@/components/ui/luxury-icons'
 import { ProductCard } from '@/components/collections/product-card'
 
 import { SiteHeader } from '@/components/site-header'

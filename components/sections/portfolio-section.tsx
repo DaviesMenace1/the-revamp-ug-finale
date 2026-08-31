@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, FolderOpen } from 'lucide-react'
+import { ArrowRight, FolderOpen } from '@/components/ui/luxury-icons'
 import { Badge } from '@/components/ui/badge'
 import { resolveProductImageUrls } from '@/lib/utils'
 

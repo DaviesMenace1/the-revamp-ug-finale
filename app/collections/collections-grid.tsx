@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, SlidersHorizontal } from 'lucide-react'
+import { Search, SlidersHorizontal } from '@/components/ui/luxury-icons'
 import { useMemo, useState } from 'react'
 import { ProductCard } from '@/components/collections/product-card'
 

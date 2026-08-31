@@ -2,9 +2,9 @@
 
 import { FormEvent, useRef, useState } from 'react'
 import { useSignIn, useSignUp } from '@clerk/nextjs'
-import { ArrowRight, Check, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
-import { FaLinkedinIn } from 'react-icons/fa'
-import { SiGoogle } from '@icons-pack/react-simple-icons'
+import { ArrowRight, Check, Eye, EyeOff, Loader2, ShieldCheck } from '@/components/ui/luxury-icons'
+import { FaLinkedinIn } from '@/components/ui/luxury-icons'
+import { SiGoogle } from '@/components/ui/luxury-icons'
 import Link from 'next/link'
 import { AUTH_NAME_MAX_LENGTH, AUTH_USERNAME_MAX_LENGTH, isBoundedAuthText, isValidAuthEmail, isValidAuthPassword, isValidVerificationCode, normalizeAuthEmail } from '@/lib/auth/input-validation'
 

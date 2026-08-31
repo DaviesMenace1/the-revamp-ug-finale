@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Plus, X, FolderKanban } from 'lucide-react'
+import { Plus, X, FolderKanban } from '@/components/ui/luxury-icons'
 import Link from 'next/link'
 import { createClientProject } from '@/lib/actions/client-projects'
 

@@ -5,7 +5,7 @@ import { PortalLayout } from '@/components/portals/portal-layout'
 
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
-import { FolderOpen } from 'lucide-react'
+import { FolderOpen } from '@/components/ui/luxury-icons'
 
 const clientNavItems = [
   { label: 'Dashboard', href: '/client' },

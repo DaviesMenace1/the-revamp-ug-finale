@@ -5,7 +5,7 @@ import { PortalLayout } from '@/components/portals/portal-layout'
 
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Megaphone, Users } from 'lucide-react'
+import { Megaphone, Users } from '@/components/ui/luxury-icons'
 
 const membershipNavItems = [
   { label: 'Dashboard', href: '/membership' },

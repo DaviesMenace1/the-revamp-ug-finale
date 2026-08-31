@@ -7,7 +7,7 @@ import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Search, Package, Clock, CheckCircle2, Truck, Loader2, MapPin, RefreshCw } from 'lucide-react'
+import { Search, Package, Clock, CheckCircle2, Truck, Loader2, MapPin, RefreshCw } from '@/components/ui/luxury-icons'
 import PickupStationMap from '@/components/delivery/pickup-station-map'
 import { SHIPMENT_STATUS_LABELS, type ShipmentStatus } from '@/lib/logistics/status'
 

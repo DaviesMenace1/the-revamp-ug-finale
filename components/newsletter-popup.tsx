@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { X, CheckCircle2, Download, ArrowRight } from 'lucide-react'
+import { X, CheckCircle2, Download, ArrowRight } from '@/components/ui/luxury-icons'
 import { Button } from '@/components/ui/button'
 
 const NEWSLETTER_DELAY_MS = 2 * 60 * 1000

@@ -7,7 +7,7 @@ import { PortalLayout } from '@/components/portals/portal-layout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Calendar, MapPin, Users } from 'lucide-react'
+import { Calendar, MapPin, Users } from '@/components/ui/luxury-icons'
 import { rsvpToEvent, cancelRsvp } from '@/lib/actions/events'
 
 const membershipNavItems = [

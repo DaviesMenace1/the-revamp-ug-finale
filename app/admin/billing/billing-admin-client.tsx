@@ -5,7 +5,7 @@ import { useCallback, useState, useTransition } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, X, FileText, Upload, Loader2, Sparkles, Download, ExternalLink } from 'lucide-react'
+import { Plus, X, FileText, Upload, Loader2, Sparkles, Download, ExternalLink } from '@/components/ui/luxury-icons'
 
 import {
   createGeneratedFinancialDocument,

@@ -14,7 +14,7 @@ import {
   Sparkle,
   Share2,
   Send,
-} from 'lucide-react'
+} from '@/components/ui/luxury-icons'
 import { useCart } from '@/lib/context/cart-context'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'

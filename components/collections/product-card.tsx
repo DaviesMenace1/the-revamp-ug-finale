@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, type CSSProperties, type MouseEvent } from 'react'
-import { Check, ShoppingBag, Star } from 'lucide-react'
+import { Check, ShoppingBag, Star } from '@/components/ui/luxury-icons'
 import { useCart } from '@/lib/context/cart-context'
 import { WishlistButton } from '@/components/collections/wishlist-button'
 import { cn, formatMoney, normalizeCurrency, resolveProductImageUrls, resolveProductVariantImage } from '@/lib/utils'

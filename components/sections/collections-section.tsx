@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight } from '@/components/ui/luxury-icons'
 import { db } from '@/lib/db/client'
 import { products } from '@/lib/db/schema'
 import { ProductCard } from '@/components/collections/product-card'

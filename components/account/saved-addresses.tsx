@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Check, MapPin, Pencil, Plus, Save, Trash2, X } from 'lucide-react'
+import { Check, MapPin, Pencil, Plus, Save, Trash2, X } from '@/components/ui/luxury-icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'

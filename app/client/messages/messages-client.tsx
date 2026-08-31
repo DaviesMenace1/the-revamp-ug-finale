@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
-import { Check, CheckCheck, FileText, Link2, Loader2, MessageSquare, Paperclip, RefreshCw, Send, X } from 'lucide-react'
+import { Check, CheckCheck, FileText, Link2, Loader2, MessageSquare, Paperclip, RefreshCw, Send, X } from '@/components/ui/luxury-icons'
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'

@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowUpRight, PackageOpen } from 'lucide-react'
+import { ArrowUpRight, PackageOpen } from '@/components/ui/luxury-icons'
 
 export type CollectionCategory = {
   name: string

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Badge } from '@/components/ui/badge'
-import { Heart, Package } from 'lucide-react'
+import { Heart, Package } from '@/components/ui/luxury-icons'
 
 const tradeNavItems = [
   { label: 'Dashboard', href: '/trade' },

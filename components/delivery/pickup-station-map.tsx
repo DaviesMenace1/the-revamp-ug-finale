@@ -4,7 +4,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ExternalLink, LocateFixed, MapPin, Minus, Plus, Search } from 'lucide-react'
+import { ExternalLink, LocateFixed, MapPin, Minus, Plus, Search } from '@/components/ui/luxury-icons'
 import { Button } from '@/components/ui/button'
 
 export type PickupStationMapItem = {

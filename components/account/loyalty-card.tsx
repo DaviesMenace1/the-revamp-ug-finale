@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Copy, Gift, Sparkles, Users } from 'lucide-react'
+import { Check, Copy, Gift, Sparkles, Users } from '@/components/ui/luxury-icons'
 import { useState } from 'react'
 
 export type LoyaltyCardData = {

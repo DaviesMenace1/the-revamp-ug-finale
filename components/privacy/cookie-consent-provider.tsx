@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Analytics } from '@vercel/analytics/react'
-import { Cookie, X } from 'lucide-react'
+import { Cookie, X } from '@/components/ui/luxury-icons'
 
 export type ConsentState = {
   necessary: true

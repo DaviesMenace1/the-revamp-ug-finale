@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pause, Play, Plus } from 'lucide-react'
+import { Pause, Play, Plus } from '@/components/ui/luxury-icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createCollectionPromotion, updateCollectionPromotionStatus } from '@/lib/actions/collection-commerce'

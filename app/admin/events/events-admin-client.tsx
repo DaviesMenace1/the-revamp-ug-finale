@@ -2,7 +2,7 @@
 
 import { SingleImageUpload } from '@/components/admin/single-image-upload'
 import { useState, useTransition } from 'react'
-import { CalendarDays, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { CalendarDays, Pencil, Plus, Trash2, X } from '@/components/ui/luxury-icons'
 import { createEvent, deleteEvent, updateEvent } from '@/lib/actions/events'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'

@@ -5,7 +5,7 @@ import { PortalLayout } from '@/components/portals/portal-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, X, Send, LifeBuoy } from 'lucide-react'
+import { Plus, X, Send, LifeBuoy } from '@/components/ui/luxury-icons'
 import { createTicket, replyToTicketAsClient, getTicketMessages } from '@/lib/actions/tickets'
 
 const clientNavItems = [

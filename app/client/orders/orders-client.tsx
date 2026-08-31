@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Card } from '@/components/ui/card'
-import { CalendarDays, CheckCircle2, Clock, Loader2, MapPin, Package, RefreshCw, Search, Truck, X } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, Loader2, MapPin, Package, RefreshCw, Search, Truck, X } from '@/components/ui/luxury-icons'
 import { formatMoney } from '@/lib/utils'
 import { getOrderItemOptionLines } from '@/lib/orders/order-item-options'
 import PickupStationMap from '@/components/delivery/pickup-station-map'

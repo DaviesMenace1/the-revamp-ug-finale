@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Badge } from '@/components/ui/badge'
-import { Heart, Sparkles, Package } from 'lucide-react'
+import { Heart, Sparkles, Package } from '@/components/ui/luxury-icons'
 
 const membershipNavItems = [
   { label: 'Dashboard', href: '/membership' },

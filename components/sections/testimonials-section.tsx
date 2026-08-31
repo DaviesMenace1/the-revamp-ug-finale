@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight } from '@/components/ui/luxury-icons'
 import { cn } from '@/lib/utils'
 
 const testimonials = [

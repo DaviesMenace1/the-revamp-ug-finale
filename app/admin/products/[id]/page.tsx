@@ -14,7 +14,7 @@ import {
   Send,
   Trash2,
   AlertCircle,
-} from "lucide-react"
+} from '@/components/ui/luxury-icons'
 
 type Product = {
   id: string
@@ -1822,7 +1822,7 @@ function DynamicAttributes({
 //   Send,
 //   Trash2,
 //   AlertCircle,
-// } from "lucide-react"
+// } from '@/components/ui/luxury-icons'
 
 // type Product = {
 //   id: string

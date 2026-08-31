@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, FileText, Receipt, Wallet } from 'lucide-react'
+import { Download, FileText, Receipt, Wallet } from '@/components/ui/luxury-icons'
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Card } from '@/components/ui/card'
 import { formatMoney } from '@/lib/utils'

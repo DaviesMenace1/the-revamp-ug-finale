@@ -3,7 +3,7 @@
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
-import { Star, Users, Ticket, Crown, Calendar } from 'lucide-react'
+import { Star, Users, Ticket, Crown, Calendar } from '@/components/ui/luxury-icons'
 
 const membershipNavItems = [
   { label: 'Dashboard', href: '/membership' },

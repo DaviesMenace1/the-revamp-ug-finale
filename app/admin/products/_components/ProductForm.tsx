@@ -20,7 +20,7 @@ import {
   Upload,
   X,
   Image as ImageIcon
-} from 'lucide-react'
+} from '@/components/ui/luxury-icons'
 
 // Cascading Google Taxonomy Categories Data Structure
 const GOOGLE_TAXONOMY_TREE: Record<string, Record<string, string[]>> = {
@@ -934,7 +934,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 //   Layers,
 //   Search,
 //   FileText
-// } from 'lucide-react'
+// } from '@/components/ui/luxury-icons'
 
 // interface ProductFormProps {
 //   initialData?: any

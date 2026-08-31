@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, Building2, FileText, Percent, Users } from 'lucide-react'
+import { ArrowRight, Building2, FileText, Percent, Users } from '@/components/ui/luxury-icons'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'

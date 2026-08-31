@@ -9,7 +9,7 @@ import { submitServiceRequest } from '@/lib/actions/service-request'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Check, Armchair, Sofa, Home, Lightbulb, Palette, FileText, ArrowRight, Sparkles } from 'lucide-react'
+import { Check, Armchair, Sofa, Home, Lightbulb, Palette, FileText, ArrowRight, Sparkles } from '@/components/ui/luxury-icons'
 
 const serviceTypes = [
   { id: 'custom-furniture', label: 'Custom Furniture', icon: Armchair, description: 'Bespoke pieces tailored to your space' },

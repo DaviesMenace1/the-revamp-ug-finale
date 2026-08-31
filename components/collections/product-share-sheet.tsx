@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Check, Copy, Mail, MessageCircle, Send, Share2, X } from 'lucide-react'
+import { Check, Copy, Mail, MessageCircle, Send, Share2, X } from '@/components/ui/luxury-icons'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { formatMoney } from '@/lib/utils'
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { AlertCircle, CheckCircle2, Trash2, Search, Shield } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Trash2, Search, Shield } from '@/components/ui/luxury-icons'
 import { updateUserRole, deleteUser } from '@/lib/actions/users'
 import { ROLE_LABELS, type UserRole } from '@/lib/auth/permissions'
 

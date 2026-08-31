@@ -5,7 +5,7 @@ import { useCart } from '@/lib/hooks/use-cart';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShoppingCart, MessageCircle, CreditCard, Trash2, Plus, Minus } from 'lucide-react';
+import { ShoppingCart, MessageCircle, CreditCard, Trash2, Plus, Minus } from '@/components/ui/luxury-icons';
 
 export function CartCheckout() {
   const { items, subtotal, clearCart, removeItem, updateQuantity } = useCart();

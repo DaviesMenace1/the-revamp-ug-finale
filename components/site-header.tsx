@@ -14,7 +14,6 @@ import {
   Search,
   ShoppingBag,
   User,
-  Bell,
   X,
 } from 'lucide-react'
 
@@ -24,11 +23,11 @@ import {
   FaTiktok,
 } from 'react-icons/fa'
 
-{/*import NotificationBell from '@/components/notifications/notification-bell'*/}
+import NotificationBell from '@/components/notifications/notification-bell'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useCart } from '@/lib/context/cart-context'
 import { cn } from '@/lib/utils'
-import { LuxuryAccountIcon, LuxuryBagIcon, LuxuryCloseIcon, LuxuryMenuIcon, LuxurySearchIcon, LuxuryBellIcon } from '@/components/ui/luxury-nav-icons'
+import { LuxuryAccountIcon, LuxuryBagIcon, LuxuryCloseIcon, LuxuryMenuIcon, LuxurySearchIcon } from '@/components/ui/luxury-nav-icons'
 
 import {
   Sheet,
@@ -477,9 +476,9 @@ export function SiteHeader() {
                 <ThemeSwitcher />
               </div>              {/* Notifications: visible on mobile and desktop */}
               <div className="order-2 flex lg:order-none">
-                <LuxuryBellIcon
+                <NotificationBell
                   className={cn(
-                    'size-10',
+                    'size-8',
                     headerDark
                       ? 'text-white'
                       : 'text-foreground',

@@ -260,11 +260,12 @@ function ServiceWorld({ services, loading }: { services: Service[]; loading: boo
                 <div className="flex flex-1 flex-col p-4 sm:p-5"><p className="line-clamp-2 text-[11px] leading-5 text-foreground/65">{service.description || 'A considered service, shaped around the architecture and the life within it.'}</p><Link href={`/custom-services?service=${encodeURIComponent(service.serviceName)}`} className="mt-4 inline-flex min-h-10 items-center justify-center rounded-full bg-foreground px-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-background transition-colors hover:bg-gold hover:text-foreground">Request this service <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link></div>
               </article>
             ))}
-            <Link href="/services" className="inline-flex min-h-11 items-center justify-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-transform hover:-translate-y-0.5 hover:bg-gold hover:text-foreground">Explore more services <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
+             
           </div>
         ) : (
           <div className="mt-10 border border-dashed border-foreground/20 px-6 py-12 text-center"><p className="font-serif text-3xl font-light">The studio is ready to begin.</p><Link href="/services" className="mt-5 inline-flex text-[10px] uppercase tracking-[0.18em] text-foreground/60 underline underline-offset-4">View services</Link></div>
         )}
+        <Link href="/services" className="inline-flex min-h-11 items-center justify-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-transform hover:-translate-y-0.5 hover:bg-gold hover:text-foreground">Explore more services <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
       </div>
     </section>
   )

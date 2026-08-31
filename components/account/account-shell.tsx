@@ -3,9 +3,8 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useClerk } from '@clerk/nextjs'
-import { ArrowLeft, BookOpen, BriefcaseBusiness, Home, Menu, ShoppingBag, UserRound, X, LogOut } from 'lucide-react'
+import { BookOpen, BriefcaseBusiness, Home, ShoppingBag, UserRound, LogOut } from 'lucide-react'
 import { LuxuryAccountIcon, LuxuryBagIcon, LuxuryCloseIcon, LuxuryHomeIcon, LuxuryMenuIcon } from '@/components/ui/luxury-nav-icons'
-import { ThemeSwitcher } from '@/components/theme-switcher'
 
 const navItems = [
   { label: 'Home', href: '/', icon: Home },
@@ -35,9 +34,6 @@ export function AccountShell({ children, cartCount = 0 }: { children: React.Reac
             <Link href="/user-profile" className="hidden rounded-full p-2 text-ivory/80 transition hover:text-gold-light sm:block" aria-label="Open profile"><LuxuryAccountIcon size={20} /></Link>
             <div className="relative">
               <button type="button" onClick={() => setMenuOpen((open) => !open)} className="rounded-full p-2 text-ivory/80 transition hover:text-gold-light" aria-label={menuOpen ? 'Close account menu' : 'Open account menu'} aria-expanded={menuOpen}><LuxuryMenuIcon size={20} /></button>
-              <div className="absolute right-0 top-full z-50 flex size-11 translate-y-[-1px] items-center justify-center rounded-b-[1.35rem] border border-t-0 border-ivory/25 bg-obsidian p-0.5 text-ivory shadow-lg [&_button]:size-10 [&_button]:text-current [&_button:hover]:bg-ivory/10">
-                <ThemeSwitcher />
-              </div>
             </div>
           </div>
         </div>

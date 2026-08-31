@@ -12,7 +12,7 @@ export function ThemeSwitcher() {
       variant="ghost"
       size="icon"
       onClick={toggleTheme}
-      className="relative rounded-full"
+      className="relative size-12 rounded-full border border-border/80 bg-background/95 text-foreground shadow-lg backdrop-blur-xl transition-transform hover:-translate-y-0.5 hover:bg-foreground hover:text-background"
       aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
       {theme === 'light' ? (

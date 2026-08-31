@@ -896,7 +896,7 @@ export function CustomResetPassword() {
 
 function AuthCard({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="w-full max-w-[calc(100vw-2rem)] overflow-hidden animate-in fade-in slide-in-from-bottom-2 rounded-2xl border border-white/45 bg-[#f5eee4]/30 p-5 text-foreground shadow-[0_28px_90px_rgba(18,13,9,0.34)] backdrop-blur-xl duration-300 sm:p-8">
+    <div className="max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain animate-in fade-in slide-in-from-bottom-2 rounded-2xl border border-white/45 bg-[#f5eee4]/30 p-5 text-foreground shadow-[0_28px_90px_rgba(18,13,9,0.34)] backdrop-blur-xl duration-300 sm:max-h-[calc(100dvh-4rem)] sm:p-8">
       <div className="mb-7">
         <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-primary">{eyebrow}</p>
         <h2 className="font-serif text-3xl leading-tight text-foreground">{title}</h2>

@@ -10,21 +10,13 @@ import {
   ArrowUpRight,
   ChevronDown,
   Heart,
-  Menu,
-  Search,
   ShoppingBag,
   User,
-  X,
 } from 'lucide-react'
 
-import {
-  FaInstagram,
-  FaSnapchatGhost,
-  FaTiktok,
-} from 'react-icons/fa'
+import { FaInstagram, FaSnapchatGhost, FaTiktok } from 'react-icons/fa'
 
 import NotificationBell from '@/components/notifications/notification-bell'
-import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useCart } from '@/lib/context/cart-context'
 import { cn } from '@/lib/utils'
 import { LuxuryAccountIcon, LuxuryBagIcon, LuxuryCloseIcon, LuxuryMenuIcon, LuxurySearchIcon, LuxuryBellIcon } from '@/components/ui/luxury-nav-icons'
@@ -110,6 +102,12 @@ const exploreLinks: NavLink[] = [
   },
 ]
 
+const socialLinks = [
+  { label: 'Instagram', href: 'https://www.instagram.com/therevamp_ug', icon: FaInstagram },
+  { label: 'Snapchat', href: 'https://www.snapchat.com/add/therevamp_ug', icon: FaSnapchatGhost },
+  { label: 'TikTok', href: 'https://www.tiktok.com/@revamp_ree', icon: FaTiktok },
+]
+
 const supportLinks: NavLink[] = [
   {
     label: 'FAQs',
@@ -126,24 +124,6 @@ const supportLinks: NavLink[] = [
   {
     label: 'Contact',
     href: '/contact',
-  },
-]
-
-const socialLinks = [
-  {
-    label: 'Instagram',
-    href: 'https://www.instagram.com/therevamp_ug?igsh=Nnl3YnY5NGN6eDht',
-    icon: FaInstagram,
-  },
-  {
-    label: 'Snapchat',
-    href: 'https://www.snapchat.com/add/ree_onit?share_id=llRDQ3VnVrE&locale=en-US',
-    icon: FaSnapchatGhost,
-  },
-  {
-    label: 'TikTok',
-    href: 'https://www.tiktok.com/@revamp_ree?_r=1&_t=ZS-986bYbyqHDg',
-    icon: FaTiktok,
   },
 ]
 
@@ -253,6 +233,8 @@ export function SiteHeader() {
       document.body.style.overflow = ''
     }
   }, [desktopMenuOpen])
+
+  const openAccountAccess = () => window.dispatchEvent(new Event('revamp:open-auth'))
 
   const navText = headerDark
     ? 'text-white/75 hover:text-white'
@@ -470,11 +452,7 @@ export function SiteHeader() {
                 <LuxurySearchIcon size={19} />
               </Link>
 
-              {/* Theme */}
-
-              <div className={cn('hidden size-10 items-center justify-center lg:flex', headerDark ? 'text-white' : 'text-foreground')}>
-                <ThemeSwitcher />
-              </div>              {/* Notifications: visible on mobile and desktop */}
+              {/* Notifications: visible on mobile and desktop */}
               <div className="order-2 flex lg:order-none">
                 <NotificationBell
                   className={cn(
@@ -502,7 +480,7 @@ export function SiteHeader() {
 
               {/* Account */}
 
-              <Link
+              {isSignedIn ? <Link
                 href="/account"
                 prefetch={false}
                 className={cn(
@@ -511,16 +489,8 @@ export function SiteHeader() {
                 )}
                 aria-label="Account"
               >
-                {user?.imageUrl ? (
-                  <img
-                    src={user.imageUrl}
-                    alt=""
-                    className="size-5 rounded-full object-cover"
-                  />
-                ) : (
-                  <LuxuryAccountIcon size={19} />
-                )}
-              </Link>
+                {user?.imageUrl ? <img src={user.imageUrl} alt="" className="size-5 rounded-full object-cover" /> : <LuxuryAccountIcon size={19} />}
+              </Link> : <button type="button" onClick={openAccountAccess} className={cn('order-1 flex size-10 shrink-0 items-center justify-center transition-colors md:order-none', iconText)} aria-label="Open account sign in"><LuxuryAccountIcon size={19} /></button>}
 
               {/* Cart */}
 
@@ -561,9 +531,6 @@ export function SiteHeader() {
                 >
                   <LuxuryMenuIcon size={20} />
                 </button>
-                <div className={cn('absolute right-0 top-full z-50 flex size-11 translate-y-[-1px] items-center justify-center rounded-b-[1.35rem] border border-t-0 bg-background/95 p-0.5 shadow-lg backdrop-blur-xl', headerDark ? 'border-white/30 text-white' : 'border-border text-foreground', '[&_button]:size-10 [&_button]:text-current [&_button:hover]:bg-current/10')}>
-                  <ThemeSwitcher />
-                </div>
               </div>
 
               {/* DESKTOP MENU */}
@@ -587,35 +554,6 @@ export function SiteHeader() {
 
         </div>
       </header>
-
-      {/* ================================================================== */}
-      {/* FLOATING SOCIAL BUBBLE                                              */}
-      {/* ================================================================== */}
-
-      <div className="fixed right-5 top-1/2 z-40 hidden -translate-y-1/2 xl:block">
-
-        <div className="flex flex-col overflow-hidden rounded-full border border-border/70 bg-background/90 shadow-xl backdrop-blur-xl">
-
-          {socialLinks.map((social) => {
-            const Icon = social.icon
-
-            return (
-              <Link
-                key={social.label}
-                href={social.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex size-11 items-center justify-center border-b border-border/60 last:border-b-0 transition-all hover:bg-foreground hover:text-background"
-                aria-label={social.label}
-              >
-                <Icon size={16} />
-              </Link>
-            )
-          })}
-
-        </div>
-
-      </div>
 
       {/* ================================================================== */}
       {/* MOBILE + TABLET MENU                                               */}
@@ -698,7 +636,7 @@ export function SiteHeader() {
 
                 {/* QUICK ACCOUNT ACTIONS */}
                 <div className="mt-8 grid grid-cols-2 gap-2 border-y border-border py-5">
-                  <Link href="/account" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center gap-2 border border-border px-3 text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><User className="size-4" aria-hidden="true" />Account</Link>
+                  {isSignedIn ? <Link href="/account" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center gap-2 border border-border px-3 text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><User className="size-4" aria-hidden="true" />Account</Link> : <button type="button" onClick={() => { setMobileMenuOpen(false); openAccountAccess() }} className="flex min-h-11 items-center gap-2 border border-border px-3 text-left text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><User className="size-4" aria-hidden="true" />Account</button>}
                   <Link href="/wishlist" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center gap-2 border border-border px-3 text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><Heart className="size-4" aria-hidden="true" />Wishlist</Link>
                   <Link href="/cart" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center gap-2 border border-border px-3 text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><ShoppingBag className="size-4" aria-hidden="true" />Cart{cartCount > 0 && <span className="ml-auto text-primary">{cartCount}</span>}</Link>
                   <button type="button" onClick={() => { setMobileMenuOpen(false); window.setTimeout(() => document.querySelector<HTMLButtonElement>('[aria-label^="Notifications"]')?.click(), 50) }} className="flex min-h-11 items-center gap-2 border border-border px-3 text-left text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><LuxuryBellIcon className="size-8" aria-hidden="true" />Alerts</button>

@@ -472,7 +472,7 @@ export function SiteHeader() {
 
               {/* Theme */}
 
-              <div className="order-4 flex size-10 items-center justify-center lg:order-none">
+              <div className={cn('order-4 flex size-11 items-center justify-center rounded-full border bg-background/10 p-0.5 lg:order-none', headerDark ? 'border-white/30 text-white' : 'border-border text-foreground', '[&_button]:size-10 [&_button]:text-current [&_button:hover]:bg-current/10')}>
                 <ThemeSwitcher />
               </div>              {/* Notifications: visible on mobile and desktop */}
               <div className="order-2 flex lg:order-none">

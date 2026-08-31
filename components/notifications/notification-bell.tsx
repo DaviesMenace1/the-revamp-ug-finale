@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@clerk/nextjs'
-import { Bell, CheckCheck, Loader2, RefreshCw, X } from 'lucide-react'
+import { CheckCheck, Loader2, RefreshCw, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { LuxuryBellIcon } from '@/components/ui/luxury-nav-icons'
 
 type Notification = {
   id: string
@@ -176,7 +177,7 @@ export default function NotificationBell({ className }: NotificationBellProps) {
   return (
     <div ref={panelRef} className="relative">
       <button type="button" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`} aria-expanded={open} onClick={() => { setOpen((value) => !value); if (!open) { void load(); void refreshPushStatus() } }} className={cn('relative flex size-11 items-center justify-center rounded-full transition-colors hover:bg-muted hover:text-foreground', className)}>
-        <Bell className="size-5" aria-hidden="true" />
+        <LuxuryBellIcon className="size-5" aria-hidden="true" />
         {unreadCount > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[9px] font-bold text-obsidian">{unreadCount > 9 ? '9+' : unreadCount}</span>}
       </button>
       {open && <div className="fixed inset-x-2 top-16 z-50 max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-xl border border-border bg-background p-4 text-foreground shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:max-h-[min(42rem,calc(100vh-4rem))] sm:w-[min(22rem,calc(100vw-2rem))]" role="dialog" aria-label="Notifications">

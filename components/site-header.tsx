@@ -17,6 +17,7 @@ import {
 import { FaInstagram, FaSnapchatGhost, FaTiktok } from '@/components/ui/luxury-icons'
 
 import NotificationBell from '@/components/notifications/notification-bell'
+import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useCart } from '@/lib/context/cart-context'
 import { cn } from '@/lib/utils'
 import { LuxuryAccountIcon, LuxuryBagIcon, LuxuryCloseIcon, LuxuryMenuIcon, LuxurySearchIcon, LuxuryBellIcon } from '@/components/ui/luxury-nav-icons'
@@ -451,6 +452,10 @@ export function SiteHeader() {
               >
                 <LuxurySearchIcon size={19} />
               </Link>
+
+              <div className={cn('flex size-10 items-center justify-center', iconText)}>
+                <ThemeSwitcher />
+              </div>
 
               {/* Notifications: visible on mobile and desktop */}
               <div className="order-2 flex lg:order-none">

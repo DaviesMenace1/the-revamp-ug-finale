@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Headphones, Mail, MessageCircle, Ticket, X } from '@/components/ui/luxury-icons'
 import { FaInstagram, FaWhatsapp } from '@/components/ui/luxury-icons'
-import { ThemeSwitcher } from '@/components/theme-switcher'
 import { CustomSignIn, CustomSignUp } from '@/components/auth/custom-auth-forms'
 
 const WHATSAPP_URL = 'https://wa.me/256703861668?text=Hello%20The%20Revamp%20UG%2C%20I%20would%20like%20some%20help.'
@@ -86,7 +85,6 @@ export function FloatingUtilities() {
         </div>
       </div>}
 
-      <div className="pointer-events-none fixed right-4 top-[6.5rem] z-[55] sm:right-6 sm:top-28"><div className="pointer-events-auto rounded-full p-1 ring-4 ring-background/70"><ThemeSwitcher /></div></div>
       <button type="button" onClick={toggleSupport} aria-label={supportOpen ? 'Close support and contact options' : 'Open support and contact options'} aria-expanded={supportOpen} className="fixed bottom-4 right-4 z-[70] flex size-14 items-center justify-center rounded-full bg-foreground text-background shadow-[0_14px_35px_rgba(0,0,0,0.22)] ring-1 ring-background/30 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:right-6 sm:size-14"><span className="transition-transform duration-200">{supportOpen ? <X className="size-5" aria-hidden="true" /> : <Headphones className="size-5" aria-hidden="true" />}</span></button>
 
       {authOpen && <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-foreground/35 p-4 backdrop-blur-md sm:items-center sm:p-8" role="dialog" aria-modal="true" aria-label={authMode === 'sign-in' ? 'Sign in to your account' : 'Create an account'} onMouseDown={(event) => { if (event.target === event.currentTarget) closeAuth() }}><div className="relative w-full max-w-md"><button type="button" onClick={closeAuth} aria-label="Close account access" className="absolute right-2 top-2 z-10 flex size-10 items-center justify-center rounded-full border border-border/70 bg-background/85 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"><X className="size-4" aria-hidden="true" /></button>{authMode === 'sign-in' ? <CustomSignIn redirectUrl="/account" /> : <CustomSignUp redirectUrl="/account" />}<div className="mt-3 text-center text-xs text-background/80"><button type="button" onClick={() => setAuthMode((mode) => mode === 'sign-in' ? 'sign-up' : 'sign-in')} className="underline underline-offset-4">{authMode === 'sign-in' ? 'New to The Revamp? Create an account' : 'Already a member? Sign in'}</button></div></div></div>}

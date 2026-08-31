@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LuxuryCloseIcon, LuxuryMenuIcon } from '@/components/ui/luxury-nav-icons'
 import NotificationBell from '@/components/notifications/notification-bell'
+import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useState } from 'react'
 
 interface PortalLayoutProps {
@@ -57,6 +58,7 @@ export function PortalLayout({
             </nav>
 
             <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+              <ThemeSwitcher />
               <NotificationBell />
               {/* Mobile Menu Toggle */}
               <button

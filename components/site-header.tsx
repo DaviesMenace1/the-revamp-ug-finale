@@ -478,7 +478,7 @@ export function SiteHeader() {
               <div className="order-2 flex lg:order-none">
                 <NotificationBell
                   className={cn(
-                    'size-8',
+                    'size-10',
                     headerDark
                       ? 'text-white'
                       : 'text-foreground',
@@ -701,7 +701,7 @@ export function SiteHeader() {
                   <Link href="/account" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center gap-2 border border-border px-3 text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><User className="size-4" aria-hidden="true" />Account</Link>
                   <Link href="/wishlist" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center gap-2 border border-border px-3 text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><Heart className="size-4" aria-hidden="true" />Wishlist</Link>
                   <Link href="/cart" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center gap-2 border border-border px-3 text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><ShoppingBag className="size-4" aria-hidden="true" />Cart{cartCount > 0 && <span className="ml-auto text-primary">{cartCount}</span>}</Link>
-                  <button type="button" onClick={() => { setMobileMenuOpen(false); window.setTimeout(() => document.querySelector<HTMLButtonElement>('[aria-label^="Notifications"]')?.click(), 50) }} className="flex min-h-11 items-center gap-2 border border-border px-3 text-left text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><LuxuryBellIcon className="size-4" aria-hidden="true" />Alerts</button>
+                  <button type="button" onClick={() => { setMobileMenuOpen(false); window.setTimeout(() => document.querySelector<HTMLButtonElement>('[aria-label^="Notifications"]')?.click(), 50) }} className="flex min-h-11 items-center gap-2 border border-border px-3 text-left text-xs uppercase tracking-[0.1em] transition-colors hover:border-gold hover:text-gold"><LuxuryBellIcon className="size-8" aria-hidden="true" />Alerts</button>
                 </div>
                 {!isSignedIn && <div className="grid grid-cols-2 gap-2 pt-4"><Link href="/sign-in" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center justify-center border border-border px-3 text-xs uppercase tracking-[0.12em] transition-colors hover:border-gold hover:text-gold">Sign in</Link><Link href="/sign-up" prefetch={false} onClick={() => setMobileMenuOpen(false)} className="flex min-h-11 items-center justify-center bg-foreground px-3 text-xs uppercase tracking-[0.12em] text-background transition-colors hover:bg-gold hover:text-foreground">Sign up</Link></div>}
                 {/* MORE FROM REVAMP */}

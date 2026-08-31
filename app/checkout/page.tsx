@@ -6,7 +6,6 @@ import Image from 'next/image'
 import { useUser } from '@clerk/nextjs'
 import { ArrowLeft, Check, CreditCard, Home, Loader2, Lock, MapPin, Pencil, Plus, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Store } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
-import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -469,7 +468,6 @@ export default function CheckoutPage() {
           </form>
         </div>
       </main>
-      <SiteFooter />
     </div>
   )
 }

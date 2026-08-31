@@ -185,7 +185,7 @@ function EditorialHero() {
 
 function PhilosophySection() {
   return (
-    <section className="motion-reveal border-b border-foreground/10 bg-background bg-[url('https://res.cloudinary.com/r8epy5mg/image/upload/v1788188229/IMG_20260831_175547_lq3yf5.jpg')] bg-cover bg-center bg-no-repeat px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
+    <section className="motion-reveal border-b border-foreground/10 bg-background bg-[url('https://pixabay.com/images/download/meineresterampe-stones-770264_1920.jpg')] bg-cover bg-center bg-no-repeat px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
     {/*<section className="motion-reveal border-b border-foreground/10 bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">*/}
       <div className="mx-auto grid max-w-[1440px] items-start gap-12 lg:grid-cols-[0.55fr_1fr_0.7fr] lg:gap-16">
         <div>
@@ -212,7 +212,7 @@ function PhilosophySection() {
 function ServiceWorld({ services, loading }: { services: Service[]; loading: boolean }) {
   const visible = services.slice(0, 6)
   return (
-    <section className="bg-canvas bg-background bg-[url('https://res.cloudinary.com/r8epy5mg/image/upload/v1788188229/55cf77991053eaa061abf2ad83db65b1_qkrztt.jpg')] bg-cover bg-center bg-no-repeat px-5 py-12 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
+    <section className="bg-canvas bg-background bg-[url('https://pixabay.com/images/download/satyaprem-construction-site-3555550_1920.jpg')] bg-cover bg-center bg-no-repeat px-5 py-12 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]">
         <div className="grid gap-5 border-b border-foreground/15 pb-6 text-center md:pb-8">
           <div>
@@ -282,7 +282,7 @@ function CollectionsPreview({ products }: { products: Product[] }) {
     ['Outdoor', '/collections?category=Outdoor', 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1200&q=85'],
   ]
   return (
-    <section className="bg-background bg-[url('https://res.cloudinary.com/r8epy5mg/image/upload/v1788188229/56b5b5e90e8a829fff2c8212101576bc_kd8jkl.jpg')] bg-cover bg-center bg-no-repeat px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
+    <section className="bg-background bg-[url('https://pixabay.com/images/download/adrian-fatu-field-7808525_1920.jpg')] bg-cover bg-center bg-no-repeat px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]"><div className="mb-10 text-center sm:mb-14"><h2 className="mx-auto mt-4 font-serif text-[clamp(2.8rem,6vw,5.5rem)] font-light leading-[0.9] tracking-[-0.03em]">Collections</h2><p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">Explore our curated selection of luxury furnishings and design elements</p></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">{categories.map(([name, href, curatedImage], index) => { const product = products.length ? products[index % products.length] : null; const image = curatedImage || (product ? productImage(product, index) : FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]); return <Link key={name} href={href} className={`group relative aspect-[4/5] overflow-hidden bg-card ${index % 3 === 1 ? 'sm:mt-10' : ''}`}><img src={image} alt={`${name} collection`} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" /><div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" /><div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3"><h3 className="font-sans text-sm font-medium text-white sm:text-base">{name}</h3><ArrowUpRight size={15} className="text-white/80" aria-hidden="true" /></div></Link> })}</div></div>
     </section>
   )
@@ -291,7 +291,7 @@ function CollectionsPreview({ products }: { products: Product[] }) {
 function ProjectFeature({ projects, loading }: { projects: Project[]; loading: boolean }) {
   const selected = projects.slice(0, 3)
   return (
-    <section className="motion-reveal bg-background bg-[url('https://res.cloudinary.com/r8epy5mg/image/upload/v1788188228/a06e147c22b8fa3224cb10337127c5df_wu6q9a.jpg')] bg-cover bg-center bg-no-repeat px-5 py-12 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
+    <section className="motion-reveal bg-background bg-[url('https://pixabay.com/images/download/nikguy-construction-site-2733678_1920.jpg')] bg-cover bg-center bg-no-repeat px-5 py-12 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-7 flex flex-col items-center gap-4 border-b border-foreground/15 pb-6 text-center md:mb-10 md:pb-7">
           <div><h1 className="mx-auto mt-4 max-w-4xl font-serif text-[clamp(2.8rem,6vw,5.5rem)] font-light leading-[0.9] tracking-[-0.03em]">Featured Projects</h1></div>
@@ -329,7 +329,7 @@ function ProcessSection() {
     ['Deliver', 'Logistics, installation, styling and final detailing.'],
   ]
   return (
-    <section className="border-y border-foreground/10 bg-canvas bg-background bg-[url('https://res.cloudinary.com/r8epy5mg/image/upload/v1788188226/2a38c63288f1d2b892f6e2d8251348e2_ttevus.jpg')] bg-cover bg-center bg-no-repeat px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
+    <section className="border-y border-foreground/10 bg-canvas bg-background bg-[url('https://pixabay.com/images/download/mint_foto-clouds-7050884_1920.jpg')] bg-cover bg-center bg-no-repeat px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
       <div className="mx-auto grid max-w-[1440px] gap-12 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20">
         <div><Eyebrow>The Revamp approach</Eyebrow><h1 className="mt-5 max-w-md font-serif text-5xl font-light leading-[0.95] sm:text-7xl">From vision<br /><span className="italic text-foreground/60">to reality.</span></h1><p className="mt-7 max-w-sm text-sm leading-7 text-foreground/60">We are not simply a designer who hands over drawings. We stay with the work until the final detail is in place.</p></div>
         <div className="border-t border-foreground/15">
@@ -355,7 +355,7 @@ function GallerySection({ products, loading }: { products: Product[]; loading: b
 function JournalSection({ articles, loading }: { articles: Article[]; loading: boolean }) {
   const selected = articles.slice(0, 3)
   return (
-    <section className="border-t border-foreground/10 bg-canvas bg-background bg-[url('https://res.cloudinary.com/r8epy5mg/image/upload/v1788188229/55cf77991053eaa061abf2ad83db65b1_qkrztt.jpg')] bg-cover bg-center bg-no-repeat px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
+    <section className="border-t border-foreground/10 bg-canvas bg-background bg-[url('https://pixabay.com/images/download/ha11ok-white-1217108_1920.jpg')] bg-cover bg-center bg-no-repeat px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
       <div className="mx-auto max-w-[1440px]"><div className="mb-10 flex flex-col items-center gap-6 border-b border-foreground/15 pb-7 text-center"><div><h2 className="mx-auto mt-4 font-serif text-[clamp(2.8rem,6vw,5.5rem)] font-light leading-[0.9] tracking-[-0.03em]">From Our Journal</h2><p className="mt-4 max-w-xl text-sm leading-6 text-foreground/60">Insights, trends, and inspiration for refined living</p></div><TextLink href="/journal">Read the Journal</TextLink></div>{loading ? <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5" aria-busy="true" aria-label="Loading journal">{[1, 2, 3].map((item) => <div key={item} className={`animate-pulse bg-foreground/10 ${item === 1 ? 'col-span-2 aspect-[16/9] md:col-span-1' : 'aspect-[4/5]'}`} />)}</div> : selected.length ? <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">{selected.map((article, index) => <Link key={article.id || article.slug} href={`/journal/${encodeURIComponent(article.slug)}`} className={`group ${index === 0 ? 'col-span-2 md:col-span-1' : index === 1 ? 'mt-8 md:mt-14' : ''}`}><div className={`overflow-hidden bg-canvas-dark ${index === 0 ? 'aspect-[16/10]' : 'aspect-[4/5]'}`}><img src={article.image || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]} alt={article.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" /></div><div className="mt-3"><div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] uppercase tracking-[0.18em] text-foreground/60"><span>{article.category || 'Studio notes'}</span>{article.publishedAt && <span>{shortDate(article.publishedAt)}</span>}</div><h3 className="mt-2 font-serif text-2xl font-light leading-[0.95] sm:text-3xl">{article.title}</h3>{article.excerpt && <p className="mt-2 line-clamp-2 text-xs leading-5 text-foreground/65">{article.excerpt}</p>}</div></Link>)}</div> : <div className="border border-dashed border-foreground/20 px-6 py-12 text-center"><p className="font-serif text-3xl font-light">Notes from the studio, soon.</p><Link href="/journal" className="mt-4 inline-flex text-[10px] uppercase tracking-[0.18em] text-foreground/60 underline underline-offset-4">Visit the journal</Link></div>}</div>
     </section>
   )

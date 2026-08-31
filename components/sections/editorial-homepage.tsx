@@ -67,9 +67,8 @@ const SECTION_BACKGROUNDS = {
 function SectionBackdrop({ src, alt }: { src: string; alt: string }) {
   return (
     <>
-      <img src={src} alt={alt} className="absolute inset-0 h-full w-full object-cover opacity-[0.22] grayscale-[0.2] saturate-[0.75] dark:opacity-[0.16]" loading="lazy" />
-      <div className="absolute inset-0 bg-canvas/75 dark:bg-obsidian/80" aria-hidden="true" />
-      <div className="absolute inset-0 bg-gradient-to-b from-background/35 via-transparent to-background/80 dark:from-background/55 dark:via-transparent dark:to-background/90" aria-hidden="true" />
+      <img src={src} alt={alt} className="absolute inset-0 h-full w-full object-cover opacity-[0.92] grayscale-0 saturate-[1.05] dark:opacity-[0.86]" loading="lazy" />
+      <div className="absolute inset-0 bg-gradient-to-b from-canvas/90 via-canvas/30 to-transparent dark:from-obsidian/90 dark:via-obsidian/30 dark:to-transparent md:bg-gradient-to-r md:from-canvas/92 md:via-canvas/18 md:to-transparent dark:md:from-obsidian/92 dark:md:via-obsidian/18 dark:md:to-transparent" aria-hidden="true" />
     </>
   )
 }

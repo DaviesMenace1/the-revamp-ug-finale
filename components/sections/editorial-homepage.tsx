@@ -266,7 +266,9 @@ function ServiceWorld({ services, loading }: { services: Service[]; loading: boo
           <div className="mt-10 border border-dashed border-foreground/20 px-6 py-12 text-center"><p className="font-serif text-3xl font-light">The studio is ready to begin.</p><Link href="/services" className="mt-5 inline-flex text-[10px] uppercase tracking-[0.18em] text-foreground/60 underline underline-offset-4">View services</Link></div>
         )}
         </div>
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8 md:items-end">
       <Link href="/services" className="inline-flex min-h-11 items-center justify-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-transform hover:-translate-y-0.5 hover:bg-gold hover:text-foreground">Explore more services <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
+      </div> 
     </section>
   )
 }
@@ -325,7 +327,9 @@ function ProjectFeature({ projects, loading }: { projects: Project[]; loading: b
           <div className="border border-dashed border-foreground/20 px-6 py-16 text-center"><p className="font-serif text-3xl font-light">The portfolio is being composed.</p><Link href="/portfolio" className="mt-5 inline-flex text-[10px] uppercase tracking-[0.18em] text-foreground/60 underline underline-offset-4">Visit the portfolio</Link></div>
         )}
       </div>
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8 md:items-end">
       <Link href="/portfolio" className="inline-flex min-h-11 items-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-gold hover:text-foreground">View all projects <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
+      </div> 
     </section>
   )
 }

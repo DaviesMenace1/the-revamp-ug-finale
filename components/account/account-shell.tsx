@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useClerk } from '@clerk/nextjs'
 import { ArrowLeft, BookOpen, BriefcaseBusiness, Home, Menu, ShoppingBag, UserRound } from 'lucide-react'
+import { ThemeSwitcher } from '@/components/theme-switcher'
 
 const navItems = [
   { label: 'Home', href: '/', icon: Home },
@@ -28,6 +29,7 @@ export function AccountShell({ children, cartCount = 0 }: { children: React.Reac
               <ShoppingBag className="size-5" aria-hidden="true" />
               {cartCount > 0 && <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-gold text-[9px] text-obsidian">{cartCount}</span>}
             </Link>
+            <div className="text-ivory"><ThemeSwitcher /></div>
             <Link href="/user-profile" className="hidden rounded-full p-2 text-ivory/80 transition hover:text-gold-light sm:block" aria-label="Open profile"><UserRound className="size-5" aria-hidden="true" /></Link>
             <button type="button" onClick={() => signOut({ redirectUrl: '/' })} className="rounded-full p-2 text-ivory/80 transition hover:text-gold-light" aria-label="Sign out"><Menu className="size-5" aria-hidden="true" /></button>
           </div>

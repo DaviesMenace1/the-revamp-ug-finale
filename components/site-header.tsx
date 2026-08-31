@@ -472,10 +472,10 @@ export function SiteHeader() {
 
               {/* Theme */}
 
-              <div className="flex size-10 items-center justify-center">
+              <div className="order-4 flex size-10 items-center justify-center lg:order-none">
                 <ThemeSwitcher />
               </div>              {/* Notifications: visible on mobile and desktop */}
-              <div className="flex">
+              <div className="order-2 flex lg:order-none">
                 <NotificationBell
                   className={cn(
                     'size-10',
@@ -506,7 +506,7 @@ export function SiteHeader() {
                 href="/account"
                 prefetch={false}
                 className={cn(
-                  'hidden size-10 shrink-0 items-center justify-center transition-colors md:flex',
+                  'order-1 flex size-10 shrink-0 items-center justify-center transition-colors md:order-none',
                   iconText,
                 )}
                 aria-label="Account"
@@ -515,7 +515,7 @@ export function SiteHeader() {
                   <img
                     src={user.imageUrl}
                     alt=""
-                    className="size-6 rounded-full object-cover"
+                    className="size-5 rounded-full object-cover"
                   />
                 ) : (
                   <User size={18} />
@@ -528,7 +528,7 @@ export function SiteHeader() {
                 href="/cart"
                 prefetch={false}
                 className={cn(
-                  'relative flex size-10 shrink-0 items-center justify-center transition-colors',
+                  'relative order-3 flex size-10 shrink-0 items-center justify-center transition-colors lg:order-none',
                   iconText,
                 )}
                 aria-label="Shopping cart"
@@ -551,7 +551,7 @@ export function SiteHeader() {
               <button
                 onClick={() => setMobileMenuOpen(true)}
                 className={cn(
-                  'flex size-10 shrink-0 items-center justify-center border transition-colors lg:hidden',
+                  'order-5 flex size-10 shrink-0 items-center justify-center border transition-colors lg:order-none lg:hidden',
                   headerDark
                     ? 'border-white/20 text-white'
                     : 'border-border text-foreground',

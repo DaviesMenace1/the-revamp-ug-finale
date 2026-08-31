@@ -27,7 +27,7 @@ import NotificationBell from '@/components/notifications/notification-bell'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { useCart } from '@/lib/context/cart-context'
 import { cn } from '@/lib/utils'
-import { LuxuryAccountIcon, LuxuryBagIcon, LuxuryCloseIcon, LuxuryMenuIcon, LuxurySearchIcon } from '@/components/ui/luxury-nav-icons'
+import { LuxuryAccountIcon, LuxuryBagIcon, LuxuryCloseIcon, LuxuryMenuIcon, LuxurySearchIcon, LuxuryBellIcon } from '@/components/ui/luxury-nav-icons'
 
 import {
   Sheet,

@@ -185,7 +185,8 @@ function EditorialHero() {
 
 function PhilosophySection() {
   return (
-    <section className="motion-reveal border-b border-foreground/10 bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
+    <section className="motion-reveal border-b border-foreground/10 bg-background bg-[url('https://res.cloudinary.com/r8epy5mg/image/upload/v1785487082/L3D124S57ENDOVMIRRIUWLZS6LUFX73OHPI8_4000x3000_tk64wj.jpg')] bg-cover bg-center bg-no-repeat px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">
+    {/*<section className="motion-reveal border-b border-foreground/10 bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-36">*/}
       <div className="mx-auto grid max-w-[1440px] items-start gap-12 lg:grid-cols-[0.55fr_1fr_0.7fr] lg:gap-16">
         <div>
           <Eyebrow>Why Choose The Revamp UG</Eyebrow>

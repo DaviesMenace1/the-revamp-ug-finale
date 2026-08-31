@@ -44,20 +44,20 @@ export function CtaSection() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href={siteContact.bookingPath}>
+            <Link href={siteContact.bookingPath} className="w-full sm:w-auto">
               <Button
                 size="lg"
-                className="rounded-none bg-gold text-obsidian hover:bg-gold-light font-sans text-xs tracking-widest uppercase px-10 py-6 group min-w-[220px]"
+                className="w-full min-w-[220px] rounded-none bg-gold px-10 py-6 font-sans text-xs uppercase tracking-widest text-obsidian group hover:bg-gold-light sm:w-auto"
               >
                 Book a Consultation
                 <ArrowRight size={14} className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <a href={siteContact.phoneHref}>
+            <a href={siteContact.phoneHref} className="w-full sm:w-auto">
               <Button
                 variant="ghost"
                 size="lg"
-                className="rounded-none border border-background/30 text-background hover:border-gold hover:text-gold font-sans text-xs tracking-widest uppercase px-10 py-6 group min-w-[220px]"
+                className="w-full min-w-[220px] rounded-none border border-background/30 px-10 py-6 font-sans text-xs uppercase tracking-widest text-background group hover:border-gold hover:text-gold sm:w-auto"
               >
                 <Phone size={14} className="mr-2" />
                 Call Us Now

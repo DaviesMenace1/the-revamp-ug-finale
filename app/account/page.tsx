@@ -25,7 +25,7 @@ export default async function AccountPage() {
         <main className="min-h-screen bg-background">
         <div className="mx-auto flex w-full max-w-7xl gap-12 px-6 py-10 md:px-10 md:py-16 lg:px-12">
           <AccountNavigation />
-          <section className="flex min-w-0 flex-1 items-start">
+          <section className="min-w-0 flex-1 items-start">
             <PageLoadError
               title="Your account is taking longer than expected."
               message="We could not load the account overview right now. Your account has not been changed."
@@ -46,10 +46,6 @@ export default async function AccountPage() {
       <div className="mx-auto flex w-full max-w-7xl gap-12 px-6 py-10 md:px-10 md:py-16 lg:px-12">
         <AccountNavigation />
         <div className="min-w-0 flex-1">
-          <div className="mb-8 flex items-center justify-between border-b border-border/70 pb-5 lg:hidden">
-            <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground">My account</span>
-            <a href="/client" className="text-sm text-primary">Client Portal</a>
-          </div>
           <AccountOverview data={data} />
         </div>
       </div>

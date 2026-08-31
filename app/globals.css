@@ -191,16 +191,16 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    min-width: 0;
   }
   html {
     scroll-behavior: smooth;
-    overflow-x: hidden;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
     min-width: 320px;
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-wrap: anywhere;
     font-feature-settings: 'kern' 1, 'liga' 1;
   }
   img,
@@ -208,6 +208,12 @@
   canvas,
   svg {
     max-width: 100%;
+  }
+  pre,
+  code {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
   }
   input,
   select,

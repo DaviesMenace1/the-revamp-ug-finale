@@ -37,7 +37,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="flex min-h-dvh min-w-0 bg-background">
       <AdminSidebar role={user.role ?? 'customer'} />
-      <main className="relative min-w-0 flex-1 overflow-x-hidden">
+      <main className="relative min-w-0 flex-1">
         <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between gap-3 border-b border-border/70 bg-background/90 px-4 pl-16 backdrop-blur-xl sm:px-6 sm:pl-16 md:pl-6">
           <div className="min-w-0"><p className="truncate text-[10px] uppercase tracking-[0.24em] text-primary">The Revamp UG</p><p className="truncate text-sm text-muted-foreground">{roleLabel(user.role)} workspace</p></div>
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">

@@ -103,16 +103,16 @@ export default function OrdersClient({ initialOrders = [], loadError = null }: {
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
           {['all', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'].map(
             (status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`text-xs capitalize px-3 py-1.5 border transition-colors shrink-0 ${
+                className={`min-h-10 min-w-0 rounded-sm px-3 py-2 text-xs capitalize leading-tight transition-colors ${
                   statusFilter === status
                     ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-background text-muted-foreground border-border hover:border-foreground/30'
+                    : 'bg-background text-muted-foreground border border-border hover:border-foreground/30'
                 }`}
               >
                 {status}

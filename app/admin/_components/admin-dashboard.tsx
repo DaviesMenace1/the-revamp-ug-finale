@@ -45,9 +45,9 @@ function formatActivityDate(value: string) {
 
 function TimelinePicker({ value, onChange }: { value: Timeline; onChange: (value: Timeline) => void }) {
   return (
-    <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-border/70 bg-muted/35 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Chart timeline">
+    <div className="grid w-full grid-cols-2 gap-1 rounded-lg border border-border/70 bg-muted/35 p-1 sm:flex sm:flex-wrap" aria-label="Chart timeline">
       {TIMELINES.map((timeline) => (
-        <button key={timeline.value} type="button" aria-pressed={value === timeline.value} onClick={() => onChange(timeline.value)} className={`min-h-9 shrink-0 rounded-md px-2.5 text-[11px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 sm:px-3 ${value === timeline.value ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:bg-background hover:text-foreground'}`}>
+        <button key={timeline.value} type="button" aria-pressed={value === timeline.value} onClick={() => onChange(timeline.value)} className={`min-h-9 min-w-0 rounded-md px-2 py-2 text-[11px] font-medium leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 sm:px-3 ${value === timeline.value ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:bg-background hover:text-foreground'}`}>
           {timeline.label}
         </button>
       ))}

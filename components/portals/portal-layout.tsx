@@ -37,7 +37,7 @@ export function PortalLayout({
             </div>
 
             {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav aria-label={`${portalName} navigation`} className="hidden min-w-0 md:flex items-center gap-1">
               {navItems.map(item => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
@@ -45,7 +45,8 @@ export function PortalLayout({
                     prefetch={false}
                     key={item.href}
                     href={item.href}
-                    className={`px-4 py-2 text-sm font-medium transition-colors rounded ${
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`min-w-0 rounded px-4 py-2 text-sm font-medium transition-colors ${
                       isActive
                         ? 'text-primary bg-primary/10'
                         : 'text-muted-foreground hover:text-foreground'
@@ -75,7 +76,7 @@ export function PortalLayout({
 
           {/* Mobile Nav */}
           {mobileMenuOpen && (
-            <nav className="md:hidden pb-4 space-y-2 border-t border-border/20">
+            <nav aria-label={`${portalName} mobile navigation`} className="grid min-w-0 gap-2 border-t border-border/20 pb-4 pt-3">
               {navItems.map(item => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
@@ -83,7 +84,8 @@ export function PortalLayout({
                     prefetch={false}
                     key={item.href}
                     href={item.href}
-                    className={`block px-4 py-2 text-sm font-medium transition-colors rounded ${
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`block min-h-11 min-w-0 rounded px-4 py-3 text-sm font-medium leading-5 transition-colors ${
                       isActive
                         ? 'text-primary bg-primary/10'
                         : 'text-muted-foreground hover:text-foreground'
@@ -100,7 +102,7 @@ export function PortalLayout({
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-5 sm:py-8 md:px-8 md:py-12">
+      <main className="mx-auto min-w-0 max-w-7xl px-3 py-6 sm:px-5 sm:py-8 md:px-8 md:py-12">
         {children}
       </main>
     </div>

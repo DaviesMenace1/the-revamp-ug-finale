@@ -235,7 +235,7 @@ function ServiceWorld({ services, loading }: { services: Service[]; loading: boo
             <Eyebrow>Explore our services</Eyebrow>
             <h1 className="mx-auto mt-4 max-w-4xl font-serif text-[clamp(2.8rem,7vw,6.5rem)] font-light leading-[0.9] tracking-[-0.03em]">Architectural Mastery</h1>
           </div>
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8 md:items-end">
+          <div className="flex flex-col items-center gap-5 text-center">
             <p className="max-w-lg text-sm leading-7 text-foreground/60">From conceptual design to structural excellence, we craft spaces that inspire</p>
             
           </div>
@@ -315,7 +315,7 @@ function ProjectFeature({ projects, loading }: { projects: Project[]; loading: b
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-7 flex flex-col items-center gap-4 border-b border-foreground/15 pb-6 text-center md:mb-10 md:pb-7">
           <div><h1 className="mx-auto mt-4 max-w-4xl font-serif text-[clamp(2.8rem,6vw,5.5rem)] font-light leading-[0.9] tracking-[-0.03em]">Featured Projects</h1></div>
-          
+          <Link href="/portfolio" className="inline-flex min-h-11 items-center justify-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-gold hover:text-foreground">View all projects <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
         </div>
         {loading ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2" aria-busy="true" aria-label="Loading projects">{[1, 2, 3].map((item) => <div key={item} className="aspect-[16/7] animate-pulse rounded-xl bg-canvas-dark" />)}</div>

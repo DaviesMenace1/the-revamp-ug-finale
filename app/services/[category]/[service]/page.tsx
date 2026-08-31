@@ -173,7 +173,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                 {processSteps.length > 0 && <div>
                   <h2 className="font-serif text-3xl font-light text-foreground mb-4">Our process</h2>
                   <div className="space-y-4">
-                    {processSteps.map((item, index) => <div key={`${item.title}-${index}`} className="flex gap-4 pb-4 border-b border-border/20 last:border-0"><div className="text-2xl font-light text-muted-foreground">{String(index + 1).padStart(2, '0')}</div><div><h3 className="font-medium text-foreground">{item.title}</h3><p className="text-sm text-foreground/60 mt-1">{item.description}</p></div></div>)}
+                    {processSteps.map((item, index) => <div key={`${item.title}-${index}`} className="border-b border-border/20 pb-4 last:border-0"><div><h3 className="font-medium text-foreground">{item.title}</h3><p className="text-sm text-foreground/60 mt-1">{item.description}</p></div></div>)}
                   </div>
                 </div>}
               </div>

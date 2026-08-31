@@ -236,8 +236,7 @@ function ServiceWorld({ services, loading }: { services: Service[]; loading: boo
                   <div className="relative aspect-[16/7] overflow-hidden bg-canvas-dark sm:aspect-[4/3]">
                     <img src={service.image || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]} alt={service.serviceName} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80" />
-                    <span className="absolute left-3 top-3 text-[9px] uppercase tracking-[0.2em] text-white/70">{String(index + 1).padStart(2, '0')}</span>
-                    <ArrowUpRight size={16} className="absolute right-3 top-3 text-white/75" aria-hidden="true" />
+                                        <ArrowUpRight size={16} className="absolute right-3 top-3 text-white/75" aria-hidden="true" />
                     <div className="absolute inset-x-3 bottom-3"><p className="text-[9px] uppercase tracking-[0.18em] text-white/60">{service.categoryName}</p><h3 className="mt-1 font-serif text-xl font-light leading-none text-white sm:text-2xl">{service.serviceName}</h3></div>
                   </div>
                 </Link>
@@ -314,7 +313,7 @@ function ProjectFeature({ projects, loading }: { projects: Project[]; loading: b
 function ProjectTile({ project, index }: { project: Project; index: number }) {
   return <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-foreground/15 bg-card shadow-[0_14px_36px_rgba(0,0,0,0.10)] transition-shadow duration-300 hover:shadow-[0_20px_48px_rgba(0,0,0,0.16)]">
     <Link href={`/portfolio/${encodeURIComponent(project.slug)}`} className="block">
-      <div className="relative aspect-[16/7] overflow-hidden bg-canvas-dark"><img src={projectImage(project, index)} alt={project.title} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" /><div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" /><span className="absolute left-3 top-3 text-[9px] uppercase tracking-[0.2em] text-white/70">{String(index + 1).padStart(2, '0')}</span><ArrowUpRight size={16} className="absolute right-3 top-3 text-white/80" aria-hidden="true" /></div>
+      <div className="relative aspect-[16/7] overflow-hidden bg-canvas-dark"><img src={projectImage(project, index)} alt={project.title} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" loading="lazy" /><div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" /><ArrowUpRight size={16} className="absolute right-3 top-3 text-white/80" aria-hidden="true" /></div>
     </Link>
     <div className="flex flex-1 flex-col p-4 sm:p-5"><p className="text-[9px] uppercase tracking-[0.18em] text-primary">{project.category || 'Selected work'}{project.location ? ` · ${project.location}` : ''}</p><Link href={`/portfolio/${encodeURIComponent(project.slug)}`}><h3 className="mt-2 font-serif text-2xl font-light leading-none text-foreground transition-colors group-hover:text-primary sm:text-3xl">{project.title}</h3></Link>{project.description && <p className="mt-3 line-clamp-2 text-[11px] leading-5 text-foreground/65">{project.description}</p>}<Link href={`/portfolio/${encodeURIComponent(project.slug)}`} className="mt-4 inline-flex min-h-10 items-center justify-center rounded-full bg-foreground px-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-background transition-colors hover:bg-gold hover:text-foreground">View project <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link></div>
   </article>
@@ -322,18 +321,18 @@ function ProjectTile({ project, index }: { project: Project; index: number }) {
 
 function ProcessSection() {
   const steps = [
-    ['01', 'Discover', 'Understanding the client, architecture, lifestyle and ambition.'],
-    ['02', 'Define', 'Developing the concept, palette, materials and direction.'],
-    ['03', 'Design', 'Architecture, interiors, furniture and detailing.'],
-    ['04', 'Source', 'Finding and procuring the right pieces globally.'],
-    ['05', 'Deliver', 'Logistics, installation, styling and final detailing.'],
+    ['Discover', 'Understanding the client, architecture, lifestyle and ambition.'],
+    ['Define', 'Developing the concept, palette, materials and direction.'],
+    ['Design', 'Architecture, interiors, furniture and detailing.'],
+    ['Source', 'Finding and procuring the right pieces globally.'],
+    ['Deliver', 'Logistics, installation, styling and final detailing.'],
   ]
   return (
     <section className="border-y border-foreground/10 bg-canvas dark:bg-background px-5 py-20 sm:px-8 sm:py-28 lg:px-12 lg:py-32">
       <div className="mx-auto grid max-w-[1440px] gap-12 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20">
         <div><Eyebrow>The Revamp approach</Eyebrow><h1 className="mt-5 max-w-md font-serif text-5xl font-light leading-[0.95] sm:text-7xl">From vision<br /><span className="italic text-foreground/60">to reality.</span></h1><p className="mt-7 max-w-sm text-sm leading-7 text-foreground/60">We are not simply a designer who hands over drawings. We stay with the work until the final detail is in place.</p></div>
         <div className="border-t border-foreground/15">
-          {steps.map(([number, title, description]) => <div key={number} className="grid grid-cols-[2.5rem_0.75fr_1fr] gap-3 border-b border-foreground/15 py-5 sm:grid-cols-[3rem_0.65fr_1fr] sm:gap-6"><span className="text-[10px] tracking-[0.18em] text-foreground/60">{number}</span><h3 className="font-serif text-2xl font-light leading-none sm:text-3xl">{title}</h3><p className="text-xs leading-5 text-foreground/65 sm:text-sm sm:leading-6">{description}</p></div>)}
+          {steps.map(([title, description]) => <div key={title} className="grid gap-3 border-b border-foreground/15 py-5 sm:grid-cols-[0.65fr_1fr] sm:gap-6"><h3 className="font-serif text-2xl font-light leading-none sm:text-3xl">{title}</h3><p className="text-xs leading-5 text-foreground/65 sm:text-sm sm:leading-6">{description}</p></div>)}
         </div>
       </div>
     </section>

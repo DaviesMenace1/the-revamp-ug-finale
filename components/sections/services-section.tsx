@@ -108,7 +108,7 @@ export function ServicesSection() {
               <div key={group.key} className={`group relative overflow-hidden p-7 sm:p-10 ${groupIndex === 0 ? 'bg-foreground text-background' : 'bg-card text-foreground'}`}>
                 <div className="absolute inset-0 opacity-20 transition-transform duration-700 group-hover:scale-105" style={{ backgroundImage: `linear-gradient(to top, currentColor 0%, transparent 65%), url('${group.services[0].image || FALLBACK_IMAGE}')`, backgroundSize: 'cover', backgroundPosition: 'center' }} aria-hidden="true" />
                 <div className="relative flex min-h-[28rem] flex-col justify-end">
-                  <p className={`text-[10px] uppercase tracking-[0.28em] ${groupIndex === 0 ? 'text-primary' : 'text-primary'}`}>{String(groupIndex + 1).padStart(2, '0')}  -  The practice</p>
+                  <p className={`text-[10px] uppercase tracking-[0.28em] ${groupIndex === 0 ? 'text-primary' : 'text-primary'}`}>The practice</p>
                   <h3 className="mt-3 max-w-lg font-serif text-4xl font-light sm:text-5xl">{group.title}</h3>
                   <div className="mt-7 grid gap-2 sm:grid-cols-2">
                     {group.services.slice(0, 4).map((service) => (

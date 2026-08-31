@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Headphones, Mail, MessageCircle, Ticket, X } from 'lucide-react'
-import { FaInstagram, FaWhatsapp } from 'react-icons/fa'
+import { Headphones, Mail, MessageCircle, Ticket, X } from '@/components/ui/luxury-icons'
+import { FaInstagram, FaWhatsapp } from '@/components/ui/luxury-icons'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { CustomSignIn, CustomSignUp } from '@/components/auth/custom-auth-forms'
 

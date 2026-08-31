@@ -12,9 +12,9 @@ import {
   Heart,
   ShoppingBag,
   User,
-} from 'lucide-react'
+} from '@/components/ui/luxury-icons'
 
-import { FaInstagram, FaSnapchatGhost, FaTiktok } from 'react-icons/fa'
+import { FaInstagram, FaSnapchatGhost, FaTiktok } from '@/components/ui/luxury-icons'
 
 import NotificationBell from '@/components/notifications/notification-bell'
 import { useCart } from '@/lib/context/cart-context'

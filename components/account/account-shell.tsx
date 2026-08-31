@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useClerk } from '@clerk/nextjs'
-import { BookOpen, BriefcaseBusiness, Home, ShoppingBag, UserRound, LogOut } from 'lucide-react'
+import { BookOpen, BriefcaseBusiness, Home, ShoppingBag, UserRound, LogOut } from '@/components/ui/luxury-icons'
 import { LuxuryAccountIcon, LuxuryBagIcon, LuxuryCloseIcon, LuxuryHomeIcon, LuxuryMenuIcon } from '@/components/ui/luxury-nav-icons'
 
 const navItems = [

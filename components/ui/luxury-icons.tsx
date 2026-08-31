@@ -61,6 +61,7 @@ const paths: Record<string, string> = {
   Globe2: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-18c2 2.4 3 5.4 3 9s-1 6.6-3 9c-2-2.4-3-5.4-3-9s1-6.6 3-9ZM3 12h18',
   Grid3x3: 'M4 4h5v5H4V4Zm11 0h5v5h-5V4ZM4 15h5v5H4v-5Zm11 0h5v5h-5v-5ZM9 9h6v6H9V9Z',
   Heart: 'M20.5 8.5c0 5-8.5 10-8.5 10s-8.5-5-8.5-10A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8.5 2.5Z',
+  Headphones: 'M4 13v-1a8 8 0 0 1 16 0v1m-16 0v5h3v-5H4Zm16 0v5h-3v-5h3Z',
   HelpCircle: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm-2.2-10a2.2 2.2 0 1 1 3.9 1.4c-.8.8-1.7 1.1-1.7 2.6m0 3h.01',
   Home: 'm3 10 9-7 9 7v10H5V10m4 10v-6h6v6',
   ImageIcon: 'M4 4h16v16H4V4Zm2 12 3-3 2 2 3-4 4 5M8 9h.01',
@@ -139,6 +140,7 @@ const paths: Record<string, string> = {
   FaInstagram: 'M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Zm5 5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm5-2h.01',
   FaLinkedinIn: 'M5 8v11M5 5v.01M9 19v-6a4 4 0 0 1 8 0v6m-8-7V8',
   FaSnapchatGhost: 'M12 4a5 5 0 0 1 5 5v3l2 2-3 1c-.5 2-2 3-4 3s-3.5-1-4-3l-3-1 2-2V9a5 5 0 0 1 5-5Z',
+  FaWhatsapp: 'M20 11.5a8 8 0 0 1-12 7L4 20l1.5-3A8 8 0 1 1 20 11.5Zm-10-3c-.4 0-.7.3-.9.7-.2.5-.8 1.7.1 2.9.9 1.3 2.7 2.5 3.8 2.8.7.2 1.1-.1 1.4-.5l.5-.7c.1-.2.1-.4-.1-.5l-1.7-.8c-.2-.1-.4-.1-.6.1l-.4.5c-.1.1-.2.1-.4 0-.4-.2-1.3-.6-1.8-1.7-.1-.2-.1-.3.1-.5l.3-.4c.1-.1.1-.3 0-.5l-.3-1.5Z',
   FaTiktok: 'M14 4v10a4 4 0 1 1-3-3m3-7c1 2 2 3 5 3',
   SiGoogle: 'M21 12a9 9 0 1 1-2.6-6.3L16 8.2A5.5 5.5 0 1 0 17.1 12H12v-3h9v3Z',
   SiTiktok: 'M14 4v10a4 4 0 1 1-3-3m3-7c1 2 2 3 5 3',
@@ -210,6 +212,7 @@ export const Gift = makeIcon('Gift')
 export const Globe2 = makeIcon('Globe2')
 export const Grid3x3 = makeIcon('Grid3x3')
 export const Heart = makeIcon('Heart')
+export const Headphones = makeIcon('Headphones')
 export const HelpCircle = makeIcon('HelpCircle')
 export const Home = makeIcon('Home')
 export const ImageIcon = makeIcon('ImageIcon')
@@ -288,6 +291,7 @@ export const Zap = makeIcon('Zap')
 export const FaInstagram = makeIcon('FaInstagram')
 export const FaLinkedinIn = makeIcon('FaLinkedinIn')
 export const FaSnapchatGhost = makeIcon('FaSnapchatGhost')
+export const FaWhatsapp = makeIcon('FaWhatsapp')
 export const FaTiktok = makeIcon('FaTiktok')
 export const SiGoogle = makeIcon('SiGoogle')
 export const SiTiktok = makeIcon('SiTiktok')

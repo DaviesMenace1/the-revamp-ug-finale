@@ -472,7 +472,7 @@ export function SiteHeader() {
 
               {/* Theme */}
 
-              <div className={cn('order-4 flex size-11 items-center justify-center rounded-full border bg-background/10 p-0.5 lg:order-none', headerDark ? 'border-white/30 text-white' : 'border-border text-foreground', '[&_button]:size-10 [&_button]:text-current [&_button:hover]:bg-current/10')}>
+              <div className={cn('hidden size-10 items-center justify-center lg:flex', headerDark ? 'text-white' : 'text-foreground')}>
                 <ThemeSwitcher />
               </div>              {/* Notifications: visible on mobile and desktop */}
               <div className="order-2 flex lg:order-none">
@@ -548,18 +548,23 @@ export function SiteHeader() {
               </div>}
               {/* MOBILE / TABLET MENU */}
 
-              <button
-                onClick={() => setMobileMenuOpen(true)}
-                className={cn(
-                  'order-5 flex size-10 shrink-0 items-center justify-center border transition-colors lg:order-none lg:hidden',
-                  headerDark
-                    ? 'border-white/20 text-white'
-                    : 'border-border text-foreground',
-                )}
-                aria-label="Open navigation"
-              >
-                <Menu size={19} />
-              </button>
+              <div className="relative order-5 flex shrink-0 items-center lg:order-none lg:hidden">
+                <button
+                  onClick={() => setMobileMenuOpen(true)}
+                  className={cn(
+                    'flex size-10 items-center justify-center border transition-colors',
+                    headerDark
+                      ? 'border-white/20 text-white'
+                      : 'border-border text-foreground',
+                  )}
+                  aria-label="Open navigation"
+                >
+                  <Menu size={19} />
+                </button>
+                <div className={cn('absolute right-0 top-full z-50 flex size-11 translate-y-[-1px] items-center justify-center rounded-b-[1.35rem] border border-t-0 bg-background/95 p-0.5 shadow-lg backdrop-blur-xl', headerDark ? 'border-white/30 text-white' : 'border-border text-foreground', '[&_button]:size-10 [&_button]:text-current [&_button:hover]:bg-current/10')}>
+                  <ThemeSwitcher />
+                </div>
+              </div>
 
               {/* DESKTOP MENU */}
 

@@ -29,9 +29,13 @@ export function AccountShell({ children, cartCount = 0 }: { children: React.Reac
               <ShoppingBag className="size-5" aria-hidden="true" />
               {cartCount > 0 && <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-gold text-[9px] text-obsidian">{cartCount}</span>}
             </Link>
-            <div className="rounded-full border border-ivory/25 bg-ivory/5 p-0.5 text-ivory [&_button]:size-10 [&_button]:text-current [&_button:hover]:bg-ivory/10"><ThemeSwitcher /></div>
             <Link href="/user-profile" className="hidden rounded-full p-2 text-ivory/80 transition hover:text-gold-light sm:block" aria-label="Open profile"><UserRound className="size-5" aria-hidden="true" /></Link>
-            <button type="button" onClick={() => signOut({ redirectUrl: '/' })} className="rounded-full p-2 text-ivory/80 transition hover:text-gold-light" aria-label="Sign out"><Menu className="size-5" aria-hidden="true" /></button>
+            <div className="relative">
+              <button type="button" onClick={() => signOut({ redirectUrl: '/' })} className="rounded-full p-2 text-ivory/80 transition hover:text-gold-light" aria-label="Sign out"><Menu className="size-5" aria-hidden="true" /></button>
+              <div className="absolute right-0 top-full z-50 flex size-11 translate-y-[-1px] items-center justify-center rounded-b-[1.35rem] border border-t-0 border-ivory/25 bg-obsidian p-0.5 text-ivory shadow-lg [&_button]:size-10 [&_button]:text-current [&_button:hover]:bg-ivory/10">
+                <ThemeSwitcher />
+              </div>
+            </div>
           </div>
         </div>
       </header>

@@ -1,5 +1,5 @@
  # SEO and AI-search research findings  
-
+ 
 ## Google Search Central: optimizing for generative AI features
 Source: https://developers.google.com/search/docs/fundamentals/ai-optimization-guide
 

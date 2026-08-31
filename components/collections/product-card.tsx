@@ -94,6 +94,8 @@ export function ProductCard({ product, featured = false, className, style }: { p
   const discountPercent = hasDiscount ? Math.round(((comparePrice - currentPrice) / comparePrice) * 100) : 0
   const currency = normalizeCurrency(product.currency)
   const categoryLabel = compactLabel(product.subCategory?.category?.name) || compactLabel(product.subCategory?.name)
+  const categorySlug = categoryLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const productHref = categorySlug ? `/collections/${categorySlug}/${product.slug}` : `/collections/${product.slug}`
   const brandLabel = compactLabel(product.brand)
   const ratingValue = Number(product.rating ?? 0)
   const rating = Number.isFinite(ratingValue) ? Math.max(0, Math.min(5, ratingValue)) : 0
@@ -128,7 +130,7 @@ export function ProductCard({ product, featured = false, className, style }: { p
   return (
     <article className={cn('group flex h-full min-w-0 flex-col overflow-hidden rounded-xl bg-card shadow-soft ring-1 ring-border/60', className)} style={style}>
       <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-        <Link href={`/collections/${product.slug}`} className="absolute inset-0 z-0 block" aria-label={`View ${product.name}`}>
+        <Link href={productHref} className="absolute inset-0 z-0 block" aria-label={`View ${product.name}`}>
           <Image src={displayImage} alt={imageAlt} fill sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw" className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]" />
           {displayHoverImage !== displayImage && <Image src={displayHoverImage} alt="" fill sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 25vw" className="object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100" />}
           <span className="absolute inset-0 bg-foreground/0 transition-colors duration-300 group-hover:bg-foreground/5" />
@@ -147,7 +149,7 @@ export function ProductCard({ product, featured = false, className, style }: { p
       </div>
 
       <div className="flex min-h-[174px] flex-1 flex-col px-2.5 pb-3 pt-3 sm:min-h-[190px] sm:px-3 sm:pb-4">
-        <Link href={`/collections/${product.slug}`} className="min-w-0">
+        <Link href={productHref} className="min-w-0">
           <div className="flex min-w-0 items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-primary">
             {brandLabel && <span className="max-w-[55%] truncate">{brandLabel}</span>}
             {brandLabel && categoryLabel && <span className="text-muted-foreground">·</span>}

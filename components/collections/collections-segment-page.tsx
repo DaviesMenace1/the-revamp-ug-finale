@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { ArrowLeft } from 'lucide-react'
+import { ProductCard } from '@/components/collections/product-card'
 
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -14,7 +15,7 @@ import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductIm
 // Database & Drizzle Imports
 import { db } from '@/lib/db/client'
 import { products as productsTable } from '@/lib/db/schema'
-import { eq, ne, and } from 'drizzle-orm'
+import { eq, ne, and, desc } from 'drizzle-orm'
 
 export const dynamicParams = true
 export const revalidate = 60
@@ -38,6 +39,27 @@ async function getProductBySlugFromDB(slug: string) {
   } catch (error) {
     console.error('Failed to fetch product by slug:', error)
     return null
+  }
+}
+
+function toCollectionSlug(value: string) {
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+async function getProductsByCategorySlug(categorySlug: string) {
+  try {
+    const products = await db.query.products.findMany({
+      where: eq(productsTable.status, 'published'),
+      orderBy: [desc(productsTable.featured), desc(productsTable.createdAt)],
+      with: { productImages: true, productVariants: true, subCategory: { with: { category: true } } },
+      limit: 100,
+    })
+    return products.filter((product) => {
+      const category = product.subCategory?.category?.name || product.subCategory?.name || ''
+      return toCollectionSlug(category) === categorySlug
+    })
+  } catch {
+    return []
   }
 }
 
@@ -66,10 +88,11 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ segments?: string[] }>
 }): Promise<Metadata> {
-  const { slug } = await params
-  const product = await getProductBySlugFromDB(slug)
+  const { segments = [] } = await params
+  const slug = segments.length === 2 ? segments[1] : segments[0]
+  const product = slug ? await getProductBySlugFromDB(slug) : null
 
   if (!product) {
     return {
@@ -80,7 +103,7 @@ export async function generateMetadata({
 
   const images = extractProductImages(product)
 
-  const canonical = `${SITE_URL}/collections/${encodeURIComponent(product.slug)}`
+  const canonical = `${SITE_URL}/collections/${segments.map((segment) => encodeURIComponent(segment)).join('/')}`
   return {
     title: `${product.name} | The Revamp UG`,
     description: product.description || product.name,
@@ -107,10 +130,31 @@ export async function generateMetadata({
 export default async function ProductPage({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ segments?: string[] }>
 }) {
-  const { slug } = await params
-  const product = await getProductBySlugFromDB(slug)
+  const { segments = [] } = await params
+  const slug = segments.length === 2 ? segments[1] : segments[0]
+  const product = slug ? await getProductBySlugFromDB(slug) : null
+
+  if (!product && segments.length === 1) {
+    const categoryProducts = await getProductsByCategorySlug(segments[0])
+    if (categoryProducts.length > 0) {
+      const categoryName = categoryProducts[0].subCategory?.category?.name || categoryProducts[0].subCategory?.name || segments[0]
+      return (
+        <>
+          <SiteHeader />
+          <main className="min-h-screen bg-background px-4 pb-24 pt-28 sm:px-6 md:px-10 md:pt-36">
+            <div className="mx-auto max-w-7xl">
+              <Link href="/collections" className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground hover:text-primary"><ArrowLeft className="size-4" aria-hidden="true" /> All collections</Link>
+              <header className="mx-auto mt-8 max-w-3xl text-center"><p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Revamp collection</p><h1 className="mt-3 font-serif text-5xl tracking-tight sm:text-7xl">{categoryName}</h1><p className="mt-4 text-sm leading-7 text-muted-foreground">A considered edit of pieces selected for this category.</p></header>
+              <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">{categoryProducts.map((categoryProduct, index) => <ProductCard key={categoryProduct.id} product={categoryProduct as any} className="motion-reveal" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` } as any} />)}</div>
+            </div>
+          </main>
+          <SiteFooter />
+        </>
+      )
+    }
+  }
 
   if (!product) notFound()
 
@@ -177,7 +221,7 @@ export default async function ProductPage({
   // -------------------------------------------------------------
 
   const related = await getRelatedProductsFromDB(product.subCategoryId, product.id)
-  const pageUrl = `${SITE_URL}/collections/${encodeURIComponent(product.slug)}`
+  const pageUrl = `${SITE_URL}/collections/${segments.map((segment) => encodeURIComponent(segment)).join('/')}`
   const availability = product.availability === 'out_of_stock' ? 'OutOfStock' : product.availability === 'pre_order' ? 'PreOrder' : product.availability === 'made_to_order' ? undefined : 'InStock'
   const condition = product.condition === 'used' ? 'UsedCondition' : product.condition === 'refurbished' ? 'RefurbishedCondition' : 'NewCondition'
 

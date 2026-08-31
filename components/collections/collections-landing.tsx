@@ -6,7 +6,7 @@ import { db } from '@/lib/db/client'
 import { products as productsTable } from '@/lib/db/schema'
 import { desc, eq } from 'drizzle-orm'
 import { safeQuery } from '@/lib/server/safe-query'
-import CollectionsGrid from './collections-grid'
+import CategoryDirectory from '@/components/collections/category-directory'
 import { SchemaScript } from '@/components/seo/schema-script'
 
 export const dynamic = 'force-dynamic'
@@ -35,16 +35,23 @@ async function getPublishedProducts() {
   })
 }
 
-export default async function CollectionsPage({ searchParams }: { searchParams?: Promise<{ category?: string }> }) {
+export default async function CollectionsPage() {
   const result = await safeQuery(getPublishedProducts(), 'published collections', [])
-  const resolvedSearchParams = searchParams ? await searchParams : {}
-  const initialCategory = resolvedSearchParams.category?.trim() || ''
   const products = result.data
+  const categories = Array.from(products.reduce((map, product) => {
+    const name = product.subCategory?.category?.name || product.subCategory?.name
+    if (!name) return map
+    const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const image = product.productImages?.find((entry) => entry.isPrimary)?.url || product.productImages?.[0]?.url || null
+    const current = map.get(slug)
+    map.set(slug, { name, slug, productCount: (current?.productCount || 0) + 1, image: current?.image || image })
+    return map
+  }, new Map<string, { name: string; slug: string; productCount: number; image: string | null }>()).values())
   const productItems = products.map((product, index) => ({
     '@type': 'ListItem',
     position: index + 1,
     name: product.name,
-    url: `${SITE_URL}/collections/${encodeURIComponent(product.slug)}`,
+    url: `${SITE_URL}/collections/${product.subCategory?.category?.name ? product.subCategory.category.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '/' : ''}${encodeURIComponent(product.slug)}`,
   }))
 
   return (
@@ -78,7 +85,7 @@ export default async function CollectionsPage({ searchParams }: { searchParams?:
               <p className="mt-3 text-sm text-muted-foreground">No published pieces are available just yet. Return soon or speak with our studio.</p>
             </div>
           ) : (
-            <CollectionsGrid products={products} initialCategory={initialCategory} />
+            <CategoryDirectory categories={categories} />
           )}
         </div>
       </main>

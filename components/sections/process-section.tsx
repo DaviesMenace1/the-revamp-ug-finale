@@ -66,7 +66,7 @@ export function ProcessSection() {
             <div className="gold-line" />
             <h2 className="font-serif text-4xl md:text-5xl font-light text-background leading-tight mb-6">
               Our Process,<br />
-              <span className="italic text-gold">Refined</span>
+              <span className="font-serif text-gold">Refined</span>
             </h2>
             <p className="font-sans text-background/60 text-sm leading-relaxed mb-12">
               Every Revamp UG project follows a meticulous four-phase process built to deliver

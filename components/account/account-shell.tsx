@@ -26,7 +26,7 @@ export function AccountShell({ children, cartCount = 0 }: { children: React.Reac
             <LuxuryHomeIcon size={16} className="text-gold-light lg:hidden" />
             <span className="font-serif text-lg tracking-[0.28em] sm:text-xl">THE REVAMP UG</span>
           </Link>
-          <p className="hidden font-serif text-sm italic text-ivory/70 sm:block">The architecture of refined living</p>
+          <p className="hidden font-serif text-sm font-serif text-ivory/70 sm:block">The architecture of refined living</p>
           <div className="flex items-center gap-3">
             <ThemeSwitcher />
             <Link href="/cart" className="relative rounded-full p-2 text-ivory/80 transition hover:text-gold-light" aria-label="Open cart">

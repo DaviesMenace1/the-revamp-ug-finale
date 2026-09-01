@@ -143,7 +143,7 @@ export function HeroSection() {
 
           <h1 className="mb-7 font-serif font-light leading-[1.02] text-white">
             <span className="block text-5xl md:text-7xl lg:text-8xl">{slide.titleLine1}</span>
-            <span className="mt-1 block text-5xl italic text-gold-gradient md:text-7xl lg:text-8xl">{slide.titleLine2}</span>
+            <span className="mt-1 block text-5xl font-serif text-gold-gradient md:text-7xl lg:text-8xl">{slide.titleLine2}</span>
           </h1>
 
           <p className="mb-9 max-w-xl text-base leading-relaxed text-white/75 md:text-lg">{slide.description}</p>

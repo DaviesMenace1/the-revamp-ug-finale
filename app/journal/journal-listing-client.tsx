@@ -80,7 +80,7 @@ export default function JournalListingClient({ articles = [] }: { articles: Arti
           <div className="mx-auto grid max-w-[1440px] gap-12 lg:grid-cols-[0.72fr_1.28fr] lg:items-end">
             <div>
               <p className="text-[10px] uppercase tracking-[0.28em] text-white/55">The Revamp House · Journal</p>
-              <h1 className="mt-5 max-w-4xl font-serif text-[clamp(4rem,10vw,9rem)] font-light leading-[0.82] tracking-[-0.04em]">Editorial<br /><span className="italic text-gold-light">perspectives.</span></h1>
+              <h1 className="mt-5 max-w-4xl font-serif text-[clamp(4rem,10vw,9rem)] font-light leading-[0.82] tracking-[-0.04em]">Editorial<br /><span className="font-serif text-gold-light">perspectives.</span></h1>
             </div>
             <div className="max-w-xl border-t border-white/20 pt-6 lg:mb-1">
               <p className="max-w-lg text-sm leading-7 text-white/70 sm:text-base">Notes on architecture, interiors, objects and the quiet decisions that make a space feel complete.</p>

@@ -61,7 +61,7 @@ export default function ReturnPolicyPage() {
             <p>
               We accept returns and issue exchanges <strong>strictly for products that arrive defective, structurally damaged, or incorrect</strong> from what you ordered. 
             </p>
-            <p className="text-stone-500 text-xs italic">
+            <p className="text-stone-500 text-xs font-serif">
               Please note: Due to the custom nature of our woodworking, upholstery, and sourcing, we cannot process returns or issue refunds for change of mind after delivery.
             </p>
           </section>
@@ -190,7 +190,7 @@ export default function ReturnPolicyPage() {
 //             <p>
 //               We accept returns and issue exchanges <strong>strictly for products that arrive defective, structurally damaged, or incorrect</strong> from what you ordered. 
 //             </p>
-//             <p className="text-stone-500 text-xs italic">
+//             <p className="text-stone-500 text-xs font-serif">
 //               Please note: Due to the custom nature of our woodworking, upholstery, and sourcing, we cannot process returns or issue refunds for change of mind after delivery.
 //             </p>
 //           </section>

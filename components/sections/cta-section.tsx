@@ -34,7 +34,7 @@ export function CtaSection() {
           {/* Headline */}
           <h2 className="font-serif text-5xl md:text-6xl lg:text-7xl font-light text-background leading-[1.05] mb-6">
             Your Dream Space<br />
-            <span className="italic text-gold">Awaits</span>
+            <span className="font-serif text-gold">Awaits</span>
           </h2>
 
           {/* Sub-copy */}

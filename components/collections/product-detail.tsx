@@ -290,7 +290,7 @@ export function ProductDetail({ product }: { product: any }) {
               <Sparkle className="w-3.5 h-3.5" />
               <span>Why We Love This Piece</span>
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed italic">
+            <p className="text-xs text-muted-foreground leading-relaxed font-serif">
               "{product.editorialHighlight}"
             </p>
           </div>
@@ -758,7 +758,7 @@ export function ProductReviews({ product }: { product: any }) {
           ))}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground italic">No customer reviews yet for this product.</p>
+        <p className="text-xs text-muted-foreground font-serif">No customer reviews yet for this product.</p>
       )}
     </div>
   )

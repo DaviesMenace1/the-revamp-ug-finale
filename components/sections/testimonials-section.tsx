@@ -43,7 +43,7 @@ export function TestimonialsSection() {
           {/* Left: quote */}
           <div>
             <div className="gold-line" />
-            <p className="font-serif text-3xl md:text-4xl font-light text-foreground leading-snug mb-10 italic">
+            <p className="font-serif text-3xl md:text-4xl font-light text-foreground leading-snug mb-10 font-serif">
               &ldquo;{t.quote}&rdquo;
             </p>
             {/* Author */}

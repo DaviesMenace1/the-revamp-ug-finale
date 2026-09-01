@@ -268,7 +268,7 @@ function ServiceWorld({ services, loading }: { services: Service[]; loading: boo
         </div>
       
       <div className="flex flex-col items-center gap-5 text-center">
-        <Link href="/services" className="mx-auto mt-4 max-w-4xl  items-center justify-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-transform hover:-translate-y-0.5 hover:bg-gold hover:text-foreground">Explore more services <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
+        <Link href="/services" className="mx-auto mt-4 inline-flex min-h-10 max-w-4xl items-center justify-center rounded-full bg-foreground px-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-background transition-colors hover:bg-gold hover:text-foreground">Explore More Services <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
         </div>
       
     </section>
@@ -330,7 +330,7 @@ function ProjectFeature({ projects, loading }: { projects: Project[]; loading: b
       </div>
 
         <div className="flex flex-col items-center gap-5 text-center">
-      <Link href="/portfolio" className="mx-auto mt-4 max-w-4xl items-center rounded-full bg-foreground px-5 text-[10px] font-semibold uppercase tracking-[0.16em] text-background transition-colors hover:bg-gold hover:text-foreground">View all projects <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
+      <Link href="/portfolio" className="mx-auto mt-4 inline-flex min-h-10 max-w-4xl items-center justify-center rounded-full bg-foreground px-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-background transition-colors hover:bg-gold hover:text-foreground">View All Projects <ArrowRight size={14} className="ml-2" aria-hidden="true" /></Link>
       </div> 
     </section>
   )

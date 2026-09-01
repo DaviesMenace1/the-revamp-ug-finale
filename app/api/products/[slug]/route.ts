@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { products } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { resolveProductImageUrls } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -26,7 +26,11 @@ export async function GET(
       with: {
         productVariants: true, // Color swatches & fabric deltas
         productImages: true,   // Full image gallery
-        subCategory: true,     // Parent taxonomy info
+        subCategory: {
+          with: {
+            template: true,
+          },
+        },
         productReviews: true,         // Customer ratings & comments
       },
     })

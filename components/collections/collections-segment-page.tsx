@@ -34,6 +34,11 @@ async function getProductBySlugFromDB(slug: string) {
         productVariants: true,
         productImages: true,
         productReviews: true, // ✅ Attached customer reviews
+        subCategory: {
+          with: {
+            template: true,
+          },
+        },
       },
     })
   } catch (error) {
@@ -186,15 +191,18 @@ export default async function ProductPage({
     ? product.ratingCount
     : parseInt(product.ratingCount || '0', 10)
 
-  // Safe Dimension Normalization
+  // Preserve the full legacy dimensions object when present. Current products store
+  // category-specific measurements in attributes, which are passed through unchanged.
   const rawDims = (product as any).dimensions
   const safeDimensions = typeof rawDims === 'object' && rawDims !== null
     ? rawDims
-    : {
-        width: (product as any).width || (product as any).defaultWidth || '',
-        height: (product as any).height || (product as any).defaultHeight || '',
-        depth: (product as any).depth || (product as any).defaultDepth || '',
-      }
+    : Object.fromEntries(
+        Object.entries({
+          width: (product as any).width || (product as any).defaultWidth,
+          height: (product as any).height || (product as any).defaultHeight,
+          depth: (product as any).depth || (product as any).defaultDepth,
+        }).filter(([, value]) => value !== undefined && value !== null && value !== ''),
+      )
 
   const safeProduct = {
     ...product,

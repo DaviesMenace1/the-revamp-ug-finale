@@ -177,10 +177,8 @@ function EditorialHero() {
   return (
     <section className="relative h-[100svh] min-h-[640px] bg-background p-0 sm:h-[118svh] sm:min-h-[760px] lg:h-[138svh]" aria-label="The Revamp Ug introduction">
       <div className="sticky top-0 h-[100svh] min-h-[640px] overflow-hidden rounded-none border-0 bg-obsidian text-white shadow-2xl sm:h-[118svh] sm:min-h-[760px] lg:h-[138svh]">
-        <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" src={HERO_VIDEO} poster={HERO_POSTER} muted playsInline loop autoPlay preload="metadata" aria-label="Atmospheric architecture footage" />
-        <div className="absolute inset-0 bg-black/42" aria-hidden="true" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-black/45" aria-hidden="true" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/25" aria-hidden="true" />
+        <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover brightness-[1.2] contrast-[1.02] saturate-[1.08]" src={HERO_VIDEO} poster={HERO_POSTER} muted playsInline loop autoPlay preload="metadata" aria-label="Atmospheric architecture footage" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" aria-hidden="true" />
 
         <div className="absolute inset-x-0 top-0 mx-auto flex max-w-[1440px] items-center justify-between px-5 pt-28 sm:px-8 sm:pt-32 lg:px-12"><p className="text-[9px] uppercase tracking-[0.28em] text-white/65">The Revamp House · Uganda / East Africa</p><p className="hidden text-[9px] uppercase tracking-[0.28em] text-white/55 sm:block">0{currentSlide + 1} / 03</p></div>
 

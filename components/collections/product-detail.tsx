@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls, resolveProductVariantImage } from '@/lib/utils'
 import { ProductShareSheet } from '@/components/collections/product-share-sheet'
+import { getProductDimensions } from '@/lib/product-dimensions'
 
 const WISHLIST_STORAGE_KEY = 'revamp:wishlist'
 
@@ -68,10 +69,10 @@ export function ProductDetail({ product }: { product: any }) {
   const otherVariants = variants.filter((variant: any) => !['COLOR', 'FABRIC', 'MATERIAL'].includes(variant?.type))
   const accessories = Array.isArray(product?.addons) ? product.addons : []
 
-  const rawDims = product?.dimensions || {}
-  const initialWidth = typeof rawDims === 'object' ? rawDims.width || '' : ''
-  const initialHeight = typeof rawDims === 'object' ? rawDims.height || '' : ''
-  const initialDepth = typeof rawDims === 'object' ? rawDims.depth || '' : ''
+  const productDimensions = getProductDimensions(product)
+  const initialWidth = productDimensions.find((dimension) => dimension.key.toLowerCase() === 'width')?.value ?? ''
+  const initialHeight = productDimensions.find((dimension) => dimension.key.toLowerCase() === 'height')?.value ?? ''
+  const initialDepth = productDimensions.find((dimension) => dimension.key.toLowerCase() === 'depth')?.value ?? ''
 
   const [selectedImage, setSelectedImage] = useState<string>(rawImages[0] || DEFAULT_PRODUCT_IMAGE)
   const [selectedColor, setSelectedColor] = useState(colors[0] || null)
@@ -531,24 +532,18 @@ export function ProductDetail({ product }: { product: any }) {
             isOpen={openAccordion === 'specs'}
             onToggle={() => toggleAccordion('specs')}
           >
-            <div className="grid grid-cols-2 gap-3">
-              <div className="border border-border/60 p-2.5">
-                <span className="block text-[10px] uppercase text-muted-foreground">Overall Width</span>
-                <span className="font-medium text-foreground">{rawDims?.width ? `${rawDims.width} in` : 'Not supplied'}</span>
+            {productDimensions.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3">
+                {productDimensions.map(({ key, label, value, unit }) => (
+                  <div key={key} className="border border-border/60 p-2.5">
+                    <span className="block text-[10px] uppercase text-muted-foreground">{label}</span>
+                    <span className="font-medium text-foreground">{value}{unit ? ` ${unit}` : ''}</span>
+                  </div>
+                ))}
               </div>
-              <div className="border border-border/60 p-2.5">
-                <span className="block text-[10px] uppercase text-muted-foreground">Overall Height</span>
-                <span className="font-medium text-foreground">{rawDims?.height ? `${rawDims.height} in` : 'Not supplied'}</span>
-              </div>
-              <div className="border border-border/60 p-2.5">
-                <span className="block text-[10px] uppercase text-muted-foreground">Depth</span>
-                <span className="font-medium text-foreground">{rawDims?.depth ? `${rawDims.depth} in` : 'Not supplied'}</span>
-              </div>
-              <div className="border border-border/60 p-2.5">
-                <span className="block text-[10px] uppercase text-muted-foreground">Seat Height</span>
-                <span className="font-medium text-foreground">{rawDims?.seatHeight ? `${rawDims.seatHeight} in` : 'Not supplied'}</span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Product dimensions have not been supplied.</p>
+            )}
           </AccordionItem>
 
           <AccordionItem

@@ -6,9 +6,9 @@ import { Headphones, Mail, MessageCircle, Ticket, X } from '@/components/ui/luxu
 import { FaInstagram, FaWhatsapp } from '@/components/ui/luxury-icons'
 import { CustomSignIn, CustomSignUp } from '@/components/auth/custom-auth-forms'
 
-const WHATSAPP_URL = 'https://wa.me/256703861668?text=Hello%20The%20Revamp%20UG%2C%20I%20would%20like%20some%20help.'
+const WHATSAPP_URL = 'https://wa.me/256783476807?text=Hello%20The%20Revamp%20UG%2C%20I%20would%20like%20some%20help.'
 const INSTAGRAM_URL = 'https://www.instagram.com/therevamp_ug'
-const EMAIL_URL = 'mailto:support@therevampug.com?subject=Support%20from%20The%20Revamp%20UG'
+const EMAIL_URL = 'mailto:business@therevampug.com?subject=Support%20from%20The%20Revamp%20UG'
 
 type SupportCard = 'tickets' | 'messages' | null
 

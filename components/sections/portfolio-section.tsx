@@ -67,7 +67,7 @@ export function PortfolioSection() {
             <h2 className="font-serif text-4xl font-light leading-tight text-foreground md:text-5xl lg:text-6xl">Selected Work</h2>
             <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground">A current selection from our published portfolio.</p>
           </div>
-          <Link href="/portfolio" className="group inline-flex min-h-11 items-center gap-2 font-sans text-xs uppercase tracking-widest text-gold hover-line">View All Projects<ArrowRight size={14} className="transition-transform group-hover:translate-x-1" /></Link>
+          <Link href="/portfolio" className="group inline-flex min-h-12 w-full max-w-[17rem] items-center justify-center gap-3 rounded-full bg-foreground px-6 py-3.5 text-center font-sans text-[11px] font-medium uppercase tracking-[0.18em] text-background shadow-sm transition-all hover:-translate-y-0.5 hover:bg-gold hover:text-foreground hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 sm:w-auto">View All Projects<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></Link>
         </div>
 
         {loading ? (

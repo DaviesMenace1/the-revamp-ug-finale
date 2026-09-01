@@ -96,7 +96,7 @@ export function ServicesSection() {
           </div>
           <div className="max-w-md">
             <p className="text-sm leading-6 text-muted-foreground">Architecture and interiors, connected by one considered approach to how a space should look, feel and live.</p>
-            <Link href="/services" className="group mt-5 inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.16em] text-primary">Explore all services <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" /></Link>
+            <Link href="/services" className="group mt-6 inline-flex min-h-12 w-full max-w-[17rem] items-center justify-center gap-3 rounded-full bg-foreground px-6 py-3.5 text-center text-[11px] font-medium uppercase tracking-[0.18em] text-background shadow-sm transition-all hover:-translate-y-0.5 hover:bg-gold hover:text-foreground hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 sm:w-auto">Explore More Services<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></Link>
           </div>
         </div>
 

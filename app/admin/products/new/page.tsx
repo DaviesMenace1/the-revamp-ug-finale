@@ -114,6 +114,7 @@ type FormState = {
   description: string
   longDescription: string
   editorialHighlight: string
+  tags: string
 
   price: string
   originalPrice: string
@@ -160,6 +161,7 @@ const initialForm: FormState = {
   description: "",
   longDescription: "",
   editorialHighlight: "",
+  tags: "",
 
   price: "",
   originalPrice: "",
@@ -881,6 +883,17 @@ export default function NewProductPage() {
                   placeholder="A concise luxury/editorial statement about the piece."
                   className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-black"
                 />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium">Product Tags</label>
+                <input
+                  value={form.tags}
+                  onChange={(event) => updateField("tags", event.target.value)}
+                  placeholder="handmade, oak, living room, Ugandan design"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-black"
+                />
+                <p className="text-xs text-neutral-500">Comma-separated terms used for SEO, site search, and product feeds.</p>
               </div>
 
               <div className="space-y-2">

@@ -322,6 +322,7 @@ export async function getPublishedSearchData() {
       name: true,
       slug: true,
       description: true,
+      tags: true,
       ogImage: true,
     },
     with: {

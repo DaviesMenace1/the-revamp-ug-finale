@@ -6,6 +6,11 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://therevampug.com'
 const CONTENT_LANGUAGE = process.env.GOOGLE_MERCHANT_CONTENT_LANGUAGE || 'en'
 const FEED_LABEL = process.env.GOOGLE_MERCHANT_FEED_LABEL || process.env.GOOGLE_MERCHANT_TARGET_COUNTRY || 'UG'
 
+function normalizeTags(value: unknown): string[] {
+  const values = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : []
+  return values.flatMap((item) => String(item).split(',')).map((item) => item.trim()).filter(Boolean).filter((tag, index, list) => list.findIndex((candidate) => candidate.toLowerCase() === tag.toLowerCase()) === index).slice(0, 5)
+}
+
 const AVAILABILITY_MAP: Record<string, string> = {
   in_stock: 'IN_STOCK',
   out_of_stock: 'OUT_OF_STOCK',
@@ -33,6 +38,7 @@ export interface MappableProduct {
   canonicalUrl: string | null
   googleProductCategoryId: string | null
   googleProductCategoryPath: string | null
+  tags?: unknown
   productImages?: { url: string; isPrimary?: boolean | null }[]
 }
 
@@ -78,6 +84,11 @@ export function mapProductToMerchantResource(product: MappableProduct): ProductM
   if (product.googleProductCategoryId) productAttributes.googleProductCategory = product.googleProductCategoryId
   else if (product.googleProductCategoryPath) productAttributes.googleProductCategory = product.googleProductCategoryPath
   if (product.googleProductCategoryPath) productAttributes.productTypes = [product.googleProductCategoryPath]
+
+  const tags = normalizeTags(product.tags)
+  tags.forEach((tag, index) => {
+    productAttributes[`customLabel${index}`] = tag
+  })
 
   return {
     resource: {

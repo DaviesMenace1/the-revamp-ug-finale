@@ -90,6 +90,7 @@ export function generateProductSchema(...args: any) {
   let gtin: string | undefined
   let availability: string | undefined
   let condition = 'NewCondition'
+  let tags: string[] = []
 
   if (args.length === 1 && typeof args[0] === 'object') {
     const o = args[0]
@@ -105,6 +106,7 @@ export function generateProductSchema(...args: any) {
     gtin = o.gtin
     availability = o.availability
     condition = o.condition || condition
+    tags = Array.isArray(o.tags) ? o.tags.filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim().length > 0) : []
   } else {
     ;[name, description, price, currency, images, options] = args
   }
@@ -118,6 +120,7 @@ export function generateProductSchema(...args: any) {
     ...(sku ? { sku } : {}),
     ...(mpn ? { mpn } : {}),
     ...(gtin ? { gtin } : {}),
+    ...(tags.length > 0 ? { keywords: tags.join(', ') } : {}),
     brand: {
       '@type': 'Brand',
       name: brand,

@@ -35,6 +35,7 @@ type Product = {
   description?: string | null
   longDescription?: string | null
   editorialHighlight?: string | null
+  tags?: unknown
 
   price?: string | number | null
   originalPrice?: string | number | null
@@ -751,6 +752,16 @@ export default function EditProductPage() {
                   onChange={(e) => update("brand", e.target.value)}
                   className={inputClass}
                 />
+              </Field>
+
+              <Field label="Product Tags">
+                <input
+                  value={typeof product.tags === "string" ? product.tags : Array.isArray(product.tags) ? product.tags.join(", ") : ""}
+                  onChange={(e) => update("tags", e.target.value)}
+                  placeholder="handmade, oak, living room, Ugandan design"
+                  className={inputClass}
+                />
+                <p className="text-xs text-stone-500">Comma-separated terms used for SEO, site search, and product feeds.</p>
               </Field>
 
               <Field label="Manufacturer">

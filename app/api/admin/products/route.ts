@@ -8,6 +8,7 @@ import {
   subCategories,
 } from "@/lib/db"
 import { requireAdminApi } from "@/lib/auth/api"
+import { normalizeProductTags } from "@/lib/products/tags"
 
 const productSchema = z.object({
   name: z.string().min(1),
@@ -77,6 +78,8 @@ const productSchema = z.object({
 
   seoDescription:
     z.string().optional().nullable(),
+
+  tags: z.union([z.string(), z.array(z.string())]).optional().default([]),
 
   featured: z.boolean().default(false),
   isNewArrival: z.boolean().default(false),
@@ -319,6 +322,8 @@ export async function POST(
           seoDescription:
             data.seoDescription ||
             null,
+
+          tags: normalizeProductTags(data.tags),
 
           featured:
             data.featured,

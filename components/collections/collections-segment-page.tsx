@@ -11,6 +11,7 @@ import { ProductDetail, ProductReviews } from '@/components/collections/product-
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateBreadcrumbSchema, generateProductSchema } from '@/lib/seo/schema-generator'
 import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
+import { normalizeProductTags } from '@/lib/products/tags'
 
 // Database & Drizzle Imports
 import { db } from '@/lib/db/client'
@@ -113,7 +114,7 @@ export async function generateMetadata({
     title: `${product.name} | The Revamp UG`,
     description: product.description || product.name,
     alternates: { canonical },
-    keywords: [product.name, product.googleProductCategoryPath, product.googleProductCategoryId].filter(
+    keywords: [product.name, ...normalizeProductTags(product.tags), product.googleProductCategoryPath, product.googleProductCategoryId].filter(
       (value): value is string => Boolean(value),
     ),
     openGraph: {
@@ -245,6 +246,7 @@ export default async function ProductPage({
     gtin: product.gtin,
     availability,
     condition,
+    tags: normalizeProductTags(product.tags),
     options: { url: pageUrl, image: safeImages[0] },
   })
 

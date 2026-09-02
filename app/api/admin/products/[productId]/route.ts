@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { products } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { requireAdminApi } from "@/lib/auth/api"
+import { normalizeProductTags } from "@/lib/products/tags"
 
 export const dynamic = "force-dynamic"
 
@@ -47,6 +48,7 @@ type ProductUpdate = {
 
   seoTitle?: string | null
   seoDescription?: string | null
+  tags?: string[] | string | null
 
   featured?: boolean
   isNewArrival?: boolean
@@ -504,6 +506,10 @@ export async function PATCH(
     if (body.seoDescription !== undefined) {
       update.seoDescription =
         cleanString(body.seoDescription)
+    }
+
+    if (body.tags !== undefined) {
+      update.tags = normalizeProductTags(body.tags)
     }
 
     /*

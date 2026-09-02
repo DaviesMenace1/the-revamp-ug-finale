@@ -10,6 +10,7 @@ type ProductRecord = {
   name: string
   slug: string
   description: string | null
+  tags?: unknown
   ogImage?: string | null
   thumbnailImage?: string | null
   images?: unknown
@@ -97,7 +98,7 @@ export default function SearchClient({ data, loadError }: { data: SearchData; lo
         image: resolveProductImageUrls(item)[0],
         href: `/collections/${item.slug}`,
         type: 'Products' as const,
-        eyebrow: 'Object / Collection',
+        eyebrow: ["Object / Collection", ...stringList(item.tags)].join(' · '),
       })),
       ...data.projects.map((item) => ({
         id: item.id,

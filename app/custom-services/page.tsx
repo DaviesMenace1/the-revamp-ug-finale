@@ -82,8 +82,8 @@ function CustomServicesForm() {
   return (
     <>
       <SiteHeader />
-      {/*<main className="min-h-screen bg-background">
-        <section className="relative overflow-hidden border-b border-border bg-foreground py-16 text-background sm:py-20 lg:py-28">
+      <main className="min-h-screen bg-background">
+        {/*<section className="relative overflow-hidden border-b border-border bg-foreground py-16 text-background sm:py-20 lg:py-28">
           <div className="pointer-events-none absolute -right-24 -top-32 size-96 rounded-full bg-primary/20 blur-3xl" aria-hidden="true" />
           <div className="pointer-events-none absolute -bottom-40 left-1/3 size-96 rounded-full bg-accent/10 blur-3xl" aria-hidden="true" />
           <div className="relative mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-end lg:px-8">

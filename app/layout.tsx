@@ -11,6 +11,7 @@ import { CartProvider } from '@/lib/context/cart-context'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateOrganizationSchema, generateLocalBusinessSchema, generateWebSiteSchema } from '@/lib/seo/schema-generator'
 import WebMcpBootstrap from '@/components/agent/webmcp-bootstrap'
+import FloatingSupportUtility from '@/components/support/floating-support-utility'
 import ClerkRuntimeGuard from '@/components/auth/clerk-runtime-guard'
 import './globals.css'
 
@@ -159,6 +160,7 @@ export default function RootLayout({
               <CartProvider>
                 <ThemeProvider>{children}</ThemeProvider>
                 <NewsletterPopup />
+                <FloatingSupportUtility />
                 <OneSignalBootstrap />
                 <ConsentGatedAnalytics />
                 <WebMcpBootstrap />

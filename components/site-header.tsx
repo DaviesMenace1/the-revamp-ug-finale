@@ -44,6 +44,7 @@ const secondaryNavLinks: NavLink[] = [
   { label: 'Request a Quote', href: '/request-quote' },
   { label: 'Product Inquiry', href: '/product-inquiry' },
   { label: 'Contact', href: '/contact' },
+  { label: 'Support', href: '/support' },
 ]
 
 // Complete list rendered inside the Drawer

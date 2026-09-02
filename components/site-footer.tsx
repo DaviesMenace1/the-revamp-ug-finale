@@ -34,7 +34,7 @@ const footerLinks = {
     { label: 'Product Inquiry', href: '/product-inquiry' },
     { label: 'Client Portal', href: '/client' },
     { label: 'Track Project', href: '/client/projects' },
-    { label: 'Support', href: '/client/tickets' },
+    { label: 'Support', href: '/support' },
   ],
 }
 

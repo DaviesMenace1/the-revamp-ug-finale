@@ -1,10 +1,12 @@
 'use client'
 
 import {
+  ArrowUpRight as ArrowUpRightIcon,
   BarChart3 as BarChart3Icon,
   Bell as BellIcon,
   Briefcase as BriefcaseIcon,
   CalendarDays as CalendarDaysIcon,
+  CheckCircle2 as CheckCircle2Icon,
   ChevronDown as ChevronDownIcon,
   FileCog as FileCogIcon,
   FileText as FileTextIcon,
@@ -16,6 +18,7 @@ import {
   HelpCircle as HelpCircleIcon,
   LifeBuoy as LifeBuoyIcon,
   LogOut as LogOutIcon,
+  Mail as MailIcon,
   Menu as MenuIcon,
   Megaphone as MegaphoneIcon,
   MessageSquare as MessageSquareIcon,
@@ -23,6 +26,7 @@ import {
   PanelLeftClose as PanelLeftCloseIcon,
   PanelLeftOpen as PanelLeftOpenIcon,
   Package as PackageIcon,
+  Phone as PhoneIcon,
   Receipt as ReceiptIcon,
   Search as SearchIcon,
   Settings as SettingsIcon,
@@ -47,10 +51,12 @@ function luxury(Icon: LucideIcon) {
   }
 }
 
+export const LuxuryArrowUpRight = luxury(ArrowUpRightIcon)
 export const LuxuryBarChart3 = luxury(BarChart3Icon)
 export const LuxuryBell = luxury(BellIcon)
 export const LuxuryBriefcase = luxury(BriefcaseIcon)
 export const LuxuryCalendarDays = luxury(CalendarDaysIcon)
+export const LuxuryCheckCircle2 = luxury(CheckCircle2Icon)
 export const LuxuryChevronDown = luxury(ChevronDownIcon)
 export const LuxuryFileCog = luxury(FileCogIcon)
 export const LuxuryFileText = luxury(FileTextIcon)
@@ -62,6 +68,7 @@ export const LuxuryGrid3x3 = luxury(Grid3x3Icon)
 export const LuxuryHelpCircle = luxury(HelpCircleIcon)
 export const LuxuryLifeBuoy = luxury(LifeBuoyIcon)
 export const LuxuryLogOut = luxury(LogOutIcon)
+export const LuxuryMail = luxury(MailIcon)
 export const LuxuryMenu = luxury(MenuIcon)
 export const LuxuryMegaphone = luxury(MegaphoneIcon)
 export const LuxuryMessageSquare = luxury(MessageSquareIcon)
@@ -69,6 +76,7 @@ export const LuxuryMoon = luxury(MoonIcon)
 export const LuxuryPanelLeftClose = luxury(PanelLeftCloseIcon)
 export const LuxuryPanelLeftOpen = luxury(PanelLeftOpenIcon)
 export const LuxuryPackage = luxury(PackageIcon)
+export const LuxuryPhone = luxury(PhoneIcon)
 export const LuxuryReceipt = luxury(ReceiptIcon)
 export const LuxurySearch = luxury(SearchIcon)
 export const LuxurySettings = luxury(SettingsIcon)

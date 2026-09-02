@@ -37,6 +37,7 @@ const nextConfig = {
       '/journal',
       '/journal/:path*',
       '/contact',
+      '/support',
       '/faqs',
       '/custom-services',
       '/source-with-revamp',

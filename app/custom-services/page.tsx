@@ -82,7 +82,7 @@ function CustomServicesForm() {
   return (
     <>
       <SiteHeader />
-      <main className="min-h-screen bg-background">
+      {/*<main className="min-h-screen bg-background">
         <section className="relative overflow-hidden border-b border-border bg-foreground py-16 text-background sm:py-20 lg:py-28">
           <div className="pointer-events-none absolute -right-24 -top-32 size-96 rounded-full bg-primary/20 blur-3xl" aria-hidden="true" />
           <div className="pointer-events-none absolute -bottom-40 left-1/3 size-96 rounded-full bg-accent/10 blur-3xl" aria-hidden="true" />
@@ -95,7 +95,7 @@ function CustomServicesForm() {
             </div>
             <div className="rounded-2xl border border-background/15 bg-background/10 p-5 backdrop-blur sm:p-6"><p className="text-[10px] uppercase tracking-[0.2em] text-primary">A focused start</p><p className="mt-4 font-serif text-2xl font-light">Tell us what you are building, restoring, or reimagining.</p><div className="mt-5 grid grid-cols-2 gap-3 text-xs text-background/65"><span className="rounded-lg border border-background/10 px-3 py-3">Furniture</span><span className="rounded-lg border border-background/10 px-3 py-3">Upholstery</span><span className="rounded-lg border border-background/10 px-3 py-3">Cabinetry</span><span className="rounded-lg border border-background/10 px-3 py-3">Interior styling</span></div></div>
           </div>
-        </section>
+        </section>*/}
 
         {/* Form Section */}
         <section id="start-a-brief" className="scroll-mt-24 py-20 lg:py-32">

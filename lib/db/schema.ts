@@ -1713,8 +1713,11 @@ export const supportTickets = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     ticketNumber: varchar("ticket_number", { length: 50 }).notNull().unique(),
     userId: uuid("user_id")
-      .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    requesterType: varchar("requester_type", { length: 20 }).notNull().default("client"),
+    guestSessionId: text("guest_session_id"),
+    guestEmail: varchar("guest_email", { length: 255 }),
+    guestName: varchar("guest_name", { length: 255 }),
     subject: varchar("subject", { length: 255 }).notNull(),
     description: text("description"),
     category: varchar("category", { length: 100 }),
@@ -1727,6 +1730,7 @@ export const supportTickets = pgTable(
   },
   (table) => ({
     userIdx: index("support_tickets_user_idx").on(table.userId),
+    guestSessionIdx: index("support_tickets_guest_session_idx").on(table.guestSessionId),
     statusIdx: index("support_tickets_status_idx").on(table.status),
   }),
 )

@@ -12,6 +12,7 @@ interface PortalLayoutProps {
   children: ReactNode
   portalName: string
   portalSlug: 'client' | 'trade' | 'membership'
+  homeHref?: string
   navItems: Array<{ label: string; href: string }>
 }
 
@@ -19,6 +20,7 @@ export function PortalLayout({
   children,
   portalName,
   portalSlug,
+  homeHref,
   navItems,
 }: PortalLayoutProps) {
   const pathname = usePathname()
@@ -31,7 +33,7 @@ export function PortalLayout({
         <div className="mx-auto max-w-7xl px-3 sm:px-5 md:px-8">
           <div className="flex min-w-0 items-center justify-between gap-2 h-16 md:h-20">
             <div className="flex min-w-0 items-center gap-4">
-              <Link prefetch={false} href={`/${portalSlug}`} className="truncate font-serif text-lg font-light text-foreground sm:text-xl">
+              <Link prefetch={false} href={homeHref ?? `/${portalSlug}`} className="truncate font-serif text-lg font-light text-foreground sm:text-xl">
                 {portalName}
               </Link>
             </div>

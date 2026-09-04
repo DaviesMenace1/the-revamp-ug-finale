@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useUser } from '@clerk/nextjs'
 import { Headphones, Mail, MessageCircle, Ticket, X } from '@/components/ui/luxury-icons'
 import { FaInstagram, FaWhatsapp } from '@/components/ui/luxury-icons'
 import { CustomSignIn, CustomSignUp } from '@/components/auth/custom-auth-forms'
@@ -21,6 +22,7 @@ type FloatingActionProps = {
 }
 
 export function FloatingUtilities() {
+  const { isSignedIn } = useUser()
   const [supportOpen, setSupportOpen] = useState(false)
   const [supportCard, setSupportCard] = useState<SupportCard>(null)
   const [authOpen, setAuthOpen] = useState(false)
@@ -75,7 +77,7 @@ export function FloatingUtilities() {
       {supportOpen && <button type="button" aria-label="Close support overlay" className="fixed inset-0 z-[60] cursor-default bg-background/45 backdrop-blur-sm" onClick={() => { setSupportOpen(false); setSupportCard(null) }} />}
 
       {supportOpen && <div className="fixed bottom-[5.75rem] right-4 z-[65] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-3 sm:right-6" role="dialog" aria-label="Contact and support options">
-        {supportCard && <SupportCardPanel type={supportCard} href={supportCard === 'tickets' ? ticketHref : messageHref} onClose={() => setSupportCard(null)} />}
+        {supportCard && <SupportCardPanel type={supportCard} href={supportCard === 'tickets' ? ticketHref : messageHref} isSignedIn={Boolean(isSignedIn)} onClose={() => setSupportCard(null)} onNavigate={() => { setSupportOpen(false); setSupportCard(null) }} />}
         <div className="flex flex-col gap-2">
           <FloatingAction label="WhatsApp" href={WHATSAPP_URL} icon={<FaWhatsapp className="size-5" aria-hidden="true" />} tone="whatsapp" />
           <FloatingAction label="Instagram" href={INSTAGRAM_URL} icon={<FaInstagram className="size-5" aria-hidden="true" />} tone="instagram" />
@@ -99,7 +101,7 @@ function FloatingAction({ label, href, onClick, icon, tone = 'default' }: Floati
   return <button type="button" onClick={onClick} className={className}>{content}</button>
 }
 
-function SupportCardPanel({ type, href, onClose }: { type: Exclude<SupportCard, null>; href: string; onClose: () => void }) {
+function SupportCardPanel({ type, href, isSignedIn, onClose, onNavigate }: { type: Exclude<SupportCard, null>; href: string; isSignedIn: boolean; onClose: () => void; onNavigate: () => void }) {
   const isTickets = type === 'tickets'
-  return <section className="animate-in slide-in-from-bottom-2 rounded-2xl border border-border/80 bg-background/95 p-5 text-foreground shadow-2xl backdrop-blur-xl duration-200" aria-labelledby={`floating-${type}-title`}><div className="flex items-start justify-between gap-4"><div><p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">The Revamp support desk</p><h2 id={`floating-${type}-title`} className="mt-2 font-serif text-2xl font-light">{isTickets ? 'Support tickets' : 'Client messages'}</h2></div><button type="button" onClick={onClose} aria-label="Close support card" className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-foreground"><X className="size-4" aria-hidden="true" /></button></div><p className="mt-3 text-sm leading-6 text-muted-foreground">{isTickets ? 'Start a public support request for an order, product, project or account question. Signed-in clients can still access private ticket history.' : 'Continue a private conversation with the studio from wherever you are.'}</p><Link href={href} className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-foreground px-4 text-xs font-semibold uppercase tracking-[0.14em] text-background transition-colors hover:bg-primary">{isTickets ? 'Open public support desk' : 'Open client messages'} <span aria-hidden="true">→</span></Link></section>
+  return <section className="animate-in slide-in-from-bottom-2 rounded-2xl border border-border/80 bg-background/95 p-5 text-foreground shadow-2xl backdrop-blur-xl duration-200" aria-labelledby={`floating-${type}-title`}><div className="flex items-start justify-between gap-4"><div><p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">{isSignedIn ? 'Client care' : 'Guest support'}</p><h2 id={`floating-${type}-title`} className="mt-2 font-serif text-2xl font-light">{isTickets ? 'Support tickets' : 'Client messages'}</h2></div><button type="button" onClick={onClose} aria-label="Close support card" className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-foreground"><X className="size-4" aria-hidden="true" /></button></div><p className="mt-3 text-sm leading-6 text-muted-foreground">{isTickets ? (isSignedIn ? 'Keep a clear record of requests, resolutions and the details our team is already holding for you.' : 'Start a public support request for an order, product, project or account question. It will remain tied to this browser and can move into your account after sign-in.') : 'Continue a private conversation with the studio from wherever you are.'}</p><Link href={href} onClick={onNavigate} className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-foreground px-4 text-xs font-semibold uppercase tracking-[0.14em] text-background transition-colors hover:bg-primary">{isTickets ? (isSignedIn ? 'Open client tickets' : 'Open guest tickets') : 'Open client messages'} <span aria-hidden="true">→</span></Link></section>
 }

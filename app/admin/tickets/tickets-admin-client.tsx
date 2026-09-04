@@ -38,6 +38,9 @@ type Ticket = {
   clientEmail: string | null
   clientFirstName: string | null
   clientLastName: string | null
+  requesterType?: 'guest' | 'client' | string | null
+  guestEmail?: string | null
+  guestName?: string | null
 }
 
 type TicketMessage = {
@@ -154,8 +157,9 @@ export default function TicketsAdminClient({ initialTickets = [] }: { initialTic
                 <p className="text-sm font-medium text-foreground">{ticket.subject}</p>
                 <p className="text-xs text-muted-foreground">
                   {ticket.ticketNumber} ·{' '}
-                  {[ticket.clientFirstName, ticket.clientLastName].filter(Boolean).join(' ') || ticket.clientEmail}
+                  {ticket.requesterType === 'guest' ? 'Guest' : [ticket.clientFirstName, ticket.clientLastName].filter(Boolean).join(' ') || ticket.clientEmail || 'Client'}
                 </p>
+                <span className="mt-1 inline-flex rounded-full border border-border/60 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">{ticket.requesterType === 'guest' ? 'Guest' : 'Client'}</span>
                 <p className={`text-xs mt-1 ${PRIORITY_COLORS[ticket.priority]}`}>{ticket.priority} priority</p>
               </div>
               <span className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_COLORS[ticket.status]}`}>
@@ -183,8 +187,8 @@ export default function TicketsAdminClient({ initialTickets = [] }: { initialTic
               <div className="border-b border-border/20 p-4">
                 <p className="text-sm font-medium text-foreground">{selected.subject}</p>
                 <p className="text-xs text-muted-foreground">
-                  {[selected.clientFirstName, selected.clientLastName].filter(Boolean).join(' ')} ·{' '}
-                  {selected.clientEmail}
+                  {selected.requesterType === 'guest' ? selected.guestName || 'Guest' : [selected.clientFirstName, selected.clientLastName].filter(Boolean).join(' ') || 'Client'} ·{' '}
+                  {selected.requesterType === 'guest' ? selected.guestEmail || 'No email supplied' : selected.clientEmail || 'No email supplied'}
                 </p>
                 <div className="mt-2 flex gap-2">
                   <select

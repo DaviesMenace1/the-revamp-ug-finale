@@ -1,153 +1,27 @@
 import Link from 'next/link'
-import { Separator } from '@/components/ui/separator'
-import { NewsletterSignup } from '@/components/newsletter-signup'
-import type { IconType } from '@/components/ui/luxury-icons'
-import { FaInstagram, FaSnapchatGhost, FaLinkedinIn } from '@/components/ui/luxury-icons'
-import { SiTiktok } from '@/components/ui/luxury-icons'
-import { CookiePreferencesTrigger } from '@/components/privacy/cookie-consent-provider'
+import { MessageCircle } from '@/components/ui/luxury-icons'
 import { siteContact } from '@/lib/site-config'
 
-const footerLinks = {
-  Services: [
-    { label: 'Interior Design', href: '/services' },
-    { label: 'Architecture', href: '/services/architecture' },
-    { label: 'Source With Revamp', href: '/source-with-revamp' },
-    { label: 'Custom Services', href: '/custom-services' },
-  ],
-  Collections: [
-    { label: 'Living Spaces', href: '/collections' },
-    { label: 'Bedroom', href: '/collections' },
-    { label: 'Dining', href: '/collections' },
-    { label: 'Lighting', href: '/collections' },
-  ],
-  Studio: [
-    { label: 'About Us', href: '/about' },
-    { label: 'Our Work', href: '/portfolio' },
-    { label: 'Journal', href: '/journal' },
-    { label: 'Contact', href: '/contact' },
-    { label: 'Trade Program', href: '/trade-program' },
-    { label: 'Membership', href: '/membership-program' },
-  ],
-  Client: [
-    { label: 'Book Consultation', href: siteContact.bookingPath },
-    { label: 'Request a Quote', href: '/request-quote' },
-    { label: 'Product Inquiry', href: '/product-inquiry' },
-    { label: 'Client Portal', href: '/client' },
-    { label: 'Track Project', href: '/client/projects' },
-    { label: 'Support', href: '/client/tickets' },
-  ],
-}
-
-const socialLinks: { name: string; href: string; Icon: IconType }[] = [
-  { name: 'Instagram', href: 'https://www.instagram.com/therevamp_ug', Icon: FaInstagram },
-  { name: 'TikTok', href: 'https://www.tiktok.com/@revamp_ree', Icon: SiTiktok },
-  { name: 'Snapchat', href: 'https://www.snapchat.com/add/therevamp_ug', Icon: FaSnapchatGhost },
-  { name: 'LinkedIn', href: 'https://www.linkedin.com/company/therevampug', Icon: FaLinkedinIn },
-]
-
 export function SiteFooter() {
+  const whatsapp = 'https://wa.me/256703861668'
   return (
-    <footer className="bg-foreground text-background">
-      {/* Main footer */}
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-20">
-        <NewsletterSignup />
-        <Separator className="my-6" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12">
-          {/* Brand column */}
-          <div className="lg:col-span-2">
-            <Link href="/" className="font-serif text-2xl tracking-widest uppercase text-background">
-              The Revamp<span className="text-gold ml-1">UG</span>
-            </Link>
-            <p className="font-sans text-background/50 text-sm leading-relaxed mt-4 max-w-xs">
-              Bespoke interior design, architecture, and global sourcing | transforming spaces across East Africa and beyond.
-            </p>
-
-            {/* Social links */}
-            <div className="flex items-center gap-4 mt-6">
-              {socialLinks.map(({ name, href, Icon }) => (
-                <a
-                  key={name}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={name}
-                  className="text-background/30 hover:text-gold transition-colors p-1"
-                >
-                  <Icon className="w-5 h-5" aria-hidden="true" />
-                  <span className="sr-only">{name}</span>
-                </a>
-              ))}
-            </div>
-
-            {/* Contact */}
-            <div className="mt-8 space-y-2">
-              <a
-                href={siteContact.phoneHref}
-                className="block font-sans text-sm text-background/60 hover:text-gold transition-colors"
-              >
-                {siteContact.phoneDisplay}
-              </a>
-              <a
-                href="mailto:support@therevampug.com"
-                className="block font-sans text-sm text-background/60 hover:text-gold transition-colors"
-              >
-                {siteContact.supportEmail}
-              </a>
-              <p className="font-sans text-sm text-background/40 mt-2">
-                {siteContact.location}
-              </p>
-            </div>
-          </div>
-
-          {/* Nav columns */}
-          {Object.entries(footerLinks).map(([group, links]) => (
-            <div key={group}>
-              <h4 className="font-sans text-[10px] tracking-[0.25em] uppercase text-gold mb-5">
-                {group}
-              </h4>
-              <ul className="space-y-3">
-                {links.map((link) => (
-                  <li key={`${group}-${link.href}-${link.label}`}>
-                    <Link
-                      href={link.href}
-                      className="font-sans text-sm text-background/50 hover:text-background transition-colors"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+    <footer className="border-t border-border bg-white px-6 py-16 lg:px-12 lg:py-24">
+      <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[1.2fr_1fr_1fr] md:gap-16">
+        <div>
+          <p className="font-serif text-4xl leading-none md:text-5xl">Define your space.</p>
+          <p className="mt-6 max-w-sm text-sm leading-relaxed text-muted-foreground">Schedule a private viewing, request our current catalog, or begin a conversation about your residence.</p>
+          <Link href="/contact" className="mt-8 inline-flex rounded-full bg-obsidian px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-canvas transition-colors hover:bg-gilded hover:text-obsidian">Private Consultation</Link>
+        </div>
+        <div className="space-y-6 text-sm">
+          <div><p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gilded">Studio</p><p className="mt-3 whitespace-pre-line leading-relaxed">Plot 185, Kyanja{`\n`}Kampala, Uganda{`\n`}By appointment</p></div>
+          <a href={`mailto:${siteContact.primaryEmail || 'therevampug@gmail.com'}`} className="block hover:text-gilded">{siteContact.primaryEmail || 'therevampug@gmail.com'}</a>
+        </div>
+        <div className="space-y-6 text-sm">
+          <div><p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gilded">Contact</p><a href={siteContact.phoneHref} className="mt-3 block hover:text-gilded">{siteContact.phoneDisplay || '+256 703 861 668'}</a><a href={whatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 hover:text-gilded"><MessageCircle className="size-4" />Message on WhatsApp</a></div>
+          <div className="flex flex-wrap gap-5 text-[10px] uppercase tracking-[0.2em]"><a href="https://www.instagram.com/therevamp_ug" target="_blank" rel="noreferrer" className="hover:text-gilded">Instagram</a><Link href="/about" className="hover:text-gilded">The Studio</Link><Link href="/architecture" className="hover:text-gilded">Architecture</Link><Link href="/journal" className="hover:text-gilded">Archives</Link></div>
         </div>
       </div>
-
-      <Separator className="bg-background/10" />
-
-      {/* Bottom bar */}
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
-        <p className="font-sans text-xs text-background/30">
-          &copy; {new Date().getFullYear()} The Revamp Ug. All rights reserved.
-        </p>
-        <div className="flex items-center gap-6">
-          {[
-            { label: 'FAQs', href: '/faqs'},
-            { label: 'Privacy Policy', href: '/legal/privacy' },
-            { label: 'Terms of Service', href: '/legal/terms' },
-            { label: 'Cookie Policy', href: '/legal/cookies' },
-          ].map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="font-sans text-xs text-background/30 hover:text-background/60 transition-colors"
-            >
-              {link.label}
-            </Link>
-          ))}
-          <CookiePreferencesTrigger className="font-sans text-xs text-background/30 hover:text-background/60 transition-colors" />
-        </div>
-      </div>
+      <div className="mx-auto mt-16 flex max-w-7xl flex-col gap-3 border-t border-border pt-5 text-[10px] uppercase tracking-[0.16em] text-muted-foreground sm:flex-row sm:items-center sm:justify-between"><span>© {new Date().getFullYear()} The Revamp UG</span><div className="flex gap-5"><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/faqs">FAQs</Link></div></div>
     </footer>
   )
 }
-

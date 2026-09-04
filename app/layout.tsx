@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
-import { Cormorant_Garamond, Montserrat } from 'next/font/google'
+import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeProvider } from '@/lib/theme-provider'
 import { NewsletterPopup } from '@/components/newsletter-popup'
@@ -23,7 +23,7 @@ const cormorant = Cormorant_Garamond({
   display: 'swap',
 })
 
-const montserrat = Montserrat({
+const instrument = Instrument_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
   variable: '--font-sans',
@@ -120,7 +120,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${montserrat.variable} bg-background`}>
+  <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${instrument.variable} bg-background`}>
       <head>
         {/* Theme Script */}
         <script
@@ -175,4 +175,3 @@ export default function RootLayout({
     </html>
   )
 }
-

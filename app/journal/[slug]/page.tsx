@@ -1,118 +1,14 @@
-import { SiteHeader } from '@/components/site-header'
-import { SiteFooter } from '@/components/site-footer'
+import type { Metadata } from 'next'
 import Image from 'next/image'
-import { ArrowRight } from '@/components/ui/luxury-icons'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import type { Metadata } from 'next'
-import { SchemaScript } from '@/components/seo/schema-script'
-import { generateArticleSchema } from '@/lib/seo/schema-generator'
-import { journalTemplateFromRecord } from '@/lib/content/section-templates'
+import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { articles } from '@/lib/db/schema'
-import { eq, ne, and, desc } from 'drizzle-orm'
+import { SiteHeader } from '@/components/site-header'
+import { SiteFooter } from '@/components/site-footer'
 
-export const dynamic = 'force-dynamic'
+async function getArticle(slug: string) { const rows = await db.select().from(articles).where(eq(articles.slug, slug)).limit(1); return rows[0] }
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> { const { slug } = await params; const article = await getArticle(slug); return { title: article ? `${article.slug} — Journal` : 'Journal — The Revamp UG', description: article?.excerpt || 'An entry from The Revamp UG Journal.' } }
 
-const DEFAULT_IMAGE = 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg'
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
-
-interface ArticlePageProps {
-  params: Promise<{ slug: string }>
-}
-
-function getArticleImages(value: unknown): string[] {
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (!trimmed) return []
-    let candidate: unknown = trimmed
-    for (let i = 0; i < 2; i += 1) {
-      if (typeof candidate !== 'string') break
-      try { candidate = JSON.parse(candidate) } catch { break }
-    }
-    if (Array.isArray(candidate)) return candidate.filter((item): item is string => typeof item === 'string' && /^https?:\/\//i.test(item.trim())).map((item) => item.trim())
-    return typeof candidate === 'string' && /^https?:\/\//i.test(candidate) ? [candidate] : []
-  }
-  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string' && /^https?:\/\//i.test(item.trim())).map((item) => item.trim())
-  return []
-}
-
-export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
-  const { slug } = await params
-  const article = await db.query.articles.findFirst({ where: eq(articles.slug, slug) })
-  if (!article || article.status !== 'published') return { title: 'Article Not Found', description: 'This article could not be found' }
-  const description = (article.content || article.excerpt || '').substring(0, 160)
-  const canonical = `${SITE_URL}/journal/${encodeURIComponent(article.slug)}`
-  const image = getArticleImages(article.featuredImage)[0]
-  return {
-    title: article.title,
-    alternates: { canonical },
-    description,
-    openGraph: { title: article.title, description, type: 'article', url: canonical, publishedTime: (article.publishedAt || article.createdAt).toISOString(), authors: article.author ? [article.author] : [], tags: article.category ? [article.category] : [], images: image ? [{ url: image }] : [] },
-    twitter: { card: 'summary_large_image', title: article.title, description, images: image ? [image] : [] },
-  }
-}
-
-export default async function ArticlePage({ params }: ArticlePageProps) {
-  const { slug } = await params
-  const article = await db.query.articles.findFirst({ where: eq(articles.slug, slug) })
-  if (!article || article.status !== 'published') notFound()
-
-  const sameCategory = article.category
-    ? await db.select().from(articles).where(and(eq(articles.status, 'published'), eq(articles.category, article.category), ne(articles.id, article.id))).orderBy(desc(articles.publishedAt)).limit(2)
-    : []
-
-  let relatedArticles = sameCategory
-  if (relatedArticles.length < 2) {
-    const fallback = await db.select().from(articles).where(and(eq(articles.status, 'published'), ne(articles.id, article.id))).orderBy(desc(articles.publishedAt)).limit(2)
-    const existingIds = new Set(relatedArticles.map((a) => a.id))
-    relatedArticles = [...relatedArticles, ...fallback.filter((a) => !existingIds.has(a.id))].slice(0, 2)
-  }
-
-  const readTime = (content: string | null) => `${Math.max(1, Math.round((content || '').split(/\s+/).filter(Boolean).length / 200))} min read`
-  const publishedDate = article.publishedAt || article.createdAt
-  const articleImages = getArticleImages(article.featuredImage)
-  const heroImage = articleImages[0] || DEFAULT_IMAGE
-  const articleSchema = generateArticleSchema({ headline: article.title, description: (article.content || article.excerpt || '').substring(0, 160), image: heroImage, datePublished: publishedDate.toISOString(), author: article.author || 'The Revamp UG', category: article.category || 'Journal', options: { url: `${SITE_URL}/journal/${encodeURIComponent(article.slug)}`, datePublished: publishedDate.toISOString() } })
-  const contentParagraphs = (article.content || '').replace(/\\n/g, '\n').split(/\n\s*\n/).map((block) => block.trim()).filter(Boolean)
-  const galleryImages = getArticleImages(article.gallery)
-  const journalTemplate = journalTemplateFromRecord(article as unknown as Record<string, unknown>)
-  const storySections = journalTemplate.sections
-
-  return (
-    <>
-      <SchemaScript schema={articleSchema} />
-      <SiteHeader />
-      <main className="min-h-screen bg-background">
-        <section className="border-b border-border/20 py-16 md:py-20">
-          <div className="mx-auto max-w-4xl space-y-6 px-6 md:px-8">
-            <Link href="/journal" className="inline-flex items-center gap-2 text-sm font-light text-muted-foreground transition-colors hover:text-foreground">← Back to Journal</Link>
-            <div className="space-y-4">
-              <p className="uppercase text-xs font-medium tracking-[0.18em] text-primary/80">{article.category || 'Journal'}</p>
-              <h1 className="font-serif text-5xl font-light leading-[1.03] text-foreground md:text-7xl">{article.title}</h1>
-            </div>
-            <div className="flex flex-wrap gap-4 border-t border-border/20 pt-6 text-sm font-light text-muted-foreground"><span>{article.author || 'The Revamp UG'}</span><span>•</span><span>{publishedDate.toLocaleDateString('en-UG', { month: 'long', day: 'numeric', year: 'numeric' })}</span><span>•</span><span>{readTime(article.content)}</span></div>
-          </div>
-        </section>
-
-        <section className="border-b border-border/20">
-          <div className="mx-auto max-w-6xl px-6 py-10 md:px-8 md:py-14">
-            <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted"><Image src={heroImage} alt={article.title} fill className="object-cover" priority sizes="(max-width: 768px) 100vw, 1152px" /></div>
-            {articleImages.length > 1 && <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3">{articleImages.slice(1, 4).map((image, index) => <div key={`${image}-${index}`} className="relative aspect-[4/3] overflow-hidden bg-muted"><Image src={image} alt={`${article.title} image ${index + 2}`} fill className="object-cover" sizes="(max-width: 768px) 50vw, 33vw" /></div>)}</div>}
-          </div>
-        </section>
-
-        <section className="py-16 md:py-24">
-          <div className="mx-auto max-w-3xl px-6 md:px-8">{journalTemplate.introduction && <p className="mb-10 font-serif text-2xl leading-8 text-foreground md:text-3xl">{journalTemplate.introduction}</p>}<article className="space-y-8 text-[1.08rem] leading-8 text-muted-foreground md:text-[1.15rem] md:leading-9">{contentParagraphs.map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>)}</article></div>
-        </section>
-
-        {storySections.length > 0 && <section className="border-y border-border/20 py-16 md:py-24"><div className="mx-auto max-w-5xl space-y-12 px-6 md:px-8">{storySections.map((section, index) => section.kind === 'quote' ? <blockquote key={`${section.id}-${index}`} className="border-y border-border/50 py-8 font-serif text-3xl leading-tight text-foreground">“{section.quote || section.body}”{section.attribution && <cite className="mt-3 block font-sans text-xs not-font-serif uppercase tracking-[0.16em] text-primary">{section.attribution}</cite>}</blockquote> : <article key={`${section.id}-${index}`} className={`grid items-center gap-8 ${section.image ? 'md:grid-cols-2' : ''}`}><div className={section.image && index % 2 === 1 ? 'md:order-2' : ''}><p className="text-xs uppercase tracking-[0.18em] text-primary/80">{section.eyebrow || 'Editor’s note'}</p>{section.title && <h3 className="mt-3 font-serif text-3xl font-light text-foreground">{section.title}</h3>}{section.body && <p className="mt-4 whitespace-pre-line text-[1.05rem] leading-8 text-muted-foreground">{section.body}</p>}</div>{section.image && <div className={index % 2 === 1 ? 'md:order-1' : ''}><Image src={section.image} alt={section.title || article.title} width={1200} height={900} className="aspect-[4/3] w-full object-cover" />{section.caption && <p className="mt-2 text-xs text-muted-foreground">{section.caption}</p>}</div>}</article>)}</div></section>}
-
-        {galleryImages.length > 0 && <section className="border-b border-border/20 py-16 md:py-24"><div className="mx-auto max-w-6xl space-y-8 px-6 md:px-8"><div><h2 className="font-serif text-4xl font-light text-foreground md:text-5xl">Gallery</h2></div><div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">{galleryImages.map((image, index) => <div key={`${image}-${index}`} className="relative aspect-[4/3] overflow-hidden bg-muted"><Image src={image} alt={`${article.title} gallery image ${index + 1}`} fill className="object-cover" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" /></div>)}</div></div></section>}
-
-        {relatedArticles.length > 0 && <section className="border-t border-border/20 bg-muted/5 py-20 md:py-24"><div className="mx-auto max-w-7xl px-6 md:px-8"><div className="mb-12 flex items-end justify-between gap-6"><h2 className="font-serif text-4xl font-light text-foreground md:text-5xl">Continue Reading</h2><Link href="/journal" className="hidden items-center gap-2 text-xs uppercase tracking-[0.16em] text-primary sm:inline-flex">All articles <ArrowRight className="size-4" /></Link></div><div className="grid gap-8 md:grid-cols-2">{relatedArticles.map((related) => { const relatedImage = getArticleImages(related.featuredImage)[0] || DEFAULT_IMAGE; return <Link key={related.slug} href={`/journal/${related.slug}`} className="group"><article className="space-y-4"><div className="relative aspect-[16/9] overflow-hidden bg-muted"><Image src={relatedImage} alt={related.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width: 768px) 100vw, 50vw" /></div><div className="flex items-center justify-between text-xs"><span className="uppercase font-medium tracking-[0.16em] text-primary/80">{related.category || 'Journal'}</span><span className="font-light text-muted-foreground">{readTime(related.content)}</span></div><h3 className="font-serif text-2xl font-light leading-snug text-foreground transition-colors group-hover:text-primary">{related.title}</h3></article></Link> })}</div></div></section>}
-      </main>
-      <SiteFooter />
-    </>
-  )
-}
+export default async function JournalDetail({ params }: { params: Promise<{ slug: string }> }) { const { slug } = await params; const article = await getArticle(slug); if (!article || article.status !== 'published') notFound(); return <><SiteHeader /><main className="bg-canvas px-6 py-16 lg:px-12"><article className="mx-auto max-w-3xl"><Link href="/journal" className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-gilded">← Journal</Link><p className="mt-12 text-[10px] uppercase tracking-[0.2em] text-gilded">{article.category || 'Journal'}{article.author ? ` · ${article.author}` : ''}</p><h1 className="mt-4 font-serif text-4xl font-medium leading-tight md:text-5xl">{article.title}</h1>{article.excerpt && <p className="mt-6 text-lg leading-relaxed text-muted-foreground">{article.excerpt}</p>}{article.featuredImage && <div className="mt-10 overflow-hidden rounded-md"><Image src={article.featuredImage} alt={article.title} width={1200} height={900} className="w-full object-cover" /></div>}<div className="mt-10 whitespace-pre-wrap text-[15px] leading-relaxed text-foreground">{article.content}</div></article></main><SiteFooter /></> }

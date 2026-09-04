@@ -8,14 +8,15 @@
 
 @theme inline {
   /* Brand palette */
-  --color-gold:            #C8A66A;   /* #C9A84C – gilded gold */
-  --color-gold-light:      #D4AF8A;   /* soft gold tint */
-  --color-gold-dark:       #8B7D6B;   /* deep gold */
-  --color-obsidian:        #0D0D0D;        /* #0A0A0A */
+  --color-gold:            oklch(0.66 0.062 75);
+  --color-gold-light:      oklch(0.72 0.05 78);
+  --color-gold-dark:       oklch(0.45 0.008 70);
+  --color-gilded:          oklch(0.66 0.062 75);
+  --color-obsidian:        oklch(0.196 0.004 60);
   --color-charcoal:        #1A1A1A;        /* #1C1C1C */
-  --color-canvas:          #F5F1EB;   /* #F5F0E8 warm ivory */
+  --color-canvas:          oklch(0.984 0.003 80);
   --color-canvas-dark:     #E8E1D6;  /* slightly deeper ivory */
-  --color-ivory:           #F5F1EB;   /* readable light text on dark editorial surfaces */
+  --color-ivory:           oklch(0.984 0.003 80);
 
   /* Semantic tokens (light) */
   --color-background:      var(--background);
@@ -65,7 +66,7 @@
 
   /* Typography */
   --font-serif: 'Cormorant Garamond', Georgia, serif;
-  --font-sans:  'Montserrat', system-ui, sans-serif;
+  --font-sans:  'Instrument Sans', system-ui, sans-serif;
 
   /* Spacing and elevation extras */
   --spacing-section: 7rem;
@@ -76,24 +77,24 @@
 /* ─── Light mode ───────────────────────────────────────────────────────── */
 :root {
   color-scheme: light;
-  --background:            #F5F1EB;   /* warm ivory canvas */
-  --foreground:            #0D0D0D;        /* obsidian */
+  --background:            oklch(0.984 0.003 80);
+  --foreground:            oklch(0.196 0.004 60);
   --card:                  #FFFFFF;
   --card-foreground:       #0D0D0D;
   --popover:               #FFFFFF;
   --popover-foreground:    #0D0D0D;
-  --primary:               #0D0D0D;        /* obsidian buttons */
-  --primary-foreground:    #F5F1EB;    /* ivory on obsidian */
+  --primary:               oklch(0.196 0.004 60);
+  --primary-foreground:    oklch(0.984 0.003 80);
   --secondary:             #E8E1D6;
   --secondary-foreground:  #0D0D0D;
   --muted:                 #E8E1D6;
   --muted-foreground:      #8B7D6B;
-  --accent:                #C8A66A;    /* gold as accent */
+  --accent:                oklch(0.66 0.062 75);
   --accent-foreground:     #0D0D0D;
   --destructive:           oklch(0.577 0.245 27.325);
-  --border:                #E8E1D6;
+  --border:                oklch(0.196 0.004 60 / 8%);
   --input:                 #FFFFFF;
-  --ring:                  #C8A66A;    /* gold ring */
+  --ring:                  oklch(0.66 0.062 75);
   --radius:                0.5rem;              /* restrained editorial corners */
 
   --chart-1: oklch(0.72 0.10 78);

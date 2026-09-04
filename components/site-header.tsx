@@ -21,27 +21,20 @@ export function SiteHeader() {
   const cart = useCart()
   const cartCount = cart?.cartCount ?? 0
   const active = (href: string) => href === '/about' ? pathname.startsWith('/about') : pathname === href || pathname.startsWith(`${href}/`)
+  const close = () => setOpen(false)
 
-  return (
-    <header className="sticky top-0 z-50 border-b border-obsidian/10 bg-canvas/90 px-6 py-4 backdrop-blur-xl lg:px-12">
-      <div className="mx-auto flex max-w-7xl items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-serif text-2xl font-medium tracking-tighter">
-          The Revamp <span className="font-normal italic text-gilded">UG</span>
-        </Link>
-        <nav className="hidden items-center gap-10 text-[11px] font-medium uppercase tracking-[0.2em] md:flex" aria-label="Main navigation">
-          {nav.map((item) => <Link key={item.href} href={item.href} className={cn('transition-colors hover:text-gilded', active(item.href) && 'text-gilded')}>{item.label}</Link>)}
-          <Link href="/contact" className="inline-flex items-center gap-2 rounded-full bg-obsidian py-2 pl-3 pr-4 text-canvas transition-colors hover:bg-obsidian/90"><MessageCircle className="size-4" aria-hidden="true" />Inquire</Link>
-          <Link href="/search" aria-label="Search" className="p-1 text-muted-foreground hover:text-gilded"><Search className="size-4" /></Link>
-          <Link href="/cart" aria-label={`Cart${cartCount ? `, ${cartCount} items` : ''}`} className="relative p-1 text-muted-foreground hover:text-gilded"><ShoppingBag className="size-4" />{cartCount > 0 && <span className="absolute -right-1 -top-1 text-[9px] text-gilded">{cartCount}</span>}</Link>
-          <button type="button" aria-label="Account access" onClick={() => window.dispatchEvent(new Event('revamp:open-auth'))} className="p-1 text-muted-foreground hover:text-gilded"><User className="size-4" /></button>
-        </nav>
-        <button type="button" aria-label={open ? 'Close menu' : 'Toggle menu'} onClick={() => setOpen((value) => !value)} className="p-2 md:hidden">{open ? <X className="size-5" /> : <Menu className="size-5" />}</button>
-      </div>
-      {open && <div className="mt-4 flex flex-col gap-4 border-t border-border pt-4 text-[11px] font-medium uppercase tracking-[0.2em] md:hidden">
-        <Link href="/" onClick={() => setOpen(false)} className="hover:text-gilded">Home</Link>
-        {nav.map((item) => <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={cn('hover:text-gilded', active(item.href) && 'text-gilded')}>{item.label}</Link>)}
-        <Link href="/contact" onClick={() => setOpen(false)} className="hover:text-gilded">Contact</Link>
-      </div>}
-    </header>
-  )
+  return <header className="sticky top-0 z-50 border-b border-obsidian/10 bg-canvas/95 text-obsidian shadow-[0_1px_0_rgba(28,28,28,0.04)] backdrop-blur-xl">
+    <div className="mx-auto flex min-h-[4.75rem] max-w-7xl items-center justify-between gap-5 px-5 sm:px-8 lg:px-12">
+      <Link href="/" className="shrink-0 font-serif text-[1.45rem] font-medium tracking-tighter sm:text-2xl">The Revamp <span className="font-normal italic text-gilded">UG</span></Link>
+      <nav className="hidden items-center gap-6 text-[10px] font-semibold uppercase tracking-[0.16em] lg:flex xl:gap-8" aria-label="Main navigation">
+        {nav.map((item) => <Link key={item.href} href={item.href} className={cn('whitespace-nowrap transition-colors hover:text-gilded', active(item.href) && 'text-gilded')}>{item.label}</Link>)}
+        <Link href="/contact" className="inline-flex min-h-10 items-center gap-2 rounded-full bg-obsidian px-4 text-canvas transition-colors hover:bg-gilded hover:text-obsidian"><MessageCircle className="size-4" aria-hidden="true" />Inquire</Link>
+        <Link href="/search" aria-label="Search" className="p-2 text-obsidian/65 hover:text-gilded"><Search className="size-4" /></Link>
+        <Link href="/cart" aria-label={`Cart${cartCount ? `, ${cartCount} items` : ''}`} className="relative p-2 text-obsidian/65 hover:text-gilded"><ShoppingBag className="size-4" />{cartCount > 0 && <span className="absolute right-0 top-0 text-[9px] font-semibold text-gilded">{cartCount}</span>}</Link>
+        <button type="button" aria-label="Account access" onClick={() => window.dispatchEvent(new Event('revamp:open-auth'))} className="p-2 text-obsidian/65 hover:text-gilded"><User className="size-4" /></button>
+      </nav>
+      <div className="flex items-center gap-1 lg:hidden"><Link href="/search" aria-label="Search" className="p-2 text-obsidian/70"><Search className="size-5" /></Link><Link href="/cart" aria-label="Cart" className="relative p-2 text-obsidian/70"><ShoppingBag className="size-5" />{cartCount > 0 && <span className="absolute right-0 top-0 text-[9px] font-semibold text-gilded">{cartCount}</span>}</Link><button type="button" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen((value) => !value)} className="ml-1 flex size-11 items-center justify-center rounded-md border border-obsidian/15 text-obsidian transition-colors hover:border-gilded hover:text-gilded">{open ? <X className="size-5" /> : <Menu className="size-5" />}</button></div>
+    </div>
+    {open && <div className="border-t border-obsidian/10 bg-canvas px-5 pb-7 pt-5 sm:px-8 lg:px-12"><nav className="mx-auto flex max-w-7xl flex-col gap-1" aria-label="Mobile navigation"><Link href="/" onClick={close} className="border-b border-border py-3 text-[11px] font-semibold uppercase tracking-[0.2em]">Home</Link>{nav.map((item) => <Link key={item.href} href={item.href} onClick={close} className={cn('border-b border-border py-3 text-[11px] font-semibold uppercase tracking-[0.2em]', active(item.href) ? 'text-gilded' : 'text-obsidian')}>{item.label}</Link>)}<div className="mt-4 flex flex-wrap gap-3"><Link href="/contact" onClick={close} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-obsidian px-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-canvas">Inquire <MessageCircle className="size-4" /></Link><button type="button" onClick={() => { close(); window.dispatchEvent(new Event('revamp:open-auth')) }} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-obsidian/20 px-5 text-[10px] font-semibold uppercase tracking-[0.2em]">Account <User className="size-4" /></button></div></nav></div>}
+  </header>
 }

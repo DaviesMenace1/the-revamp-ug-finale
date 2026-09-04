@@ -1,40 +1,7 @@
 import Link from 'next/link'
+import { SiteHeader } from '@/components/site-header'
+import { SiteFooter } from '@/components/site-footer'
 
-export function LegalPage({
-  eyebrow,
-  title,
-  intro,
-  sections,
-}: {
-  eyebrow: string
-  title: string
-  intro: string
-  sections: Array<{ heading: string; body: string }>
-}) {
-  return (
-    <main className="min-h-screen bg-background px-6 py-16 md:px-10 md:py-24">
-      <div className="mx-auto max-w-3xl">
-        <Link href="/" className="font-mono text-[10px] uppercase tracking-[0.24em] text-primary hover:underline">
-          The Revamp UG
-        </Link>
-        <p className="mt-16 font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground">{eyebrow}</p>
-        <h1 className="mt-3 font-serif text-5xl tracking-tight text-foreground md:text-7xl">{title}</h1>
-        <p className="mt-8 max-w-2xl text-base leading-7 text-muted-foreground">{intro}</p>
-        <div className="mt-12 space-y-10 border-t border-border/70 pt-10">
-          {sections.map((section) => (
-            <section key={section.heading}>
-              <h2 className="font-serif text-2xl text-foreground md:text-3xl">{section.heading}</h2>
-              <p className="mt-3 text-sm leading-7 text-muted-foreground">{section.body}</p>
-            </section>
-          ))}
-        </div>
-        <div className="mt-14 border border-gold/30 bg-gold/5 p-5 text-sm leading-6 text-foreground">
-          These pages are working website copy and should be reviewed and approved by The Revamp UG before publication as final legal terms.
-        </div>
-        <Link href="/contact" className="mt-8 inline-flex min-h-11 items-center rounded border border-border px-4 text-sm font-medium transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-          Contact The Revamp UG
-        </Link>
-      </div>
-    </main>
-  )
+export function LegalPage({ eyebrow, title, intro, sections }: { eyebrow: string; title: string; intro: string; sections: Array<{ heading: string; body: string }> }) {
+  return <><SiteHeader /><main className="bg-canvas"><section className="px-6 pb-20 pt-16 lg:px-12"><div className="mx-auto max-w-7xl"><div className="inline-flex items-center gap-3"><span className="h-px w-8 bg-gilded" /><span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">{eyebrow}</span></div><h1 className="mt-6 max-w-4xl font-serif text-5xl font-medium leading-[1.05] md:text-7xl">{title}</h1><p className="mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground">{intro}</p></div></section><section className="px-6 pb-32 lg:px-12"><div className="mx-auto max-w-3xl border-t border-border pt-10">{sections.map((section) => <section key={section.heading} className="border-b border-border py-10 last:border-0"><h2 className="font-serif text-3xl font-medium md:text-4xl">{section.heading}</h2><p className="mt-4 text-sm leading-7 text-muted-foreground">{section.body}</p></section>)}<div className="mt-8 rounded-md border border-gilded/30 bg-gilded/5 p-5 text-sm leading-6">These pages are working website copy and should be reviewed and approved by The Revamp UG before publication as final legal terms.</div><Link href="/contact" className="mt-8 inline-flex rounded-full bg-obsidian px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-canvas hover:bg-gilded hover:text-obsidian">Contact the studio</Link></div></section></main><SiteFooter /></>
 }

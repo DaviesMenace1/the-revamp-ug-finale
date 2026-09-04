@@ -23,7 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   if (reason === 'error') {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background px-6 py-16">
+      <main className="flex min-h-screen items-center justify-center bg-canvas px-6 py-16">
         <PageLoadError
           title="The admin portal is temporarily unavailable."
           message="We could not confirm your admin profile right now. No changes were made. Please retry in a moment."
@@ -35,11 +35,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!authorized || !user || !adminPathIsAllowed(user.role, pathname)) redirect('/unauthorized')
 
   return (
-    <div className="flex min-h-dvh min-w-0 bg-background">
+    <div className="flex min-h-dvh min-w-0 bg-canvas">
       <AdminSidebar role={user.role ?? 'customer'} />
       <main className="relative min-w-0 flex-1 overflow-x-hidden">
-        <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between gap-3 border-b border-border/70 bg-background/90 px-4 pl-16 backdrop-blur-xl sm:px-6 sm:pl-16 md:pl-6">
-          <div className="min-w-0"><p className="truncate text-[10px] uppercase tracking-[0.24em] text-primary">The Revamp UG</p><p className="truncate text-sm text-muted-foreground">{roleLabel(user.role)} workspace</p></div>
+        <header className="sticky top-0 z-40 flex min-h-20 items-center justify-between gap-3 border-b border-obsidian/10 bg-canvas/90 px-4 pl-16 backdrop-blur-xl sm:px-6 sm:pl-16 md:pl-6">
+          <div className="min-w-0"><p className="truncate text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">The Revamp UG / Studio workspace</p><p className="mt-1 truncate font-serif text-xl text-foreground">{roleLabel(user.role)}</p></div>
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
             <ThemeSwitcher />
             <NotificationBell />

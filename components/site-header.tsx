@@ -45,7 +45,7 @@ interface NavLink {
 
 const primaryNavLinks: NavLink[] = [
   {
-    label: 'About',
+    label: 'The Studio',
     href: '/about',
   },
   {
@@ -75,8 +75,8 @@ const primaryNavLinks: NavLink[] = [
     ],
   },
   {
-    label: 'Projects',
-    href: '/portfolio',
+    label: 'Architecture',
+    href: '/services/architecture',
   },
   {
     label: 'Collections',

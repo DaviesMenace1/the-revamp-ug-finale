@@ -9,6 +9,7 @@ export type CollectionCategory = {
   slug: string
   productCount: number
   image: string | null
+  subcategories: Array<{ name: string; slug: string; productCount: number; image: string | null }>
 }
 
 export default function CategoryDirectory({ categories }: { categories: CollectionCategory[] }) {
@@ -28,6 +29,7 @@ export default function CategoryDirectory({ categories }: { categories: Collecti
               <div className="absolute inset-x-0 bottom-0 p-5 text-background sm:p-6">
                 <p className="text-[10px] uppercase tracking-[0.24em] text-background/70">{category.productCount} {category.productCount === 1 ? 'piece' : 'pieces'}</p>
                 <div className="mt-2 flex items-end justify-between gap-4"><h3 className="font-serif text-3xl leading-none sm:text-4xl">{category.name}</h3><ArrowUpRight className="size-5 shrink-0 translate-y-1 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" /></div>
+                {category.subcategories.length > 0 && <p className="mt-3 max-w-[18rem] text-xs leading-5 text-background/70">{category.subcategories.slice(0, 4).map((subcategory) => subcategory.name).join(' · ')}{category.subcategories.length > 4 ? ' · more' : ''}</p>}
               </div>
             </Link>
           ))}

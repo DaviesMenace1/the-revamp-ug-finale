@@ -39,14 +39,21 @@ export default async function CollectionsPage() {
   const result = await safeQuery(getPublishedProducts(), 'published collections', [])
   const products = result.data
   const categories = Array.from(products.reduce((map, product) => {
-    const name = product.subCategory?.category?.name || product.subCategory?.name
+    const category = product.subCategory?.category
+    const subCategory = product.subCategory
+    const name = category?.name || subCategory?.name
     if (!name) return map
     const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     const image = product.productImages?.find((entry) => entry.isPrimary)?.url || product.productImages?.[0]?.url || null
     const current = map.get(slug)
-    map.set(slug, { name, slug, productCount: (current?.productCount || 0) + 1, image: current?.image || image })
+    const subSlug = subCategory?.slug || subCategory?.name?.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const subcategories = current?.subcategories || []
+    const existingSubcategory = subSlug ? subcategories.find((item) => item.slug === subSlug) : undefined
+    if (subSlug && existingSubcategory) existingSubcategory.productCount += 1
+    else if (subSlug) subcategories.push({ name: subCategory?.name || 'Collection', slug: subSlug, productCount: 1, image })
+    map.set(slug, { name, slug, productCount: (current?.productCount || 0) + 1, image: current?.image || image, subcategories })
     return map
-  }, new Map<string, { name: string; slug: string; productCount: number; image: string | null }>()).values())
+  }, new Map<string, { name: string; slug: string; productCount: number; image: string | null; subcategories: Array<{ name: string; slug: string; productCount: number; image: string | null }> }>()).values())
   const productItems = products.map((product, index) => ({
     '@type': 'ListItem',
     position: index + 1,

@@ -69,6 +69,24 @@ async function getProductsByCategorySlug(categorySlug: string) {
   }
 }
 
+async function getProductsBySubcategorySlug(categorySlug: string, subcategorySlug: string) {
+  try {
+    const products = await db.query.products.findMany({
+      where: eq(productsTable.status, 'published'),
+      orderBy: [desc(productsTable.featured), desc(productsTable.createdAt)],
+      with: { productImages: true, productVariants: true, subCategory: { with: { category: true } } },
+      limit: 100,
+    })
+    return products.filter((product) => {
+      const category = product.subCategory?.category?.name || ''
+      const subcategory = product.subCategory?.slug || product.subCategory?.name || ''
+      return toCollectionSlug(category) === categorySlug && toCollectionSlug(subcategory) === subcategorySlug
+    })
+  } catch {
+    return []
+  }
+}
+
 async function getRelatedProductsFromDB(subCategoryId: string | null, currentId: string) {
   try {
     if (!subCategoryId) return []
@@ -146,6 +164,29 @@ export default async function ProductPage({
     const categoryProducts = await getProductsByCategorySlug(segments[0])
     if (categoryProducts.length > 0) {
       const categoryName = categoryProducts[0].subCategory?.category?.name || categoryProducts[0].subCategory?.name || segments[0]
+      const subcategories = Array.from(categoryProducts.reduce((map, categoryProduct) => {
+        const subcategory = categoryProduct.subCategory
+        if (!subcategory) return map
+        const image = categoryProduct.productImages?.find((entry) => entry.isPrimary)?.url || categoryProduct.productImages?.[0]?.url || null
+        const current = map.get(subcategory.slug)
+        map.set(subcategory.slug, { name: subcategory.name, slug: subcategory.slug, productCount: (current?.productCount || 0) + 1, image: current?.image || image })
+        return map
+      }, new Map<string, { name: string; slug: string; productCount: number; image: string | null }>()).values())
+      if (subcategories.length > 0) {
+        return (
+          <>
+            <SiteHeader />
+            <main className="min-h-screen bg-background px-4 pb-24 pt-28 sm:px-6 md:px-10 md:pt-36">
+              <div className="mx-auto max-w-7xl">
+                <Link href="/collections" className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground hover:text-primary"><ArrowLeft className="size-4" aria-hidden="true" /> All collections</Link>
+                <header className="mx-auto mt-8 max-w-3xl text-center"><p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Revamp collection / current edit</p><h1 className="mt-3 font-serif text-5xl tracking-tight sm:text-7xl">{categoryName}</h1><p className="mt-4 text-sm leading-7 text-muted-foreground">Choose a room edit to explore every piece, individually sourced.</p></header>
+                <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">{subcategories.map((subcategory, index) => <Link key={subcategory.slug} href={`/collections/${segments[0]}/${subcategory.slug}`} className="group relative isolate min-h-[15rem] overflow-hidden rounded-xl border border-border/80 bg-card shadow-lift transition-all duration-500 hover:-translate-y-1 hover:border-primary/60" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}>{subcategory.image ? <Image src={subcategory.image} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-105" /> : <div className="absolute inset-0 bg-muted" />}<div className="absolute inset-0 bg-gradient-to-t from-foreground/85 via-foreground/20 to-transparent" /><div className="absolute inset-x-0 bottom-0 p-5 text-background"><p className="text-[10px] uppercase tracking-[0.24em] text-background/70">{subcategory.productCount} {subcategory.productCount === 1 ? 'piece' : 'pieces'}</p><h2 className="mt-2 font-serif text-3xl leading-none sm:text-4xl">{subcategory.name}</h2></div></Link>)}</div>
+              </div>
+            </main>
+            <SiteFooter />
+          </>
+        )
+      }
       return (
         <>
           <SiteHeader />
@@ -154,6 +195,27 @@ export default async function ProductPage({
               <Link href="/collections" className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground hover:text-primary"><ArrowLeft className="size-4" aria-hidden="true" /> All collections</Link>
               <header className="mx-auto mt-8 max-w-3xl text-center"><p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Revamp collection</p><h1 className="mt-3 font-serif text-5xl tracking-tight sm:text-7xl">{categoryName}</h1><p className="mt-4 text-sm leading-7 text-muted-foreground">A considered edit of pieces selected for this category.</p></header>
               <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">{categoryProducts.map((categoryProduct, index) => <ProductCard key={categoryProduct.id} product={categoryProduct as any} className="motion-reveal" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` } as any} />)}</div>
+            </div>
+          </main>
+          <SiteFooter />
+        </>
+      )
+    }
+  }
+
+  if (!product && segments.length === 2) {
+    const subcategoryProducts = await getProductsBySubcategorySlug(segments[0], segments[1])
+    if (subcategoryProducts.length > 0) {
+      const subcategoryName = subcategoryProducts[0].subCategory?.name || segments[1]
+      const categoryName = subcategoryProducts[0].subCategory?.category?.name || segments[0]
+      return (
+        <>
+          <SiteHeader />
+          <main className="min-h-screen bg-background px-4 pb-24 pt-28 sm:px-6 md:px-10 md:pt-36">
+            <div className="mx-auto max-w-7xl">
+              <Link href={`/collections/${segments[0]}`} className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground hover:text-primary"><ArrowLeft className="size-4" aria-hidden="true" /> {categoryName}</Link>
+              <header className="mx-auto mt-8 max-w-3xl text-center"><p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Revamp collection / {categoryName}</p><h1 className="mt-3 font-serif text-5xl tracking-tight sm:text-7xl">{subcategoryName}</h1><p className="mt-4 text-sm leading-7 text-muted-foreground">Every piece, individually sourced.</p></header>
+              <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">{subcategoryProducts.map((subcategoryProduct, index) => <ProductCard key={subcategoryProduct.id} product={subcategoryProduct as any} className="motion-reveal" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` } as any} />)}</div>
             </div>
           </main>
           <SiteFooter />

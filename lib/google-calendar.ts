@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 
 const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar'
 const CALENDAR_API = 'https://www.googleapis.com/calendar/v3/calendars'
+const MEET_API = 'https://meet.googleapis.com/v2/spaces'
 
 function setting(name: string) {
   return process.env[name]?.trim() || ''
@@ -14,38 +15,75 @@ function privateKey() {
   return setting('GOOGLE_CALENDAR_PRIVATE_KEY').replace(/\\n/g, '\n')
 }
 
-function oauthConfigured() {
-  return Boolean(setting('GOOGLE_CALENDAR_CLIENT_ID') && setting('GOOGLE_CALENDAR_CLIENT_SECRET') && setting('GOOGLE_CALENDAR_REFRESH_TOKEN'))
+function calendarOAuthConfigured() {
+  return Boolean(
+    setting('GOOGLE_CALENDAR_CLIENT_ID') &&
+      setting('GOOGLE_CALENDAR_CLIENT_SECRET') &&
+      setting('GOOGLE_CALENDAR_REFRESH_TOKEN'),
+  )
+}
+
+function meetOAuthConfigured() {
+  return Boolean(
+    setting('GOOGLE_CALENDAR_CLIENT_ID') &&
+      setting('GOOGLE_CALENDAR_CLIENT_SECRET') &&
+      setting('GOOGLE_MEET_REFRESH_TOKEN'),
+  )
 }
 
 function serviceAccountConfigured() {
   return Boolean(setting('GOOGLE_CALENDAR_CLIENT_EMAIL') && privateKey())
 }
 
-function configured() {
-  return Boolean(setting('GOOGLE_CALENDAR_ID') && (oauthConfigured() || serviceAccountConfigured()))
+function calendarImpersonateEmail() {
+  return setting('GOOGLE_CALENDAR_IMPERSONATE_EMAIL')
+}
+
+function calendarConfigured() {
+  return Boolean(setting('GOOGLE_CALENDAR_ID') && (calendarOAuthConfigured() || serviceAccountConfigured()))
+}
+
+function createOAuthAuth(refreshToken: string) {
+  const auth = new OAuth2Client(setting('GOOGLE_CALENDAR_CLIENT_ID'), setting('GOOGLE_CALENDAR_CLIENT_SECRET'))
+  auth.setCredentials({ refresh_token: refreshToken })
+  return auth
 }
 
 function createCalendarAuth() {
-  if (oauthConfigured()) {
-    const auth = new OAuth2Client(setting('GOOGLE_CALENDAR_CLIENT_ID'), setting('GOOGLE_CALENDAR_CLIENT_SECRET'))
-    auth.setCredentials({ refresh_token: setting('GOOGLE_CALENDAR_REFRESH_TOKEN') })
-    return auth
-  }
+  if (calendarOAuthConfigured()) return createOAuthAuth(setting('GOOGLE_CALENDAR_REFRESH_TOKEN'))
 
   if (serviceAccountConfigured()) {
     return new JWT({
       email: setting('GOOGLE_CALENDAR_CLIENT_EMAIL'),
       key: privateKey(),
       scopes: [CALENDAR_SCOPE],
+      subject: calendarImpersonateEmail() || undefined,
     })
   }
 
-  throw new GoogleCalendarConfigError('Google Meet creation requires organizer OAuth variables (GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_CLIENT_SECRET, GOOGLE_CALENDAR_REFRESH_TOKEN) or an eligible service account, plus GOOGLE_CALENDAR_ID.')
+  throw new GoogleCalendarConfigError(
+    'Google Calendar needs GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_CLIENT_SECRET, GOOGLE_CALENDAR_REFRESH_TOKEN, and GOOGLE_CALENDAR_ID, or a service account with domain-wide delegation and GOOGLE_CALENDAR_IMPERSONATE_EMAIL.',
+  )
+}
+
+function createMeetAuth() {
+  if (!meetOAuthConfigured()) {
+    throw new GoogleCalendarConfigError(
+      'Google Meet fallback needs GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_CLIENT_SECRET, and GOOGLE_MEET_REFRESH_TOKEN issued with the meetings.space.created scope.',
+    )
+  }
+  return createOAuthAuth(setting('GOOGLE_MEET_REFRESH_TOKEN'))
+}
+
+async function accessToken(auth: OAuth2Client | JWT) {
+  const tokenResponse = await auth.getAccessToken()
+  const token = typeof tokenResponse === 'string' ? tokenResponse : tokenResponse.token
+  if (!token) throw new GoogleCalendarApiError('Google authorization did not return an access token.')
+  return token
 }
 
 export function googleCalendarConfigured() {
-  return configured()
+  return calendarConfigured() || meetOAuthConfigured()
 }
 
 export class GoogleCalendarConfigError extends Error {
@@ -62,7 +100,11 @@ export class GoogleCalendarApiError extends Error {
   }
 }
 
-export async function createGoogleMeetEvent(input: {
+function isInvalidConferenceTypeError(error: unknown) {
+  return error instanceof GoogleCalendarApiError && /invalid conference type|conference type value/i.test(error.message)
+}
+
+async function createCalendarEvent(input: {
   summary: string
   description?: string | null
   start: Date
@@ -70,21 +112,14 @@ export async function createGoogleMeetEvent(input: {
   location?: string | null
   attendeeEmails?: string[]
 }) {
-  if (!configured()) {
-    throw new GoogleCalendarConfigError('Google Meet creation requires organizer OAuth variables or an eligible service account, plus GOOGLE_CALENDAR_ID.')
-  }
-
   const auth = createCalendarAuth()
-  const tokenResponse = await auth.getAccessToken()
-  const accessToken = typeof tokenResponse === 'string' ? tokenResponse : tokenResponse.token
-  if (!accessToken) throw new GoogleCalendarApiError('Google Calendar authorization did not return an access token.')
-
+  const token = await accessToken(auth)
   const end = new Date(input.start.getTime() + input.durationMinutes * 60_000)
   const timeZone = setting('GOOGLE_CALENDAR_TIME_ZONE') || 'Africa/Kampala'
   const attendeeEmails = [...new Set((input.attendeeEmails || []).map((email) => email.trim().toLowerCase()).filter(Boolean))]
   const response = await fetch(`${CALENDAR_API}/${encodeURIComponent(setting('GOOGLE_CALENDAR_ID'))}/events?conferenceDataVersion=1&sendUpdates=all`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       summary: input.summary.slice(0, 255),
       description: input.description?.slice(0, 8000) || undefined,
@@ -112,6 +147,60 @@ export async function createGoogleMeetEvent(input: {
 
   const meetUrl = payload.hangoutLink || payload.conferenceData?.entryPoints?.find((entry) => entry.entryPointType === 'video')?.uri
   if (!payload.id || !meetUrl) throw new GoogleCalendarApiError('Google Calendar created an event but did not return a Meet link. Check that Meet conferencing is enabled for the organizer calendar.')
-
   return { calendarEventId: payload.id, calendarUrl: payload.htmlLink || null, meetUrl, timeZone }
+}
+
+async function createMeetSpace() {
+  const auth = createMeetAuth()
+  const token = await accessToken(auth)
+  const response = await fetch(MEET_API, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: '{}',
+  })
+  const payload = await response.json().catch(() => ({})) as {
+    name?: string
+    meetingUri?: string
+    error?: { message?: string }
+  }
+  if (!response.ok) throw new GoogleCalendarApiError(payload.error?.message || `Google Meet returned HTTP ${response.status}.`)
+  if (!payload.meetingUri) throw new GoogleCalendarApiError('Google Meet created a space but did not return a meeting link.')
+  return {
+    calendarEventId: null,
+    calendarUrl: null,
+    meetUrl: payload.meetingUri,
+    timeZone: setting('GOOGLE_CALENDAR_TIME_ZONE') || 'Africa/Kampala',
+  }
+}
+
+export async function createGoogleMeetEvent(input: {
+  summary: string
+  description?: string | null
+  start: Date
+  durationMinutes: number
+  location?: string | null
+  attendeeEmails?: string[]
+}) {
+  if (calendarConfigured()) {
+    try {
+      return await createCalendarEvent(input)
+    } catch (error) {
+      if (isInvalidConferenceTypeError(error)) {
+        if (meetOAuthConfigured()) {
+          console.warn('[google-meet] Calendar conference creation rejected the conference type; using the Meet Spaces fallback.')
+          return createMeetSpace()
+        }
+        if (serviceAccountConfigured() && !calendarImpersonateEmail()) {
+          throw new GoogleCalendarConfigError('Google Calendar rejected Meet creation for this service account. Add GOOGLE_CALENDAR_IMPERSONATE_EMAIL for a Workspace user with domain-wide delegation, or configure GOOGLE_MEET_REFRESH_TOKEN with the meetings.space.created scope.')
+        }
+      }
+      throw error
+    }
+  }
+
+  if (meetOAuthConfigured()) return createMeetSpace()
+
+  throw new GoogleCalendarConfigError(
+    'Virtual slot creation needs a Google Calendar organizer setup, or GOOGLE_MEET_REFRESH_TOKEN issued with the meetings.space.created scope for the direct Meet fallback. Service-account organizers also need GOOGLE_CALENDAR_IMPERSONATE_EMAIL.',
+  )
 }

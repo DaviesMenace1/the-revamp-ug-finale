@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
 import { notifyUser } from '@/lib/notifications/service'
-import { createGoogleMeetEvent } from '@/lib/google-calendar'
+import { createGoogleMeetEvent, GoogleCalendarApiError, GoogleCalendarConfigError } from '@/lib/google-calendar'
 
 const VALID_MODES = new Set(['virtual', 'in_person', 'showroom'])
 const BUDGET_LABELS: Record<string, string> = {
@@ -88,6 +88,9 @@ export async function createSlots(data: {
     return { success: true, slots: created.map((slot) => ({ ...slot, startTime: slot.startTime.toISOString() })) }
   } catch (error) {
     console.error('Failed to create slots:', error)
+    if (error instanceof GoogleCalendarConfigError || error instanceof GoogleCalendarApiError) {
+      return { success: false, error: error.message }
+    }
     return { success: false, error: 'Failed to create availability.' }
   }
 }

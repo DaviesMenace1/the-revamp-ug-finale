@@ -130,9 +130,9 @@ export default function DocumentsClient({ documents = [], loadError = null }: { 
                     <div className="flex min-w-0 items-center gap-4">
                       <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-gold/15 text-primary"><FileText className="size-5" /></span>
                       <div className="min-w-0">
-                        <p className="truncate font-serif text-xl text-foreground">{document.name}</p>
+                        <p className="break-words font-serif text-xl text-foreground">{document.name}</p>
                         <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"><span className="font-medium text-primary">{documentTypeLabel(document.documentType)}</span><span aria-hidden="true">·</span><span className="inline-flex items-center gap-1"><CalendarDays className="size-3" aria-hidden="true" />{formatDate(document.createdAt)}</span></p>
-                        {document.category && document.category !== document.documentType && <p className="mt-1 truncate text-xs text-muted-foreground">{document.category}</p>}
+                        {document.category && document.category !== document.documentType && <p className="mt-1 break-words text-xs text-muted-foreground">{document.category}</p>}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">

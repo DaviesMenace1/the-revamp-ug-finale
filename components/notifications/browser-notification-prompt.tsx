@@ -134,7 +134,7 @@ export default function BrowserNotificationPrompt({ context }: { context: Prompt
 
   return (
     <Sheet open={open} onOpenChange={(nextOpen) => { if (!nextOpen) dismiss(); else setOpen(true) }}>
-      <SheetContent side="bottom" showCloseButton={false} className="safe-bottom max-h-[min(680px,92dvh)] rounded-t-2xl border-border bg-background p-0 sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100%-2rem)] sm:max-w-[34rem] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:shadow-2xl">
+      <SheetContent side="bottom" showCloseButton={false} className="safe-bottom max-h-[min(680px,92dvh)] rounded-t-2xl border-border bg-background p-0 sm:inset-x-auto sm:right-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100%-2rem)] sm:max-w-[34rem] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:shadow-2xl">
         <SheetClose onClick={dismiss} className="absolute right-4 top-4 z-10 flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Close browser notification prompt">
           <X className="size-5" aria-hidden="true" />
         </SheetClose>

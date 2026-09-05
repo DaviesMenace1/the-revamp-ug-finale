@@ -2,7 +2,7 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { db } from '@/lib/db/client'
-import { serviceRequests, users } from '@/lib/db/schema'
+import { serviceRequests, users, services } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { notifyUser } from '@/lib/notifications/service'
@@ -17,6 +17,7 @@ export type ServiceRequestInput = {
   budget?: string
   timeline?: string
   projectDescription: string
+  serviceId?: string
 }
 
 function clean(value: string | undefined, maxLength: number) {
@@ -38,8 +39,12 @@ export async function submitServiceRequest(input: ServiceRequestInput) {
   try {
     const { userId: clerkId } = await auth()
     const localUser = clerkId ? await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkId)).limit(1) : []
+    const serviceId = input.serviceId && /^[0-9a-f-]{36}$/i.test(input.serviceId)
+      ? (await db.select({ id: services.id }).from(services).where(eq(services.id, input.serviceId)).limit(1))[0]?.id || null
+      : null
     const [request] = await db.insert(serviceRequests).values({
       userId: localUser[0]?.id || null,
+      serviceId,
       name,
       email,
       phone: clean(input.phone, 20) || null,

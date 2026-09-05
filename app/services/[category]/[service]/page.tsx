@@ -75,7 +75,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const processSteps = serviceTemplate.processSteps
   const faqs = serviceTemplate.faqs
   const galleryImages = Array.isArray(service.gallery) ? service.gallery.filter((url): url is string => typeof url === 'string' && url.trim().length > 0) : []
-  const inquiryHref = `/custom-services?service=${encodeURIComponent(service.name)}`
+  const inquiryHref = `/contact?interest=service_inquiry&service=${encodeURIComponent(service.name)}&serviceId=${encodeURIComponent(service.id)}`
 
   return (
     <>

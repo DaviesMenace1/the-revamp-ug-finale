@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 const BUSINESS_DEFAULTS = {
   name: 'The Revamp Ug',
   email: 'support@revampug.com',
-  phone: '+256 (0) 703 861 668',
+  phone: '+256 (0) 783 476 807',
   address: 'Plot 12, Kyanja, Kampala, Uganda',
   description: 'We are a premier interior design and architecture studio based in Kampala, Uganda.',
 }

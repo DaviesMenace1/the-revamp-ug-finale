@@ -98,7 +98,7 @@ export default function CartPage() {
   const hasMixedCurrencies = currencies.length > 1
   const cartCurrency = currencies[0] || 'UGX'
   const shareCartOnWhatsApp = () => {
-    const number = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '256703861668').replace(/[^0-9]/g, '')
+    const number = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '256783476807').replace(/[^0-9]/g, '')
     const message = whatsappCartMessage(items, Number(cart?.total || 0), cartCurrency)
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
   }

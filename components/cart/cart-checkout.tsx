@@ -26,7 +26,7 @@ export function CartCheckout() {
   };
 
   const handleWhatsAppCheckout = () => {
-    const whatsappNumber = '+256703861668'; 
+    const whatsappNumber = '+256783476807';
     const message = generateWhatsAppMessage();
     const whatsappURL = `https://wa.me/${whatsappNumber}?text=${message}`;
     window.open(whatsappURL, '_blank');

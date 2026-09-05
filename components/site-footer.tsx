@@ -4,7 +4,7 @@ import { siteContact } from '@/lib/site-config'
 import { NewsletterSignup } from '@/components/newsletter-signup'
 
 export function SiteFooter() {
-  const whatsapp = 'https://wa.me/256703861668'
+  const whatsapp = 'https://wa.me/256783476807'
   return (
     <footer className="border-t border-border bg-white px-6 py-16 lg:px-12 lg:py-24">
       <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[1.2fr_1fr_1fr] md:gap-16">
@@ -19,7 +19,7 @@ export function SiteFooter() {
           <a href={`mailto:${siteContact.primaryEmail || 'therevampug@gmail.com'}`} className="block hover:text-gilded">{siteContact.primaryEmail || 'therevampug@gmail.com'}</a>
         </div>
         <div className="space-y-6 text-sm">
-          <div><p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gilded">Contact</p><a href={siteContact.phoneHref} className="mt-3 block hover:text-gilded">{siteContact.phoneDisplay || '+256 703 861 668'}</a><a href={whatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 hover:text-gilded"><MessageCircle className="size-4" />Message on WhatsApp</a></div>
+          <div><p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gilded">Contact</p><a href={siteContact.phoneHref} className="mt-3 block hover:text-gilded">{siteContact.phoneDisplay || '+256 783 476 807'}</a><a href={whatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 hover:text-gilded"><MessageCircle className="size-4" />Message on WhatsApp</a></div>
           <div className="flex flex-wrap gap-5 text-[10px] uppercase tracking-[0.2em]"><a href="https://www.instagram.com/therevamp_ug" target="_blank" rel="noreferrer" className="hover:text-gilded">Instagram</a><Link href="/about" className="hover:text-gilded">The Studio</Link><Link href="/architecture" className="hover:text-gilded">Architecture</Link><Link href="/journal" className="hover:text-gilded">Archives</Link></div>
         </div>
       </div>

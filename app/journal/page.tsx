@@ -11,12 +11,12 @@ export const dynamic = 'force-dynamic'
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
 
 export const metadata: Metadata = {
-  title: 'Journal — The Revamp UG',
+  title: 'Journal - The Revamp UG',
   description: 'Dispatches from ateliers, essays on craft, and the stories behind the pieces we source.',
   keywords: ['interior design ideas Uganda', 'architecture Uganda', 'furniture guide Kampala', 'design journal Uganda', 'The Revamp UG'],
   alternates: { canonical: `${SITE_URL}/journal` },
-  openGraph: { type: 'website', url: `${SITE_URL}/journal`, title: 'Journal — The Revamp UG', description: 'Field notes from the studio.' },
-  twitter: { card: 'summary_large_image', title: 'Journal — The Revamp UG', description: 'Field notes from the studio.' },
+  openGraph: { type: 'website', url: `${SITE_URL}/journal`, title: 'Journal - The Revamp UG', description: 'Field notes from the studio.' },
+  twitter: { card: 'summary_large_image', title: 'Journal - The Revamp UG', description: 'Field notes from the studio.' },
 }
 
 export default async function JournalPage() {

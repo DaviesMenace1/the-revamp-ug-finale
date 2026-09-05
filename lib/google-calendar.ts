@@ -39,6 +39,15 @@ function calendarImpersonateEmail() {
   return setting('GOOGLE_CALENDAR_IMPERSONATE_EMAIL')
 }
 
+function createServiceAccountAuth() {
+  return new JWT({
+    email: setting('GOOGLE_CALENDAR_CLIENT_EMAIL'),
+    key: privateKey(),
+    scopes: [CALENDAR_SCOPE],
+    subject: calendarImpersonateEmail() || undefined,
+  })
+}
+
 function calendarConfigured() {
   return Boolean(setting('GOOGLE_CALENDAR_ID') && (calendarOAuthConfigured() || serviceAccountConfigured()))
 }
@@ -52,14 +61,7 @@ function createOAuthAuth(refreshToken: string) {
 function createCalendarAuth() {
   if (calendarOAuthConfigured()) return createOAuthAuth(setting('GOOGLE_CALENDAR_REFRESH_TOKEN'))
 
-  if (serviceAccountConfigured()) {
-    return new JWT({
-      email: setting('GOOGLE_CALENDAR_CLIENT_EMAIL'),
-      key: privateKey(),
-      scopes: [CALENDAR_SCOPE],
-      subject: calendarImpersonateEmail() || undefined,
-    })
-  }
+  if (serviceAccountConfigured()) return createServiceAccountAuth()
 
   throw new GoogleCalendarConfigError(
     'Google Calendar needs GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_CLIENT_SECRET, GOOGLE_CALENDAR_REFRESH_TOKEN, and GOOGLE_CALENDAR_ID, or a service account with domain-wide delegation and GOOGLE_CALENDAR_IMPERSONATE_EMAIL.',
@@ -75,11 +77,27 @@ function createMeetAuth() {
   return createOAuthAuth(setting('GOOGLE_MEET_REFRESH_TOKEN'))
 }
 
+function isInvalidGrantError(error: unknown) {
+  const candidate = error as { response?: { data?: { error?: string; error_description?: string } }; message?: string }
+  const value = [candidate?.response?.data?.error, candidate?.response?.data?.error_description, candidate?.message].filter(Boolean).join(' ')
+  return /invalid_grant|expired or revoked/i.test(value)
+}
+
 async function accessToken(auth: OAuth2Client | JWT) {
-  const tokenResponse = await auth.getAccessToken()
-  const token = typeof tokenResponse === 'string' ? tokenResponse : tokenResponse.token
-  if (!token) throw new GoogleCalendarApiError('Google authorization did not return an access token.')
-  return token
+  try {
+    const tokenResponse = await auth.getAccessToken()
+    const token = typeof tokenResponse === 'string' ? tokenResponse : tokenResponse.token
+    if (!token) throw new GoogleCalendarApiError('Google authorization did not return an access token.')
+    return token
+  } catch (error) {
+    if (isInvalidGrantError(error)) {
+      if (auth instanceof OAuth2Client) {
+        throw new GoogleCalendarConfigError('The Google OAuth refresh token is expired or revoked. Re-authorize the organizer account and replace GOOGLE_CALENDAR_REFRESH_TOKEN, or use a valid service-account organizer with domain-wide delegation.')
+      }
+      throw new GoogleCalendarConfigError('The Google service-account organizer could not be authorized. Check GOOGLE_CALENDAR_CLIENT_EMAIL, GOOGLE_CALENDAR_PRIVATE_KEY, and GOOGLE_CALENDAR_IMPERSONATE_EMAIL, then confirm Calendar API access is delegated to that Workspace user.')
+    }
+    throw error
+  }
 }
 
 export function googleCalendarConfigured() {
@@ -111,8 +129,7 @@ async function createCalendarEvent(input: {
   durationMinutes: number
   location?: string | null
   attendeeEmails?: string[]
-}) {
-  const auth = createCalendarAuth()
+}, auth: OAuth2Client | JWT = createCalendarAuth()) {
   const token = await accessToken(auth)
   const end = new Date(input.start.getTime() + input.durationMinutes * 60_000)
   const timeZone = setting('GOOGLE_CALENDAR_TIME_ZONE') || 'Africa/Kampala'
@@ -185,6 +202,14 @@ export async function createGoogleMeetEvent(input: {
     try {
       return await createCalendarEvent(input)
     } catch (error) {
+      if (isInvalidGrantError(error) && serviceAccountConfigured() && calendarImpersonateEmail()) {
+        console.warn('[google-meet] Calendar OAuth could not refresh; using the delegated service-account organizer.')
+        return createCalendarEvent(input, createServiceAccountAuth())
+      }
+      if (isInvalidGrantError(error) && meetOAuthConfigured()) {
+        console.warn('[google-meet] Calendar OAuth could not refresh; using the direct Meet Spaces fallback.')
+        return createMeetSpace()
+      }
       if (isInvalidConferenceTypeError(error)) {
         if (meetOAuthConfigured()) {
           console.warn('[google-meet] Calendar conference creation rejected the conference type; using the Meet Spaces fallback.')

@@ -13,6 +13,7 @@ import { SchemaScript } from '@/components/seo/schema-script'
 import { generateOrganizationSchema, generateLocalBusinessSchema, generateWebSiteSchema } from '@/lib/seo/schema-generator'
 import WebMcpBootstrap from '@/components/agent/webmcp-bootstrap'
 import ClerkRuntimeGuard from '@/components/auth/clerk-runtime-guard'
+import GoogleOneTapPrompt from '@/components/auth/google-one-tap-prompt'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({
@@ -152,6 +153,7 @@ export default function RootLayout({
               </CartProvider>
             </CookieConsentProvider>
           </ClerkRuntimeGuard>
+          {hasValidClerkPublishableKey && <GoogleOneTapPrompt />}
         </ClerkProvider>
         <SpeedInsights />
       </body>

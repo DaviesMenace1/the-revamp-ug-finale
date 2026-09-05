@@ -73,6 +73,13 @@ export function ProductDetail({ product }: { product: any }) {
   const initialWidth = productDimensions.find((dimension) => dimension.key.toLowerCase() === 'width')?.value ?? ''
   const initialHeight = productDimensions.find((dimension) => dimension.key.toLowerCase() === 'height')?.value ?? ''
   const initialDepth = productDimensions.find((dimension) => dimension.key.toLowerCase() === 'depth')?.value ?? ''
+  const searchableProductText = [
+    product?.productType,
+    product?.availability,
+    ...(Array.isArray(product?.tags) ? product.tags : []),
+    typeof product?.attributes === 'object' && product?.attributes !== null ? Object.values(product.attributes) : [],
+  ].flat().filter(Boolean).join(' ').toLowerCase()
+  const isCustomizable = ['made_to_order', 'custom_bespoke', 'sourced_on_request', 'bespoke', 'made to order', 'custom'].some((value) => searchableProductText.includes(value))
 
   const [selectedImage, setSelectedImage] = useState<string>(rawImages[0] || DEFAULT_PRODUCT_IMAGE)
   const [selectedColor, setSelectedColor] = useState(colors[0] || null)
@@ -398,12 +405,12 @@ export function ProductDetail({ product }: { product: any }) {
         )}
 
         {/* BESPOKE TAILORING DRAWER */}
-        <div className="mb-8 border border-border p-4 bg-muted/20 space-y-3">
+        {isCustomizable && <div className="mb-8 border border-primary/35 bg-primary/5 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Ruler className="w-4 h-4 text-gilded" />
               <span className="text-xs uppercase tracking-wider font-medium text-foreground">
-                Custom Tailoring
+                Customize this piece
               </span>
             </div>
             <button
@@ -418,7 +425,7 @@ export function ProductDetail({ product }: { product: any }) {
           {useCustomDims ? (
             <div className="space-y-3 pt-2 border-t border-border/60">
               <p className="text-[11px] text-muted-foreground">
-                Add approximate dimensions in inches if you already have them. The studio will confirm the final specification before custom work is accepted.
+                Add approximate dimensions if you already have them. The studio will confirm the final specification, finish, and lead time before custom work is accepted.
               </p>
               <div className="grid grid-cols-3 gap-2">
                 <div>
@@ -461,10 +468,10 @@ export function ProductDetail({ product }: { product: any }) {
             </div>
           ) : (
             <div className="text-xs text-muted-foreground">
-              Standard specifications applied.
+              Choose your preferred size, finish, or upholstery and our studio will confirm the final specification with you.
             </div>
           )}
-        </div>
+        </div>}
 
         {/* QUANTITY, ADD TO CART & WISHLIST */}
         <div className="flex gap-4 mb-8">
@@ -509,13 +516,13 @@ export function ProductDetail({ product }: { product: any }) {
           </button>
         </div>
 
-        <div className="mb-8 flex flex-col gap-2 border border-border/70 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        {isCustomizable && <div className="mb-8 flex flex-col gap-2 border border-border/70 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-widest text-foreground">Need a different finish or size?</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">Send the studio this piece as the starting point for a customisation conversation.</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Send the studio this piece as the starting point for a customization conversation.</p>
           </div>
-          <Link href={productInquiryHref} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-border px-4 text-xs font-medium uppercase tracking-wider text-foreground transition-colors hover:border-gilded hover:text-gilded"><Send className="size-4" aria-hidden="true" />Ask about this piece</Link>
-        </div>
+          <Link href={productInquiryHref} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-border px-4 text-xs font-medium uppercase tracking-wider text-foreground transition-colors hover:border-gilded hover:text-gilded"><Send className="size-4" aria-hidden="true" />Customize with the studio</Link>
+        </div>}
 
         {/* ACCORDIONS */}
         <div className="border-t border-border mt-2">
@@ -758,4 +765,3 @@ export function ProductReviews({ product }: { product: any }) {
     </div>
   )
 }
-

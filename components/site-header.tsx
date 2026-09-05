@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useUser } from '@clerk/nextjs'
 import { MessageCircle, ShoppingBag, User, Search, Menu, X } from '@/components/ui/luxury-icons'
 import { useCart } from '@/lib/context/cart-context'
 import { cn } from '@/lib/utils'
@@ -19,13 +20,23 @@ const nav = [
 
 export function SiteHeader() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { isLoaded, isSignedIn } = useUser()
   const [open, setOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const cart = useCart()
   const cartCount = cart?.cartCount ?? 0
   const active = (href: string) => href === '/about' ? pathname.startsWith('/about') : pathname === href || pathname.startsWith(`${href}/`)
   const close = () => setOpen(false)
-  const account = () => { close(); window.dispatchEvent(new Event('revamp:open-auth')) }
+  const account = () => {
+    if (!isLoaded) return
+    close()
+    if (isSignedIn) {
+      router.push('/account')
+      return
+    }
+    window.dispatchEvent(new Event('revamp:open-auth'))
+  }
 
   return <>
     <header className="sticky top-0 z-50 border-b border-obsidian/10 bg-canvas/95 text-obsidian shadow-[0_1px_0_rgba(28,28,28,0.04)] backdrop-blur-xl">

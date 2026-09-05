@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useUser } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
 import { Headphones, Mail, MessageCircle, Ticket, X } from '@/components/ui/luxury-icons'
 import { FaInstagram, FaWhatsapp } from '@/components/ui/luxury-icons'
 import { CustomSignIn, CustomSignUp } from '@/components/auth/custom-auth-forms'
@@ -23,6 +24,7 @@ type FloatingActionProps = {
 
 export function FloatingUtilities() {
   const { isSignedIn } = useUser()
+  const router = useRouter()
   const [supportOpen, setSupportOpen] = useState(false)
   const [supportCard, setSupportCard] = useState<SupportCard>(null)
   const [authOpen, setAuthOpen] = useState(false)
@@ -30,6 +32,11 @@ export function FloatingUtilities() {
 
   useEffect(() => {
     const openAuth = () => {
+      if (isSignedIn) {
+        setAuthOpen(false)
+        router.push('/account')
+        return
+      }
       setAuthMode('sign-in')
       setAuthOpen(true)
       setSupportOpen(false)
@@ -49,7 +56,7 @@ export function FloatingUtilities() {
       window.removeEventListener('revamp:open-auth', openAuth)
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [authOpen, supportOpen])
+  }, [authOpen, isSignedIn, router, supportOpen])
 
   useEffect(() => {
     if (!supportOpen && !authOpen) return

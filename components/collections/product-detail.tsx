@@ -41,12 +41,12 @@ function AccordionItem({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex justify-between items-center text-left text-xs uppercase tracking-widest font-medium text-foreground hover:text-gold transition-colors"
+        className="w-full flex justify-between items-center text-left text-xs uppercase tracking-widest font-medium text-foreground hover:text-gilded transition-colors"
       >
         <span>{title}</span>
         <ChevronDown
           className={`w-4 h-4 transition-transform duration-200 ${
-            isOpen ? 'rotate-180 text-gold' : 'text-muted-foreground'
+            isOpen ? 'rotate-180 text-gilded' : 'text-muted-foreground'
           }`}
         />
       </button>
@@ -193,7 +193,7 @@ export function ProductDetail({ product }: { product: any }) {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
       {/* LEFT: GALLERY (7 columns) */}
       <div className="lg:col-span-7 flex flex-col gap-4">
-        <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted border border-border">
+        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-md bg-muted/30 border border-border">
           <Image
             src={selectedImage}
             alt={product?.name || 'Product Image'}
@@ -212,7 +212,7 @@ export function ProductDetail({ product }: { product: any }) {
                 onClick={() => setSelectedImage(img)}
                 className={`relative aspect-square w-20 flex-shrink-0 overflow-hidden border transition-all ${
                   selectedImage === img
-                    ? 'border-gold ring-1 ring-gold'
+                    ? 'border-gilded ring-1 ring-gilded'
                     : 'border-border/60 opacity-60 hover:opacity-100'
                 }`}
               >
@@ -226,7 +226,7 @@ export function ProductDetail({ product }: { product: any }) {
       {/* RIGHT: BUY BOX & SPECS (5 columns) */}
       <div className="lg:col-span-5 flex flex-col">
         <div className="flex justify-between items-start mb-2">
-          <span className="text-[11px] uppercase tracking-widest font-semibold text-gold">
+          <span className="text-[11px] uppercase tracking-widest font-semibold text-gilded">
             {categoryName}
           </span>
           {/* Share Button Trigger */}
@@ -260,12 +260,12 @@ export function ProductDetail({ product }: { product: any }) {
 
         {/* Rating Overview */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="flex items-center text-amber-500 gap-0.5">
+          <div className="flex items-center text-gilded gap-0.5">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
                 size={14}
-                className={i < Math.floor(rating) ? 'fill-current text-amber-500' : 'text-muted'}
+                className={i < Math.floor(rating) ? 'fill-current text-gilded' : 'text-muted'}
               />
             ))}
           </div>
@@ -286,8 +286,8 @@ export function ProductDetail({ product }: { product: any }) {
 
         {/* Editorial Highlight */}
         {product?.editorialHighlight && (
-          <div className="mb-6 p-4 border border-gold/30 bg-gold/5 space-y-1">
-            <div className="flex items-center gap-1.5 text-xs font-serif text-gold font-medium">
+          <div className="mb-6 p-4 border border-gilded/30 bg-gilded/5 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-serif text-gilded font-medium">
               <Sparkle className="w-3.5 h-3.5" />
               <span>Why We Love This Piece</span>
             </div>
@@ -301,7 +301,7 @@ export function ProductDetail({ product }: { product: any }) {
         {colors.length > 0 && (
           <div className="mb-6">
             <label className="block text-xs uppercase tracking-widest font-medium text-foreground mb-3">
-              Color Finish: <span className="text-gold">{selectedColor?.label || 'Select'}</span>
+              Color Finish: <span className="text-gilded">{selectedColor?.label || 'Select'}</span>
             </label>
             <div className="flex flex-wrap gap-2.5">
               {colors.map((color: any, idx: number) => (
@@ -313,7 +313,7 @@ export function ProductDetail({ product }: { product: any }) {
                   aria-label={`Select ${color?.label || 'colour'} colour`}
                   className={`flex items-center gap-2 h-10 px-3 border text-xs font-medium transition-all ${
                     selectedColor?.id === color?.id
-                      ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold'
+                      ? 'border-gilded bg-gilded/10 text-foreground ring-1 ring-gilded'
                       : 'border-border text-muted-foreground hover:border-foreground'
                   }`}
                 >
@@ -333,7 +333,7 @@ export function ProductDetail({ product }: { product: any }) {
           <div className="mb-6">
             <label className="block text-xs uppercase tracking-widest font-medium text-foreground mb-3">
               Material / Upholstery:{' '}
-              <span className="text-gold">{selectedFabric?.label || 'Standard'}</span>
+              <span className="text-gilded">{selectedFabric?.label || 'Standard'}</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {fabrics.map((fabric: any, idx: number) => {
@@ -347,7 +347,7 @@ export function ProductDetail({ product }: { product: any }) {
                     }}
                     className={`h-9 px-4 border text-xs font-medium transition-all ${
                       selectedFabric?.id === fabric?.id
-                        ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold'
+                        ? 'border-gilded bg-gilded/10 text-foreground ring-1 ring-gilded'
                         : 'border-border text-muted-foreground hover:border-foreground'
                     }`}
                   >
@@ -361,10 +361,10 @@ export function ProductDetail({ product }: { product: any }) {
 
         {materials.length > 0 && (
           <div className="mb-6">
-            <label className="mb-3 block text-xs font-medium uppercase tracking-widest text-foreground">Material: <span className="text-gold">{selectedMaterial?.label || 'Standard'}</span></label>
+            <label className="mb-3 block text-xs font-medium uppercase tracking-widest text-foreground">Material: <span className="text-gilded">{selectedMaterial?.label || 'Standard'}</span></label>
             <div className="flex flex-wrap gap-2">
               {materials.map((material: any, index: number) => (
-                <button type="button" key={material?.id || index} onClick={() => { setSelectedMaterial(material); selectVariantImage(material) }} className={`min-h-11 border px-4 text-xs font-medium transition-all ${selectedMaterial?.id === material?.id ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold' : 'border-border text-muted-foreground hover:border-foreground'}`}>
+                <button type="button" key={material?.id || index} onClick={() => { setSelectedMaterial(material); selectVariantImage(material) }} className={`min-h-11 border px-4 text-xs font-medium transition-all ${selectedMaterial?.id === material?.id ? 'border-gilded bg-gilded/10 text-foreground ring-1 ring-gilded' : 'border-border text-muted-foreground hover:border-foreground'}`}>
                   {material?.label || material?.name} {optionPrice(material) > 0 ? `(+${formatMoney(optionPrice(material), normalizeCurrency(product?.currency))})` : ''}
                 </button>
               ))}
@@ -374,10 +374,10 @@ export function ProductDetail({ product }: { product: any }) {
 
         {otherVariants.length > 0 && (
           <div className="mb-6">
-            <label className="mb-3 block text-xs font-medium uppercase tracking-widest text-foreground">Style / size: <span className="text-gold">{selectedVariant?.label || 'Select'}</span></label>
+            <label className="mb-3 block text-xs font-medium uppercase tracking-widest text-foreground">Style / size: <span className="text-gilded">{selectedVariant?.label || 'Select'}</span></label>
             <div className="flex flex-wrap gap-2">
               {otherVariants.map((variant: any, index: number) => (
-                <button type="button" key={variant?.id || index} onClick={() => { setSelectedVariant(variant); selectVariantImage(variant) }} className={`min-h-11 border px-4 text-xs font-medium transition-all ${selectedVariant?.id === variant?.id ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold' : 'border-border text-muted-foreground hover:border-foreground'}`}>
+                <button type="button" key={variant?.id || index} onClick={() => { setSelectedVariant(variant); selectVariantImage(variant) }} className={`min-h-11 border px-4 text-xs font-medium transition-all ${selectedVariant?.id === variant?.id ? 'border-gilded bg-gilded/10 text-foreground ring-1 ring-gilded' : 'border-border text-muted-foreground hover:border-foreground'}`}>
                   {variant?.label || variant?.name} {optionPrice(variant) > 0 ? `(+${formatMoney(optionPrice(variant), normalizeCurrency(product?.currency))})` : ''}
                 </button>
               ))}
@@ -391,7 +391,7 @@ export function ProductDetail({ product }: { product: any }) {
             <div className="space-y-2">
               {accessories.map((accessory: any, index: number) => {
                 const isSelected = selectedAccessories.some((selected) => selected?.id === accessory?.id)
-                return <label key={accessory?.id || index} className={`flex min-h-11 cursor-pointer items-center justify-between gap-4 border px-3 text-xs transition-colors ${isSelected ? 'border-gold bg-gold/10' : 'border-border hover:border-foreground'}`}><span className="flex items-center gap-2"><input type="checkbox" checked={isSelected} onChange={() => setSelectedAccessories((current) => isSelected ? current.filter((selected) => selected?.id !== accessory?.id) : [...current, accessory])} className="size-4 accent-[var(--primary)]" />{accessory?.label || accessory?.name}</span><span className="text-muted-foreground">{optionPrice(accessory) > 0 ? `+${formatMoney(optionPrice(accessory), normalizeCurrency(product?.currency))}` : 'Included'}</span></label>
+                return <label key={accessory?.id || index} className={`flex min-h-11 cursor-pointer items-center justify-between gap-4 border px-3 text-xs transition-colors ${isSelected ? 'border-gilded bg-gilded/10' : 'border-border hover:border-foreground'}`}><span className="flex items-center gap-2"><input type="checkbox" checked={isSelected} onChange={() => setSelectedAccessories((current) => isSelected ? current.filter((selected) => selected?.id !== accessory?.id) : [...current, accessory])} className="size-4 accent-[var(--primary)]" />{accessory?.label || accessory?.name}</span><span className="text-muted-foreground">{optionPrice(accessory) > 0 ? `+${formatMoney(optionPrice(accessory), normalizeCurrency(product?.currency))}` : 'Included'}</span></label>
               })}
             </div>
           </div>
@@ -401,7 +401,7 @@ export function ProductDetail({ product }: { product: any }) {
         <div className="mb-8 border border-border p-4 bg-muted/20 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Ruler className="w-4 h-4 text-gold" />
+              <Ruler className="w-4 h-4 text-gilded" />
               <span className="text-xs uppercase tracking-wider font-medium text-foreground">
                 Custom Tailoring
               </span>
@@ -409,7 +409,7 @@ export function ProductDetail({ product }: { product: any }) {
             <button
               type="button"
               onClick={() => setUseCustomDims(!useCustomDims)}
-              className="text-xs text-gold hover:underline flex items-center gap-1 font-medium"
+              className="text-xs text-gilded hover:underline flex items-center gap-1 font-medium"
             >
               {useCustomDims ? 'Use Standard Dimensions' : '+ Request Bespoke Sizing'}
             </button>
@@ -430,7 +430,7 @@ export function ProductDetail({ product }: { product: any }) {
                     placeholder="e.g. 64"
                     value={dimensions.width}
                     onChange={(e) => setDimensions({ ...dimensions, width: e.target.value })}
-                    className="w-full p-2 text-xs border border-border bg-background focus:border-gold outline-none"
+                    className="w-full p-2 text-xs border border-border bg-background focus:border-gilded outline-none"
                   />
                 </div>
                 <div>
@@ -442,7 +442,7 @@ export function ProductDetail({ product }: { product: any }) {
                     placeholder="e.g. 32"
                     value={dimensions.height}
                     onChange={(e) => setDimensions({ ...dimensions, height: e.target.value })}
-                    className="w-full p-2 text-xs border border-border bg-background focus:border-gold outline-none"
+                    className="w-full p-2 text-xs border border-border bg-background focus:border-gilded outline-none"
                   />
                 </div>
                 <div>
@@ -454,7 +454,7 @@ export function ProductDetail({ product }: { product: any }) {
                     placeholder="e.g. 28"
                     value={dimensions.depth}
                     onChange={(e) => setDimensions({ ...dimensions, depth: e.target.value })}
-                    className="w-full p-2 text-xs border border-border bg-background focus:border-gold outline-none"
+                    className="w-full p-2 text-xs border border-border bg-background focus:border-gilded outline-none"
                   />
                 </div>
               </div>
@@ -473,7 +473,7 @@ export function ProductDetail({ product }: { product: any }) {
                   type="button"
                   aria-label="Decrease quantity"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="px-3 py-2 text-foreground hover:bg-muted transition-colors"
+              className="px-3 py-2 text-obsidian hover:bg-gilded/10 transition-colors"
             >
               -
             </button>
@@ -482,7 +482,7 @@ export function ProductDetail({ product }: { product: any }) {
               type="button"
               aria-label="Increase quantity"
               onClick={() => setQuantity((q) => q + 1)}
-              className="px-3 py-2 text-foreground hover:bg-muted transition-colors"
+              className="px-3 py-2 text-obsidian hover:bg-gilded/10 transition-colors"
             >
               +
             </button>
@@ -501,7 +501,7 @@ export function ProductDetail({ product }: { product: any }) {
             className={`p-3 border transition-colors ${
               isWishlisted
                 ? 'border-red-500 text-red-500 bg-red-500/10'
-                : 'border-border text-foreground hover:border-gold'
+                : 'border-border text-foreground hover:border-gilded'
             }`}
             title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
           >
@@ -514,7 +514,7 @@ export function ProductDetail({ product }: { product: any }) {
             <p className="text-xs font-medium uppercase tracking-widest text-foreground">Need a different finish or size?</p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">Send the studio this piece as the starting point for a customisation conversation.</p>
           </div>
-          <Link href={productInquiryHref} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-border px-4 text-xs font-medium uppercase tracking-wider text-foreground transition-colors hover:border-gold hover:text-gold"><Send className="size-4" aria-hidden="true" />Ask about this piece</Link>
+          <Link href={productInquiryHref} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-border px-4 text-xs font-medium uppercase tracking-wider text-foreground transition-colors hover:border-gilded hover:text-gilded"><Send className="size-4" aria-hidden="true" />Ask about this piece</Link>
         </div>
 
         {/* ACCORDIONS */}
@@ -572,11 +572,11 @@ export function ProductDetail({ product }: { product: any }) {
                   <div className="border-t border-border pt-6 mt-6 space-y-3 text-xs text-muted-foreground">
 
           <div className="flex items-center gap-3">
-            <Truck size={16} className="text-gold" />
+            <Truck size={16} className="text-gilded" />
             <span>Delivery and installation options are confirmed with your order brief.</span>
           </div>
           <div className="flex items-center gap-3">
-            <ShieldCheck size={16} className="text-gold" />
+            <ShieldCheck size={16} className="text-gilded" />
             <span>Specifications and any applicable warranty terms are confirmed before purchase.</span>
           </div>
         </div>
@@ -658,7 +658,7 @@ export function ProductReviews({ product }: { product: any }) {
           
           <div>
             <label className="block text-xs uppercase text-muted-foreground mb-1">Rating</label>
-            <div className="flex gap-1 text-amber-500">
+            <div className="flex gap-1 text-gilded">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   type="button"
@@ -666,7 +666,7 @@ export function ProductReviews({ product }: { product: any }) {
                   onClick={() => setRating(star)}
                   className="p-1 hover:scale-110 transition-transform"
                 >
-                  <Star size={20} className={star <= rating ? 'fill-current text-amber-500' : 'text-muted'} />
+                  <Star size={20} className={star <= rating ? 'fill-current text-gilded' : 'text-muted'} />
                 </button>
               ))}
             </div>
@@ -680,7 +680,7 @@ export function ProductReviews({ product }: { product: any }) {
               placeholder="e.g. Sarah K."
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
-              className="w-full p-2.5 text-xs bg-background border border-border focus:border-gold outline-none"
+              className="w-full p-2.5 text-xs bg-background border border-border focus:border-gilded outline-none"
             />
           </div>
 
@@ -692,7 +692,7 @@ export function ProductReviews({ product }: { product: any }) {
               placeholder="Describe your experience with this piece..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full p-2.5 text-xs bg-background border border-border focus:border-gold outline-none"
+              className="w-full p-2.5 text-xs bg-background border border-border focus:border-gilded outline-none"
             />
           </div>
 
@@ -713,12 +713,12 @@ export function ProductReviews({ product }: { product: any }) {
           {avgRating.toFixed(1)}
         </div>
         <div>
-          <div className="flex items-center text-amber-500 gap-0.5 mb-1">
+          <div className="flex items-center text-gilded gap-0.5 mb-1">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
                 size={16}
-                className={i < Math.floor(avgRating) ? 'fill-current text-amber-500' : 'text-muted'}
+                className={i < Math.floor(avgRating) ? 'fill-current text-gilded' : 'text-muted'}
               />
             ))}
           </div>
@@ -739,12 +739,12 @@ export function ProductReviews({ product }: { product: any }) {
                   {rev?.createdAt ? new Date(rev.createdAt).toLocaleDateString() : 'Recently'}
                 </span>
               </div>
-              <div className="flex items-center text-amber-500 gap-0.5 mb-2">
+              <div className="flex items-center text-gilded gap-0.5 mb-2">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
                     size={12}
-                    className={i < (rev?.rating || 5) ? 'fill-current text-amber-500' : 'text-muted'}
+                    className={i < (rev?.rating || 5) ? 'fill-current text-gilded' : 'text-muted'}
                   />
                 ))}
               </div>

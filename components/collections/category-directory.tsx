@@ -9,30 +9,9 @@ export type CollectionCategory = {
   slug: string
   productCount: number
   image: string | null
+  subcategories: Array<{ name: string; slug: string; productCount: number; image: string | null }>
 }
 
 export default function CategoryDirectory({ categories }: { categories: CollectionCategory[] }) {
-  return (
-    <section className="px-4 py-10 sm:px-8 sm:py-16 lg:px-16 lg:py-20" aria-labelledby="collection-categories-heading">
-      <div className="mx-auto max-w-[1440px]">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-primary">Browse by category</p>
-          <h2 id="collection-categories-heading" className="mt-3 font-serif text-4xl tracking-tight sm:text-6xl">Find your next piece.</h2>
-          <p className="mt-4 text-sm leading-7 text-muted-foreground">Start with a room, a material, or a mood. Each category opens a focused edit of the pieces currently available.</p>
-        </div>
-        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
-          {categories.map((category, index) => (
-            <Link key={category.slug} href={`/collections/${category.slug}`} className="group relative isolate min-h-[17rem] overflow-hidden rounded-xl border border-border/80 bg-card shadow-lift transition-all duration-500 hover:-translate-y-1 hover:border-primary/60 hover:shadow-editorial focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}>
-              {category.image ? <Image src={category.image} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-105" /> : <div className="absolute inset-0 flex items-center justify-center bg-muted text-primary"><PackageOpen className="size-10" aria-hidden="true" /></div>}
-              <div className="absolute inset-0 bg-gradient-to-t from-foreground/85 via-foreground/20 to-transparent" aria-hidden="true" />
-              <div className="absolute inset-x-0 bottom-0 p-5 text-background sm:p-6">
-                <p className="text-[10px] uppercase tracking-[0.24em] text-background/70">{category.productCount} {category.productCount === 1 ? 'piece' : 'pieces'}</p>
-                <div className="mt-2 flex items-end justify-between gap-4"><h3 className="font-serif text-3xl leading-none sm:text-4xl">{category.name}</h3><ArrowUpRight className="size-5 shrink-0 translate-y-1 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" /></div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
+  return <section className="px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20" aria-labelledby="collection-categories-heading"><div className="mx-auto max-w-7xl"><div className="flex flex-col justify-between gap-6 border-b border-border pb-8 md:flex-row md:items-end"><div><p className="text-[10px] uppercase tracking-[0.3em] text-gilded">Shop by room</p><h2 id="collection-categories-heading" className="mt-3 font-serif text-4xl tracking-tight sm:text-6xl">Find your next piece.</h2></div><p className="max-w-md text-sm leading-6 text-muted-foreground md:text-right">Start with a room, a material, or a mood. Each edit gathers pieces currently available through the studio.</p></div><div className="mt-10 grid grid-cols-2 gap-x-3 gap-y-10 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-12 lg:grid-cols-4 lg:gap-x-6">{categories.map((category, index) => <Link key={category.slug} href={`/collections/${category.slug}`} className="group min-w-0" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}>{category.image ? <div className="relative aspect-[4/5] overflow-hidden bg-muted"><Image src={category.image} alt={category.name} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 25vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" /></div> : <div className="flex aspect-[4/5] items-center justify-center bg-muted text-gilded"><PackageOpen className="size-10" aria-hidden="true" /></div>}<div className="mt-4 flex items-start justify-between gap-3"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gilded">{category.productCount} {category.productCount === 1 ? 'piece' : 'pieces'}</p><h3 className="mt-2 font-serif text-2xl leading-none sm:text-3xl">{category.name}</h3>{category.subcategories.length > 0 && <p className="mt-3 line-clamp-2 text-xs leading-5 text-muted-foreground">{category.subcategories.slice(0, 3).map((subcategory) => subcategory.name).join(' · ')}</p>}</div><ArrowUpRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-gilded" aria-hidden="true" /></div></Link>)}</div></div></section>
 }

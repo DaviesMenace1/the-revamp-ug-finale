@@ -1,6 +1,6 @@
 import { db } from './client';
 import { users, products, projects, orders, consultations, articles, productVariants, productImages, services } from './schema';
-import { eq, desc, ilike, and, ne, asc } from 'drizzle-orm';
+import { eq, desc, ilike, and, ne, asc, or, isNull } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 
 type OrderStatus = NonNullable<InferSelectModel<typeof orders>['status']>;
@@ -405,3 +405,20 @@ export async function getPublishedSearchData() {
   return { products: publishedProducts, projects: publishedProjects, articles: publishedArticles, services: publishedServices }
 }
 
+export async function getPublishedServices() {
+  try {
+    return await db.query.services.findMany({
+      where: or(eq(services.status, 'published'), eq(services.status, 'active'), isNull(services.status)),
+      with: {
+        category: {
+          columns: { id: true, name: true, slug: true, description: true, image: true },
+        },
+      },
+      orderBy: [desc(services.featured), asc(services.order), asc(services.name)],
+      limit: 100,
+    })
+  } catch (error) {
+    console.error('Error fetching published services:', error)
+    return []
+  }
+}

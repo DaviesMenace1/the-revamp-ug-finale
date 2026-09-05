@@ -143,7 +143,7 @@ export default function SearchClient({ data, loadError }: { data: SearchData; lo
     <div className="min-h-screen bg-obsidian text-ivory">
       <section className="border-b border-ivory/15 px-5 pb-14 pt-28 sm:px-8 md:pb-20 md:pt-40 lg:px-16">
         <div className="mx-auto max-w-[1440px]">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Explore The Revamp UG</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-gilded">Explore The Revamp UG</p>
           <h1 className="mt-5 max-w-4xl font-serif text-5xl font-light leading-[0.94] sm:text-7xl lg:text-[7rem]">Search the collection.</h1>
           <div className="mt-12 flex items-center gap-4 border-b border-ivory/35 pb-4">
             <Search className="size-5 shrink-0 text-ivory/55" aria-hidden="true" />

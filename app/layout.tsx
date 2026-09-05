@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
-import { Cormorant_Garamond, Montserrat } from 'next/font/google'
+import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeProvider } from '@/lib/theme-provider'
 import { NewsletterPopup } from '@/components/newsletter-popup'
@@ -13,6 +13,7 @@ import { SchemaScript } from '@/components/seo/schema-script'
 import { generateOrganizationSchema, generateLocalBusinessSchema, generateWebSiteSchema } from '@/lib/seo/schema-generator'
 import WebMcpBootstrap from '@/components/agent/webmcp-bootstrap'
 import ClerkRuntimeGuard from '@/components/auth/clerk-runtime-guard'
+import GoogleOneTapPrompt from '@/components/auth/google-one-tap-prompt'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({
@@ -23,7 +24,7 @@ const cormorant = Cormorant_Garamond({
   display: 'swap',
 })
 
-const montserrat = Montserrat({
+const instrument = Instrument_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
   variable: '--font-sans',
@@ -78,30 +79,14 @@ export const metadata: Metadata = {
   },
   manifest: '/site.webmanifest',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/favicon.ico',
-        sizes: 'any',
-      },
-    ],
+    icon: [{ url: '/icon-light-32x32.png' }, { url: '/favicon.ico', sizes: 'any' }],
     apple: '/apple-icon.png',
   },
 }
 
 export const viewport: Viewport = {
-  colorScheme: 'light dark',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' },
-  ],
+  colorScheme: 'light',
+  themeColor: '#ffffff',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -120,15 +105,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${montserrat.variable} bg-background`}>
+  <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${instrument.variable} bg-background`}>
       <head>
         {/* Theme Script */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const theme = localStorage.getItem('revamp-theme-preference') || 
-                  (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                const theme = localStorage.getItem('revamp-theme-preference') || 'light';
                 if (theme === 'dark') {
                   document.documentElement.classList.add('dark');
                 } else {
@@ -169,10 +153,10 @@ export default function RootLayout({
               </CartProvider>
             </CookieConsentProvider>
           </ClerkRuntimeGuard>
+          {hasValidClerkPublishableKey && <GoogleOneTapPrompt />}
         </ClerkProvider>
         <SpeedInsights />
       </body>
     </html>
   )
 }
-

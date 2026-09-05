@@ -39,14 +39,21 @@ export default async function CollectionsPage() {
   const result = await safeQuery(getPublishedProducts(), 'published collections', [])
   const products = result.data
   const categories = Array.from(products.reduce((map, product) => {
-    const name = product.subCategory?.category?.name || product.subCategory?.name
+    const category = product.subCategory?.category
+    const subCategory = product.subCategory
+    const name = category?.name || subCategory?.name
     if (!name) return map
     const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     const image = product.productImages?.find((entry) => entry.isPrimary)?.url || product.productImages?.[0]?.url || null
     const current = map.get(slug)
-    map.set(slug, { name, slug, productCount: (current?.productCount || 0) + 1, image: current?.image || image })
+    const subSlug = subCategory?.slug || subCategory?.name?.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const subcategories = current?.subcategories || []
+    const existingSubcategory = subSlug ? subcategories.find((item) => item.slug === subSlug) : undefined
+    if (subSlug && existingSubcategory) existingSubcategory.productCount += 1
+    else if (subSlug) subcategories.push({ name: subCategory?.name || 'Collection', slug: subSlug, productCount: 1, image })
+    map.set(slug, { name, slug, productCount: (current?.productCount || 0) + 1, image: current?.image || image, subcategories })
     return map
-  }, new Map<string, { name: string; slug: string; productCount: number; image: string | null }>()).values())
+  }, new Map<string, { name: string; slug: string; productCount: number; image: string | null; subcategories: Array<{ name: string; slug: string; productCount: number; image: string | null }> }>()).values())
   const productItems = products.map((product, index) => ({
     '@type': 'ListItem',
     position: index + 1,
@@ -58,29 +65,23 @@ export default async function CollectionsPage() {
     <>
       <SchemaScript schema={{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'The Revamp UG Collection', url: `${SITE_URL}/collections`, mainEntity: { '@type': 'ItemList', itemListElement: productItems } }} />
       <SiteHeader />
-      <main className="min-h-screen bg-background">
-        <section className="relative overflow-hidden bg-obsidian px-5 pb-14 pt-36 text-ivory sm:px-8 md:pb-20 md:pt-48 lg:px-16">
-          <div className="absolute right-[-12%] top-[-30%] size-[40rem] rounded-full border border-gold/20" aria-hidden="true" />
-          <div className="relative mx-auto grid max-w-[1440px] gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div className="max-w-5xl motion-reveal">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-gold">The Revamp collection / current edit</p>
-              <h1 className="mt-5 max-w-4xl font-serif text-6xl font-light leading-[0.9] sm:text-8xl lg:text-[8rem]">Objects with presence.</h1>
-              <p className="mt-7 max-w-2xl text-base leading-7 text-ivory/65 sm:text-lg">Furniture, lighting, and accents chosen for rooms that are meant to be lived in rather than simply filled.</p>
-            </div>
-            <div className="flex items-end gap-5 border-l border-gold/45 pl-5 text-sm text-ivory/60 lg:mb-2 lg:flex-col lg:items-start lg:gap-1">
-              <span className="font-serif text-5xl text-ivory">{products.length.toString().padStart(2, '0')}</span>
-              <span className="max-w-[12rem] leading-6">Published pieces<br />East Africa · worldwide sourcing</span>
-            </div>
+      <main className="min-h-screen bg-canvas text-obsidian">
+        <section className="border-b border-border bg-canvas px-5 pb-14 pt-16 sm:px-8 sm:pb-20 sm:pt-24 lg:px-12 lg:pt-28">
+          <div className="mx-auto max-w-7xl text-center">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-gilded">The Revamp collection / current edit</p>
+            <h1 className="mx-auto mt-5 max-w-5xl font-serif text-5xl font-light leading-[0.94] sm:text-7xl lg:text-[7rem]">Furniture with presence.</h1>
+            <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">Furniture, lighting, and accents chosen for rooms that are meant to be lived in rather than simply filled.</p>
+            <div className="mx-auto mt-10 flex max-w-2xl items-center rounded-sm border border-border bg-white px-4 py-3 text-left shadow-sm"><span className="flex-1 text-sm text-muted-foreground">Search the collection</span><span className="text-[10px] uppercase tracking-[0.18em] text-gilded">{products.length} pieces</span></div>
           </div>
         </section>
 
         <div className="mx-auto max-w-[1440px]">
           {result.error ? (
-            <div className="mx-5 my-12 flex min-h-64 items-center justify-center rounded-2xl border border-border/70 bg-card p-6 sm:mx-8 lg:mx-16">
+              <div className="mx-5 my-12 flex min-h-64 items-center justify-center rounded-md border border-border bg-canvas p-6 sm:mx-8 lg:mx-16">
               <PageLoadError title="The collection is taking longer than expected." message="We could not load the current edit. Your cart and saved pieces were not changed." />
             </div>
           ) : products.length === 0 ? (
-            <div className="mx-5 my-12 rounded-2xl border border-dashed border-border p-12 text-center sm:mx-8 lg:mx-16">
+            <div className="mx-5 my-12 rounded-md border border-dashed border-border p-12 text-center sm:mx-8 lg:mx-16">
               <p className="font-serif text-3xl">The next edit is on its way.</p>
               <p className="mt-3 text-sm text-muted-foreground">No published pieces are available just yet. Return soon or speak with our studio.</p>
             </div>

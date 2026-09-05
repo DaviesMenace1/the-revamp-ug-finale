@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, Minus, Plus, ShoppingBag, Trash2 } from '@/components/ui/luxury-icons'
+import { ArrowRight, MessageCircle, Minus, Plus, ShoppingBag, Trash2 } from '@/components/ui/luxury-icons'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { useCart } from '@/lib/context/cart-context'
@@ -47,6 +47,37 @@ function ProductOptions({ item }: { item: any }) {
   )
 }
 
+function whatsappCartMessage(items: any[], total: number, currency: string) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://therevampug.com'
+  const lines = items.map((item) => {
+    const name = item.product?.name || 'Saved selection'
+    const unitPrice = Number(item.unitPrice ?? item.product?.salePrice ?? item.product?.price ?? 0)
+    const options = [
+      item.selectedColor?.label || item.selectedColor?.name ? `Colour: ${item.selectedColor.label || item.selectedColor.name}` : null,
+      item.selectedFabric?.label || item.selectedFabric?.name ? `Fabric: ${item.selectedFabric.label || item.selectedFabric.name}` : null,
+      item.selectedMaterial?.label || item.selectedMaterial?.name ? `Material: ${item.selectedMaterial.label || item.selectedMaterial.name}` : null,
+      item.selectedVariant?.label || item.selectedVariant?.name ? `Variant: ${item.selectedVariant.label || item.selectedVariant.name}` : null,
+      Array.isArray(item.selectedAccessories) && item.selectedAccessories.length > 0 ? `Add-ons: ${item.selectedAccessories.map((accessory: any) => accessory.label || accessory.name).filter(Boolean).join(', ')}` : null,
+    ].filter(Boolean)
+    const productUrl = item.product?.slug ? `${origin}/collections/${item.product.slug}` : null
+    return [
+      `• ${name} × ${item.quantity} | ${formatMoney(unitPrice * item.quantity, currency)}`,
+      options.length > 0 ? `  ${options.join(' | ')}` : null,
+      productUrl ? `  ${productUrl}` : null,
+    ].filter(Boolean).join('\n')
+  })
+
+  return [
+    'Hello The Revamp UG, I would like to order the following selection:',
+    '',
+    lines.join('\n'),
+    '',
+    `Estimated total: ${formatMoney(total, currency)}`,
+    '',
+    'Please confirm availability, delivery, and the final quotation.',
+  ].join('\n')
+}
+
 function QuantityControl({ quantity, onDecrease, onIncrease }: { quantity: number; onDecrease: () => void; onIncrease: () => void }) {
   return (
     <div className="inline-flex items-center rounded-md border border-border/80 bg-background" aria-label="Quantity">
@@ -66,6 +97,11 @@ export default function CartPage() {
   const currencies = Array.from(new Set(items.map((item) => normalizeCurrency(item.currency ?? item.product?.currency))))
   const hasMixedCurrencies = currencies.length > 1
   const cartCurrency = currencies[0] || 'UGX'
+  const shareCartOnWhatsApp = () => {
+    const number = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '256703861668').replace(/[^0-9]/g, '')
+    const message = whatsappCartMessage(items, Number(cart?.total || 0), cartCurrency)
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
+  }
 
   if (!isLoaded) {
     return (
@@ -181,6 +217,10 @@ export default function CartPage() {
               ) : (
                 <Link href="/checkout" className="flex min-h-12 items-center justify-center rounded-md bg-primary px-5 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Continue to checkout</Link>
               )}
+              <button type="button" onClick={shareCartOnWhatsApp} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-md border border-[#25D366]/60 px-5 text-xs font-medium uppercase tracking-[0.14em] text-[#168c45] transition-colors hover:bg-[#25D366]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2">
+                <MessageCircle className="size-4" aria-hidden="true" />
+                Order or share on WhatsApp
+              </button>
               <p className="mt-4 text-center text-[11px] leading-5 text-muted-foreground">Final delivery, installation, and customisation costs may be confirmed during quotation.</p>
             </aside>
           </div>

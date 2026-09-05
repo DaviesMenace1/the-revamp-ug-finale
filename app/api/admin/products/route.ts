@@ -42,6 +42,7 @@ const productSchema = z.object({
     z.string().optional().nullable(),
 
   price: z.number().nonnegative(),
+  tradeDiscountPercent: z.coerce.number().min(0).max(100).default(0),
   originalPrice:
     z.number().nonnegative().optional().nullable(),
   currency: z.string().default("UGX"),
@@ -271,6 +272,7 @@ export async function POST(
           price: String(
             data.price,
           ),
+          tradeDiscountPercent: String(data.tradeDiscountPercent),
           originalPrice:
             data.originalPrice !==
             null

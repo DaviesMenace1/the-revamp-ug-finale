@@ -1,8 +1,9 @@
 import { requirePortalUser } from '@/lib/auth/portal-auth'
 import { db } from '@/lib/db/client'
-import { memberships, membershipEvents } from '@/lib/db/schema'
+import { membershipEvents } from '@/lib/db/schema'
 import { and, asc, eq, gte, isNull, or } from 'drizzle-orm'
 import MembershipDashboardClient from './membership-dashboard-client'
+import { getLoyaltyOverview } from '@/lib/loyalty/service'
 import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
@@ -10,11 +11,7 @@ export const dynamic = 'force-dynamic'
 export default async function MembershipDashboard() {
   const user = await requirePortalUser(['customer', 'admin', 'designer', 'trade_member', 'architect', 'interior_designer'], '/membership')
 
-  const membershipResult = await safeQuery(
-    db.query.memberships.findFirst({ where: eq(memberships.userId, user.id) }),
-    'membership profile',
-    null,
-  )
+  const loyaltyResult = await safeQuery(getLoyaltyOverview(user.id), 'membership rewards overview', null)
   const upcomingEventsResult = await safeQuery(
     db
       .select()
@@ -25,26 +22,26 @@ export default async function MembershipDashboard() {
     'membership events',
     [],
   )
-  const membership = membershipResult.data
+
+  const overview = loyaltyResult.data
   const upcomingEvents = upcomingEventsResult.data
 
   return (
     <MembershipDashboardClient
-      membership={
-        membership
-          ? {
-              type: membership.membershipType,
-              status: membership.status ?? 'active',
-              benefits: Array.isArray(membership.benefits) ? (membership.benefits as string[]) : [],
-            }
-          : null
-      }
-      upcomingEvents={upcomingEvents.map((e) => ({
-        id: e.id,
-        title: e.title,
-        eventDate: e.eventDate.toISOString(),
-        location: e.location,
-        meetingUrl: e.meetingUrl,
+      rewards={overview ? {
+        tier: overview.tier,
+        balancePoints: overview.balancePoints,
+        lifetimeEarned: overview.lifetimeEarned,
+        tierPrivileges: overview.tierPrivileges,
+        nextTier: overview.nextTier,
+        pointsToNextTier: overview.pointsToNextTier,
+        nextTierPoints: overview.nextTierPoints,
+      } : null}
+      upcomingEvents={upcomingEvents.map((event) => ({
+        id: event.id,
+        title: event.title,
+        eventDate: event.eventDate.toISOString(),
+        location: event.location,
       }))}
     />
   )

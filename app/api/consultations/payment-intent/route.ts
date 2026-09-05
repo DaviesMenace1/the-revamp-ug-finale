@@ -4,7 +4,6 @@ import { and, eq, gte, isNull, lt, or } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 import { db } from '@/lib/db/client'
 import { consultationPaymentIntents, consultationPromotionRedemptions, consultationSlots } from '@/lib/db/schema'
-import { quotePointsForConsultation, reservePointsForConsultation, releasePointsForConsultation } from '@/lib/loyalty/service'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveAuthorizationType, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
 import { settleConsultationPayment } from '@/lib/consultation-payments'
@@ -27,7 +26,6 @@ type BookingBody = {
   budget?: unknown
   mode?: unknown
   promoCode?: unknown
-  loyaltyPoints?: unknown
   idempotencyKey?: unknown
   paymentMethod?: unknown
   phoneNumber?: unknown
@@ -114,12 +112,7 @@ export async function POST(request: Request) {
     if (eligible.error) return NextResponse.json({ error: eligible.error }, { status: 400 })
     const promotion = eligible.promotion
     const summary = pricingSummaryForPromotion(pricing, promotion)
-    const requestedLoyaltyPoints = Math.max(0, Math.floor(Number(body.loyaltyPoints) || 0))
-    const loyaltyQuote = requestedLoyaltyPoints > 0 ? await quotePointsForConsultation(user.id, summary.baseAmount, requestedLoyaltyPoints) : null
-    if (loyaltyQuote && !loyaltyQuote.success) return NextResponse.json({ error: loyaltyQuote.error }, { status: 409 })
-    if (loyaltyQuote && loyaltyQuote.success && promotion && !((promotion as { stackable?: boolean }).stackable)) return NextResponse.json({ error: 'This consultation promo code cannot be combined with loyalty points.' }, { status: 409 })
-    const loyaltyDiscount = loyaltyQuote?.success ? loyaltyQuote.discountUgx : 0
-    const chargedSummary = { ...summary, discountAmount: summary.discountAmount + loyaltyDiscount, amount: Math.max(0, summary.amount - loyaltyDiscount) }
+    const chargedSummary = summary
     const now = new Date()
     const expiresAt = new Date(now.getTime() + pricing.holdMinutes * 60 * 1000)
 
@@ -167,7 +160,7 @@ export async function POST(request: Request) {
         promotionId: promotion?.id || null,
         promotionCode: promotion?.code || null,
         expiresAt,
-        metadata: { title, description, serviceType, budget, mode, slotStartTime: slot.startTime.toISOString(), durationMinutes: slot.durationMinutes, taxInclusive: summary.taxInclusive, paymentMethod: paymentMethod.type, loyaltyPoints: loyaltyQuote?.success ? loyaltyQuote.points : 0, loyaltyDiscountUgx: loyaltyDiscount },
+      metadata: { title, description, serviceType, budget, mode, slotStartTime: slot.startTime.toISOString(), durationMinutes: slot.durationMinutes, taxInclusive: summary.taxInclusive, paymentMethod: paymentMethod.type },
       }).returning()
       if (!intent) return null
       if (promotion) await transaction.insert(consultationPromotionRedemptions).values({ promotionId: promotion.id, paymentIntentId: intent.id, userId: user.id, code: promotion.code, discountAmount: calculatePromotionDiscount(promotion, summary.baseAmount).toFixed(2), status: 'reserved' })
@@ -175,10 +168,6 @@ export async function POST(request: Request) {
     })
 
     if (!created) return NextResponse.json({ error: 'That time has just been reserved by another client. Please choose another slot.' }, { status: 409 })
-    if (loyaltyQuote?.success && loyaltyQuote.points > 0) {
-      const pointsHold = await reservePointsForConsultation(user.id, created.id, loyaltyQuote.points, loyaltyQuote.discountUgx)
-      if (!pointsHold.success) { await releaseFailedIntent(created.id, user.id); return NextResponse.json({ error: pointsHold.error }, { status: 409 }) }
-    }
     let baseUrl = normalizeBaseUrl(request)
     if (!/^https?:\/\//i.test(baseUrl)) baseUrl = `https://${baseUrl}`
 
@@ -196,7 +185,6 @@ export async function POST(request: Request) {
     const charge = flwPayload.data
     if (!flwResponse.response?.ok || !['success', 'pending'].includes(String(flwPayload.status || '').toLowerCase()) || !charge?.id) {
       await releaseFailedIntent(created.id, user.id)
-      await releasePointsForConsultation(created.id)
       return NextResponse.json({ error: flutterwaveErrorMessage(flwPayload, flwResponse.response?.status || 502) }, { status: flwResponse.response?.status === 401 ? 503 : 502 })
     }
 

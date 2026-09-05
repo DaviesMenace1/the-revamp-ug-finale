@@ -54,6 +54,7 @@ const sidebarItems: Array<{ label: string; href: string; icon: typeof BarChart3;
   { label: 'Messages', href: '/admin/messages', icon: MessageSquare, permission: 'manage_support' },
   { label: 'Support Tickets', href: '/admin/tickets', icon: LifeBuoy, permission: 'manage_support' },
   { label: 'Users', href: '/admin/users', icon: Users, permission: 'manage_staff' },
+  { label: 'Trade Applications', href: '/admin/trade-applications', icon: Briefcase, permission: 'manage_staff' },
   { label: 'Consultations', href: '/admin/consultations', icon: FileText, permission: 'manage_projects' },
   { label: 'Events', href: '/admin/events', icon: CalendarDays, permission: 'manage_content' },
   { label: 'Community', href: '/admin/community', icon: Megaphone, permission: 'manage_content' },

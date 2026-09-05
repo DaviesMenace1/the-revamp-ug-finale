@@ -9,7 +9,6 @@ import { Save, Check } from '@/components/ui/luxury-icons'
 import { saveSetting } from '@/lib/actions/settings'
 import ConsultationCommerceClient, { type ConsultationPricing, type ConsultationPromotion } from './consultation-commerce-client'
 import CollectionCommerceClient, { type CollectionPromotion } from './collection-commerce-client'
-import SubscriptionPricingClient, { type SubscriptionPricing } from './subscription-pricing-client'
 import PickupStationsClient from './pickup-stations-client'
 import type { PickupStationRecord } from '@/lib/actions/pickup-stations'
 
@@ -51,7 +50,6 @@ export default function SettingsClient({
   initialConsultationPricing,
   initialPromotions,
   initialCollectionPromotions,
-  initialSubscriptionPricing,
   initialPickupStations,
 }: {
   initialBusiness: Business
@@ -61,7 +59,6 @@ export default function SettingsClient({
   initialConsultationPricing: ConsultationPricing
   initialPromotions: ConsultationPromotion[]
   initialCollectionPromotions: CollectionPromotion[]
-  initialSubscriptionPricing: SubscriptionPricing
   initialPickupStations: PickupStationRecord[]
 }) {
   const [business, setBusiness] = useState(initialBusiness)
@@ -276,7 +273,6 @@ export default function SettingsClient({
         <ConsultationCommerceClient initialPricing={initialConsultationPricing} initialPromotions={initialPromotions} />
         <CollectionCommerceClient initialPromotions={initialCollectionPromotions} />
 
-      <SubscriptionPricingClient initialPricing={initialSubscriptionPricing} />
 
       <PickupStationsClient initialStations={initialPickupStations} />
 

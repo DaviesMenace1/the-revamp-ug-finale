@@ -1,9 +1,7 @@
 import { requirePortalUser } from '@/lib/auth/portal-auth'
-import { db } from '@/lib/db/client'
-import { memberships } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
 import MembershipBenefitsClient from './membership-benefits-client'
-import { getSubscriptionPricing } from '@/lib/subscriptions'
+import { getLoyaltyOverview } from '@/lib/loyalty/service'
+import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,9 +10,15 @@ export default async function MembershipBenefits() {
     ['customer', 'admin', 'designer', 'trade_member', 'architect', 'interior_designer'],
     '/membership/benefits',
   )
+  const result = await safeQuery(getLoyaltyOverview(user.id), 'membership privilege overview', null)
+  const overview = result.data
 
-  const membership = await db.query.memberships.findFirst({ where: eq(memberships.userId, user.id) })
-  const pricing = await getSubscriptionPricing()
-
-  return <MembershipBenefitsClient currentTier={membership?.membershipType ?? null} hasActiveSubscription={membership?.status === 'active'} subscriptionPlans={pricing.membership} />
+  return <MembershipBenefitsClient rewards={overview ? {
+    tier: overview.tier,
+    lifetimeEarned: overview.lifetimeEarned,
+    balancePoints: overview.balancePoints,
+    tierPrivileges: overview.tierPrivileges,
+    nextTier: overview.nextTier,
+    pointsToNextTier: overview.pointsToNextTier,
+  } : null} />
 }

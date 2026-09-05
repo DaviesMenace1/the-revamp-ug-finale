@@ -471,6 +471,11 @@ export const products = pgTable(
       scale: 2,
     }).notNull(),
 
+    tradeDiscountPercent: numeric("trade_discount_percent", {
+      precision: 5,
+      scale: 2,
+    }).notNull().default("0"),
+
     originalPrice: numeric("original_price", {
       precision: 14,
       scale: 2,

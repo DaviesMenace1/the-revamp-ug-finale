@@ -33,7 +33,6 @@ type BookingForm = {
   description: string
 }
 
-type Loyalty = { balancePoints: number; rules?: { redemptionUgxPerPoint?: number; redemptionCapPercent?: number } }
 type Pricing = {
   baseFee: number
   currency: string
@@ -108,8 +107,6 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
   const [error, setError] = useState('')
   const [promoCode, setPromoCode] = useState('')
   const [promoState, setPromoState] = useState<PromoState>({ status: 'idle' })
-  const [loyalty, setLoyalty] = useState<Loyalty | null>(null)
-  const [loyaltyPoints, setLoyaltyPoints] = useState('0')
   const [paymentMethod, setPaymentMethod] = useState<'mobile_money' | 'card'>('mobile_money')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [mobileMoneyNetwork, setMobileMoneyNetwork] = useState<'MTN' | 'AIRTEL'>('MTN')
@@ -119,10 +116,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
   const [cardCvv, setCardCvv] = useState('')
   const [pricing, setPricing] = useState<Pricing>(DEFAULT_PRICING)
   const [idempotencyKey] = useState(createIdempotencyKey)
-  const loyaltyDiscountPreview = Math.min(Math.max(0, Math.floor(Number(loyaltyPoints) || 0)), loyalty?.balancePoints || 0) * (loyalty?.rules?.redemptionUgxPerPoint || 1)
-
   useEffect(() => {
-    fetch('/api/loyalty/summary', { cache: 'no-store' }).then(async (response) => response.ok ? await response.json() as { loyalty?: Loyalty | null } : { loyalty: null }).then((payload) => setLoyalty(payload.loyalty || null)).catch(() => {})
     let active = true
     fetch('/api/consultations/pricing', { cache: 'no-store' })
       .then((response) => response.json() as Promise<Pricing>)
@@ -163,7 +157,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
   const selectedSlot = slots.find((slot) => slot.id === selectedSlotId) || null
   const selectedMode = selectedSlot ? MODE_META[selectedSlot.mode] || MODE_META.virtual : null
   const appliedQuote = promoState.status === 'applied' ? promoState.quote : null
-  const totalAmount = Math.max(0, (appliedQuote?.total ?? pricing.baseFee) - loyaltyDiscountPreview)
+  const totalAmount = appliedQuote?.total ?? pricing.baseFee
 
   function updateForm<K extends keyof BookingForm>(key: K, value: BookingForm[K]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -266,7 +260,6 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
           slotId: selectedSlot.id,
           mode: selectedSlot.mode,
           promoCode: promoCode.trim(),
-          loyaltyPoints: Math.max(0, Math.floor(Number(loyaltyPoints) || 0)),
           idempotencyKey,
           paymentMethod,
           phoneNumber,
@@ -354,9 +347,9 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
 
               <div className="rounded-xl border border-border/70 bg-card p-5 motion-reveal" style={{ animationDelay: '180ms' }}>
                 <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.22em] text-primary">03 / Consultation fee</p><h2 className="mt-2 font-serif text-2xl font-light text-foreground">A clear price before you pay.</h2></div>          <p className="text-right text-xl font-medium text-foreground">{money(totalAmount, appliedQuote?.currency || pricing.currency)}</p></div>
-                <div className="mt-5 space-y-2 border-y border-border/70 py-4 text-sm"><div className="flex justify-between gap-4 text-muted-foreground"><span>Consultation fee</span><span>{money(appliedQuote?.baseFee ?? pricing.baseFee, appliedQuote?.currency || pricing.currency)}</span></div>{appliedQuote && <div className="flex justify-between gap-4 text-primary"><span>{appliedQuote.promoName || appliedQuote.promoCode || 'Promotion'}</span><span>-{money(appliedQuote.discount, appliedQuote.currency)}</span></div>}{loyaltyDiscountPreview > 0 && <div className="flex justify-between gap-4 text-primary"><span>Loyalty points</span><span>-{money(loyaltyDiscountPreview, appliedQuote?.currency || pricing.currency)}</span></div>}<div className="flex justify-between gap-4 text-muted-foreground"><span>{pricing.taxRate > 0 ? (pricing.taxInclusive ? `Includes ${pricing.taxRate}% tax` : `Tax ${pricing.taxRate}%`) : 'Tax included'}</span><span>{pricing.taxRate > 0 ? money(appliedQuote?.tax ?? pricing.baseFee * pricing.taxRate / (100 + pricing.taxRate), appliedQuote?.currency || pricing.currency) : money(0, appliedQuote?.currency || pricing.currency)}</span></div></div>
+                <div className="mt-5 space-y-2 border-y border-border/70 py-4 text-sm"><div className="flex justify-between gap-4 text-muted-foreground"><span>Consultation fee</span><span>{money(appliedQuote?.baseFee ?? pricing.baseFee, appliedQuote?.currency || pricing.currency)}</span></div>{appliedQuote && <div className="flex justify-between gap-4 text-primary"><span>{appliedQuote.promoName || appliedQuote.promoCode || 'Promotion'}</span><span>-{money(appliedQuote.discount, appliedQuote.currency)}</span></div>}<div className="flex justify-between gap-4 text-muted-foreground"><span>{pricing.taxRate > 0 ? (pricing.taxInclusive ? `Includes ${pricing.taxRate}% tax` : `Tax ${pricing.taxRate}%`) : 'Tax included'}</span><span>{pricing.taxRate > 0 ? money(appliedQuote?.tax ?? pricing.baseFee * pricing.taxRate / (100 + pricing.taxRate), appliedQuote?.currency || pricing.currency) : money(0, appliedQuote?.currency || pricing.currency)}</span></div></div>
                 <p className="mt-4 text-xs leading-5 text-muted-foreground">{pricing.taxInclusive ? 'The amount shown is the final amount payable, including tax.' : 'Tax will be calculated at checkout.'} Payment is required before the appointment is confirmed.</p>
-                {loyalty && <div className="mt-4 rounded border border-primary/20 bg-primary/5 p-3"><p className="text-sm font-medium text-foreground">Revamp Rewards</p><p className="mt-1 text-xs text-muted-foreground">{loyalty.balancePoints.toLocaleString('en-UG')} points available.</p><label htmlFor="consultation-loyalty-points" className="mt-3 block text-xs font-medium text-foreground">Use points on this booking</label><Input id="consultation-loyalty-points" type="number" min="0" max={loyalty.balancePoints} step="1" value={loyaltyPoints} onChange={(event) => setLoyaltyPoints(event.target.value)} className="mt-2 min-h-11 rounded-none" /></div>}
+
                 <div className="mt-5 flex flex-col gap-2 sm:flex-row"><Input aria-label="Promotion code" placeholder="Promo code (optional)" value={promoCode} onChange={(event) => { setPromoCode(event.target.value); setPromoState({ status: 'idle' }) }} className="min-h-11 rounded-none uppercase" /><Button type="button" variant="outline" onClick={applyPromotion} disabled={isApplyingPromo || !promoCode.trim()} className="min-h-11 rounded-none px-5 text-xs uppercase tracking-[0.12em]">{isApplyingPromo ? 'Checking…' : 'Apply code'}</Button></div>
                 {promoState.status === 'error' && <p role="alert" className="mt-2 text-xs text-rose-700 dark:text-rose-300">{promoState.message}</p>}
                 {promoState.status === 'applied' && <p role="status" className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">Promotion applied. The final amount will be checked again securely before payment.</p>}

@@ -26,14 +26,13 @@ function formatCurrency(value: number) {
 type Member = {
   businessName: string
   tier: string
-  discountRate: number
   status: string
 } | null
 
 type Stats = {
   totalOrders: number
   pendingOrders: number
-  ytdSavings: number
+  ytdSpend: number
 }
 
 export default function TradeDashboardView({ member, stats }: { member: Member; stats: Stats }) {
@@ -50,8 +49,7 @@ export default function TradeDashboardView({ member, stats }: { member: Member; 
         {member?.status === 'pending' && (
 <Card className="border-amber-300/70 bg-amber-50 p-6 dark:border-amber-400/40 dark:bg-amber-950/40">
             <p className="text-sm text-amber-800 dark:text-amber-200">
-              Your trade application for <strong>{member.businessName}</strong> is pending review. Standard
-              pricing applies until approved.
+              Your trade application for <strong>{member.businessName}</strong> is pending review. Trade collections remain locked until the studio completes its review.
             </p>
           </Card>
         )}
@@ -73,8 +71,8 @@ export default function TradeDashboardView({ member, stats }: { member: Member; 
           </Card>
           <Card className="p-6 border-border/20">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">YTD Savings</p>
-              <p className="font-serif text-4xl font-light text-primary">{formatCurrency(stats.ytdSavings)}</p>
+              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">YTD Spend</p>
+              <p className="font-serif text-4xl font-light text-primary">{formatCurrency(stats.ytdSpend)}</p>
             </div>
           </Card>
           <Card className="p-6 border-border/20">
@@ -89,7 +87,7 @@ export default function TradeDashboardView({ member, stats }: { member: Member; 
               <p className="font-serif text-2xl font-light text-primary capitalize">
                 {member?.tier ?? 'N/A'}
               </p>
-              {member && <p className="text-xs text-muted-foreground">{member.discountRate}% off retail</p>}
+              {member && <p className="text-xs text-muted-foreground">Product-specific pricing applies in Collections</p>}
             </div>
           </Card>
         </div>

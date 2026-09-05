@@ -43,9 +43,7 @@ export default async function TradeDashboard() {
   const orderCountRow = orderCountResult.data
   const pendingCountRow = pendingCountResult.data
   const ytdSpendRow = ytdSpendResult.data
-  const discountRate = member?.discountRate ? Number(member.discountRate) : 10
   const ytdSpend = Number(ytdSpendRow[0]?.value ?? 0)
-  const ytdSavings = ytdSpend * (discountRate / 100)
 
   return (
     <TradeDashboardView
@@ -54,7 +52,6 @@ export default async function TradeDashboard() {
           ? {
               businessName: member.businessName,
               tier: member.tier ?? 'standard',
-              discountRate,
               status: member.status ?? 'pending',
             }
           : null
@@ -62,7 +59,7 @@ export default async function TradeDashboard() {
       stats={{
         totalOrders: orderCountRow[0]?.value ?? 0,
         pendingOrders: pendingCountRow[0]?.value ?? 0,
-        ytdSavings,
+        ytdSpend,
       }}
     />
   )

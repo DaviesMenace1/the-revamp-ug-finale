@@ -30,6 +30,7 @@ type ProductUpdate = {
   editorialHighlight?: string | null
 
   price?: number | string
+  tradeDiscountPercent?: number | string | null
   originalPrice?: number | string | null
   currency?: string
 
@@ -261,6 +262,13 @@ export async function PATCH(
       )
     }
 
+    if (body.tradeDiscountPercent !== undefined) {
+      const tradeDiscount = Number(body.tradeDiscountPercent)
+      if (!Number.isFinite(tradeDiscount) || tradeDiscount < 0 || tradeDiscount > 100) {
+        return NextResponse.json({ error: "Trade discount must be between 0 and 100 percent." }, { status: 400 })
+      }
+    }
+
     if (
       body.quantity !== undefined &&
       (!Number.isFinite(body.quantity) ||
@@ -424,6 +432,10 @@ export async function PATCH(
      */
     if (body.price !== undefined) {
       update.price = decimal(body.price)
+    }
+
+    if (body.tradeDiscountPercent !== undefined) {
+      update.tradeDiscountPercent = decimal(body.tradeDiscountPercent) ?? "0"
     }
 
     if (body.originalPrice !== undefined) {

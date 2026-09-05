@@ -19,16 +19,15 @@ export default async function TradeCollections() {
     }),
   ])
 
-  const discountRate = member?.discountRate ? Number(member.discountRate) : 10
-
   const formatted = allProducts.map((p) => ({
     id: p.id,
     slug: p.slug,
     name: p.name,
     price: Number(p.price),
+    tradeDiscountPercent: Number(p.tradeDiscountPercent || 0),
     currency: p.currency,
     image: resolveProductImageUrls(p)[0],
   }))
 
-  return <TradeCollectionsClient products={formatted} discountRate={discountRate} />
+  return <TradeCollectionsClient products={formatted} memberName={member?.businessName || null} />
 }

@@ -145,6 +145,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
        gallery: initialGalleryImages.length > 0 ? initialGalleryImages : [],
 
     price: initialData?.price || '',
+    tradeDiscountPercent: initialData?.tradeDiscountPercent || '0',
     originalPrice: initialData?.originalPrice || '',
     currency: initialData?.currency || 'UGX',
     weight: initialData?.weight || '',
@@ -468,6 +469,19 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                       className="mt-1.5 w-full rounded-lg border border-stone-300 p-2.5 text-sm font-mono"
                     />
                   </div>
+                </div>
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-4">
+                  <label className="block text-xs font-semibold text-emerald-950">Trade collection discount (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={formData.tradeDiscountPercent}
+                    onChange={(e) => setFormData({ ...formData, tradeDiscountPercent: e.target.value })}
+                    className="mt-1.5 w-full rounded-lg border border-emerald-300 bg-white p-2.5 text-sm font-mono"
+                  />
+                  <p className="mt-2 text-xs leading-5 text-emerald-900/75">This discount is visible only to approved trade members in Trade Collections. Public retail pricing remains unchanged.</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

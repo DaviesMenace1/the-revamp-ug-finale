@@ -68,6 +68,7 @@ export function requiredPermissionForAdminPath(pathname: string): AdminPermissio
   const path = pathname.replace(/\/$/, '') || '/admin'
   if (path === '/admin' || path === '/admin/dashboard') return 'view_admin'
   if (path === '/admin/users' || path.startsWith('/admin/users/')) return 'manage_staff'
+  if (path === '/admin/trade-applications' || path.startsWith('/admin/trade-applications/')) return 'manage_staff'
   if (path === '/admin/settings' || path.startsWith('/admin/settings/')) return 'manage_settings'
   if (path === '/admin/billing' || path.startsWith('/admin/billing/') || path === '/admin/finance' || path.startsWith('/admin/finance/')) return 'view_finance'
   if (path === '/admin/orders' || path.startsWith('/admin/orders/')) return 'view_orders'

@@ -38,12 +38,20 @@ export default async function JournalPage() {
       id: a.id,
       slug: a.slug,
       title: a.title,
+      content: a.content,
+      introduction: a.introduction,
       excerpt: a.excerpt,
       category: a.category,
       author: a.author,
+      tags: a.tags,
       date: new Date(a.publishedAt || a.createdAt).toISOString(),
       readTime,
       imageUrl: a.featuredImage,
+      gallery: Array.isArray(a.gallery) ? a.gallery : [],
+      rating: a.rating,
+      ratingCount: a.ratingCount,
+      likes: a.likes,
+      views: a.views,
     }
   })
 

@@ -1,106 +1,28 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState, type FormEvent } from 'react'
+import { ArrowRight } from '@/components/ui/luxury-icons'
 
-interface NewsletterSignupProps {
-  title?: string;
-  subtitle?: string;
-  placeholder?: string;
-  buttonText?: string;
-  className?: string;
-}
+interface NewsletterSignupProps { title?: string; subtitle?: string; placeholder?: string; buttonText?: string; className?: string }
 
-export function NewsletterSignup({
-  title = 'Join Our Community',
-  subtitle = 'Stay updated with the latest in luxury design, architecture trends, and exclusive offers. Plus, earn 300 loyalty points just for signing up!',
-  placeholder = 'Enter your email',
-  buttonText = 'Subscribe',
-  className = '',
-}: NewsletterSignupProps) {
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [message, setMessage] = useState('');
+export function NewsletterSignup({ title = 'Ideas live better in conversation.', subtitle = 'Join our journal for design insights, new arrivals, and stories from our world.', placeholder = 'Your email address', buttonText = 'Subscribe', className = '' }: NewsletterSignupProps) {
+  const [email, setEmail] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [message, setMessage] = useState('')
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setIsLoading(true);
-    setStatus('idle');
-    setMessage('');
-
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!email.trim()) return
+    setIsLoading(true); setStatus('idle'); setMessage('')
     try {
-      const response = await fetch('/api/newsletter/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      // Safely parse JSON response only if returned by server
-      const contentType = response.headers.get('content-type');
-      let data: { error?: string; message?: string } | null = null;
-
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          data?.error || `Server error (${response.status}). Please try again later.`
-        );
-      }
-
-      setStatus('success');
-      setMessage(data?.message || 'Thank you for subscribing!');
-      setEmail('');
-    } catch (error) {
-      setStatus('error');
-      setMessage(
-        error instanceof Error ? error.message : 'Something went wrong'
-      );
-    } finally {
-      setIsLoading(false);
-    }
+      const response = await fetch('/api/newsletter/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.trim() }) })
+      const contentType = response.headers.get('content-type')
+      const data: { error?: string; message?: string } = contentType?.includes('application/json') ? await response.json() : {}
+      if (!response.ok) throw new Error(data.error || `Server error (${response.status}). Please try again later.`)
+      setStatus('success'); setMessage(data.message || 'Thank you for subscribing.'); setEmail('')
+    } catch (error) { setStatus('error'); setMessage(error instanceof Error ? error.message : 'Something went wrong.') } finally { setIsLoading(false) }
   }
 
-  return (
-    <section className={`w-full py-12 ${className}`}>
-      <div className="mx-auto max-w-md text-center">
-        <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
-
-        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
-          <input
-            type="email"
-            placeholder={placeholder}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={isLoading}
-            className="rounded-md border border-input bg-background px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
-          />
-          <Button
-            type="submit"
-            disabled={isLoading || !email}
-            className="w-full"
-          >
-            {isLoading ? 'Subscribing...' : buttonText}
-          </Button>
-        </form>
-
-        {status === 'success' && (
-          <p className="mt-3 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-            {message}
-          </p>
-        )}
-        {status === 'error' && (
-          <p className="mt-3 text-sm font-medium text-rose-600 dark:text-rose-400">
-            {message}
-          </p>
-        )}
-      </div>
-    </section>
-  );
+  return <div className={`mt-8 max-w-md ${className}`}><h2 className="font-serif text-3xl leading-none">{title}</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">{subtitle}</p><form onSubmit={handleSubmit} className="mt-5 flex min-h-12 border-b border-foreground/40"><label htmlFor="newsletter-email" className="sr-only">{placeholder}</label><input id="newsletter-email" type="email" placeholder={placeholder} value={email} onChange={(event) => setEmail(event.target.value)} required disabled={isLoading} className="min-w-0 flex-1 bg-transparent px-0 text-sm text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-60" /><button type="submit" aria-label={buttonText} disabled={isLoading || !email} className="inline-flex size-10 shrink-0 items-center justify-center text-foreground transition hover:text-gilded disabled:opacity-50"><ArrowRight className="size-4" /></button></form><p aria-live="polite" className={`mt-2 min-h-4 text-xs ${status === 'error' ? 'text-red-700' : 'text-muted-foreground'}`}>{message}</p></div>
 }

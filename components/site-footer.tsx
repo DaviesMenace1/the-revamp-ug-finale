@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { MessageCircle } from '@/components/ui/luxury-icons'
 import { siteContact } from '@/lib/site-config'
+import { NewsletterSignup } from '@/components/newsletter-signup'
 
 export function SiteFooter() {
   const whatsapp = 'https://wa.me/256703861668'
@@ -11,6 +12,7 @@ export function SiteFooter() {
           <p className="font-serif text-4xl leading-none md:text-5xl">Define your space.</p>
           <p className="mt-6 max-w-sm text-sm leading-relaxed text-muted-foreground">Schedule a private viewing, request our current catalog, or begin a conversation about your residence.</p>
           <Link href="/contact" className="mt-8 inline-flex rounded-full bg-obsidian px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-canvas transition-colors hover:bg-gilded hover:text-obsidian">Private Consultation</Link>
+          <NewsletterSignup />
         </div>
         <div className="space-y-6 text-sm">
           <div><p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gilded">Studio</p><p className="mt-3 whitespace-pre-line leading-relaxed">Plot 185, Kyanja{`\n`}Kampala, Uganda{`\n`}By appointment</p></div>

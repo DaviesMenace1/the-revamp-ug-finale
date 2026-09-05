@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
-const services: Array<[string, string, string[]]> = [
+const fallbackServices: Array<[string, string, string[]]> = [
   ['Global Sourcing', 'Direct relationships with European maisons grant our clients access to limited editions, archival re-issues and bespoke commissions usually reserved for trade-only showrooms in Milan, Paris and Porto.', ['Maison-direct negotiation', 'Archival & limited-edition access', 'Bespoke commissioning']],
   ['Import & Logistics', 'Customs documentation, freight insurance, climate-controlled crating and last-mile handling — all managed under one roof so each piece arrives in pristine condition.', ['Customs & duties handling', 'Insured air & sea freight', 'Bonded warehousing in Kampala']],
   ['White-Glove Installation', 'Our trained installation team positions, levels and assembles every piece on-site, treating fragile finishes and one-of-a-kind objects with the reverence they deserve.', ['On-site assembly', 'Mounting & rigging', 'Protective transit & placement']],
@@ -10,7 +10,10 @@ const services: Array<[string, string, string[]]> = [
   ['Architecture & Spatial Design', 'From concept sketches to construction documentation, our architectural practice shapes spaces that honour both context and ambition. We design new residences, reimagine existing structures, and deliver interiors born from unified vision.', ['Residential concept design', 'Interior architecture', 'Planning & permitting support']],
 ]
 
-export function PrototypeServices() {
+export function PrototypeServices({ liveServices = [] }: { liveServices?: Array<{ name: string; description?: string | null; category?: { name?: string | null } | null }> }) {
+  const services: Array<[string, string, string[]]> = liveServices.length > 0
+    ? liveServices.slice(0, 6).map((service) => [service.name, service.description || 'A considered service shaped around your space, timeline, and point of view.', ['Studio consultation', service.category?.name || 'Tailored sourcing', 'Project guidance']])
+    : fallbackServices
   return <>
     <section className="px-6 pb-20 pt-16 lg:px-12"><div className="mx-auto max-w-7xl"><div className="inline-flex items-center gap-3"><span className="h-px w-8 bg-gilded" /><span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">An End-to-End Concierge</span></div><h1 className="mt-6 max-w-4xl font-serif text-5xl font-medium leading-[1.05] md:text-7xl">From the atelier floor <span className="italic">to your foyer.</span></h1><p className="mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground">We handle every stage of the journey — so that owning extraordinary furniture in Uganda feels as simple as choosing it.</p></div></section>
     <section className="px-6 pb-24 lg:px-12"><div className="mx-auto max-w-7xl space-y-24">{services.map(([title,body,bullets], index) => <article key={title} className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-16"> <div className={`lg:col-span-5 ${index % 2 ? 'lg:order-2' : ''}`}><Image src={`/prototype/${index % 2 ? 'process-2.jpg' : 'process-1.jpg'}`} alt={title} width={900} height={1125} className="aspect-[4/5] w-full rounded-md object-cover" /></div><div className={`lg:col-span-7 ${index % 2 ? 'lg:order-1' : ''}`}><p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gilded">{String(index + 1).padStart(2, '0')}</p><h2 className="mt-4 font-serif text-4xl font-medium leading-tight md:text-5xl">{title}</h2><p className="mt-6 max-w-[50ch] text-lg leading-relaxed text-muted-foreground">{body}</p><ul className="mt-8 space-y-3 border-t border-border pt-6">{bullets.map((bullet) => <li key={bullet} className="flex gap-3 text-sm"><span className="text-gilded">—</span>{bullet}</li>)}</ul></div></article>)}</div></section>

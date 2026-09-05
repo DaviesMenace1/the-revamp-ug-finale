@@ -79,7 +79,7 @@ export function ProductDetail({ product }: { product: any }) {
     ...(Array.isArray(product?.tags) ? product.tags : []),
     typeof product?.attributes === 'object' && product?.attributes !== null ? Object.values(product.attributes) : [],
   ].flat().filter(Boolean).join(' ').toLowerCase()
-  const isCustomizable = ['made_to_order', 'custom_bespoke', 'sourced_on_request', 'bespoke', 'made to order', 'custom'].some((value) => searchableProductText.includes(value))
+  const isCustomizable = ['made_to_order', 'custom_bespoke', 'sourced_on_request', 'available_on_request', 'bespoke', 'made to order', 'custom'].some((value) => searchableProductText.includes(value))
 
   const [selectedImage, setSelectedImage] = useState<string>(rawImages[0] || DEFAULT_PRODUCT_IMAGE)
   const [selectedColor, setSelectedColor] = useState(colors[0] || null)

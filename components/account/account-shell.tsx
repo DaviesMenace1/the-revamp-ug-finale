@@ -5,7 +5,6 @@ import { useState } from 'react'
 import { useClerk } from '@clerk/nextjs'
 import { BookOpen, BriefcaseBusiness, Home, ShoppingBag, UserRound, LogOut, X } from '@/components/ui/luxury-icons'
 import { LuxuryAccountIcon, LuxuryBagIcon, LuxuryMenuIcon } from '@/components/ui/luxury-nav-icons'
-import { ThemeSwitcher } from '@/components/theme-switcher'
 
 const navItems = [
   { label: 'Home', href: '/', icon: Home },
@@ -27,7 +26,6 @@ export function AccountShell({ children, cartCount = 0 }: { children: React.Reac
           </Link>
           <p className="hidden font-serif text-sm text-muted-foreground sm:block">The architecture of refined living</p>
           <div className="flex items-center gap-1 sm:gap-2">
-            <ThemeSwitcher />
             <Link href="/cart" className="relative rounded-full p-2 text-ivory/80 transition hover:text-gold-light" aria-label="Open cart">
               <LuxuryBagIcon size={20} />
               {cartCount > 0 && <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground">{cartCount}</span>}

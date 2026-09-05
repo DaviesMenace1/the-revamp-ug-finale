@@ -4,7 +4,6 @@ import { adminPathIsAllowed, roleLabel } from '@/lib/auth/permissions'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import NotificationBell from '@/components/notifications/notification-bell'
-import { ThemeSwitcher } from '@/components/theme-switcher'
 import PageLoadError from '@/components/system/page-load-error'
 
 export const dynamic = 'force-dynamic'
@@ -40,10 +39,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <main className="relative min-w-0 flex-1 overflow-x-hidden">
         <header className="sticky top-0 z-40 flex min-h-20 items-center justify-between gap-3 border-b border-obsidian/10 bg-canvas/90 px-4 pl-16 backdrop-blur-xl sm:px-6 sm:pl-16 md:pl-6">
           <div className="min-w-0"><p className="truncate text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">The Revamp UG / Studio workspace</p><p className="mt-1 truncate font-serif text-xl text-foreground">{roleLabel(user.role)}</p></div>
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-            <ThemeSwitcher />
-            <NotificationBell />
-          </div>
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1"><NotificationBell /></div>
         </header>
         {children}
       </main>

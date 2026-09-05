@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { ArrowLeft } from '@/components/ui/luxury-icons'
 import { ProductCard } from '@/components/collections/product-card'
-import { CollectionMobileControls } from '@/components/collections/collection-mobile-controls'
+import { CollectionProductGrid } from '@/components/collections/collection-product-grid'
 
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -181,7 +181,7 @@ export default async function ProductPage({
               <div className="mx-auto max-w-7xl">
                 <Link href="/collections" className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground hover:text-primary"><ArrowLeft className="size-4" aria-hidden="true" /> All collections</Link>
                 <header className="mx-auto mt-8 max-w-3xl"><p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">The Revamp collection / current edit</p><h1 className="mt-3 font-serif text-5xl leading-[0.95] tracking-tight sm:text-7xl">{categoryName}</h1><p className="mt-4 max-w-xl text-sm leading-7 text-muted-foreground">Choose a room edit to explore every piece, individually sourced.</p></header>
-                <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">{subcategories.map((subcategory, index) => <Link key={subcategory.slug} href={`/collections/${segments[0]}/${subcategory.slug}`} className="group relative isolate min-h-[17rem] overflow-hidden rounded-md border border-border bg-obsidian transition-all duration-500 hover:-translate-y-1 hover:border-gilded" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}>{subcategory.image ? <Image src={subcategory.image} alt={subcategory.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-105" /> : <div className="absolute inset-0 bg-obsidian" />}<div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/20 to-transparent" /><div className="absolute inset-x-0 bottom-0 p-6 text-canvas"><p className="text-[10px] uppercase tracking-[0.24em] text-gilded">{subcategory.productCount} {subcategory.productCount === 1 ? 'piece' : 'pieces'}</p><h2 className="mt-2 font-serif text-3xl leading-none sm:text-4xl">{subcategory.name}</h2></div></Link>)}</div>
+                <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">{subcategories.map((subcategory, index) => <Link key={subcategory.slug} href={`/collections/${segments[0]}/${subcategory.slug}`} className="group min-w-0" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}><div className="relative aspect-[4/5] overflow-hidden bg-muted">{subcategory.image ? <Image src={subcategory.image} alt={subcategory.name} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" /> : <div className="absolute inset-0 bg-muted" />}</div><div className="mt-4"><p className="text-[10px] uppercase tracking-[0.2em] text-gilded">{subcategory.productCount} {subcategory.productCount === 1 ? 'piece' : 'pieces'}</p><h2 className="mt-2 font-serif text-3xl leading-none sm:text-4xl">{subcategory.name}</h2></div></Link>)}</div>
               </div>
             </main>
             <SiteFooter />
@@ -195,8 +195,7 @@ export default async function ProductPage({
             <div className="mx-auto max-w-7xl">
               <Link href="/collections" className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground hover:text-primary"><ArrowLeft className="size-4" aria-hidden="true" /> All collections</Link>
               <header className="mx-auto mt-8 max-w-3xl text-center"><p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Revamp collection</p><h1 className="mt-3 font-serif text-5xl leading-[0.95] tracking-tight sm:text-7xl">{categoryName}</h1><p className="mt-4 text-sm leading-7 text-muted-foreground">A considered edit of pieces selected for this category.</p></header>
-              <CollectionMobileControls count={categoryProducts.length} />
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">{categoryProducts.map((categoryProduct, index) => <ProductCard key={categoryProduct.id} product={categoryProduct as any} className="motion-reveal" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` } as any} />)}</div>
+              <CollectionProductGrid products={categoryProducts as any} />
             </div>
           </main>
           <SiteFooter />
@@ -217,8 +216,7 @@ export default async function ProductPage({
             <div className="mx-auto max-w-7xl">
               <Link href={`/collections/${segments[0]}`} className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground hover:text-primary"><ArrowLeft className="size-4" aria-hidden="true" /> {categoryName}</Link>
               <header className="mx-auto mt-8 max-w-3xl text-center"><p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Revamp collection / {categoryName}</p><h1 className="mt-3 font-serif text-5xl leading-[0.95] tracking-tight sm:text-7xl">{subcategoryName}</h1><p className="mt-4 text-sm leading-7 text-muted-foreground">Every piece, individually sourced.</p></header>
-              <CollectionMobileControls count={subcategoryProducts.length} />
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">{subcategoryProducts.map((subcategoryProduct, index) => <ProductCard key={subcategoryProduct.id} product={subcategoryProduct as any} className="motion-reveal" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` } as any} />)}</div>
+              <CollectionProductGrid products={subcategoryProducts as any} />
             </div>
           </main>
           <SiteFooter />
@@ -340,9 +338,9 @@ export default async function ProductPage({
         </div>
 
         {/* Product Detail & Reviews Section */}
-        <section className="py-12 md:py-16">
+        <section className="py-10 md:py-16">
           <div className="mx-auto max-w-7xl px-6 md:px-8">
-            
+            <div className="mb-10 flex items-end justify-between gap-5 border-b border-border pb-5"><div><p className="text-[10px] uppercase tracking-[0.28em] text-gilded">The Revamp collection</p><p className="mt-2 text-xs text-muted-foreground">Individually sourced · Worldwide delivery</p></div><Link href="/contact?interest=product_inquiry" className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-gilded hover:text-obsidian sm:block">Need help choosing?</Link></div>
             {/* The Main Product Details */}
             <ProductDetail product={safeProduct as any} />
             

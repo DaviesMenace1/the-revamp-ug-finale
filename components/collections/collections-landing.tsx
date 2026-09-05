@@ -66,18 +66,12 @@ export default async function CollectionsPage() {
       <SchemaScript schema={{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'The Revamp UG Collection', url: `${SITE_URL}/collections`, mainEntity: { '@type': 'ItemList', itemListElement: productItems } }} />
       <SiteHeader />
       <main className="min-h-screen bg-canvas text-obsidian">
-        <section className="relative overflow-hidden bg-obsidian px-5 pb-16 pt-24 text-canvas sm:px-8 sm:pb-20 sm:pt-32 lg:px-16 lg:pt-40">
-          <div className="absolute right-[-12%] top-[-30%] size-[40rem] rounded-full border border-gold/20" aria-hidden="true" />
-          <div className="relative mx-auto grid max-w-[1440px] gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div className="max-w-5xl motion-reveal">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-gold">The Revamp collection / current edit</p>
-              <h1 className="mt-5 max-w-4xl font-serif text-5xl font-light leading-[0.94] sm:text-7xl lg:text-[7.5rem]">Objects with presence.</h1>
-              <p className="mt-7 max-w-2xl text-base leading-7 text-canvas/75 sm:text-lg">Furniture, lighting, and accents chosen for rooms that are meant to be lived in rather than simply filled.</p>
-            </div>
-            <div className="flex items-end gap-5 border-l border-gilded/60 pl-5 text-sm text-canvas/75 lg:mb-2 lg:flex-col lg:items-start lg:gap-1">
-              <span className="font-serif text-5xl text-canvas">{products.length.toString().padStart(2, '0')}</span>
-              <span className="max-w-[12rem] leading-6">Published pieces<br />East Africa · worldwide sourcing</span>
-            </div>
+        <section className="border-b border-border bg-canvas px-5 pb-14 pt-16 sm:px-8 sm:pb-20 sm:pt-24 lg:px-12 lg:pt-28">
+          <div className="mx-auto max-w-7xl text-center">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-gilded">The Revamp collection / current edit</p>
+            <h1 className="mx-auto mt-5 max-w-5xl font-serif text-5xl font-light leading-[0.94] sm:text-7xl lg:text-[7rem]">Furniture with presence.</h1>
+            <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">Furniture, lighting, and accents chosen for rooms that are meant to be lived in rather than simply filled.</p>
+            <div className="mx-auto mt-10 flex max-w-2xl items-center rounded-sm border border-border bg-white px-4 py-3 text-left shadow-sm"><span className="flex-1 text-sm text-muted-foreground">Search the collection</span><span className="text-[10px] uppercase tracking-[0.18em] text-gilded">{products.length} pieces</span></div>
           </div>
         </section>
 

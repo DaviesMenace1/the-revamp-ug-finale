@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { ArrowLeft } from '@/components/ui/luxury-icons'
 import { ProductCard } from '@/components/collections/product-card'
+import { CollectionMobileControls } from '@/components/collections/collection-mobile-controls'
 
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
@@ -194,7 +195,8 @@ export default async function ProductPage({
             <div className="mx-auto max-w-7xl">
               <Link href="/collections" className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground hover:text-primary"><ArrowLeft className="size-4" aria-hidden="true" /> All collections</Link>
               <header className="mx-auto mt-8 max-w-3xl text-center"><p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Revamp collection</p><h1 className="mt-3 font-serif text-5xl leading-[0.95] tracking-tight sm:text-7xl">{categoryName}</h1><p className="mt-4 text-sm leading-7 text-muted-foreground">A considered edit of pieces selected for this category.</p></header>
-              <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">{categoryProducts.map((categoryProduct, index) => <ProductCard key={categoryProduct.id} product={categoryProduct as any} className="motion-reveal" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` } as any} />)}</div>
+              <CollectionMobileControls count={categoryProducts.length} />
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">{categoryProducts.map((categoryProduct, index) => <ProductCard key={categoryProduct.id} product={categoryProduct as any} className="motion-reveal" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` } as any} />)}</div>
             </div>
           </main>
           <SiteFooter />
@@ -215,7 +217,8 @@ export default async function ProductPage({
             <div className="mx-auto max-w-7xl">
               <Link href={`/collections/${segments[0]}`} className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground hover:text-primary"><ArrowLeft className="size-4" aria-hidden="true" /> {categoryName}</Link>
               <header className="mx-auto mt-8 max-w-3xl text-center"><p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Revamp collection / {categoryName}</p><h1 className="mt-3 font-serif text-5xl leading-[0.95] tracking-tight sm:text-7xl">{subcategoryName}</h1><p className="mt-4 text-sm leading-7 text-muted-foreground">Every piece, individually sourced.</p></header>
-              <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">{subcategoryProducts.map((subcategoryProduct, index) => <ProductCard key={subcategoryProduct.id} product={subcategoryProduct as any} className="motion-reveal" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` } as any} />)}</div>
+              <CollectionMobileControls count={subcategoryProducts.length} />
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">{subcategoryProducts.map((subcategoryProduct, index) => <ProductCard key={subcategoryProduct.id} product={subcategoryProduct as any} className="motion-reveal" style={{ animationDelay: `${Math.min(index, 8) * 35}ms` } as any} />)}</div>
             </div>
           </main>
           <SiteFooter />

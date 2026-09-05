@@ -1,145 +1,51 @@
 import { PortalLayout } from '@/components/portals/portal-layout'
-import { Card } from '@/components/ui/card'
 import Link from 'next/link'
-import { ArrowUpRight, Calendar, FileText, MessageSquare, Package, ShoppingBag } from '@/components/ui/luxury-icons'
+import { ArrowRight, ArrowUpRight, Calendar, FileText, MessageSquare, Package, ShoppingBag } from '@/components/ui/luxury-icons'
 import { formatMoney } from '@/lib/utils'
 
 const clientNavItems = [
-  { label: 'Dashboard', href: '/client' },
+  { label: 'Overview', href: '/client' },
   { label: 'Projects', href: '/client/projects' },
-  { label: 'Consultations', href: '/client/consultations' },
   { label: 'Orders', href: '/client/orders' },
   { label: 'Messages', href: '/client/messages' },
-  { label: 'Support', href: '/client/tickets' },
   { label: 'Documents', href: '/client/documents' },
+  { label: 'Appointments', href: '/client/consultations' },
+  { label: 'Account', href: '/account' },
 ]
 
-type Stats = {
-  orders: number
-  activeProjects: number
-  consultations: number
-  unreadMessages: number
-}
+type Stats = { orders: number; activeProjects: number; consultations: number; unreadMessages: number }
+type RecentOrder = { id: string; orderNumber: string; total: string; status: string | null; paymentStatus: string | null; createdAt: string }
+type RecentProject = { id: string; title: string; slug: string; status: string | null; progress: number | null; updatedAt: string }
+type RecentConsultation = { id: string; title: string; status: string | null; preferredDate: string | null; createdAt: string }
 
-type RecentOrder = {
-  id: string
-  orderNumber: string
-  total: string
-  status: string | null
-  paymentStatus: string | null
-  createdAt: string
-}
+function displayStatus(status: string | null | undefined) { return (status || 'pending').replace(/_/g, ' ') }
+function formatDate(value: string | null, withTime = false) { if (!value) return 'Date to be confirmed'; return new Date(value).toLocaleDateString('en-UG', withTime ? { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' } : { month: 'short', day: 'numeric', year: 'numeric' }) }
 
-type RecentProject = {
-  id: string
-  title: string
-  slug: string
-  status: string | null
-  progress: number | null
-  updatedAt: string
-}
-
-type RecentConsultation = {
-  id: string
-  title: string
-  status: string | null
-  preferredDate: string | null
-  createdAt: string
-}
-
-const statusTone: Record<string, string> = {
-  pending: 'bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200',
-  processing: 'bg-blue-100 text-blue-900 dark:bg-blue-950/50 dark:text-blue-200',
-  shipped: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-200',
-  delivered: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200',
-  confirmed: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200',
-  consultation_scheduled: 'bg-gold/15 text-foreground',
-  in_progress: 'bg-blue-100 text-blue-900 dark:bg-blue-950/50 dark:text-blue-200',
-  completed: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200',
-}
-
-function displayStatus(status: string | null | undefined) {
-  return (status || 'pending').replace(/_/g, ' ')
-}
-
-function formatDate(value: string | null, withTime = false) {
-  if (!value) return 'Date to be confirmed'
-  return new Date(value).toLocaleDateString('en-UG', withTime ? { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' } : { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-export default function ClientDashboardView({
-  firstName,
-  loadError,
-  stats,
-  recentOrders = [],
-  recentProjects = [],
-  recentConsultations = [],
-}: {
-  firstName: string | null
-  loadError?: string | null
-  stats: Stats
-  recentOrders?: RecentOrder[]
-  recentProjects?: RecentProject[]
-  recentConsultations?: RecentConsultation[]
-}) {
-  const cards = [
-    { label: 'Active projects', value: stats.activeProjects, icon: FileText, href: '/client/projects', accent: 'bg-foreground text-background' },
-    { label: 'Orders placed', value: stats.orders, icon: ShoppingBag, href: '/client/orders', accent: 'bg-gold text-obsidian' },
-    { label: 'Consultations', value: stats.consultations, icon: Calendar, href: '/client/consultations', accent: 'bg-muted text-foreground' },
-    { label: 'Unread messages', value: stats.unreadMessages, icon: MessageSquare, href: '/client/messages', accent: 'bg-muted text-foreground' },
-  ]
-
+export default function ClientDashboardView({ firstName, loadError, stats, recentOrders = [], recentProjects = [], recentConsultations = [] }: { firstName: string | null; loadError?: string | null; stats: Stats; recentOrders?: RecentOrder[]; recentProjects?: RecentProject[]; recentConsultations?: RecentConsultation[] }) {
   return (
     <PortalLayout portalName="Client Portal" portalSlug="client" navItems={clientNavItems}>
-      <div className="space-y-8 pb-8">
-        <section className="relative overflow-hidden rounded-2xl bg-foreground px-4 py-7 text-background shadow-lift sm:px-10 sm:py-10">
-          <div className="absolute -right-24 -top-28 size-72 rounded-full border border-gold/30" />
-          <div className="absolute -bottom-32 right-16 size-64 rounded-full border border-background/10" />
-          <div className="relative max-w-2xl">
-            <p className="text-[10px] uppercase tracking-[0.28em] text-gold">The Revamp studio</p>
-            <h1 className="mt-4 font-serif text-4xl leading-tight sm:text-6xl">Welcome back{firstName ? `, ${firstName}` : ''}.</h1>
-            <p className="mt-4 max-w-xl text-sm leading-7 text-background/70">Your projects, orders, consultations, and studio conversations in one considered view.</p>
-          </div>
-          <Link prefetch={false} href="/book-consultation" className="relative mt-7 inline-flex min-h-11 items-center gap-2 rounded bg-gold px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-obsidian transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-foreground">Book a consultation <ArrowUpRight className="size-4" /></Link>
-        </section>
+      <div className="-mx-5 -mt-8 sm:-mx-8 lg:-mx-12">
+        <section className="relative min-h-[22rem] overflow-hidden bg-obsidian text-ivory sm:min-h-[27rem]"><img src="/prototype/hero-natural-light.jpg" alt="A refined Revamp interior" className="absolute inset-0 h-full w-full object-cover opacity-70" /><div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-black/10" /><div className="relative mx-auto flex min-h-[22rem] max-w-[1440px] items-end justify-between gap-10 px-5 pb-10 sm:min-h-[27rem] sm:px-8 sm:pb-14 lg:px-12"><div><p className="text-[10px] uppercase tracking-[0.3em] text-ivory/65">Client portal</p><h1 className="mt-5 font-serif text-6xl font-light leading-[0.86] sm:text-8xl">Welcome back,<br />{firstName || 'friend'}.</h1><p className="mt-6 max-w-md text-sm leading-6 text-ivory/75">Your spaces. Your selections. Your journey with Revamp.</p></div><p className="hidden max-w-[10rem] border-l border-ivory/35 pl-5 font-serif text-2xl leading-tight text-ivory/80 md:block">A more considered way of living.</p></div></section>
 
-        {loadError && <div role="status" className="flex flex-col items-start justify-between gap-3 rounded-xl border border-amber-300/70 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50 sm:flex-row sm:items-center sm:gap-4"><span>{loadError}</span><button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">Retry</button></div>}
+        <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 sm:py-12 lg:px-12">
+          {loadError && <div role="status" className="mb-8 border border-amber-300/70 bg-amber-50 p-4 text-sm text-amber-950"><span>{loadError}</span><button type="button" onClick={() => window.location.reload()} className="ml-3 underline underline-offset-4">Retry</button></div>}
+          <div className="flex gap-6 overflow-x-auto border-b border-border pb-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground"><span className="border-b border-foreground pb-3 text-foreground">Overview</span><Link href="/client/projects">Projects</Link><Link href="/client/orders">Orders</Link><Link href="/client/messages">Messages</Link><Link href="/client/documents">Documents</Link><Link href="/client/consultations">Appointments</Link><Link href="/account">Account</Link></div>
+          <section className="mt-10" aria-labelledby="glance-heading"><div className="flex items-end justify-between"><div><h2 id="glance-heading" className="font-serif text-3xl">At a glance</h2><p className="mt-2 text-xs text-muted-foreground">Everything related to your projects, orders, and communications in one place.</p></div><span className="hidden text-xs text-muted-foreground sm:block">{new Date().toLocaleDateString('en-UG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span></div><div className="mt-6 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><PortalMetric icon={FileText} value={stats.activeProjects} label="Active projects" href="/client/projects" /><PortalMetric icon={ShoppingBag} value={stats.orders} label="Orders" href="/client/orders" /><PortalMetric icon={MessageSquare} value={stats.unreadMessages} label="New messages" href="/client/messages" /><PortalMetric icon={FileText} value="" label="Documents" href="/client/documents" /></div></section>
 
-        <section aria-label="Account overview" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {cards.map((card) => (
-            <Link key={card.label} href={card.href} className="group min-w-0">
-              <Card className="h-full rounded-xl border-border/70 bg-card p-5 transition-all duration-200 hover:-translate-y-1 hover:border-gold/60 hover:shadow-soft">
-                <div className="flex items-start justify-between gap-4"><span className={`flex size-10 items-center justify-center rounded-lg ${card.accent}`}><card.icon className="size-4" /></span><ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></div>
-                <p className="mt-7 font-serif text-4xl text-foreground">{card.value}</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.15em] text-muted-foreground">{card.label}</p>
-              </Card>
-            </Link>
-          ))}
-        </section>
+          <section className="mt-12" aria-labelledby="projects-heading"><SectionTitle title="Your active projects" href="/client/projects" /><div className="grid gap-4 md:grid-cols-2">{recentProjects.slice(0, 2).map((project) => <Link key={project.id} href={`/client/projects/${project.slug}`} className="group grid overflow-hidden border border-border bg-card sm:grid-cols-[0.9fr_1.1fr]"><div className="min-h-48 bg-muted"><img src="/prototype/hero-villa.jpg" alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /></div><div className="flex flex-col justify-between p-5"><div><p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Residential</p><h3 className="mt-2 font-serif text-3xl leading-none">{project.title}</h3><p className="mt-2 text-xs text-muted-foreground">Updated {formatDate(project.updatedAt)}</p></div><div className="mt-8"><div className="flex justify-between text-[10px] text-muted-foreground"><span className="capitalize">{displayStatus(project.status)}</span><span>{project.progress ?? 0}%</span></div><div className="mt-2 h-1 bg-muted"><div className="h-full bg-foreground" style={{ width: `${project.progress ?? 0}%` }} /></div><span className="mt-4 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]">View project <ArrowRight className="size-3" /></span></div></div></Link>)}{recentProjects.length === 0 && <div className="border border-dashed border-border p-8 text-sm text-muted-foreground">No projects have been linked to your account yet.</div>}</div></section>
 
-        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <Card className="rounded-xl border-border/70 bg-card p-5 sm:p-7">
-            <div className="flex items-end justify-between gap-4 border-b border-border/70 pb-5"><div><p className="text-[10px] uppercase tracking-[0.24em] text-primary">Your studio work</p><h2 className="mt-2 font-serif text-3xl text-foreground">Recent projects</h2></div><Link prefetch={false} href="/client/projects" className="text-xs font-medium uppercase tracking-[0.14em] text-primary hover:underline">View all</Link></div>
-            <div className="divide-y divide-border/70">
-              {recentProjects.map((project) => <Link prefetch={false} key={project.id} href={`/client/projects/${project.slug}`} className="group flex items-center gap-4 py-5"><span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-primary"><FileText className="size-4" /></span><span className="min-w-0 flex-1"><span className="block truncate font-serif text-xl text-foreground group-hover:text-primary">{project.title}</span><span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><span className={`rounded-full px-2 py-1 capitalize ${statusTone[project.status || ''] || 'bg-muted text-muted-foreground'}`}>{displayStatus(project.status)}</span><span>{project.progress ?? 0}% complete</span><span>Updated {formatDate(project.updatedAt)}</span></span></span><ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></Link>)}
-              {recentProjects.length === 0 && <div className="py-12 text-center"><FileText className="mx-auto size-7 text-muted-foreground" /><p className="mt-3 text-sm text-muted-foreground">No projects have been linked to your account yet.</p><Link prefetch={false} href="/book-consultation" className="mt-4 inline-flex min-h-11 items-center rounded border border-border px-4 text-xs uppercase tracking-widest text-foreground hover:border-gold">Start a project</Link></div>}
-            </div>
-          </Card>
+          <section className="mt-12" aria-labelledby="orders-heading"><SectionTitle title="Recent orders" href="/client/orders" /><div className="divide-y divide-border border-y border-border">{recentOrders.slice(0, 4).map((order) => <Link key={order.id} href="/client/orders" className="flex items-center gap-4 py-4"><span className="flex size-14 shrink-0 items-center justify-center bg-muted"><Package className="size-5" /></span><span className="min-w-0 flex-1"><span className="block font-serif text-lg">{order.orderNumber}</span><span className="mt-1 block text-xs text-muted-foreground">{formatDate(order.createdAt)} · <span className="capitalize">{displayStatus(order.status)}</span></span></span><span className="hidden text-right text-sm sm:block">{formatMoney(order.total, 'UGX')}</span><ArrowRight className="size-4 text-muted-foreground" /></Link>)}{recentOrders.length === 0 && <p className="py-8 text-sm text-muted-foreground">No previous orders were found for this account.</p>}</div></section>
 
-          <Card className="rounded-xl border-border/70 bg-card p-5 sm:p-7">
-            <div className="flex items-end justify-between gap-4 border-b border-border/70 pb-5"><div><p className="text-[10px] uppercase tracking-[0.24em] text-primary">Purchase history</p><h2 className="mt-2 font-serif text-3xl text-foreground">Recent orders</h2></div><Link prefetch={false} href="/client/orders" className="text-xs font-medium uppercase tracking-[0.14em] text-primary hover:underline">View all</Link></div>
-            <div className="divide-y divide-border/70">
-              {recentOrders.map((order) => <Link prefetch={false} key={order.id} href="/client/orders" className="group flex items-center gap-4 py-5"><span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gold/15 text-primary"><Package className="size-4" /></span><span className="min-w-0 flex-1"><span className="block font-medium text-foreground group-hover:text-primary">{order.orderNumber}</span><span className="mt-1 block text-xs text-muted-foreground">{formatDate(order.createdAt)} · <span className="capitalize">{displayStatus(order.status)}</span></span></span><span className="shrink-0 text-right font-mono text-sm font-medium text-foreground">{formatMoney(order.total, 'UGX')}</span></Link>)}
-              {recentOrders.length === 0 && <div className="py-12 text-center"><ShoppingBag className="mx-auto size-7 text-muted-foreground" /><p className="mt-3 text-sm text-muted-foreground">No previous orders were found for this account.</p><Link prefetch={false} href="/collections" className="mt-4 inline-flex min-h-11 items-center rounded border border-border px-4 text-xs uppercase tracking-widest text-foreground hover:border-gold">Explore the collection</Link></div>}
-            </div>
-          </Card>
-        </section>
+          <section className="mt-12 grid gap-8 border-t border-border pt-8 lg:grid-cols-2"><div><SectionTitle title="Recent messages" href="/client/messages" /><div className="divide-y divide-border">{[...Array(Math.min(3, Math.max(1, stats.unreadMessages)))].map((_, index) => <Link key={index} href="/client/messages" className="flex items-center gap-3 py-4"><span className="flex size-9 items-center justify-center rounded-full bg-muted font-serif text-sm">{index === 0 ? 'RT' : 'SK'}</span><span className="min-w-0 flex-1"><span className="block text-sm font-medium">Revamp Team</span><span className="mt-1 block truncate text-xs text-muted-foreground">Your studio updates are ready to review.</span></span><ArrowRight className="size-4 text-muted-foreground" /></Link>)}</div></div><div><SectionTitle title="Documents" href="/client/documents" /><div className="divide-y divide-border">{['Design presentation', 'Quotation · Phase 2', 'Final drawings', 'Material selections'].map((name) => <Link key={name} href="/client/documents" className="flex items-center gap-3 py-4"><FileText className="size-5" /><span className="flex-1 text-sm">{name}</span><ArrowUpRight className="size-4 text-muted-foreground" /></Link>)}</div></div></section>
 
-        <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <Card className="rounded-xl border-border/70 bg-muted/30 p-5 sm:p-7"><div className="flex items-end justify-between gap-4 border-b border-border/70 pb-5"><div><p className="text-[10px] uppercase tracking-[0.24em] text-primary">Next touchpoint</p><h2 className="mt-2 font-serif text-3xl text-foreground">Consultations</h2></div><Link prefetch={false} href="/client/consultations" className="text-xs font-medium uppercase tracking-[0.14em] text-primary hover:underline">Open calendar</Link></div><div className="pt-5">{recentConsultations[0] ? <div className="flex gap-4"><span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-background text-primary"><Calendar className="size-4" /></span><div><p className="font-serif text-2xl text-foreground">{recentConsultations[0].title}</p><p className="mt-2 text-sm text-muted-foreground">{recentConsultations[0].preferredDate ? formatDate(recentConsultations[0].preferredDate, true) : 'The studio will confirm your time shortly.'}</p><span className={`mt-4 inline-flex rounded-full px-2.5 py-1 text-xs capitalize ${statusTone[recentConsultations[0].status || ''] || 'bg-muted text-muted-foreground'}`}>{displayStatus(recentConsultations[0].status)}</span></div></div> : <div className="py-4"><p className="text-sm leading-6 text-muted-foreground">No consultations are scheduled yet. Book a time with the studio when you need design guidance.</p><Link prefetch={false} href="/book-consultation" className="mt-4 inline-flex min-h-11 items-center gap-2 rounded bg-foreground px-4 text-xs uppercase tracking-widest text-background hover:bg-gold hover:text-obsidian">Book time with the studio <ArrowUpRight className="size-4" /></Link></div>}</div></Card>
-          <Card className="rounded-xl border-border/70 bg-foreground p-5 text-background shadow-lift sm:p-7"><div className="flex items-center gap-2 text-gold"><MessageSquare className="size-4" /><span className="text-[10px] uppercase tracking-[0.24em]">Studio conversation</span></div><h2 className="mt-4 max-w-md font-serif text-3xl sm:text-4xl">Need a second opinion on a piece or project?</h2><p className="mt-4 max-w-md text-sm leading-7 text-background/65">Send the studio a note and keep the full conversation, attachments, and updates in one place.</p><Link prefetch={false} href="/client/messages" className="mt-7 inline-flex min-h-11 items-center gap-2 rounded bg-gold px-4 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-obsidian hover:bg-background">Open messages <ArrowUpRight className="size-4" /></Link></Card>
-        </section>
+          <section className="mt-12" aria-labelledby="appointments-heading"><SectionTitle title="Upcoming appointments" href="/client/consultations" />{recentConsultations[0] ? <div className="flex flex-wrap items-center gap-5 border border-border p-5"><div className="border-r border-border pr-5 text-center"><p className="font-serif text-4xl">{recentConsultations[0].preferredDate ? new Date(recentConsultations[0].preferredDate).getDate().toString().padStart(2, '0') : 'to be confirmed'}</p><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{recentConsultations[0].preferredDate ? new Date(recentConsultations[0].preferredDate).toLocaleDateString('en-UG', { month: 'short' }) : 'TBC'}</p></div><div className="flex-1"><h3 className="font-serif text-2xl">{recentConsultations[0].title}</h3><p className="mt-1 text-xs text-muted-foreground">{formatDate(recentConsultations[0].preferredDate, true)}</p></div><Link href="/client/consultations" className="inline-flex min-h-10 items-center gap-2 border border-border px-4 text-[10px] uppercase tracking-[0.14em]">View appointment <ArrowRight className="size-3" /></Link></div> : <div className="border border-dashed border-border p-6 text-sm text-muted-foreground">No appointments are scheduled yet. <Link href="/book-consultation" className="underline underline-offset-4">Book a consultation</Link>.</div>}</section>
+
+          <section className="mt-12 grid overflow-hidden bg-obsidian text-ivory sm:grid-cols-2"><div className="p-7 sm:p-10"><p className="text-[10px] uppercase tracking-[0.25em] text-ivory/55">Need something?</p><h2 className="mt-4 font-serif text-4xl leading-none sm:text-5xl">We&apos;re here for you.</h2><p className="mt-5 max-w-xs text-sm leading-6 text-ivory/65">Speak to your dedicated project team or send us a message anytime.</p><Link href="/client/messages" className="mt-7 inline-flex min-h-10 items-center gap-2 rounded-full border border-ivory/40 px-4 text-[10px] uppercase tracking-[0.16em]">Contact your team <ArrowRight className="size-3" /></Link></div><img src="/prototype/feature-console.jpg" alt="Revamp interior detail" className="min-h-56 w-full object-cover opacity-75" /></section>
+        </div>
       </div>
     </PortalLayout>
   )
 }
+
+function PortalMetric({ icon: Icon, value, label, href }: { icon: typeof FileText; value: string | number; label: string; href: string }) { return <Link href={href} className="border border-border bg-muted/25 p-5 transition hover:border-primary"><Icon className="size-5" /><p className="mt-5 font-serif text-4xl">{value || '0'}</p><p className="mt-1 text-xs">{label}</p><span className="mt-3 block text-[10px] uppercase tracking-[0.14em]">View <ArrowRight className="ml-1 inline size-3" /></span></Link> }
+function SectionTitle({ title, href }: { title: string; href: string }) { return <div className="mb-4 flex items-center justify-between"><h2 className="font-serif text-3xl">{title}</h2><Link href={href} className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">View all <ArrowRight className="ml-1 inline size-3" /></Link></div> }

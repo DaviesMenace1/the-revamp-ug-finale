@@ -6,7 +6,7 @@ import {
   useState,
 } from "react"
 import { useRouter } from "next/navigation"
-import { CldUploadWidget } from "next-cloudinary"
+import { CldUploadWidget } from '@/components/admin/cloudflare-upload-widget'
 
 type Department = {
   id: string

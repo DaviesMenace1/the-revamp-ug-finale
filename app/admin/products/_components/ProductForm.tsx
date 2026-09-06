@@ -3,7 +3,7 @@
 import React, { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CldUploadWidget } from 'next-cloudinary'
+import { CldUploadWidget } from '@/components/admin/cloudflare-upload-widget'
 import {
   ArrowLeft,
   Save,

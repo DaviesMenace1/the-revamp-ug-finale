@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { CldUploadWidget } from "next-cloudinary"
+import { CldUploadWidget } from '@/components/admin/cloudflare-upload-widget'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -1846,7 +1846,7 @@ function DynamicAttributes({
 // import { useEffect, useMemo, useState } from "react"
 // import { useParams, useRouter } from "next/navigation"
 // import Link from "next/link"
-// import { CldUploadWidget } from "next-cloudinary"
+// import { CldUploadWidget } from '@/components/admin/cloudflare-upload-widget'
 // import {
 //   ArrowLeft,
 //   CheckCircle2,

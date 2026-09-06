@@ -1,14 +1,22 @@
 /**
  * Media Upload Configuration
- * Handles both Cloudinary (public media) and AWS S3 (sensitive documents)
+ * Handles Cloudflare Images for new public images, Cloudinary for legacy video
+ * uploads, and AWS S3 for sensitive documents.
  */
 
-// Cloudinary Configuration
+// Cloudinary configuration retained for existing URLs and legacy video uploads.
 export const CLOUDINARY_CONFIG = {
   cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
   uploadPreset: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
   apiKey: process.env.CLOUDINARY_API_KEY,
   apiSecret: process.env.CLOUDINARY_API_SECRET,
+};
+
+// Cloudflare Images configuration for all new public image uploads.
+export const CLOUDFLARE_IMAGES_CONFIG = {
+  accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+  apiToken: process.env.CLOUDFLARE_IMAGES_API_TOKEN,
+  deliveryHash: process.env.CLOUDFLARE_IMAGES_DELIVERY_HASH,
 };
 
 // AWS S3 Configuration
@@ -22,7 +30,7 @@ export const AWS_S3_CONFIG = {
 
 // Media Type Classifications
 export const MEDIA_TYPES = {
-  // Public Media (goes to Cloudinary)
+  // New public images go to Cloudflare. Existing image URLs are never rewritten.
   PUBLIC: {
     productImages: {
       folder: 'revamp/products',

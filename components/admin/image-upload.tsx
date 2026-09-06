@@ -2,7 +2,7 @@
 
 import { X, Upload } from '@/components/ui/luxury-icons'
 import Image from 'next/image'
-import { CldUploadWidget } from 'next-cloudinary'
+import { CldUploadWidget } from '@/components/admin/cloudflare-upload-widget'
 
 interface ImageUploadProps {
   value: string[]

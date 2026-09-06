@@ -6,9 +6,8 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { orders, orderShipments, orderTrackingEvents, paymentRecords, pickupStations, products, savedAddresses } from '@/lib/db/schema'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { reservePointsForOrder, safelyReleasePointsForOrder } from '@/lib/loyalty/service'
-import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveAuthorizationType, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
+import { getPesapalConfig, submitPesapalOrder } from '@/lib/pesapal/client'
 import { notifyUser } from '@/lib/notifications/service'
-import { settleOrderPayment } from '@/lib/order-payments'
 import { getCollectionPromotionQuote, markCollectionPromotionApplied, releaseCollectionPromotionForOrder, reserveCollectionPromotion } from '@/lib/collection-commerce'
 
 type OrderBody = {
@@ -51,7 +50,7 @@ function customerNameParts(value: string) {
   return name
 }
 
-function addressForFlutterwave(value: unknown) {
+function addressForPesapal(value: unknown) {
   const address = value && typeof value === 'object' ? value as Record<string, unknown> : {}
   const city = text(address.city, 'Kampala', 100)
   return { line1: text(address.address, 'Address provided at checkout', 255), city, state: city, country: 'UG', postal_code: '00000' }
@@ -100,7 +99,7 @@ export async function POST(request: Request) {
 
     const body = await request.json() as OrderBody
     const amount = Number(body.amount)
-    const currency = text(body.currency, process.env.FLUTTERWAVE_CURRENCY || 'UGX', 3).toUpperCase()
+    const currency = text(body.currency, process.env.PESAPAL_CURRENCY || 'UGX', 3).toUpperCase()
     const email = text(body.email, '', 320)
     const customerName = text(body.customerName, 'Customer', 255)
     const phoneNumber = text(body.phoneNumber, '', 30)
@@ -108,20 +107,19 @@ export async function POST(request: Request) {
     const requestedDeliveryMethod = text(body.deliveryMethod ?? submittedShippingAddress.deliveryMethod, '', 30).toLowerCase()
     const deliveryMethod = requestedDeliveryMethod === 'pickup_station' || requestedDeliveryMethod === 'pickup' ? 'pickup_station' : 'door_delivery'
     const paymentMode = body.paymentMode === 'pay_on_delivery' ? 'pay_on_delivery' : 'pay_now'
-    const requestedPaymentMethod = body.paymentMethod === 'card' ? 'card' : 'mobile_money'
     const addressId = text(body.addressId ?? submittedShippingAddress.addressId, '', 80)
     const pickupStationId = text(body.pickupStationId ?? submittedShippingAddress.pickupStationId, '', 80)
     const promotionCode = text(body.promotionCode ?? body.promoCode, '', 40)
     const items = Array.isArray(body.items) ? body.items : []
-    const expectedCurrency = (process.env.FLUTTERWAVE_CURRENCY || 'UGX').toUpperCase()
+    const expectedCurrency = (process.env.PESAPAL_CURRENCY || 'UGX').toUpperCase()
 
     if (!Number.isFinite(amount) || amount <= 0 || items.length === 0 || items.length > 100) return NextResponse.json({ error: 'A valid order amount and at least one item are required.' }, { status: 400 })
     if (currency !== expectedCurrency) return NextResponse.json({ error: `Checkout currently supports ${expectedCurrency} only.` }, { status: 400 })
     if (!email.includes('@')) return NextResponse.json({ error: 'Enter a valid email address before continuing.' }, { status: 400 })
 
     if (paymentMode === 'pay_now') {
-      const config = getFlutterwaveConfig()
-      if (!config.ok) return NextResponse.json({ error: flutterwaveConfigurationMessage(config) }, { status: 503 })
+      const config = getPesapalConfig()
+      if (!config.ok) return NextResponse.json({ error: config.error }, { status: 503 })
     }
 
     const localUser = await getOrCreateCurrentUser(userId)
@@ -243,19 +241,10 @@ export async function POST(request: Request) {
     let promotionDiscountUgx = promotionResult?.success ? promotionResult.quote.discountAmount : 0
     let amountAfterPromotion = Math.max(0, numericAmount - promotionDiscountUgx)
 
-    let paymentMethod: Awaited<ReturnType<typeof buildFlutterwavePaymentMethod>> | null = null
-    if (paymentMode === 'pay_now') {
-      try {
-        paymentMethod = await buildFlutterwavePaymentMethod({ method: body.paymentMethod, phoneNumber, mobileMoneyNetwork: body.mobileMoneyNetwork, cardNumber: body.cardNumber, cardExpiryMonth: body.cardExpiryMonth, cardExpiryYear: body.cardExpiryYear, cardCvv: body.cardCvv })
-      } catch (error) {
-        return NextResponse.json({ error: error instanceof Error ? error.message : 'Choose a valid payment method.' }, { status: 400 })
-      }
-    }
-
     const txRef = `REV-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     const subtotal = (itemTotal * 0.9).toFixed(2)
     const tax = (itemTotal * 0.1).toFixed(2)
-    const [createdOrder] = await db.insert(orders).values({ orderNumber: txRef, userId, items: orderItems, subtotal, tax, shipping: deliveryFee.toFixed(2), discount: promotionDiscountUgx.toFixed(2), total: String(amountAfterPromotion), status: paymentMode === 'pay_on_delivery' ? 'confirmed' : 'pending', paymentStatus: 'pending', paymentMode, paymentMethod: paymentMode === 'pay_now' ? requestedPaymentMethod : null, deliveryAddress: shippingAddress, promotionId: promotionResult?.success ? promotionResult.quote.promotion.id : null, promotionCode: promotionResult?.success ? promotionResult.quote.promotion.code : null, promotionName: promotionResult?.success ? promotionResult.quote.promotion.name : null, promotionDiscount: promotionDiscountUgx.toFixed(2), notes: text(shippingAddress.notes) || null }).returning({ id: orders.id })
+    const [createdOrder] = await db.insert(orders).values({ orderNumber: txRef, userId, items: orderItems, subtotal, tax, shipping: deliveryFee.toFixed(2), discount: promotionDiscountUgx.toFixed(2), total: String(amountAfterPromotion), status: paymentMode === 'pay_on_delivery' ? 'confirmed' : 'pending', paymentStatus: 'pending', paymentMode, paymentMethod: paymentMode === 'pay_now' ? 'pesapal' : null, deliveryAddress: shippingAddress, promotionId: promotionResult?.success ? promotionResult.quote.promotion.id : null, promotionCode: promotionResult?.success ? promotionResult.quote.promotion.code : null, promotionName: promotionResult?.success ? promotionResult.quote.promotion.name : null, promotionDiscount: promotionDiscountUgx.toFixed(2), notes: text(shippingAddress.notes) || null }).returning({ id: orders.id })
     if (!createdOrder) return NextResponse.json({ error: 'The order could not be initialized.' }, { status: 500 })
 
     if (promotionCode) {
@@ -331,37 +320,51 @@ export async function POST(request: Request) {
       return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, status: 'placed', orderStatus: 'confirmed', paymentStatus: 'pending', amount: amountAfterPoints, discountUgx, promotionCode: promotionResult?.success ? promotionResult.quote.promotion.code : null, promotionDiscountUgx })
     }
 
-    const phone = normalizeUgandaPhone(phoneNumber)
-    const customer: Record<string, unknown> = { email, name: customerNameParts(customerName), address: addressForFlutterwave(shippingAddress) }
-    if (phone) customer.phone = { country_code: phone.countryCode, number: phone.number }
     const baseUrl = normalizeBaseUrl(request)
-    if (!paymentMethod) {
-      await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
-      await safelyReleasePointsForOrder(createdOrder.id)
-      await releaseCollectionPromotionForOrder(createdOrder.id)
-      return NextResponse.json({ error: 'Choose a valid payment method.' }, { status: 400 })
-    }
-    const flwResponse = await createFlutterwaveCharge({ reference: txRef, amount: amountAfterPoints, currency: expectedCurrency, redirectUrl: `${baseUrl}/api/checkout/callback?reference=${encodeURIComponent(txRef)}&tx_ref=${encodeURIComponent(txRef)}`, customer, paymentMethod, idempotencyKey: randomUUID(), meta: { orderId: createdOrder.id, txRef } })
-    const flwPayload = flwResponse.payload || {}
-    const charge = flwPayload.data
-    const chargeStatus = String(charge?.status || '').toLowerCase()
-    if (!flwResponse.response?.ok || !['success', 'pending'].includes(String(flwPayload.status || '').toLowerCase()) || !charge?.id) {
+    const name = customerNameParts(customerName)
+    let pesapalResponse: Awaited<ReturnType<typeof submitPesapalOrder>>
+    try {
+      pesapalResponse = await submitPesapalOrder({
+        id: txRef,
+        amount: amountAfterPoints,
+        currency: expectedCurrency,
+        description: `The Revamp UG order ${txRef}`,
+        callbackUrl: `${baseUrl}/api/checkout/pesapal-callback`,
+        cancellationUrl: `${baseUrl}/checkout/failed?orderRef=${encodeURIComponent(txRef)}&reason=cancelled`,
+        billingAddress: {
+          emailAddress: email,
+          phoneNumber,
+          countryCode: 'UG',
+          firstName: name.first,
+          middleName: name.middle,
+          lastName: name.last,
+          line1: String(shippingAddress.address || 'Address provided at checkout'),
+          city: String(shippingAddress.city || 'Kampala'),
+          state: String(shippingAddress.region || shippingAddress.city || 'Central'),
+        },
+      })
+    } catch (error) {
       await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
       await db.update(orderShipments).set({ status: 'cancelled', lastNote: 'Payment initialization failed.', updatedAt: new Date() }).where(eq(orderShipments.id, createdShipment.id))
       await db.insert(orderTrackingEvents).values({ orderId: createdOrder.id, shipmentId: createdShipment.id, status: 'cancelled', note: 'Payment initialization failed.', customerVisible: false })
       await safelyReleasePointsForOrder(createdOrder.id)
       await releaseCollectionPromotionForOrder(createdOrder.id)
-      return NextResponse.json({ error: flutterwaveErrorMessage(flwPayload, flwResponse.response?.status || 502) }, { status: flwResponse.response?.status === 401 ? 503 : 502 })
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Pesapal could not initialize this payment.' }, { status: 502 })
     }
 
-    await db.insert(paymentRecords).values({ userId: localUser.id, orderId: createdOrder.id, provider: 'flutterwave', transactionReference: String(charge.id), amount: String(amountAfterPoints), currency: expectedCurrency, method: paymentMethod.type, status: 'pending', metadata: { txRef, chargeId: String(charge.id), discountUgx } })
-
-    if (chargeStatus === 'succeeded') {
-      const settled = await settleOrderPayment({ orderRef: txRef, chargeId: String(charge.id) })
-      if (settled.success) return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, paymentMethod: paymentMethod.type, status: 'paid', amount: amountAfterPoints, discountUgx, promotionCode: promotionResult?.success ? promotionResult.quote.promotion.code : null, promotionDiscountUgx })
+    const trackingId = String(pesapalResponse.order_tracking_id || '').trim()
+    const redirectUrl = String(pesapalResponse.redirect_url || '').trim()
+    if (!trackingId || !redirectUrl) {
+      await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(eq(orders.id, createdOrder.id))
+      await db.update(orderShipments).set({ status: 'cancelled', lastNote: 'Payment initialization failed.', updatedAt: new Date() }).where(eq(orderShipments.id, createdShipment.id))
+      await safelyReleasePointsForOrder(createdOrder.id)
+      await releaseCollectionPromotionForOrder(createdOrder.id)
+      return NextResponse.json({ error: 'Pesapal did not return a usable payment page.' }, { status: 502 })
     }
 
-    return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, paymentMethod: paymentMethod.type, status: 'pending', chargeId: String(charge.id), chargeStatus: chargeStatus || 'pending', authorizationType: getFlutterwaveAuthorizationType(charge), amount: amountAfterPoints, discountUgx, promotionCode: promotionResult?.success ? promotionResult.quote.promotion.code : null, promotionDiscountUgx, paymentUrl: charge.next_action?.redirect_url?.url || null, paymentInstruction: charge.next_action?.payment_instruction?.note || null })
+    await db.insert(paymentRecords).values({ userId: localUser.id, orderId: createdOrder.id, provider: 'pesapal', transactionReference: txRef, amount: String(amountAfterPoints), currency: expectedCurrency, method: 'hosted', status: 'pending', metadata: { txRef, pesapalOrderTrackingId: trackingId, discountUgx } })
+
+    return NextResponse.json({ txRef, orderId: createdOrder.id, paymentMode, paymentMethod: 'pesapal', status: 'pending', pesapalOrderTrackingId: trackingId, amount: amountAfterPoints, discountUgx, promotionCode: promotionResult?.success ? promotionResult.quote.promotion.code : null, promotionDiscountUgx, paymentUrl: redirectUrl, paymentInstruction: 'You will choose card or mobile money securely on Pesapal.' })
   } catch (error: unknown) {
     const traceId = randomUUID()
     console.error('[checkout-payment] failed to prepare payment', { traceId, error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error })

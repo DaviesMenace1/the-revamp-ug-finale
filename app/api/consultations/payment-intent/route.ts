@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { db } from '@/lib/db/client'
 import { consultationPaymentIntents, consultationPromotionRedemptions, consultationSlots } from '@/lib/db/schema'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
-import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveAuthorizationType, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
+import { getPesapalConfig, submitPesapalOrder } from '@/lib/pesapal/client'
 import { settleConsultationPayment } from '@/lib/consultation-payments'
 import {
   calculatePromotionDiscount,
@@ -42,8 +42,7 @@ type PaymentIntentResponse = {
   paymentIntentId: string
   paymentUrl?: string
   paymentInstruction?: string
-  chargeId?: string
-  authorizationType?: string
+  pesapalOrderTrackingId?: string
   txRef: string
   expiresAt: string
   pricing: ConsultationPriceSummary
@@ -61,16 +60,14 @@ function normalizeBaseUrl(request: Request) {
 function responseForIntent(intent: typeof consultationPaymentIntents.$inferSelect, pricing: ConsultationPriceSummary): PaymentIntentResponse | null {
   const metadata = (intent.metadata || {}) as Record<string, unknown>
   const paymentInstruction = typeof metadata.paymentInstruction === 'string' ? metadata.paymentInstruction : undefined
-  const chargeId = typeof metadata.flutterwaveChargeId === 'string' ? metadata.flutterwaveChargeId : undefined
-  const authorizationType = typeof metadata.authorizationType === 'string' ? metadata.authorizationType : undefined
-  if (!intent.paymentUrl && !paymentInstruction && !authorizationType && !chargeId) return null
+  const trackingId = typeof metadata.pesapalOrderTrackingId === 'string' ? metadata.pesapalOrderTrackingId : undefined
+  if (!intent.paymentUrl && !paymentInstruction && !trackingId) return null
   return {
     status: 'pending',
     paymentIntentId: intent.id,
     paymentUrl: intent.paymentUrl || undefined,
     paymentInstruction,
-    chargeId,
-    authorizationType,
+    pesapalOrderTrackingId: trackingId,
     txRef: intent.txRef,
     expiresAt: intent.expiresAt.toISOString(),
     pricing,
@@ -126,21 +123,8 @@ export async function POST(request: Request) {
     if (existing && existing.userId === user.id && ['paid', 'paid_review'].includes(existing.status)) return NextResponse.json({ error: 'This payment request has already been processed. Please check your consultation history.' }, { status: 409 })
 
     const paymentIdempotencyKey = existing ? randomUUID() : idempotencyKey
-    const flutterwaveConfig = getFlutterwaveConfig()
-    if (!flutterwaveConfig.ok) {
-      console.error('[consultation-payment] Flutterwave v4 configuration rejected', { mode: flutterwaveConfig.mode, reason: flutterwaveConfig.reason })
-      return NextResponse.json({ error: flutterwaveConfigurationMessage(flutterwaveConfig) }, { status: 503 })
-    }
-
-    const customerPhone = normalizeUgandaPhone(text(body.phoneNumber, 30))
-    if (!customerPhone) return NextResponse.json({ error: 'Enter a valid Ugandan phone number for payment authorization.' }, { status: 400 })
-
-    let paymentMethod: Awaited<ReturnType<typeof buildFlutterwavePaymentMethod>>
-    try {
-      paymentMethod = await buildFlutterwavePaymentMethod({ method: body.paymentMethod, phoneNumber: body.phoneNumber, mobileMoneyNetwork: body.mobileMoneyNetwork, cardNumber: body.cardNumber, cardExpiryMonth: body.cardExpiryMonth, cardExpiryYear: body.cardExpiryYear, cardCvv: body.cardCvv })
-    } catch (error) {
-      return NextResponse.json({ error: error instanceof Error ? error.message : 'Choose a valid payment method.' }, { status: 400 })
-    }
+    const pesapalConfig = getPesapalConfig()
+    if (!pesapalConfig.ok) return NextResponse.json({ error: pesapalConfig.error }, { status: 503 })
 
     const txRef = `REV-CONS-${Date.now()}-${randomUUID().slice(0, 8)}`
     const created = await db.transaction(async (transaction) => {
@@ -160,7 +144,7 @@ export async function POST(request: Request) {
         promotionId: promotion?.id || null,
         promotionCode: promotion?.code || null,
         expiresAt,
-      metadata: { title, description, serviceType, budget, mode, slotStartTime: slot.startTime.toISOString(), durationMinutes: slot.durationMinutes, taxInclusive: summary.taxInclusive, paymentMethod: paymentMethod.type },
+        metadata: { title, description, serviceType, budget, mode, slotStartTime: slot.startTime.toISOString(), durationMinutes: slot.durationMinutes, taxInclusive: summary.taxInclusive, paymentMethod: 'pesapal_hosted' },
       }).returning()
       if (!intent) return null
       if (promotion) await transaction.insert(consultationPromotionRedemptions).values({ promotionId: promotion.id, paymentIntentId: intent.id, userId: user.id, code: promotion.code, discountAmount: calculatePromotionDiscount(promotion, summary.baseAmount).toFixed(2), status: 'reserved' })
@@ -171,39 +155,42 @@ export async function POST(request: Request) {
     let baseUrl = normalizeBaseUrl(request)
     if (!/^https?:\/\//i.test(baseUrl)) baseUrl = `https://${baseUrl}`
 
-    const flwResponse = await createFlutterwaveCharge({
-      reference: created.txRef,
-      amount: Number(created.amount),
-      currency: created.currency,
-      redirectUrl: `${baseUrl}/api/consultations/payment-callback?reference=${encodeURIComponent(created.txRef)}&tx_ref=${encodeURIComponent(created.txRef)}`,
-      customer: { email: user.email, name: { first: text(user.firstName, 50) || 'Client', last: text(user.lastName, 50) || 'Client' }, phone: { country_code: customerPhone.countryCode, number: customerPhone.number }, address: { line1: 'Consultation booking', city: 'Kampala', state: 'Central', country: 'UG', postal_code: '00000' } },
-      paymentMethod,
-      idempotencyKey: paymentIdempotencyKey,
-      meta: { paymentIntentId: created.id, slotId: created.slotId, promotionCode: created.promotionCode || '' },
-    })
-    const flwPayload = flwResponse.payload || {}
-    const charge = flwPayload.data
-    if (!flwResponse.response?.ok || !['success', 'pending'].includes(String(flwPayload.status || '').toLowerCase()) || !charge?.id) {
+    let pesapalResponse: Awaited<ReturnType<typeof submitPesapalOrder>>
+    try {
+      pesapalResponse = await submitPesapalOrder({
+        id: created.txRef,
+        amount: Number(created.amount),
+        currency: created.currency,
+        description: `The Revamp UG consultation ${created.txRef}`,
+        callbackUrl: `${baseUrl}/api/consultations/pesapal-callback`,
+        cancellationUrl: `${baseUrl}/book-consultation?payment=failed&tx_ref=${encodeURIComponent(created.txRef)}`,
+        billingAddress: {
+          emailAddress: user.email,
+          phoneNumber: text(body.phoneNumber, 30),
+          countryCode: 'UG',
+          firstName: text(user.firstName, 50) || 'Client',
+          lastName: text(user.lastName, 50) || 'Client',
+          line1: 'Consultation booking',
+          city: 'Kampala',
+          state: 'Central',
+        },
+      })
+    } catch (error) {
       await releaseFailedIntent(created.id, user.id)
-      return NextResponse.json({ error: flutterwaveErrorMessage(flwPayload, flwResponse.response?.status || 502) }, { status: flwResponse.response?.status === 401 ? 503 : 502 })
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Pesapal could not initialize this payment.' }, { status: 502 })
     }
 
-    const paymentUrl = charge.next_action?.redirect_url?.url || null
-    const paymentInstruction = charge.next_action?.payment_instruction?.note || null
-    const authorizationType = getFlutterwaveAuthorizationType(charge)
-    const metadata = { ...((created.metadata || {}) as Record<string, unknown>), flutterwaveChargeId: String(charge.id), paymentInstruction: paymentInstruction || undefined, authorizationType: authorizationType || undefined }
+    const trackingId = String(pesapalResponse.order_tracking_id || '').trim()
+    const paymentUrl = String(pesapalResponse.redirect_url || '').trim()
+    if (!trackingId || !paymentUrl) {
+      await releaseFailedIntent(created.id, user.id)
+      return NextResponse.json({ error: 'Pesapal did not return a usable payment page.' }, { status: 502 })
+    }
+    const paymentInstruction = 'You will choose card or mobile money securely on Pesapal.'
+    const metadata = { ...((created.metadata || {}) as Record<string, unknown>), pesapalOrderTrackingId: trackingId, paymentInstruction }
     const [updated] = await db.update(consultationPaymentIntents).set({ paymentUrl, metadata, updatedAt: new Date() }).where(and(eq(consultationPaymentIntents.id, created.id), eq(consultationPaymentIntents.status, 'pending'))).returning()
     if (!updated) return NextResponse.json({ error: 'Payment could not be prepared. Please try again.' }, { status: 500 })
-    if (String(charge.status || '').toLowerCase() === 'succeeded') {
-      const settled = await settleConsultationPayment({ txRef: updated.txRef, transactionId: String(charge.id) })
-      if (settled.success) return NextResponse.json({ status: settled.status, consultationId: settled.consultationId, paymentIntentId: updated.id, txRef: updated.txRef, pricing: chargedSummary })
-      if (settled.status === 'paid_review') return NextResponse.json({ status: 'paid_review', paymentIntentId: updated.id, txRef: updated.txRef, pricing: summary, message: settled.error })
-      return NextResponse.json({ status: 'pending', paymentIntentId: updated.id, txRef: updated.txRef, pricing: summary, message: settled.error || 'Payment was received and is being finalized.' })
-    }
-
-    const response = responseForIntent(updated, chargedSummary)
-    if (!response) return NextResponse.json({ error: 'Flutterwave did not return a usable payment state. Please try again.' }, { status: 502 })
-    return NextResponse.json(response)
+    return NextResponse.json({ status: 'pending', paymentIntentId: updated.id, txRef: updated.txRef, expiresAt: updated.expiresAt.toISOString(), pricing: chargedSummary, paymentUrl, paymentInstruction, pesapalOrderTrackingId: trackingId })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[consultation-payment] failed to initialize payment', { traceId, error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error })

@@ -12,7 +12,7 @@ import {
 } from '@/lib/db/schema'
 import { generateConsultationPaymentDocuments } from '@/lib/documents/consultation-payment'
 import { notifyUser } from '@/lib/notifications/service'
-import { flutterwaveErrorMessage, flutterwaveConfigurationMessage, getFlutterwaveConfig, retrieveFlutterwaveCharge } from '@/lib/flutterwave-config'
+import { getPesapalTransactionStatus, pesapalStatus } from '@/lib/pesapal/client'
 import { revalidatePath } from 'next/cache'
 
 type IntentMetadata = {
@@ -54,25 +54,30 @@ function sameMoney(actual: unknown, expected: string) {
   return number(actual) + 0.001 >= number(expected)
 }
 
-async function verifyFlutterwaveTransaction(chargeId: string, expectedTxRef: string, expectedAmount: string, expectedCurrency: string) {
-  const config = getFlutterwaveConfig()
-  if (!config.ok) return { verified: false as const, error: flutterwaveConfigurationMessage(config) }
-  if (!chargeId || !/^chg_[A-Za-z0-9]+$/.test(chargeId)) return { verified: false as const, error: 'Flutterwave did not provide a valid charge id.' }
+export async function failConsultationPayment(txRef: string) {
+  const [intent] = await db.select({ id: consultationPaymentIntents.id, userId: consultationPaymentIntents.userId, expiresAt: consultationPaymentIntents.expiresAt, status: consultationPaymentIntents.status }).from(consultationPaymentIntents).where(eq(consultationPaymentIntents.txRef, txRef)).limit(1)
+  if (!intent) return false
+  if (intent.status !== 'pending') return true
+  await db.transaction(async (transaction) => {
+    await transaction.update(consultationPaymentIntents).set({ status: 'failed', failedAt: new Date(), updatedAt: new Date() }).where(and(eq(consultationPaymentIntents.id, intent.id), eq(consultationPaymentIntents.status, 'pending')))
+    await transaction.update(consultationSlots).set({ holdUntil: null, holdUserId: null }).where(and(eq(consultationSlots.holdUserId, intent.userId), eq(consultationSlots.holdUntil, intent.expiresAt)))
+    await transaction.update(consultationPromotionRedemptions).set({ status: 'released', releasedAt: new Date(), updatedAt: new Date() }).where(and(eq(consultationPromotionRedemptions.paymentIntentId, intent.id), eq(consultationPromotionRedemptions.status, 'reserved')))
+  })
+  return true
+}
 
+async function verifyPesapalTransaction(trackingId: string, expectedTxRef: string, expectedAmount: string, expectedCurrency: string) {
+  if (!trackingId) return { verified: false as const, error: 'Pesapal did not provide an order tracking ID.' }
   try {
-    const result = await retrieveFlutterwaveCharge(chargeId)
-    const payload = result.payload || {}
-    const data = payload.data
-    if (!result.response?.ok || payload.status !== 'success' || !data || data.status !== 'succeeded') {
-      const pending = Boolean(result.response?.ok && payload.status === 'success' && data && ['pending', 'requires_authorization'].includes(String(data.status)))
-      return { verified: false as const, pending, error: flutterwaveErrorMessage(payload, result.response?.status || 502) }
-    }
-    if (String(data.reference || data.tx_ref || '') !== expectedTxRef) return { verified: false as const, error: 'The payment reference does not match this consultation.' }
+    const data = await getPesapalTransactionStatus(trackingId)
+    const status = pesapalStatus(data)
+    if (status !== 'completed') return { verified: false as const, pending: status === 'pending', error: data.description || data.message || `Pesapal payment status is ${status}.` }
+    if (String(data.merchant_reference || '') !== expectedTxRef) return { verified: false as const, error: 'The payment reference does not match this consultation.' }
     if (String(data.currency || '').toUpperCase() !== expectedCurrency.toUpperCase()) return { verified: false as const, error: 'The payment currency does not match this consultation.' }
     if (!sameMoney(data.amount, expectedAmount)) return { verified: false as const, error: 'The verified payment amount is less than the consultation total.' }
-    return { verified: true as const, transactionId: String(data.id || chargeId), paymentMethod: data.payment_method_details?.type || data.payment_method?.type || null }
+    return { verified: true as const, transactionId: trackingId, paymentMethod: data.payment_method || 'hosted' }
   } catch (error) {
-    return { verified: false as const, error: error instanceof Error ? error.message : 'Flutterwave verification failed.' }
+    return { verified: false as const, error: error instanceof Error ? error.message : 'Pesapal verification failed.' }
   }
 }
 
@@ -84,7 +89,9 @@ export async function settleConsultationPayment(input: {
   if (!intent) return { success: false as const, status: 'not_found' as const, error: 'Consultation payment was not found.' }
   if (intent.status === 'paid' && intent.consultationId) return { success: true as const, status: 'paid' as const, consultationId: intent.consultationId }
 
-  const verification = await verifyFlutterwaveTransaction(String(input.transactionId || intent.flutterwaveTransactionId || ''), intent.txRef, intent.amount, intent.currency)
+  const intentMetadata = (intent.metadata || {}) as Record<string, unknown>
+  const trackingId = String(input.transactionId || intentMetadata.pesapalOrderTrackingId || '').trim()
+  const verification = await verifyPesapalTransaction(trackingId, intent.txRef, intent.amount, intent.currency)
   if (!verification.verified) {
     await db.update(consultationPaymentIntents).set({ status: verification.pending ? 'pending' : input.transactionId ? 'verification_failed' : 'pending', failedAt: verification.pending ? null : input.transactionId ? new Date() : null, updatedAt: new Date() }).where(and(eq(consultationPaymentIntents.id, intent.id), eq(consultationPaymentIntents.status, 'pending')))
     return { success: false as const, status: verification.pending ? 'pending' as const : 'verification_failed' as const, error: verification.error }
@@ -132,19 +139,19 @@ export async function settleConsultationPayment(input: {
     const [payment] = await transaction.insert(paymentRecords).values({
       userId: intent.userId,
       consultationId: consultation.id,
-      provider: 'flutterwave',
+      provider: 'pesapal',
       transactionReference: intent.txRef,
       amount: intent.amount,
       currency: intent.currency,
       method: verification.paymentMethod,
       status: 'completed',
-      metadata: { paymentIntentId: intent.id, flutterwaveTransactionId: verification.transactionId, promotionCode: intent.promotionCode },
+      metadata: { paymentIntentId: intent.id, pesapalOrderTrackingId: verification.transactionId, promotionCode: intent.promotionCode },
       paidAt: now,
     }).onConflictDoNothing({ target: [paymentRecords.provider, paymentRecords.transactionReference] }).returning({ id: paymentRecords.id })
-    const paymentId = payment?.id || (await transaction.select({ id: paymentRecords.id }).from(paymentRecords).where(and(eq(paymentRecords.provider, 'flutterwave'), eq(paymentRecords.transactionReference, intent.txRef))).limit(1))[0]?.id
+    const paymentId = payment?.id || (await transaction.select({ id: paymentRecords.id }).from(paymentRecords).where(and(eq(paymentRecords.provider, 'pesapal'), eq(paymentRecords.transactionReference, intent.txRef))).limit(1))[0]?.id
     if (!paymentId) return { kind: 'review' as const }
 
-    await transaction.update(consultationPaymentIntents).set({ status: 'paid', consultationId: consultation.id, flutterwaveTransactionId: verification.transactionId, paymentMethod: verification.paymentMethod, paidAt: now, updatedAt: now }).where(and(eq(consultationPaymentIntents.id, intent.id), eq(consultationPaymentIntents.status, 'pending')))
+    await transaction.update(consultationPaymentIntents).set({ status: 'paid', consultationId: consultation.id, metadata: { ...intentMetadata, pesapalOrderTrackingId: verification.transactionId }, paymentMethod: verification.paymentMethod, paidAt: now, updatedAt: now }).where(and(eq(consultationPaymentIntents.id, intent.id), eq(consultationPaymentIntents.status, 'pending')))
     if (intent.promotionId) {
       await transaction.update(consultationPromotionRedemptions).set({ status: 'applied', appliedAt: now, updatedAt: now }).where(and(eq(consultationPromotionRedemptions.paymentIntentId, intent.id), eq(consultationPromotionRedemptions.status, 'reserved')))
     }
@@ -152,7 +159,7 @@ export async function settleConsultationPayment(input: {
   })
 
   if (booking.kind === 'review') {
-    await db.update(consultationPaymentIntents).set({ status: 'paid_review', flutterwaveTransactionId: verification.transactionId, paymentMethod: verification.paymentMethod, updatedAt: now }).where(eq(consultationPaymentIntents.id, intent.id))
+    await db.update(consultationPaymentIntents).set({ status: 'paid_review', metadata: { ...intentMetadata, pesapalOrderTrackingId: verification.transactionId }, paymentMethod: verification.paymentMethod, updatedAt: now }).where(eq(consultationPaymentIntents.id, intent.id))
     return { success: false as const, status: 'paid_review' as const, error: 'Payment was verified, but the selected time is no longer held. Please contact the studio so the payment can be matched safely.' }
   }
 

@@ -6,7 +6,7 @@ import { db } from '@/lib/db/client'
 import { orders, orderShipments, orderTrackingEvents, paymentRecords, refundRequests, users } from '@/lib/db/schema'
 import { requireAdminPermission } from '@/lib/auth/admin-guard'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
-import { createFlutterwaveRefund, getFlutterwaveConfig, flutterwaveErrorMessage } from '@/lib/flutterwave-config'
+import { refundPesapalPayment } from '@/lib/pesapal/client'
 import { applyRefundProviderState } from '@/lib/refund-processing'
 import { notifyUser } from '@/lib/notifications/service'
 import { releaseCollectionPromotionForOrder } from '@/lib/collection-commerce'
@@ -45,7 +45,7 @@ export async function requestOrderCancellation(orderId: string, reason: string) 
   const [shipment] = await db.select({ id: orderShipments.id, status: orderShipments.status }).from(orderShipments).where(eq(orderShipments.orderId, order.id)).limit(1)
   if (!canCancelShipment(shipment?.status)) return { success: false, error: 'This order can no longer be cancelled because fulfilment has started.' }
   const [payment] = order.paymentStatus === 'completed'
-    ? await db.select({ id: paymentRecords.id }).from(paymentRecords).where(and(eq(paymentRecords.orderId, order.id), eq(paymentRecords.provider, 'flutterwave'), eq(paymentRecords.status, 'completed'))).orderBy(desc(paymentRecords.createdAt)).limit(1)
+    ? await db.select({ id: paymentRecords.id }).from(paymentRecords).where(and(eq(paymentRecords.orderId, order.id), eq(paymentRecords.provider, 'pesapal'), eq(paymentRecords.status, 'completed'))).orderBy(desc(paymentRecords.createdAt)).limit(1)
     : []
 
   const note = (reason || 'Cancelled by customer').trim().slice(0, 500) || 'Cancelled by customer'
@@ -85,7 +85,7 @@ export async function requestOrderRefund(orderId: string, reason: string) {
   if (!order) return { success: false, error: 'Order not found.' }
   if (order.paymentStatus !== 'completed') return { success: false, error: 'A refund can only be requested after payment is completed.' }
   if (order.refundStatus === 'requested' || order.refundStatus === 'processing' || order.refundStatus === 'completed') return { success: false, error: 'A refund request already exists for this order.' }
-  const [payment] = await db.select({ id: paymentRecords.id }).from(paymentRecords).where(and(eq(paymentRecords.orderId, order.id), eq(paymentRecords.provider, 'flutterwave'), eq(paymentRecords.status, 'completed'))).orderBy(desc(paymentRecords.createdAt)).limit(1)
+  const [payment] = await db.select({ id: paymentRecords.id }).from(paymentRecords).where(and(eq(paymentRecords.orderId, order.id), eq(paymentRecords.provider, 'pesapal'), eq(paymentRecords.status, 'completed'))).orderBy(desc(paymentRecords.createdAt)).limit(1)
 
   const note = (reason || 'Refund requested by customer').trim().slice(0, 500) || 'Refund requested by customer'
   await db.transaction(async (tx) => {
@@ -111,7 +111,7 @@ export async function reviewRefundRequest(requestId: string, decision: 'approve'
   if (!requestRow) return { success: false, error: 'Refund request is no longer awaiting review.' }
   const [payment] = requestRow.request.paymentRecordId
     ? await db.select().from(paymentRecords).where(eq(paymentRecords.id, requestRow.request.paymentRecordId)).limit(1)
-    : await db.select().from(paymentRecords).where(and(eq(paymentRecords.orderId, requestRow.order.id), eq(paymentRecords.provider, 'flutterwave'))).orderBy(desc(paymentRecords.createdAt)).limit(1)
+    : await db.select().from(paymentRecords).where(and(eq(paymentRecords.orderId, requestRow.order.id), eq(paymentRecords.provider, 'pesapal'))).orderBy(desc(paymentRecords.createdAt)).limit(1)
   const row = { ...requestRow, payment: payment || null }
   const note = (reviewNote || '').trim().slice(0, 1000) || null
   if (decision === 'reject') {
@@ -126,30 +126,31 @@ export async function reviewRefundRequest(requestId: string, decision: 'approve'
     return { success: true, status: 'rejected' as const }
   }
 
-  if (!payment || payment.provider !== 'flutterwave') return { success: false, error: 'This order has no supported online payment record. Review it manually.' }
-  const config = getFlutterwaveConfig()
-  if (!config.ok) return { success: false, error: 'Flutterwave is not configured for refunds. The request remains awaiting review.' }
+  if (!payment || payment.provider !== 'pesapal') return { success: false, error: 'This order has no supported Pesapal payment record. Review it manually.' }
+  const paymentMetadata = payment.metadata && typeof payment.metadata === 'object' ? payment.metadata as Record<string, unknown> : {}
+  const confirmationCode = typeof paymentMetadata.pesapalConfirmationCode === 'string' ? paymentMetadata.pesapalConfirmationCode : ''
+  if (!confirmationCode) return { success: false, error: 'Pesapal did not return a confirmation code for this payment. Review it manually.' }
 
   await db.update(refundRequests).set({ status: 'processing', paymentRecordId: payment.id, reviewedBy: reviewer.id, reviewNote: note, updatedAt: new Date() }).where(eq(refundRequests.id, requestId))
   let providerResponse
   try {
-    providerResponse = await createFlutterwaveRefund({ chargeId: payment.transactionReference, amount: Number(row.request.amount), reason: 'requested_by_customer', idempotencyKey: `refund-${requestId}`, meta: { orderId: row.order.id, orderNumber: row.order.orderNumber } })
+    providerResponse = await refundPesapalPayment({ confirmationCode, amount: Number(row.request.amount), username: reviewer.email || reviewer.firstName || 'The Revamp UG', remarks: note || `Refund requested for order ${row.order.orderNumber}` })
   } catch (error) {
     console.error('[refund] provider request failed:', error)
-    return { success: true, status: 'processing' as const, error: 'The provider request could not be confirmed yet. Use Refresh status when the provider refund ID is available.' }
+    return { success: false, error: 'Pesapal could not accept the refund request. The request remains awaiting review.' }
   }
 
-  const providerRefund = providerResponse.payload?.data
-  const providerStatus = String(providerRefund?.status || '').toLowerCase() || null
+  const providerStatus = String(providerResponse.status || '').toLowerCase() || null
+  const accepted = providerStatus === '200' || providerStatus === 'success' || providerStatus === 'completed'
   const reconciled = await applyRefundProviderState({
     requestId,
-    providerRefundId: providerRefund?.id ? String(providerRefund.id) : null,
+    providerRefundId: `pesapal-${requestId}`,
     providerStatus,
-    providerRequestOk: Boolean(providerResponse.response?.ok),
-    providerRecord: providerRefund || null,
+    providerRequestOk: accepted,
+    providerRecord: { id: `pesapal-${requestId}`, status: accepted ? 'processing' : 'failed' },
     notifyCustomer: true,
   })
-  const error = reconciled.status === 'failed' ? flutterwaveErrorMessage(providerResponse.payload || {}, providerResponse.response?.status || 502) : reconciled.status === 'processing' ? `Refund submitted. Provider status: ${providerStatus || 'pending'}.` : undefined
+  const error = reconciled.status === 'failed' ? providerResponse.message || 'Pesapal rejected the refund request.' : reconciled.status === 'processing' ? 'Refund request submitted to Pesapal. Final completion is handled by the merchant finance team.' : undefined
   return { success: true, status: reconciled.status, error }
 }
 
@@ -157,25 +158,6 @@ export async function reconcileRefundRequest(requestId: string) {
   await requireAdminPermission('manage_finance', '/admin/billing')
   if (!validUuid(requestId)) return { success: false, error: 'Invalid refund request.' }
   const [row] = await db.select({ request: refundRequests }).from(refundRequests).where(and(eq(refundRequests.id, requestId), eq(refundRequests.status, 'processing'))).limit(1)
-  if (!row?.request.providerRefundId) return { success: false, error: 'This refund has no provider refund ID to check yet.' }
-
-  const { retrieveFlutterwaveRefund } = await import('@/lib/flutterwave-config')
-  let providerResponse
-  try {
-    providerResponse = await retrieveFlutterwaveRefund(row.request.providerRefundId)
-  } catch (error) {
-    console.error('[refund] provider status request failed:', error)
-    return { success: false, error: 'The payment provider could not be reached. Try again later.' }
-  }
-  const providerRefund = providerResponse.payload?.data
-  const result = await applyRefundProviderState({
-    requestId,
-    providerRefundId: providerRefund?.id || row.request.providerRefundId,
-    providerStatus: providerRefund?.status || null,
-    providerRequestOk: Boolean(providerResponse.response?.ok),
-    providerRecord: providerRefund || null,
-    notifyCustomer: true,
-  })
-  if (!result.found) return { success: false, error: 'This refund was updated by another request or is no longer processing.' }
-  return { success: true, status: result.status }
+  if (!row?.request.providerRefundId) return { success: false, error: 'This refund has not been submitted to Pesapal yet.' }
+  return { success: false, error: 'Pesapal refund completion is confirmed by the merchant finance team. Update this request after Pesapal confirms settlement.' }
 }

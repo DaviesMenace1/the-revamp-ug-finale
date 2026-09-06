@@ -191,7 +191,7 @@ function SuccessContent() {
             <div className="space-y-1 text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Method:</span>
-                <span className="font-medium text-foreground">{isPayOnDelivery ? 'Pay on delivery' : 'Flutterwave'}</span>
+                <span className="font-medium text-foreground">{isPayOnDelivery ? 'Pay on delivery' : 'Pesapal'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status:</span>

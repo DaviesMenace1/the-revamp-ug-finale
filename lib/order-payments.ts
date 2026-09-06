@@ -6,7 +6,7 @@ import { carts, orders, orderShipments, orderTrackingEvents, paymentRecords, use
 import { generateVerifiedPaymentReceipt } from '@/lib/documents/payment-receipt'
 import { notifyUser } from '@/lib/notifications/service'
 import { safelyReleasePointsForOrder, settleSuccessfulOrderRewards } from '@/lib/loyalty/service'
-import { flutterwaveErrorMessage, retrieveFlutterwaveCharge } from '@/lib/flutterwave-config'
+import { getPesapalTransactionStatus, pesapalStatus } from '@/lib/pesapal/client'
 import { sendOrderVerificationEmail } from '@/lib/email/send-receipt'
 import { markCollectionPromotionApplied, releaseCollectionPromotionForOrder } from '@/lib/collection-commerce'
 
@@ -30,28 +30,32 @@ function sameMoney(actual: unknown, expected: unknown) {
   return Number(actual) + 0.001 >= Number(expected)
 }
 
-export async function settleOrderPayment(input: { orderRef: string; chargeId?: string | null }) {
+export async function settleOrderPayment(input: { orderRef: string; trackingId?: string | null }) {
   const order = await db.query.orders.findFirst({ where: eq(orders.orderNumber, input.orderRef) })
   if (!order) return { success: false as const, status: 'not_found' as const, error: 'Order was not found.' }
 
-  let chargeId = String(input.chargeId || '').trim()
+  let trackingId = String(input.trackingId || '').trim()
   const storedPayment = await db.query.paymentRecords.findFirst({
-    where: and(eq(paymentRecords.orderId, order.id), eq(paymentRecords.provider, 'flutterwave')),
+    where: and(eq(paymentRecords.orderId, order.id), eq(paymentRecords.provider, 'pesapal')),
     columns: { id: true, transactionReference: true, metadata: true },
   })
-  if (!chargeId) chargeId = storedPayment?.transactionReference || ''
-  if (!chargeId) return { success: false as const, status: 'pending' as const, error: 'The payment is still awaiting authorization.' }
+  const storedMetadata = parseMetadata(storedPayment?.metadata)
+  if (!trackingId) trackingId = typeof storedMetadata.pesapalOrderTrackingId === 'string' ? storedMetadata.pesapalOrderTrackingId : ''
+  if (!trackingId) return { success: false as const, status: 'pending' as const, error: 'The payment is still awaiting authorization.' }
 
-  const result = await retrieveFlutterwaveCharge(chargeId)
-  const payload = result.payload || {}
-  const charge = payload.data
-  const expectedCurrency = (process.env.FLUTTERWAVE_CURRENCY || 'UGX').toUpperCase()
-  const successful = Boolean(result.response?.ok && String(payload.status || '').toLowerCase() === 'success' && String(charge?.status || '').toLowerCase() === 'succeeded')
-  if (!successful || !charge) {
-    if (result.response?.status === 401 || result.response?.status === 403) return { success: false as const, status: 'verification_failed' as const, error: flutterwaveErrorMessage(payload, result.response.status) }
-    return { success: false as const, status: 'pending' as const, error: payload.error?.message || payload.message || 'Payment is still awaiting authorization.' }
+  let charge: Awaited<ReturnType<typeof getPesapalTransactionStatus>>
+  try {
+    charge = await getPesapalTransactionStatus(trackingId)
+  } catch (error) {
+    return { success: false as const, status: 'pending' as const, error: error instanceof Error ? error.message : 'Pesapal payment verification failed.' }
   }
-  if (String(charge.reference || charge.tx_ref || '') !== order.orderNumber) return { success: false as const, status: 'verification_failed' as const, error: 'The payment reference does not match this order.' }
+  const paymentStatus = pesapalStatus(charge)
+  const expectedCurrency = (process.env.PESAPAL_CURRENCY || 'UGX').toUpperCase()
+  if (paymentStatus !== 'completed') {
+    if (paymentStatus === 'failed' || paymentStatus === 'reversed' || paymentStatus === 'invalid') return { success: false as const, status: 'verification_failed' as const, error: charge.description || charge.message || `Pesapal payment status is ${paymentStatus}.` }
+    return { success: false as const, status: 'pending' as const, error: charge.description || charge.message || 'Payment is still awaiting authorization.' }
+  }
+  if (String(charge.merchant_reference || '') !== order.orderNumber) return { success: false as const, status: 'verification_failed' as const, error: 'The payment reference does not match this order.' }
   if (String(charge.currency || '').toUpperCase() !== expectedCurrency) return { success: false as const, status: 'verification_failed' as const, error: 'The payment currency does not match this order.' }
   if (!sameMoney(charge.amount, order.total)) return { success: false as const, status: 'verification_failed' as const, error: 'The verified payment amount is less than the order total.' }
 
@@ -68,19 +72,19 @@ export async function settleOrderPayment(input: { orderRef: string; chargeId?: s
   }
 
   const customer = await db.query.users.findFirst({ where: eq(users.clerkId, order.userId) })
-  const method = charge.payment_method_details?.type || charge.payment_method?.type || null
-  const transactionReference = String(charge.id || chargeId)
-  const existingPayment = await db.query.paymentRecords.findFirst({ where: and(eq(paymentRecords.provider, 'flutterwave'), eq(paymentRecords.transactionReference, transactionReference)), columns: { id: true, metadata: true } })
+  const method = charge.payment_method || 'hosted'
+  const transactionReference = trackingId
+  const existingPayment = await db.query.paymentRecords.findFirst({ where: and(eq(paymentRecords.provider, 'pesapal'), eq(paymentRecords.transactionReference, order.orderNumber)), columns: { id: true, metadata: true } })
   const originalPaymentMetadata = parseMetadata(existingPayment?.metadata || storedPayment?.metadata)
   let paymentId = existingPayment?.id || storedPayment?.id || null
-  const completedMetadata = { ...originalPaymentMetadata, txRef: order.orderNumber, chargeId: transactionReference, paymentType: method }
+  const completedMetadata = { ...originalPaymentMetadata, txRef: order.orderNumber, pesapalOrderTrackingId: transactionReference, pesapalConfirmationCode: charge.confirmation_code || null, paymentType: method }
 
   if (existingPayment) {
     await db.update(paymentRecords).set({ userId: customer?.id || undefined, orderId: order.id, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), method, status: 'completed', metadata: completedMetadata, paidAt: now, updatedAt: now }).where(eq(paymentRecords.id, existingPayment.id))
   } else if (storedPayment) {
     await db.update(paymentRecords).set({ userId: customer?.id || undefined, orderId: order.id, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), method, status: 'completed', metadata: completedMetadata, paidAt: now, updatedAt: now }).where(eq(paymentRecords.id, storedPayment.id))
   } else if (customer) {
-    const [payment] = await db.insert(paymentRecords).values({ userId: customer.id, orderId: order.id, provider: 'flutterwave', transactionReference, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), method, status: 'completed', metadata: completedMetadata, paidAt: now }).onConflictDoNothing({ target: [paymentRecords.provider, paymentRecords.transactionReference] }).returning({ id: paymentRecords.id })
+    const [payment] = await db.insert(paymentRecords).values({ userId: customer.id, orderId: order.id, provider: 'pesapal', transactionReference: order.orderNumber, amount: String(charge.amount), currency: String(charge.currency || expectedCurrency), method, status: 'completed', metadata: completedMetadata, paidAt: now }).onConflictDoNothing({ target: [paymentRecords.provider, paymentRecords.transactionReference] }).returning({ id: paymentRecords.id })
     paymentId = payment?.id || null
   }
 

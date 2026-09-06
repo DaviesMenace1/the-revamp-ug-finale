@@ -53,7 +53,7 @@ export async function applyRefundProviderState(input: {
   if (!row) return { found: false as const, status: finalStatus }
   let payment = row.payment
   if (!payment) {
-    const [fallbackPayment] = await db.select().from(paymentRecords).where(and(eq(paymentRecords.orderId, row.order.id), eq(paymentRecords.provider, 'flutterwave'))).orderBy(desc(paymentRecords.createdAt)).limit(1)
+    const [fallbackPayment] = await db.select().from(paymentRecords).where(and(eq(paymentRecords.orderId, row.order.id), eq(paymentRecords.provider, 'pesapal'))).orderBy(desc(paymentRecords.createdAt)).limit(1)
     payment = fallbackPayment || null
   }
 

@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     if (items.some((item) => !item)) return Response.json({ error: 'One or more cart items are invalid.' }, { status: 400 })
     const validItems = items as Array<{ productId: string; quantity: number; unitPrice: number }>
     const currency = normalizeCurrency(body.currency)
-    const expectedCurrency = (process.env.FLUTTERWAVE_CURRENCY || 'UGX').toUpperCase()
+    const expectedCurrency = (process.env.PESAPAL_CURRENCY || 'UGX').toUpperCase()
     if (currency !== expectedCurrency) return Response.json({ error: `Checkout currently supports ${expectedCurrency} only.` }, { status: 400 })
     const productIds = [...new Set(validItems.map((item) => item.productId))]
     const catalog = await db.select({ id: products.id, price: products.price, currency: products.currency, status: products.status, availability: products.availability }).from(products).where(inArray(products.id, productIds))

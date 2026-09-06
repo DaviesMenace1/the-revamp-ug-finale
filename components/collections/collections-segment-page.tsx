@@ -8,7 +8,8 @@ import { CollectionProductGrid } from '@/components/collections/collection-produ
 
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
-import { ProductDetail, ProductReviews } from '@/components/collections/product-detail'
+import { ProductReviews } from '@/components/collections/product-detail'
+import { EditorialProductDetail } from '@/components/collections/product-detail-editorial'
 import { SchemaScript } from '@/components/seo/schema-script'
 import { generateBreadcrumbSchema, generateProductSchema } from '@/lib/seo/schema-generator'
 import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
@@ -332,7 +333,7 @@ export default async function ProductPage({
           <div className="mx-auto max-w-7xl px-6 md:px-8">
             <div className="mb-10 flex items-end justify-between gap-5 border-b border-border pb-5"><div><p className="text-[10px] uppercase tracking-[0.28em] text-gilded">The Revamp collection</p><p className="mt-2 text-xs text-muted-foreground">Individually sourced · Worldwide delivery</p></div><Link href="/contact?interest=product_inquiry" className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-gilded hover:text-obsidian sm:block">Need help choosing?</Link></div>
             {/* The Main Product Details */}
-            <ProductDetail product={safeProduct as any} />
+            <EditorialProductDetail product={safeProduct as any} />
             
             {/* The standalone Reviews component placed securely right underneath */}
             <div className="mt-20">

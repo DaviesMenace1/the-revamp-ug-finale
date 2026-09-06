@@ -2,11 +2,15 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, MessageCircle, Minus, Plus, ShoppingBag, Trash2 } from '@/components/ui/luxury-icons'
+import { useEffect, useState } from 'react'
+import { ArrowRight, Gift, MessageCircle, Minus, Plus, ShieldCheck, ShoppingBag, Trash2, Truck } from '@/components/ui/luxury-icons'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { useCart } from '@/lib/context/cart-context'
 import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
+
+const CART_NOTE_KEY = 'revamp-cart-note'
+const CART_GIFT_KEY = 'revamp-cart-gift'
 
 function getImage(item: any) {
   const image = item.image || item.selectedColor?.image || item.selectedVariant?.image
@@ -15,218 +19,75 @@ function getImage(item: any) {
   return resolveProductImageUrls(item.product)[0] || DEFAULT_PRODUCT_IMAGE
 }
 
-function Option({ label, value }: { label: string; value?: React.ReactNode }) {
-  if (value === undefined || value === null || value === '') return null
-  return (
-    <div className="flex gap-2 text-xs leading-5">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-foreground">{value}</span>
-    </div>
-  )
-}
-
-function ProductOptions({ item }: { item: any }) {
+function optionsFor(item: any) {
+  const options = [
+    item.selectedColor?.label || item.selectedColor?.name ? `Colour: ${item.selectedColor.label || item.selectedColor.name}` : null,
+    item.selectedFabric?.label || item.selectedFabric?.name ? `Fabric: ${item.selectedFabric.label || item.selectedFabric.name}` : null,
+    item.selectedMaterial?.label || item.selectedMaterial?.name ? `Material: ${item.selectedMaterial.label || item.selectedMaterial.name}` : null,
+    item.selectedVariant?.label || item.selectedVariant?.name ? `Variant: ${item.selectedVariant.label || item.selectedVariant.name}` : null,
+    Array.isArray(item.selectedAccessories) && item.selectedAccessories.length > 0 ? `Add-ons: ${item.selectedAccessories.map((option: any) => option.label || option.name).filter(Boolean).join(', ')}` : null,
+  ].filter(Boolean) as string[]
   const dimensions = item.customDimensions
-  const dimensionText = dimensions && Object.entries(dimensions)
-    .filter(([key, value]) => key !== 'unit' && value !== undefined && value !== '')
-    .map(([key, value]) => `${key}: ${value}`)
-    .join(' × ')
-  const accessories = Array.isArray(item.selectedAccessories)
-    ? item.selectedAccessories.map((accessory: any) => accessory.label || accessory.name).filter(Boolean).join(', ')
-    : ''
-
-  return (
-    <div className="mt-4 space-y-1 border-t border-border/70 pt-3">
-      <Option label="Colour" value={item.selectedColor?.label || item.selectedColor?.name} />
-      <Option label="Fabric" value={item.selectedFabric?.label || item.selectedFabric?.name} />
-      <Option label="Material" value={item.selectedMaterial?.label || item.selectedMaterial?.name} />
-      <Option label="Variant" value={item.selectedVariant?.label || item.selectedVariant?.name} />
-      <Option label="Add-ons" value={accessories} />
-      {dimensionText && <Option label="Custom dimensions" value={`${dimensionText} ${dimensions?.unit || 'in'}`} />}
-    </div>
-  )
+  if (dimensions && Object.values(dimensions).some(Boolean)) options.push(`Custom dimensions: ${Object.entries(dimensions).filter(([key, value]) => key !== 'unit' && value).map(([key, value]) => `${key} ${value}`).join(', ')}`)
+  return options
 }
 
-function whatsappCartMessage(items: any[], total: number, currency: string) {
+function whatsappCartMessage(items: any[], total: number, currency: string, note: string, gift: boolean) {
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://therevampug.com'
   const lines = items.map((item) => {
-    const name = item.product?.name || 'Saved selection'
     const unitPrice = Number(item.unitPrice ?? item.product?.salePrice ?? item.product?.price ?? 0)
-    const options = [
-      item.selectedColor?.label || item.selectedColor?.name ? `Colour: ${item.selectedColor.label || item.selectedColor.name}` : null,
-      item.selectedFabric?.label || item.selectedFabric?.name ? `Fabric: ${item.selectedFabric.label || item.selectedFabric.name}` : null,
-      item.selectedMaterial?.label || item.selectedMaterial?.name ? `Material: ${item.selectedMaterial.label || item.selectedMaterial.name}` : null,
-      item.selectedVariant?.label || item.selectedVariant?.name ? `Variant: ${item.selectedVariant.label || item.selectedVariant.name}` : null,
-      Array.isArray(item.selectedAccessories) && item.selectedAccessories.length > 0 ? `Add-ons: ${item.selectedAccessories.map((accessory: any) => accessory.label || accessory.name).filter(Boolean).join(', ')}` : null,
-    ].filter(Boolean)
-    const productUrl = item.product?.slug ? `${origin}/collections/${item.product.slug}` : null
-    return [
-      `• ${name} × ${item.quantity} | ${formatMoney(unitPrice * item.quantity, currency)}`,
-      options.length > 0 ? `  ${options.join(' | ')}` : null,
-      productUrl ? `  ${productUrl}` : null,
-    ].filter(Boolean).join('\n')
+    const url = item.product?.slug ? `${origin}/collections/${item.product.slug}` : null
+    return [`• ${item.product?.name || 'Saved selection'} × ${item.quantity} | ${formatMoney(unitPrice * item.quantity, currency)}`, ...optionsFor(item).map((value) => `  ${value}`), url ? `  ${url}` : null].filter(Boolean).join('\n')
   })
-
-  return [
-    'Hello The Revamp UG, I would like to order the following selection:',
-    '',
-    lines.join('\n'),
-    '',
-    `Estimated total: ${formatMoney(total, currency)}`,
-    '',
-    'Please confirm availability, delivery, and the final quotation.',
-  ].join('\n')
+  return ['Hello The Revamp UG, I would like to order the following selection:', '', lines.join('\n'), '', `Estimated total: ${formatMoney(total, currency)}`, gift ? 'This is a gift.' : null, note ? `Note: ${note}` : null, '', 'Please confirm availability, delivery, installation, and the final quotation.'].filter(Boolean).join('\n')
 }
 
 function QuantityControl({ quantity, onDecrease, onIncrease }: { quantity: number; onDecrease: () => void; onIncrease: () => void }) {
-  return (
-    <div className="inline-flex items-center rounded-md border border-border/80 bg-background" aria-label="Quantity">
-      <button type="button" onClick={onDecrease} className="flex size-11 items-center justify-center text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Decrease quantity">
-        <Minus className="size-3.5" aria-hidden="true" />
-      </button>
-      <span className="min-w-10 text-center text-sm tabular-nums" aria-live="polite">{quantity}</span>
-      <button type="button" onClick={onIncrease} className="flex size-11 items-center justify-center text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Increase quantity">
-        <Plus className="size-3.5" aria-hidden="true" />
-      </button>
-    </div>
-  )
+  return <div className="inline-flex items-center border border-border/80 bg-background"><button type="button" onClick={onDecrease} className="flex size-10 items-center justify-center hover:bg-muted" aria-label="Decrease quantity"><Minus className="size-3.5" /></button><span className="min-w-10 text-center text-sm tabular-nums">{quantity}</span><button type="button" onClick={onIncrease} className="flex size-10 items-center justify-center hover:bg-muted" aria-label="Increase quantity"><Plus className="size-3.5" /></button></div>
 }
 
 export default function CartPage() {
   const { items, cart, updateQuantity, removeFromCart, clearCart, isLoaded } = useCart()
+  const [note, setNote] = useState('')
+  const [isGift, setIsGift] = useState(false)
   const currencies = Array.from(new Set(items.map((item) => normalizeCurrency(item.currency ?? item.product?.currency))))
   const hasMixedCurrencies = currencies.length > 1
   const cartCurrency = currencies[0] || 'UGX'
+
+  useEffect(() => {
+    try {
+      setNote(localStorage.getItem(CART_NOTE_KEY) || '')
+      setIsGift(localStorage.getItem(CART_GIFT_KEY) === 'true')
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    try { localStorage.setItem(CART_NOTE_KEY, note); localStorage.setItem(CART_GIFT_KEY, String(isGift)) } catch {}
+  }, [isGift, note])
+
   const shareCartOnWhatsApp = () => {
     const number = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '256783476807').replace(/[^0-9]/g, '')
-    const message = whatsappCartMessage(items, Number(cart?.total || 0), cartCurrency)
+    const message = whatsappCartMessage(items, Number(cart?.total || 0), cartCurrency, note, isGift)
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
   }
 
-  if (!isLoaded) {
-    return (
-      <>
-        <SiteHeader />
-        <main className="flex min-h-dvh items-center justify-center px-6 pt-20"><p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Loading your selection…</p></main>
-        <SiteFooter />
-      </>
-    )
-  }
+  if (!isLoaded) return <><SiteHeader /><main className="flex min-h-dvh items-center justify-center px-6 pt-24"><p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Loading your selection...</p></main><SiteFooter /></>
 
-  if (items.length === 0) {
-    return (
-      <>
-        <SiteHeader />
-        <main className="flex min-h-[70dvh] items-center justify-center px-6 pt-20">
-          <div className="max-w-md text-center">
-            <ShoppingBag className="mx-auto mb-6 size-10 text-primary" aria-hidden="true" />
-            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Your selection</p>
-            <h1 className="mt-3 font-serif text-5xl tracking-tight">Your cart is empty</h1>
-            <p className="mt-4 text-sm leading-7 text-muted-foreground">Discover furniture, lighting, architectural finishes, and beautifully sourced pieces from The Revamp UG.</p>
-            <Link href="/collections" className="mt-8 inline-flex min-h-12 items-center justify-center rounded-md bg-primary px-6 text-xs font-medium uppercase tracking-[0.16em] text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-              Explore Collections  <ArrowRight className="ml-2 size-4" aria-hidden="true" />
-            </Link>
-          </div>
-        </main>
-        <SiteFooter />
-      </>
-    )
-  }
+  if (items.length === 0) return <><SiteHeader /><main className="min-h-[70dvh] bg-background px-5 pb-24 pt-32 sm:px-8 md:pt-40"><div className="mx-auto max-w-xl text-center"><ShoppingBag className="mx-auto size-10 text-primary" /><p className="mt-6 text-[10px] uppercase tracking-[0.3em] text-primary">Your selection</p><h1 className="mt-3 font-serif text-5xl font-light tracking-tight sm:text-7xl">Almost yours.</h1><p className="mt-5 text-sm leading-7 text-muted-foreground">Your selection is waiting. Explore furniture, lighting, and considered objects for a more refined tomorrow.</p><Link href="/collections" className="mt-8 inline-flex min-h-12 items-center gap-2 bg-foreground px-6 text-xs uppercase tracking-[0.16em] text-background">Explore collections <ArrowRight className="size-4" /></Link></div></main><SiteFooter /></>
 
-  return (
-    <>
-      <SiteHeader />
-      <main className="min-h-screen bg-background px-4 pb-24 pt-28 sm:px-6 md:px-10 md:pt-36">
-        <div className="mx-auto max-w-7xl">
-          <header className="mb-8 flex flex-col gap-5 border-b border-border/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-primary">Your selection</p>
-              <h1 className="mt-3 font-serif text-5xl tracking-tight">Cart</h1>
-              <p className="mt-2 text-sm text-muted-foreground">{items.length} {items.length === 1 ? 'piece' : 'pieces'} selected · Prices shown in {cartCurrency}</p>
-            </div>
-            <button type="button" onClick={() => window.confirm('Clear everything from your cart?') && clearCart()} className="min-h-11 self-start text-xs uppercase tracking-[0.16em] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline sm:self-auto">Clear cart</button>
-          </header>
-
-          {hasMixedCurrencies && (
-            <div role="alert" className="mb-6 rounded-lg border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50">
-              This selection contains more than one currency. Separate checkout is required so we never combine incompatible amounts.
-            </div>
-          )}
-
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-12">
-            <section className="space-y-4" aria-label="Cart items">
-              {items.map((item) => {
-                const name = item.product?.name || 'Saved selection'
-                const slug = item.product?.slug
-                const itemHref = item.unavailable || !slug ? null : `/collections/${slug}`
-                const image = getImage(item)
-                const currency = normalizeCurrency(item.currency ?? item.product?.currency)
-                const unitPrice = Number(item.unitPrice ?? item.product?.salePrice ?? item.product?.price ?? 0)
-                const total = unitPrice * item.quantity
-
-                return (
-                  <article key={item.cartItemId} className="rounded-xl border border-border/70 bg-card p-4 shadow-lift sm:p-5">
-                    <div className="flex gap-4 sm:gap-6">
-                      {itemHref ? (
-                        <Link href={itemHref} className="relative block aspect-[4/5] w-24 shrink-0 overflow-hidden rounded-lg bg-muted sm:w-36" aria-label={`View ${name}`}>
-                          {image ? <Image src={image} alt={name} fill className="object-cover" sizes="144px" /> : <div className="flex h-full items-center justify-center text-primary"><ShoppingBag className="size-6" aria-hidden="true" /></div>}
-                        </Link>
-                      ) : (
-                        <div className="relative flex aspect-[4/5] w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted text-primary sm:w-36" aria-label="Saved selection image unavailable">
-                          {image ? <Image src={image} alt="" fill className="object-cover opacity-70" sizes="144px" /> : <ShoppingBag className="size-6" aria-hidden="true" />}
-                        </div>
-                      )}
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            {itemHref ? <Link href={itemHref} className="font-serif text-2xl leading-tight text-foreground transition-colors hover:text-primary hover:underline">{name}</Link> : <p className="font-serif text-2xl leading-tight text-foreground">{name}</p>}
-                            {item.product?.sku && <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">SKU {item.product.sku}</p>}
-                          </div>
-                          <button type="button" onClick={() => removeFromCart(item.cartItemId)} className="flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={`Remove ${name}`}>
-                            <Trash2 className="size-4" aria-hidden="true" />
-                          </button>
-                        </div>
-
-                        {item.unavailable && <p role="status" className="mt-3 text-xs leading-5 text-amber-800 dark:text-amber-200">This saved selection needs review before checkout because its product details are unavailable.</p>}
-                        <ProductOptions item={item} />
-
-                        <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
-                          <QuantityControl quantity={item.quantity} onDecrease={() => updateQuantity(item.cartItemId, item.quantity - 1)} onIncrease={() => updateQuantity(item.cartItemId, item.quantity + 1)} />
-                          <div className="text-right">
-                            <p className="text-xs tabular-nums text-muted-foreground">{formatMoney(unitPrice, currency)} each</p>
-                            <p className="mt-1 font-serif text-2xl tabular-nums text-foreground">{formatMoney(total, currency)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                )
-              })}
-            </section>
-
-            <aside className="h-fit rounded-xl border border-border/70 bg-card p-5 shadow-editorial lg:sticky lg:top-28 sm:p-6">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-primary">Order summary</p>
-              <div className="mt-5 space-y-4 border-b border-border/70 pb-5">
-                <div className="flex justify-between gap-4 text-sm"><span className="text-muted-foreground">Subtotal</span><span className="font-medium tabular-nums">{formatMoney(cart?.subtotal || 0, cartCurrency)}</span></div>
-                <div className="flex justify-between gap-4 text-sm"><span className="text-muted-foreground">Delivery</span><span className="text-right text-xs text-muted-foreground">Calculated after quotation</span></div>
-              </div>
-              <div className="flex items-end justify-between gap-4 py-5"><span className="font-serif text-2xl">Estimated total</span><span className="text-right font-serif text-2xl tabular-nums">{formatMoney(cart?.total || 0, cartCurrency)}</span></div>
-              {hasMixedCurrencies || items.some((item) => item.unavailable) ? (
-                <span className="flex min-h-12 cursor-not-allowed items-center justify-center rounded-md bg-muted px-5 text-center text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Review selection before checkout</span>
-              ) : (
-                <Link href="/checkout" className="flex min-h-12 items-center justify-center rounded-md bg-primary px-5 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">Continue to checkout</Link>
-              )}
-              <button type="button" onClick={shareCartOnWhatsApp} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-md border border-[#25D366]/60 px-5 text-xs font-medium uppercase tracking-[0.14em] text-[#168c45] transition-colors hover:bg-[#25D366]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2">
-                <MessageCircle className="size-4" aria-hidden="true" />
-                Order or share on WhatsApp
-              </button>
-              <p className="mt-4 text-center text-[11px] leading-5 text-muted-foreground">Final delivery, installation, and customisation costs may be confirmed during quotation.</p>
-            </aside>
-          </div>
-        </div>
-      </main>
-      <SiteFooter />
-    </>
-  )
+  return <>
+    <SiteHeader />
+    <main className="min-h-screen bg-background text-foreground">
+      <section className="relative overflow-hidden bg-obsidian text-ivory"><Image src="/prototype/hero-natural-light.jpg" alt="A considered living space" fill priority sizes="100vw" className="object-cover opacity-60" /><div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10" /><div className="relative mx-auto flex min-h-[21rem] max-w-[1440px] flex-col justify-end px-5 pb-10 pt-32 sm:px-8 lg:min-h-[25rem] lg:px-16"><p className="text-[10px] uppercase tracking-[0.3em] text-ivory/70">Your cart</p><h1 className="mt-4 max-w-2xl font-serif text-5xl font-light leading-[0.9] sm:text-7xl">Curated for a more refined tomorrow.</h1><p className="mt-5 max-w-xl text-sm text-ivory/75">Thoughtful pieces. A more considered way of living.</p></div></section>
+      <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 sm:py-14 lg:px-16"><div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-border/70 pb-6"><div><p className="text-[10px] uppercase tracking-[0.28em] text-primary">Order summary</p><h2 className="mt-3 font-serif text-4xl font-light sm:text-5xl">Almost yours.</h2><p className="mt-2 text-sm text-muted-foreground">Review your items and proceed to a secure checkout.</p></div><button type="button" onClick={() => window.confirm('Clear everything from your cart?') && clearCart()} className="text-xs uppercase tracking-[0.16em] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Clear all</button></div>
+        {hasMixedCurrencies && <div role="alert" className="mb-6 border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">This selection contains more than one currency. Separate checkout is required.</div>}
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] lg:gap-16"><section aria-label="Cart items" className="min-w-0">{items.map((item) => { const name = item.product?.name || 'Saved selection'; const slug = item.product?.slug; const href = item.unavailable || !slug ? null : `/collections/${slug}`; const image = getImage(item); const currency = normalizeCurrency(item.currency ?? item.product?.currency); const unitPrice = Number(item.unitPrice ?? item.product?.salePrice ?? item.product?.price ?? 0); return <article key={item.cartItemId} className="flex gap-4 border-b border-border/70 py-5 first:pt-0 sm:gap-6"><div className="relative aspect-square w-28 shrink-0 overflow-hidden bg-muted sm:w-40">{href ? <Link href={href}><Image src={image} alt={name} fill sizes="160px" className="object-cover" /></Link> : <Image src={image} alt={name} fill sizes="160px" className="object-cover opacity-70" />}</div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-3"><div className="min-w-0">{href ? <Link href={href} className="font-serif text-2xl leading-tight hover:text-primary sm:text-3xl">{name}</Link> : <p className="font-serif text-2xl leading-tight sm:text-3xl">{name}</p>}<p className="mt-2 text-xs text-muted-foreground">{optionsFor(item).join(' · ') || 'A considered selection'}</p></div><button type="button" onClick={() => removeFromCart(item.cartItemId)} className="flex size-10 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive" aria-label={`Remove ${name}`}><Trash2 className="size-4" /></button></div><div className="mt-5 flex flex-wrap items-end justify-between gap-4"><QuantityControl quantity={item.quantity} onDecrease={() => updateQuantity(item.cartItemId, item.quantity - 1)} onIncrease={() => updateQuantity(item.cartItemId, item.quantity + 1)} /><div className="text-right"><p className="text-xs text-muted-foreground">{formatMoney(unitPrice, currency)} each</p><p className="mt-1 font-serif text-xl tabular-nums">{formatMoney(unitPrice * item.quantity, currency)}</p></div></div></div></article> })}
+          <div className="mt-7 border-b border-border/70 pb-7"><label htmlFor="cart-note" className="flex items-center justify-between gap-4 text-sm font-medium">Add a note <span className="text-xs text-muted-foreground">Optional</span></label><textarea id="cart-note" value={note} onChange={(event) => setNote(event.target.value)} rows={3} placeholder="Anything the studio should know about your selection?" className="mt-3 w-full resize-y border border-input bg-background px-3 py-3 text-sm leading-6 outline-none focus:ring-2 focus:ring-primary/30" /><label className="mt-4 flex cursor-pointer items-center justify-between gap-4 border border-border/70 px-4 py-4 text-sm"><span className="flex items-center gap-3"><Gift className="size-5 text-primary" /><span><span className="block font-medium">This is a gift</span><span className="block text-xs text-muted-foreground">Add a personalised note during checkout.</span></span></span><input type="checkbox" checked={isGift} onChange={(event) => setIsGift(event.target.checked)} className="size-5 accent-[var(--primary)]" /></label></div>
+          <div className="grid grid-cols-3 gap-3 border-b border-border/70 py-7 text-center text-[10px] text-muted-foreground"><div><Truck className="mx-auto mb-2 size-5 text-primary" />Worldwide sourcing<br />& delivery</div><div><ShieldCheck className="mx-auto mb-2 size-5 text-primary" />Secure<br />payments</div><div><ShoppingBag className="mx-auto mb-2 size-5 text-primary" />White glove<br />installation</div></div>
+        </section>
+        <aside className="h-fit border border-border/70 bg-card p-5 shadow-soft sm:p-7 lg:sticky lg:top-28"><p className="text-[10px] uppercase tracking-[0.28em] text-primary">Order summary</p><h2 className="mt-3 font-serif text-4xl font-light">Review your pieces.</h2><div className="mt-6 space-y-4 border-y border-border/70 py-5 text-sm"><div className="flex justify-between gap-4"><span className="text-muted-foreground">Subtotal ({items.length} {items.length === 1 ? 'item' : 'items'})</span><span className="tabular-nums">{formatMoney(cart?.subtotal || 0, cartCurrency)}</span></div><div className="flex justify-between gap-4"><span className="text-muted-foreground">Shipping</span><span className="text-xs text-muted-foreground">Calculated at checkout</span></div><div className="flex justify-between gap-4"><span className="text-muted-foreground">Taxes</span><span className="text-xs text-muted-foreground">Calculated at checkout</span></div></div><div className="flex items-end justify-between gap-4 py-5"><span className="font-serif text-2xl">Total</span><span className="font-serif text-2xl tabular-nums">{formatMoney(cart?.total || 0, cartCurrency)}</span></div>{hasMixedCurrencies || items.some((item) => item.unavailable) ? <span className="flex min-h-12 items-center justify-center bg-muted px-5 text-center text-xs uppercase tracking-[0.14em] text-muted-foreground">Review selection before checkout</span> : <Link href="/checkout" className="flex min-h-12 items-center justify-center gap-2 bg-foreground px-5 text-xs uppercase tracking-[0.14em] text-background">Proceed to checkout <ArrowRight className="size-4" /></Link>}<button type="button" onClick={shareCartOnWhatsApp} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 border border-[#25D366]/60 px-5 text-xs uppercase tracking-[0.14em] text-[#168c45] hover:bg-[#25D366]/10"><MessageCircle className="size-4" /> Chat on WhatsApp to order</button><p className="mt-4 text-center text-xs leading-6 text-muted-foreground">Prefer a personal touch? Chat with our team for product advice, custom requests, and final delivery guidance.</p><Link href="/collections" className="mt-5 flex min-h-11 items-center justify-center border border-border px-5 text-xs uppercase tracking-[0.14em] hover:bg-muted">Continue shopping</Link></aside></div>
+      </div>
+    </main>
+    <SiteFooter />
+  </>
 }

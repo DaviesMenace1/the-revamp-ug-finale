@@ -153,6 +153,12 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
     condition: initialData?.condition || 'new',
     availability: initialData?.availability || 'in_stock',
+    productType: initialData?.productType || 'standard',
+    customizationEnabled: initialData?.customizationEnabled ?? false,
+    customizationHeading: initialData?.customizationHeading || '',
+    customizationDescription: initialData?.customizationDescription || '',
+    customizationLeadTime: initialData?.customizationLeadTime || '',
+    customizationRequestLabel: initialData?.customizationRequestLabel || 'Request a custom variation',
     inStock: initialData?.inStock ?? true,
     quantity: initialData?.quantity || 0,
     leadTime: initialData?.leadTime || '',
@@ -482,6 +488,27 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     className="mt-1.5 w-full rounded-lg border border-emerald-300 bg-white p-2.5 text-sm font-mono"
                   />
                   <p className="mt-2 text-xs leading-5 text-emerald-900/75">This discount is visible only to approved trade members in Trade Collections. Public retail pricing remains unchanged.</p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="grid gap-2 text-xs font-semibold text-stone-700">Product type
+                    <select value={formData.productType} onChange={(e) => setFormData({ ...formData, productType: e.target.value })} className="min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-sm font-normal">
+                      <option value="standard">Standard</option><option value="made_to_order">Made to order</option><option value="custom_bespoke">Custom / bespoke</option><option value="sourced_on_request">Sourced on request</option><option value="pre_order">Pre-order</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-2 text-xs font-semibold text-stone-700">Availability
+                    <select value={formData.availability} onChange={(e) => setFormData({ ...formData, availability: e.target.value })} className="min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-sm font-normal">
+                      <option value="in_stock">In stock</option><option value="out_of_stock">Out of stock</option><option value="made_to_order">Made to order</option><option value="pre_order">Pre-order</option><option value="available_on_request">Available on request</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="rounded-xl border border-stone-300 bg-stone-50 p-4 sm:p-5">
+                  <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-stone-800"><input type="checkbox" checked={formData.customizationEnabled} onChange={(e) => setFormData({ ...formData, customizationEnabled: e.target.checked })} className="mt-0.5 size-4 accent-amber-700" /><span>Show customization panel on the product page<span className="mt-1 block text-xs font-normal leading-5 text-stone-500">Made-to-order and bespoke products show this automatically. Enable it for other products that can be tailored.</span></span></label>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <label className="grid gap-2 text-xs font-semibold text-stone-700">Customization heading<input value={formData.customizationHeading} onChange={(e) => setFormData({ ...formData, customizationHeading: e.target.value })} placeholder="Made for your space" className="min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-sm font-normal" /></label>
+                    <label className="grid gap-2 text-xs font-semibold text-stone-700">Lead time wording<input value={formData.customizationLeadTime} onChange={(e) => setFormData({ ...formData, customizationLeadTime: e.target.value })} placeholder="8 to 12 weeks" className="min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-sm font-normal" /></label>
+                  </div>
+                  <label className="mt-4 grid gap-2 text-xs font-semibold text-stone-700">Customization description<textarea rows={3} value={formData.customizationDescription} onChange={(e) => setFormData({ ...formData, customizationDescription: e.target.value })} placeholder="Tell customers what can be tailored and how the studio will confirm the final specification." className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-normal" /></label>
+                  <label className="mt-4 grid gap-2 text-xs font-semibold text-stone-700">Customization action label<input value={formData.customizationRequestLabel} onChange={(e) => setFormData({ ...formData, customizationRequestLabel: e.target.value })} className="min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-sm font-normal" /></label>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

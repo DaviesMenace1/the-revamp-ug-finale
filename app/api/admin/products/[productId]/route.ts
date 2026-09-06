@@ -25,6 +25,11 @@ type ProductUpdate = {
   subCategoryId?: string
 
   productType?: string
+  customizationEnabled?: boolean
+  customizationHeading?: string | null
+  customizationDescription?: string | null
+  customizationLeadTime?: string | null
+  customizationRequestLabel?: string | null
   description?: string | null
   longDescription?: string | null
   editorialHighlight?: string | null
@@ -410,6 +415,26 @@ export async function PATCH(
     if (body.productType !== undefined) {
       update.productType =
         cleanString(body.productType)
+    }
+
+    if (body.customizationEnabled !== undefined) {
+      update.customizationEnabled = Boolean(body.customizationEnabled)
+    }
+
+    if (body.customizationHeading !== undefined) {
+      update.customizationHeading = cleanString(body.customizationHeading)
+    }
+
+    if (body.customizationDescription !== undefined) {
+      update.customizationDescription = cleanString(body.customizationDescription)
+    }
+
+    if (body.customizationLeadTime !== undefined) {
+      update.customizationLeadTime = cleanString(body.customizationLeadTime)
+    }
+
+    if (body.customizationRequestLabel !== undefined) {
+      update.customizationRequestLabel = cleanString(body.customizationRequestLabel)
     }
 
     if (body.description !== undefined) {

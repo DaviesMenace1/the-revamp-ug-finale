@@ -493,6 +493,14 @@ export const products = pgTable(
       .notNull()
       .default("in_stock"),
 
+    customizationEnabled: boolean("customization_enabled")
+      .notNull()
+      .default(false),
+    customizationHeading: varchar("customization_heading", { length: 160 }),
+    customizationDescription: text("customization_description"),
+    customizationLeadTime: varchar("customization_lead_time", { length: 120 }),
+    customizationRequestLabel: varchar("customization_request_label", { length: 120 }),
+
     quantity: integer("quantity").notNull().default(0),
 
     leadTime: varchar("lead_time", { length: 150 }),

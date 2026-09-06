@@ -56,6 +56,12 @@ const productSchema = z.object({
     "available_on_request",
   ]).default("in_stock"),
 
+  customizationEnabled: z.boolean().default(false),
+  customizationHeading: z.string().max(160).optional().nullable(),
+  customizationDescription: z.string().optional().nullable(),
+  customizationLeadTime: z.string().max(120).optional().nullable(),
+  customizationRequestLabel: z.string().max(120).optional().nullable(),
+
   quantity: z.number().int().nonnegative().default(0),
   inStock: z.boolean().default(true),
 
@@ -289,6 +295,12 @@ export async function POST(
 
           availability:
             data.availability,
+
+          customizationEnabled: data.customizationEnabled,
+          customizationHeading: data.customizationHeading || null,
+          customizationDescription: data.customizationDescription || null,
+          customizationLeadTime: data.customizationLeadTime || null,
+          customizationRequestLabel: data.customizationRequestLabel || null,
 
           quantity:
             data.quantity,

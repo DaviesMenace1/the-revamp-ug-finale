@@ -123,7 +123,7 @@ export async function submitPesapalOrder(input: PesapalSubmitOrderInput) {
       callback_url: input.callbackUrl,
       cancellation_url: input.cancellationUrl,
       notification_id: config.ipnId,
-      redirect_mode: 'TOP_WINDOW',
+      redirect_mode: 'PARENT_WINDOW',
       billing_address: {
         email_address: input.billingAddress.emailAddress,
         phone_number: input.billingAddress.phoneNumber,

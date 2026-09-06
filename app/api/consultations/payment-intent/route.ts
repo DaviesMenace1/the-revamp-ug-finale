@@ -172,7 +172,7 @@ export async function POST(request: Request) {
           lastName: text(user.lastName, 50) || 'Client',
           line1: 'Consultation booking',
           city: 'Kampala',
-          state: 'Central',
+          state: 'UG',
         },
       })
     } catch (error) {

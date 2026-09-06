@@ -10,6 +10,7 @@ import ConsultationNotificationPrompt from '@/components/notifications/consultat
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import PesapalEmbeddedCheckout from '@/components/payments/pesapal-embedded-checkout'
 
 const MODE_META: Record<string, { label: string; icon: LucideIcon; detail: string }> = {
   virtual: { label: 'Virtual consultation', icon: Video, detail: 'A private video call with the studio.' },
@@ -102,6 +103,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isApplyingPromo, setIsApplyingPromo] = useState(false)
   const [paymentState, setPaymentState] = useState<PaymentState>(null)
+  const [embeddedPaymentUrl, setEmbeddedPaymentUrl] = useState<string | null>(null)
   const [authorizationChallenge, setAuthorizationChallenge] = useState<AuthorizationChallenge | null>(null)
   const [authorizationCode, setAuthorizationCode] = useState('')
   const [error, setError] = useState('')
@@ -216,7 +218,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
         return
       }
       if (typeof payload.paymentUrl === 'string' && payload.paymentUrl) {
-        window.location.assign(payload.paymentUrl)
+        setEmbeddedPaymentUrl(payload.paymentUrl)
         return
       }
       if (payload.status === 'paid' || payload.status === 'paid_review') {
@@ -276,7 +278,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
         return
       }
       if (typeof payload.paymentUrl === 'string' && payload.paymentUrl) {
-        window.location.assign(payload.paymentUrl)
+        setEmbeddedPaymentUrl(payload.paymentUrl)
         return
       }
       if (payload.status === 'paid' || payload.status === 'paid_review') {
@@ -328,6 +330,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
   return (
     <>
       <SiteHeader />
+      {embeddedPaymentUrl && <PesapalEmbeddedCheckout paymentUrl={embeddedPaymentUrl} title="Complete your consultation booking" onClose={() => { setEmbeddedPaymentUrl(null); setPaymentState({ status: 'pending', message: 'Your consultation time is held while you complete payment. Reopen the secure payment panel when you are ready.' }) }} />}
       <main className="min-h-screen bg-background">
         <section className="relative overflow-hidden bg-obsidian px-5 pb-16 pt-36 text-ivory sm:px-8 md:pb-24 md:pt-48 lg:px-16">
           <div className="absolute right-[-12%] top-[-30%] size-[40rem] rounded-full border border-gold/20" aria-hidden="true" />

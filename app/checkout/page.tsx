@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { useCart } from '@/lib/context/cart-context'
 import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
 import PickupStationMap from '@/components/delivery/pickup-station-map'
+import PesapalEmbeddedCheckout from '@/components/payments/pesapal-embedded-checkout'
 
 function getProductImage(item: any): string {
   const image = item?.selectedColor?.image || item?.selectedFinish?.image || item?.selectedVariant?.image || item?.image
@@ -82,6 +83,7 @@ export default function CheckoutPage() {
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [paymentInstruction, setPaymentInstruction] = useState<string | null>(null)
+  const [embeddedPaymentUrl, setEmbeddedPaymentUrl] = useState<string | null>(null)
   const [authorizationChallenge, setAuthorizationChallenge] = useState<AuthorizationChallenge | null>(null)
   const [authorizationCode, setAuthorizationCode] = useState('')
   const [paymentMode, setPaymentMode] = useState<'pay_now' | 'pay_on_delivery'>('pay_now')
@@ -331,7 +333,7 @@ export default function CheckoutPage() {
         return
       }
       if (typeof data.paymentUrl === 'string' && data.paymentUrl) {
-        window.location.assign(data.paymentUrl)
+        setEmbeddedPaymentUrl(data.paymentUrl)
         return
       }
       if (typeof data.paymentInstruction === 'string' && data.paymentInstruction) {
@@ -380,6 +382,7 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
+      {embeddedPaymentUrl && <PesapalEmbeddedCheckout paymentUrl={embeddedPaymentUrl} title="Complete your order" onClose={() => { setEmbeddedPaymentUrl(null); setPaymentInstruction('Your order is ready for payment. Reopen the secure payment panel when you are ready to continue.') }} />}
       <main className="bg-canvas px-4 pb-24 pt-28 sm:px-6 md:px-10 md:pt-36">
         <div className="mx-auto max-w-7xl">
           <Link href="/cart" className="inline-flex min-h-11 items-center text-xs uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="mr-2 size-4" aria-hidden="true" /> Back to selection</Link>

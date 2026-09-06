@@ -340,7 +340,7 @@ export async function POST(request: Request) {
           lastName: name.last,
           line1: String(shippingAddress.address || 'Address provided at checkout'),
           city: String(shippingAddress.city || 'Kampala'),
-          state: String(shippingAddress.region || shippingAddress.city || 'Central'),
+          state: String(shippingAddress.region || shippingAddress.city || 'UG').slice(0, 3),
         },
       })
     } catch (error) {

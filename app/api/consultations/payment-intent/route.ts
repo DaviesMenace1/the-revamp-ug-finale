@@ -16,7 +16,7 @@ import {
   type ConsultationPriceSummary,
 } from '@/lib/consultation-commerce'
 
-const VALID_MODES = new Set(['virtual', 'in_person', 'showroom'])
+const VALID_MODES = new Set(['virtual', 'on_site', 'in_person', 'showroom'])
 
 type BookingBody = {
   slotId?: unknown
@@ -25,6 +25,7 @@ type BookingBody = {
   serviceType?: unknown
   budget?: unknown
   mode?: unknown
+  siteAddress?: unknown
   promoCode?: unknown
   idempotencyKey?: unknown
   paymentMethod?: unknown
@@ -97,11 +98,13 @@ export async function POST(request: Request) {
     const serviceType = text(body.serviceType, 100)
     const budget = text(body.budget, 100)
     const mode = text(body.mode, 20)
+    const siteAddress = text(body.siteAddress, 500)
     const promoCode = normalizePromotionCode(body.promoCode)
     const idempotencyKey = text(body.idempotencyKey, 120) || randomUUID()
     if (!slotId || !title) return NextResponse.json({ error: 'Choose a time and tell us what you would like to discuss.' }, { status: 400 })
     if (!/^[0-9a-f-]{36}$/i.test(slotId)) return NextResponse.json({ error: 'The selected time is invalid.' }, { status: 400 })
     if (!VALID_MODES.has(mode)) return NextResponse.json({ error: 'Choose a valid consultation format.' }, { status: 400 })
+    if ((mode === 'on_site' || mode === 'in_person') && !siteAddress) return NextResponse.json({ error: 'Add the address where the on-site consultation will take place.' }, { status: 400 })
     if (!/^[0-9a-f-]{36}$/i.test(idempotencyKey)) return NextResponse.json({ error: 'The payment request could not be identified. Please try again.' }, { status: 400 })
 
     const pricing = await getConsultationPricing()
@@ -144,7 +147,7 @@ export async function POST(request: Request) {
         promotionId: promotion?.id || null,
         promotionCode: promotion?.code || null,
         expiresAt,
-        metadata: { title, description, serviceType, budget, mode, slotStartTime: slot.startTime.toISOString(), durationMinutes: slot.durationMinutes, taxInclusive: summary.taxInclusive, paymentMethod: 'pesapal_hosted' },
+        metadata: { title, description, serviceType, budget, mode, siteAddress, slotStartTime: slot.startTime.toISOString(), durationMinutes: slot.durationMinutes, taxInclusive: summary.taxInclusive, paymentMethod: 'pesapal_hosted' },
       }).returning()
       if (!intent) return null
       if (promotion) await transaction.insert(consultationPromotionRedemptions).values({ promotionId: promotion.id, paymentIntentId: intent.id, userId: user.id, code: promotion.code, discountAmount: calculatePromotionDiscount(promotion, summary.baseAmount).toFixed(2), status: 'reserved' })

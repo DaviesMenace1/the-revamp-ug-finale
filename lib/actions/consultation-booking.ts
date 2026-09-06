@@ -9,7 +9,7 @@ import { getCurrentUserWithRole } from '@/lib/auth/server'
 import { notifyUser } from '@/lib/notifications/service'
 import { createGoogleMeetEvent, GoogleCalendarApiError, GoogleCalendarConfigError } from '@/lib/google-calendar'
 
-const VALID_MODES = new Set(['virtual', 'in_person', 'showroom'])
+const VALID_MODES = new Set(['virtual', 'on_site', 'in_person', 'showroom'])
 const BUDGET_LABELS: Record<string, string> = {
   under_10m: 'Under UGX 10 million',
   '10m_30m': 'UGX 10–30 million',
@@ -50,11 +50,12 @@ export async function createSlots(data: {
 
     if (dates.length === 0) return { success: false, error: 'Pick at least one future time.' }
     if (!Number.isInteger(durationMinutes) || durationMinutes < 15 || durationMinutes > 240) return { success: false, error: 'Duration must be between 15 and 240 minutes.' }
-    if (!VALID_MODES.has(data.mode)) return { success: false, error: 'Choose a valid meeting format.' }
+    const mode = data.mode === 'in_person' ? 'on_site' : data.mode
+    if (!VALID_MODES.has(mode)) return { success: false, error: 'Choose a valid consultation format.' }
     const location = data.location?.trim().slice(0, 255) || null
-    if (data.mode !== 'virtual' && !location) return { success: false, error: 'Enter the venue location for an in-person or showroom slot.' }
+    if (mode === 'showroom' && !location) return { success: false, error: 'Enter the showroom location.' }
 
-    const meetingEvents = data.mode === 'virtual'
+    const meetingEvents = mode === 'virtual'
       ? await Promise.all(dates.map((startTime) => createGoogleMeetEvent({
           summary: 'The Revamp UG consultation',
           description: 'Consultation availability created by The Revamp UG.',
@@ -65,8 +66,8 @@ export async function createSlots(data: {
     const rows = dates.map((startTime, index) => ({
       startTime,
       durationMinutes,
-      mode: data.mode,
-      location,
+      mode,
+      location: mode === 'showroom' ? location : null,
       meetingProvider: meetingEvents[index] ? 'google_meet' : null,
       meetingUrl: meetingEvents[index]?.meetUrl || null,
       calendarEventId: meetingEvents[index]?.calendarEventId || null,

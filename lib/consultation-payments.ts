@@ -21,6 +21,7 @@ type IntentMetadata = {
   serviceType?: unknown
   budget?: unknown
   mode?: unknown
+  siteAddress?: unknown
 }
 
 function text(value: unknown, fallback: string, maxLength: number) {
@@ -121,7 +122,7 @@ export async function settleConsultationPayment(input: {
       mode: slot.mode,
       durationMinutes: slot.durationMinutes,
       meetingLink: slot.meetingUrl,
-      location: slot.location,
+      location: ['on_site', 'in_person'].includes(String(metadata.mode)) ? text(metadata.siteAddress, '', 500) || null : slot.location,
       status: 'scheduled',
       paymentStatus: 'paid',
       paymentAmount: intent.amount,

@@ -39,7 +39,7 @@ const PHASE_LABELS: Record<string, string> = {
   consultation: 'Briefing & discovery',
   concept: 'Concept direction',
   design: 'Design development',
-  visualization: '3D visualization',
+  visualization: '3D presentation',
   approval: 'Client approval',
   procurement: 'Procurement',
   installation: 'Installation',
@@ -139,7 +139,7 @@ function AssetCard({ asset, onUpdate }: { asset: Asset; onUpdate: (asset: Asset)
     })
   }
 
-  const isModel = ['3d_model', 'glb', 'gltf'].includes(asset.assetType)
+  const isExternal3d = asset.assetType === 'external_3d'
   const isImage = ['image', '3d_render', 'floor_plan', 'elevation', 'section', 'moodboard'].includes(asset.assetType)
 
   return (
@@ -149,10 +149,11 @@ function AssetCard({ asset, onUpdate }: { asset: Asset; onUpdate: (asset: Asset)
           <Image src={asset.thumbnailUrl || asset.fileUrl} alt={asset.title} width={960} height={540} unoptimized className="h-48 w-full object-cover" />
         </a>
       )}
-      {isModel && asset.viewerUrl && (
-        <Link href={asset.viewerUrl} className="flex h-48 items-center justify-center bg-[#e8e6df] text-sm font-medium text-foreground hover:bg-[#dedbd1]">
-          <span className="rounded border border-foreground/20 bg-background/80 px-4 py-2">Open 3D Viewer</span>
-        </Link>
+      {isExternal3d && asset.viewerUrl && (
+        <a href={asset.viewerUrl} target="_blank" rel="noreferrer" className="flex h-48 items-center justify-center gap-2 bg-foreground text-sm font-medium text-background hover:bg-foreground/90">
+          <ExternalLink className="size-4" aria-hidden="true" />
+          <span>Open hosted 3D experience</span>
+        </a>
       )}
 
       <div className="p-4">
@@ -241,10 +242,6 @@ export default function ProjectDetailClient({ project }: { project: ProjectDetai
     }
     if (file.size <= 0 || file.size > 100 * 1024 * 1024) {
       setUploadError('Files must be between 1 byte and 100 MB.')
-      return
-    }
-    if (assetType === 'gltf' && !file.name.toLowerCase().endsWith('.gltf')) {
-      setUploadError('Choose a .gltf file for this model type, or switch to GLB for the most reliable single-file viewer experience.')
       return
     }
     setUploadError(null)
@@ -404,7 +401,7 @@ export default function ProjectDetailClient({ project }: { project: ProjectDetai
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="font-serif text-2xl font-light text-foreground">Shared files & visual references</h2>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">Share images, moodboards, plans, renders, or 3D files with the studio. Large files upload directly to secure storage.</p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">Share images, moodboards, plans, renders, or documents with the studio. Hosted 3D experiences are shared by the studio as secure external links.</p>
                 </div>
                 <Upload className="mt-1 size-5 shrink-0 text-primary" aria-hidden="true" />
               </div>
@@ -414,9 +411,9 @@ export default function ProjectDetailClient({ project }: { project: ProjectDetai
                 <input id={`client-asset-title-${project.id}`} value={assetTitle} onChange={(event) => setAssetTitle(event.target.value)} placeholder="Title, e.g. Living room inspiration" className="min-h-11 rounded border border-input bg-background px-3 text-sm text-foreground outline-none ring-primary/30 focus:ring-2" />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <select value={assetType} onChange={(event) => setAssetType(event.target.value)} className="min-h-11 rounded border border-input bg-background px-3 text-sm text-foreground">
-                    <option value="image">Image</option><option value="moodboard">Moodboard</option><option value="3d_render">3D render</option><option value="glb">3D model (.glb)</option><option value="gltf">3D model (.gltf)</option><option value="floor_plan">Floor plan</option><option value="pdf">PDF</option>
+                    <option value="image">Image</option><option value="moodboard">Moodboard</option><option value="3d_render">3D render</option><option value="floor_plan">Floor plan</option><option value="pdf">PDF</option>
                   </select>
-                  <input ref={assetFileRef} type="file" accept={['glb', 'gltf'].includes(assetType) ? '.glb,.gltf,model/gltf-binary,model/gltf+json' : undefined} className="min-h-11 w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground file:mr-3 file:border-0 file:bg-muted file:px-2 file:py-1" />
+                  <input ref={assetFileRef} type="file" className="min-h-11 w-full rounded border border-input bg-background px-3 py-2 text-sm text-foreground file:mr-3 file:border-0 file:bg-muted file:px-2 file:py-1" />
                 </div>
                 {uploadError && <p className="text-sm text-destructive" role="alert">{uploadError}</p>}
                 <Button type="button" onClick={handleShareAsset} disabled={uploading} className="min-h-11 w-full gap-2 rounded-none sm:w-fit"><Upload className="size-4" aria-hidden="true" />{uploading ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" /> Sharing…</> : 'Share with studio'}</Button>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { projectAssets, projectActivity, projectVisualizations, projects } from '@/lib/db/schema'
+import { projectAssets, projectActivity, projects } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
 import { uploadToR2, deleteFromR2, keyFromR2Url, isR2Configured } from '@/lib/storage/r2'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
@@ -8,18 +8,12 @@ import { getCurrentUserWithRole } from '@/lib/auth/server'
 export const dynamic = 'force-dynamic'
 
 const MAX_ASSET_BYTES = 100 * 1024 * 1024
-const ALLOWED_ASSET_TYPES = new Set(['image', '3d_render', '3d_model', 'glb', 'gltf', 'floor_plan', 'elevation', 'section', 'cad', 'pdf', 'video', '360_view', 'moodboard', 'presentation'])
-const MODEL_EXTENSIONS = new Set(['.glb', '.gltf'])
+const ALLOWED_ASSET_TYPES = new Set(['image', '3d_render', 'floor_plan', 'elevation', 'section', 'cad', 'pdf', 'video', '360_view', 'moodboard', 'presentation'])
 const STAFF_ROLES = ['admin', 'designer', 'architect', 'interior_designer', 'trade_member'] as const
 
 async function requireStaff() {
   const authorization = await getCurrentUserWithRole([...STAFF_ROLES])
   return authorization.authorized ? authorization.user : null
-}
-
-function extensionOf(filename: string) {
-  const index = filename.lastIndexOf('.')
-  return index >= 0 ? filename.slice(index).toLowerCase() : ''
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
@@ -56,17 +50,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (!file || !title) return NextResponse.json({ success: false, error: 'File and title are required.' }, { status: 400 })
     if (file.size <= 0 || file.size > MAX_ASSET_BYTES) return NextResponse.json({ success: false, error: 'Assets must be between 1 byte and 100 MB.' }, { status: 400 })
     if (!ALLOWED_ASSET_TYPES.has(assetType)) return NextResponse.json({ success: false, error: 'Unsupported asset type.' }, { status: 400 })
-    if (assetType === '3d_model' || assetType === 'glb' || assetType === 'gltf') {
-      if (!MODEL_EXTENSIONS.has(extensionOf(file.name))) return NextResponse.json({ success: false, error: '3D visualization uploads must be .glb or .gltf files.' }, { status: 400 })
-    }
     if (!['client', 'internal'].includes(visibility)) return NextResponse.json({ success: false, error: 'Invalid visibility.' }, { status: 400 })
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const uploadResult = await uploadToR2(buffer, {
       projectId,
-      category: assetType === '3d_model' || assetType === 'glb' || assetType === 'gltf' ? '3d/models' : assetType,
+      category: assetType,
       filename: file.name,
-      contentType: file.type || (extensionOf(file.name) === '.gltf' ? 'model/gltf+json' : 'model/gltf-binary'),
+      contentType: file.type || 'application/octet-stream',
     })
 
     let version = 1
@@ -95,32 +86,11 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       uploadedBy: admin?.id || null,
     }).returning()
 
-    const isVisualization = assetType === '3d_model' || assetType === 'glb' || assetType === 'gltf'
-    if (isVisualization) {
-      try {
-        await db.insert(projectVisualizations).values({
-          projectId,
-          name: title,
-          description: description || null,
-          modelType: extensionOf(file.name) === '.gltf' ? 'gltf' : 'glb',
-          storageProvider: 'r2',
-          storageKey: uploadResult.key,
-          fileSize: uploadResult.size,
-          version,
-          status: 'ready',
-          visibility,
-          createdBy: admin?.id || null,
-        })
-      } catch (error) {
-        console.error('Failed to save visualization metadata (asset remains available):', error)
-      }
-    }
-
     await db.insert(projectActivity).values({
       projectId,
       actorUserId: admin?.id || null,
       actorType: 'admin',
-      action: isVisualization ? 'visualization_uploaded' : 'asset_uploaded',
+      action: 'asset_uploaded',
       summary: `${title} (v${version}) was uploaded`,
       relatedAssetId: asset.id,
     })
@@ -149,9 +119,6 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
       }
     }
     await db.delete(projectAssets).where(eq(projectAssets.id, assetId))
-    if (asset.storageKey) {
-      await db.delete(projectVisualizations).where(eq(projectVisualizations.storageKey, asset.storageKey)).catch((error) => console.error('Failed to remove visualization metadata (continuing):', error))
-    }
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Failed to delete project asset:', error)

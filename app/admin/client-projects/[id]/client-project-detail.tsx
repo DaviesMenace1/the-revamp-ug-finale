@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, Upload, Trash2, Loader2, FileText, Clock, Plus, CheckSquare, Square } from '@/components/ui/luxury-icons'
+import { ArrowLeft, Upload, Trash2, Loader2, FileText, Clock, Plus, CheckSquare, Square, ExternalLink } from '@/components/ui/luxury-icons'
 import { updateClientProject } from '@/lib/actions/client-projects'
 import ProjectNotesPanel from '@/components/projects/project-notes-panel'
 import { createTask, updateTaskStatus, deleteTask } from '@/lib/actions/tasks'
@@ -26,7 +26,7 @@ const PHASE_LABELS: Record<string, string> = {
   consultation: 'Briefing & discovery',
   concept: 'Concept direction',
   design: 'Design development',
-  visualization: '3D visualization',
+  visualization: '3D presentation',
   approval: 'Client approval',
   procurement: 'Procurement',
   installation: 'Installation',
@@ -34,17 +34,14 @@ const PHASE_LABELS: Record<string, string> = {
 }
 
 const ASSET_TYPES = [
-    '3d_render',
-  '3d_model',
-  'glb',
-  'gltf',
+  'image',
+  '3d_render',
   'floor_plan',
 
   'elevation',
   'section',
   'cad',
   'pdf',
-  'image',
   'video',
   '360_view',
   'moodboard',
@@ -154,7 +151,8 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
   const [uploadingDoc, setUploadingDoc] = useState(false)
   const [error, setError] = useState('')
 
-  const [assetForm, setAssetForm] = useState({ title: '', assetType: '3d_render', visibility: 'client' })
+  const [assetForm, setAssetForm] = useState({ title: '', assetType: 'image', visibility: 'client' })
+  const [visualizationForm, setVisualizationForm] = useState({ title: '', url: '', description: '', visibility: 'client' })
   const assetFileRef = useRef<HTMLInputElement>(null)
 
   const [docForm, setDocForm] = useState({ name: '', category: 'general', visibility: 'client', signatureStatus: 'n/a' })
@@ -236,10 +234,34 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
       if (!completeResponse.ok || !data.success || !data.asset) throw new Error(data.error || 'The asset was uploaded but could not be added to the project.')
 
       setProject((p) => ({ ...p, assets: [data.asset as Asset, ...p.assets] }))
-      setAssetForm({ title: '', assetType: '3d_render', visibility: 'client' })
+      setAssetForm({ title: '', assetType: 'image', visibility: 'client' })
       if (assetFileRef.current) assetFileRef.current.value = ''
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload asset.')
+    } finally {
+      setUploadingAsset(false)
+    }
+  }
+
+  async function handleAddVisualizationLink() {
+    if (!visualizationForm.title.trim() || !visualizationForm.url.trim()) {
+      setError('A title and hosted 3D link are required.')
+      return
+    }
+    setError('')
+    setUploadingAsset(true)
+    try {
+      const response = await fetch(`/api/admin/projects/${project.id}/assets/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'link', title: visualizationForm.title, externalUrl: visualizationForm.url, description: visualizationForm.description, visibility: visualizationForm.visibility }),
+      })
+      const data = await parseApiResponse<{ success?: boolean; asset?: Asset; error?: string }>(response, 'The hosted 3D link could not be added.')
+      if (!response.ok || !data.success || !data.asset) throw new Error(data.error || 'The hosted 3D link could not be added.')
+      setProject((p) => ({ ...p, assets: [data.asset as Asset, ...p.assets] }))
+      setVisualizationForm({ title: '', url: '', description: '', visibility: 'client' })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'The hosted 3D link could not be added.')
     } finally {
       setUploadingAsset(false)
     }
@@ -459,22 +481,12 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
         <div className="lg:col-span-2 space-y-6">
           {/* Assets */}
           <Card className="p-6">
-            <h2 className="font-serif text-xl font-light text-foreground mb-4">3D Plans & Assets</h2>
+            <h2 className="font-serif text-xl font-light text-foreground mb-4">Project references & assets</h2>
 
             <div className="grid gap-4 sm:grid-cols-2 mb-6">
               {project.assets.map((asset) => (
                 <div key={asset.id} className="rounded-lg border border-border/20 overflow-hidden">
-                  <Image
-                    src={asset.thumbnailUrl || asset.fileUrl}
-                    alt={asset.title}
-                    width={640}
-                    height={360}
-                    unoptimized
-                    className="h-32 w-full object-cover bg-muted"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
+                  {asset.assetType === 'external_3d' ? <a href={asset.fileUrl} target="_blank" rel="noreferrer" className="flex h-32 items-center justify-center gap-2 bg-foreground text-sm font-medium text-background hover:bg-foreground/90"><ExternalLink className="size-4" aria-hidden="true" />Open hosted 3D experience</a> : <Image src={asset.thumbnailUrl || asset.fileUrl} alt={asset.title} width={640} height={360} unoptimized className="h-32 w-full object-cover bg-muted" onError={(e) => { e.currentTarget.style.display = 'none' }} />}
                   <div className="p-3">
                     <div className="flex items-start justify-between">
                       <p className="text-sm font-medium text-foreground">
@@ -500,7 +512,7 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
             </div>
 
             <div className="rounded-lg border border-dashed border-border/40 p-4 space-y-3">
-              <p className="text-sm font-medium text-foreground">Upload asset</p>
+              <p className="text-sm font-medium text-foreground">Upload image, plan, render, or document</p>
               <div className="grid gap-3 sm:grid-cols-3">
                 <Input
                   placeholder="Title (e.g. Living Room V3)"
@@ -527,13 +539,20 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
                   <option value="internal">Internal only</option>
                 </select>
               </div>
-                            <input ref={assetFileRef} type="file" accept={['3d_model', 'glb', 'gltf'].includes(assetForm.assetType) ? '.glb,.gltf,model/gltf-binary,model/gltf+json' : undefined} className="text-sm" />
-
-              <p className="text-xs leading-5 text-muted-foreground">3D models must be GLB or GLTF. Maximum file size: 100 MB.</p>
+              <input ref={assetFileRef} type="file" className="text-sm" />
+              <p className="text-xs leading-5 text-muted-foreground">Images, plans, renders, and documents are stored securely. Maximum file size: 100 MB.</p>
               <Button type="button" size="sm" disabled={uploadingAsset} onClick={handleUploadAsset} className="rounded-none">
                 {uploadingAsset ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Upload className="h-3.5 w-3.5 mr-2" />}
                 Upload Asset
               </Button>
+            </div>
+
+            <div className="mt-4 space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-4">
+              <div><p className="text-sm font-medium text-foreground">Add hosted 3D experience</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Paste the link from the service hosting the project’s 3D experience. Clients will open it in a new tab.</p></div>
+              <Input placeholder="Title, e.g. Living room walkthrough" value={visualizationForm.title} onChange={(e) => setVisualizationForm((f) => ({ ...f, title: e.target.value }))} />
+              <Input type="url" placeholder="https://host.example.com/project-room" value={visualizationForm.url} onChange={(e) => setVisualizationForm((f) => ({ ...f, url: e.target.value }))} />
+              <Input placeholder="Short description (optional)" value={visualizationForm.description} onChange={(e) => setVisualizationForm((f) => ({ ...f, description: e.target.value }))} />
+              <div className="flex flex-col gap-3 sm:flex-row"><select value={visualizationForm.visibility} onChange={(e) => setVisualizationForm((f) => ({ ...f, visibility: e.target.value }))} className="min-h-10 rounded border border-muted bg-transparent px-3 py-2 text-sm"><option value="client">Visible to client</option><option value="internal">Internal only</option></select><Button type="button" size="sm" disabled={uploadingAsset} onClick={handleAddVisualizationLink} className="rounded-none"><ExternalLink className="mr-2 h-3.5 w-3.5" />Add 3D link</Button></div>
             </div>
           </Card>
 

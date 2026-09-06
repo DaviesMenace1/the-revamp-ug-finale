@@ -142,7 +142,7 @@ export default async function ProjectDetailPage({
       assetType: a.assetType,
       category: a.category,
               fileUrl: a.fileUrl,
-        viewerUrl: ['3d_model', 'glb', 'gltf'].includes(a.assetType) ? `/client/projects/${canonicalSlug}/visualization` : null,
+        viewerUrl: a.assetType === 'external_3d' ? a.fileUrl : null,
         thumbnailUrl: a.thumbnailUrl,
 
       version: a.version,

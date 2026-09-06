@@ -2,15 +2,14 @@ import { NextResponse } from 'next/server'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
-import { projectActivity, projectAssets, projectMembers, projectVisualizations, projects } from '@/lib/db/schema'
+import { projectActivity, projectAssets, projectMembers, projects } from '@/lib/db/schema'
 import { createProjectUploadUrl, headFromR2, isR2Configured, publicR2Url } from '@/lib/storage/r2'
 import { isUuid } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
 const MAX_ASSET_BYTES = 100 * 1024 * 1024
-const ALLOWED_ASSET_TYPES = new Set(['image', '3d_render', '3d_model', 'glb', 'gltf', 'floor_plan', 'elevation', 'section', 'cad', 'pdf', 'video', '360_view', 'moodboard', 'presentation'])
-const MODEL_EXTENSIONS = new Set(['.glb', '.gltf'])
+const ALLOWED_ASSET_TYPES = new Set(['image', '3d_render', 'floor_plan', 'elevation', 'section', 'cad', 'pdf', 'video', '360_view', 'moodboard', 'presentation'])
 const STAFF_ROLES = ['admin', 'designer', 'architect', 'interior_designer', 'trade_member'] as const
 const CLIENT_ROLES = ['customer', ...STAFF_ROLES] as const
 
@@ -28,14 +27,10 @@ function text(value: unknown, maxLength: number) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
 }
 
-function extensionOf(filename: string) {
-  const index = filename.lastIndexOf('.')
-  return index >= 0 ? filename.slice(index).toLowerCase() : ''
-}
-
 function contentTypeFor(filename: string, contentType: string) {
   if (contentType) return contentType.slice(0, 160)
-  return extensionOf(filename) === '.gltf' ? 'model/gltf+json' : extensionOf(filename) === '.glb' ? 'model/gltf-binary' : 'application/octet-stream'
+  const extension = filename.includes('.') ? filename.slice(filename.lastIndexOf('.')).toLowerCase() : ''
+  return extension === '.pdf' ? 'application/pdf' : 'application/octet-stream'
 }
 
 function responseError(message: string, status: number) {
@@ -86,11 +81,8 @@ export async function POST(request: Request, context: { params: Promise<{ slug: 
     const contentType = contentTypeFor(filename, text(payload.contentType, 160))
     if (!filename || !assetType) return responseError('Filename and asset type are required.', 400)
     if (!ALLOWED_ASSET_TYPES.has(assetType)) return responseError('Unsupported asset type.', 400)
-    if (['3d_model', 'glb', 'gltf'].includes(assetType) && !MODEL_EXTENSIONS.has(extensionOf(filename))) {
-      return responseError('3D visualization uploads must be .glb or .gltf files.', 400)
-    }
     try {
-      const category = ['3d_model', 'glb', 'gltf'].includes(assetType) ? '3d/models' : assetType
+      const category = assetType
       const upload = await createProjectUploadUrl({ projectId: project.id, category, filename, contentType })
       return NextResponse.json({ success: true, uploadUrl: upload.url, storageKey: upload.key, expiresAt: upload.expiresAt, maxBytes: MAX_ASSET_BYTES, contentType })
     } catch (error) {
@@ -109,9 +101,6 @@ export async function POST(request: Request, context: { params: Promise<{ slug: 
   if (!title || !filename || !storageKey) return responseError('Title, filename, and upload reference are required.', 400)
   if (!ALLOWED_ASSET_TYPES.has(assetType)) return responseError('Unsupported asset type.', 400)
   if (!storageKey.startsWith(`projects/${project.id}/`)) return responseError('Invalid project upload reference.', 400)
-  if (['3d_model', 'glb', 'gltf'].includes(assetType) && !MODEL_EXTENSIONS.has(extensionOf(filename))) {
-    return responseError('3D visualization uploads must be .glb or .gltf files.', 400)
-  }
 
   try {
     const object = await headFromR2(storageKey)
@@ -134,27 +123,11 @@ export async function POST(request: Request, context: { params: Promise<{ slug: 
       uploadedBy: user.id,
     }).returning()
 
-    const isVisualization = ['3d_model', 'glb', 'gltf'].includes(assetType)
-    if (isVisualization) {
-      await db.insert(projectVisualizations).values({
-        projectId: project.id,
-        name: title,
-        description,
-        modelType: extensionOf(filename) === '.gltf' ? 'gltf' : 'glb',
-        storageProvider: 'r2',
-        storageKey,
-        fileSize,
-        status: 'ready',
-        visibility,
-        createdBy: user.id,
-      }).catch((error) => console.error('Failed to save client visualization metadata:', error))
-    }
-
     await db.insert(projectActivity).values({
       projectId: project.id,
       actorUserId: user.id,
       actorType,
-      action: isVisualization ? 'visualization_uploaded' : 'asset_uploaded',
+      action: 'asset_uploaded',
       summary: `${title} was shared by ${actorType === 'admin' ? 'the studio' : 'the client'}`,
       relatedAssetId: asset.id,
     })

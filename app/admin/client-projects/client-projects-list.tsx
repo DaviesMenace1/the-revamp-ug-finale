@@ -32,7 +32,7 @@ const PHASE_LABELS: Record<string, string> = {
 
   concept: 'Concept',
   design: 'Design',
-  visualization: '3D Visualization',
+  visualization: '3D Presentation',
   approval: 'Client Approval',
   procurement: 'Procurement',
   installation: 'Installation',

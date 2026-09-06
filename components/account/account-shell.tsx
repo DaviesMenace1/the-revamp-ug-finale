@@ -24,9 +24,9 @@ export function AccountShell({ children, cartCount = 0 }: { children: React.Reac
           <Link href="/account" className="flex items-center gap-3" aria-label="The Revamp UG account home">
             <span className="font-serif text-lg tracking-[0.22em] sm:text-xl">THE REVAMP UG</span>
           </Link>
-          <p className="hidden font-serif text-sm text-muted-foreground sm:block">The architecture of refined living</p>
+          <p className="hidden font-serif text-sm text-muted-foreground lg:block">The architecture of refined living</p>
           <div className="flex items-center gap-1 sm:gap-2">
-            <Link href="/cart" className="relative rounded-full p-2 text-ivory/80 transition hover:text-gold-light" aria-label="Open cart">
+            <Link href="/cart" className="relative rounded-full p-2 text-foreground/70 transition hover:text-primary" aria-label="Open cart">
               <LuxuryBagIcon size={20} />
               {cartCount > 0 && <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground">{cartCount}</span>}
             </Link>

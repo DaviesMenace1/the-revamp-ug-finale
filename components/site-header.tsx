@@ -39,11 +39,12 @@ export function SiteHeader() {
   }
 
   return <>
+    <a href="#site-main-content" className="sr-only fixed left-4 top-4 z-[70] rounded bg-obsidian px-4 py-3 text-xs font-semibold text-canvas focus:not-sr-only">Skip to content</a>
     <header className="fixed inset-x-0 top-0 z-50 border-b border-obsidian/10 bg-canvas/95 text-obsidian shadow-[0_1px_0_rgba(28,28,28,0.04)] backdrop-blur-xl">
       <div className="mx-auto flex min-h-[4.75rem] max-w-7xl items-center justify-between gap-5 px-5 sm:px-8 lg:px-12">
         <Link href="/" className="shrink-0 font-serif text-[1.45rem] font-medium tracking-tighter sm:text-2xl">The Revamp <span className="font-normal italic text-gilded">UG</span></Link>
         <nav className="hidden items-center gap-6 text-[10px] font-semibold uppercase tracking-[0.16em] lg:flex xl:gap-8" aria-label="Main navigation">
-          {nav.map((item) => <Link key={item.href} href={item.href} className={cn('whitespace-nowrap transition-colors hover:text-gilded', active(item.href) && 'text-gilded')}>{item.label}</Link>)}
+          {nav.map((item) => <Link key={item.href} href={item.href} aria-current={active(item.href) ? 'page' : undefined} className={cn('whitespace-nowrap transition-colors hover:text-gilded', active(item.href) && 'text-gilded')}>{item.label}</Link>)}
           <Link href="/book-consultation" className="inline-flex min-h-10 items-center gap-2 rounded-full bg-obsidian px-4 text-canvas transition-colors hover:bg-gilded hover:text-obsidian"><MessageCircle className="size-4" aria-hidden="true" />Book a consultation</Link>
           <button type="button" aria-label="Open search" onClick={() => setSearchOpen(true)} className="p-2 text-obsidian/65 hover:text-gilded"><Search className="size-4" /></button>
           <NotificationBell className="text-obsidian/65 hover:text-gilded" />
@@ -54,7 +55,7 @@ export function SiteHeader() {
       </div>
       {open && <div className="border-t border-obsidian/10 bg-canvas px-5 pb-7 pt-5 sm:px-8 lg:px-12"><nav className="mx-auto flex max-w-7xl flex-col gap-1" aria-label="Mobile navigation"><Link href="/" onClick={close} className="border-b border-border py-3 text-[11px] font-semibold uppercase tracking-[0.2em]">Home</Link>{nav.map((item) => <Link key={item.href} href={item.href} onClick={close} className={cn('border-b border-border py-3 text-[11px] font-semibold uppercase tracking-[0.2em]', active(item.href) ? 'text-gilded' : 'text-obsidian')}>{item.label}</Link>)}<div className="mt-4 flex flex-wrap gap-3"><Link href="/book-consultation" onClick={close} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-obsidian px-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-canvas">Book a consultation <MessageCircle className="size-4" /></Link><Link href="/contact" onClick={close} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-obsidian/20 px-5 text-[10px] font-semibold uppercase tracking-[0.2em]">General inquiry</Link><button type="button" onClick={account} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-obsidian/20 px-5 text-[10px] font-semibold uppercase tracking-[0.2em]">Account <User className="size-4" /></button></div></nav></div>}
     </header>
-    <div aria-hidden="true" className="h-[4.75rem] sm:h-20" />
+    <div id="site-main-content" tabIndex={-1} className="h-[4.75rem] outline-none sm:h-20" />
     <SearchDrawer open={searchOpen} onClose={() => setSearchOpen(false)} />
   </>
 }

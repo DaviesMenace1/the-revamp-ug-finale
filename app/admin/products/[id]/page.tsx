@@ -93,7 +93,7 @@ type ProductImage = {
 type ProductVariant = {
   id: string
   productId: string
-  type: "COLOR" | "FABRIC" | "MATERIAL" | "SIZE"
+  type: "COLOR" | "FABRIC" | "MATERIAL" | "FINISH" | "SIZE"
   label: string
   value: string
   sku: string | null
@@ -103,6 +103,7 @@ type ProductVariant = {
   colorId: string | null
   fabricId: string | null
   materialId: string | null
+  finishId: string | null
 }
 
 type TaxonomyItem = {
@@ -420,6 +421,7 @@ export default function EditProductPage() {
     colorId: "",
     fabricId: "",
     materialId: "",
+    finishId: "",
     priceDelta: "0",
     quantity: "0",
   })
@@ -533,6 +535,7 @@ export default function EditProductPage() {
           colorId: newVariant.type === "COLOR" ? newVariant.colorId || null : null,
           fabricId: newVariant.type === "FABRIC" ? newVariant.fabricId || null : null,
           materialId: newVariant.type === "MATERIAL" ? newVariant.materialId || null : null,
+          finishId: newVariant.type === "FINISH" ? newVariant.finishId || null : null,
           priceDelta: parseFloat(newVariant.priceDelta) || 0,
           quantity: parseInt(newVariant.quantity, 10) || 0,
         }),
@@ -560,6 +563,7 @@ export default function EditProductPage() {
         colorId: "",
         fabricId: "",
         materialId: "",
+        finishId: "",
         priceDelta: "0",
         quantity: "0",
       })
@@ -1184,7 +1188,7 @@ export default function EditProductPage() {
                                 {uploadingImage ? (
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                 ) : (
-                                  "+ Image"
+                                  "+ Swatch image"
                                 )}
                               </button>
                             )}
@@ -1214,6 +1218,7 @@ export default function EditProductPage() {
                       <option value="COLOR">Color</option>
                       <option value="FABRIC">Fabric</option>
                       <option value="MATERIAL">Material</option>
+                      <option value="FINISH">Finish</option>
                       <option value="SIZE">Size</option>
                     </select>
                   </Field>
@@ -1294,6 +1299,25 @@ export default function EditProductPage() {
                         {libraries.materials.map((m) => (
                           <option key={m.id} value={m.id}>
                             {m.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  )}
+
+                  {newVariant.type === "FINISH" && (
+                    <Field label="Linked finish (library)">
+                      <select
+                        value={newVariant.finishId}
+                        onChange={(e) =>
+                          setNewVariant((v) => ({ ...v, finishId: e.target.value }))
+                        }
+                        className={inputClass}
+                      >
+                        <option value="">Custom finish</option>
+                        {libraries.finishes.map((finish) => (
+                          <option key={finish.id} value={finish.id}>
+                            {finish.name}
                           </option>
                         ))}
                       </select>

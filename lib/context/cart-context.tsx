@@ -51,6 +51,7 @@ function createCartItemId(
     colorId?: string
     fabricId?: string
     materialId?: string
+    finishId?: string
     variantId?: string
     accessoryIds?: string[]
     dimensions?: CustomDimensions
@@ -61,6 +62,7 @@ function createCartItemId(
     colorId: options.colorId || null,
     fabricId: options.fabricId || null,
     materialId: options.materialId || null,
+    finishId: options.finishId || null,
     variantId: options.variantId || null,
     accessoryIds: [...(options.accessoryIds || [])].sort(),
     dimensions: options.dimensions || null,
@@ -96,6 +98,7 @@ function getUnitPrice(
   selectedVariant?: Variant,
   selectedFabric?: Variant,
   selectedMaterial?: Variant,
+  selectedFinish?: Variant,
   selectedAccessories: Accessory[] = []
 ) {
   let price = getProductBasePrice(product)
@@ -110,6 +113,10 @@ function getUnitPrice(
 
   if (selectedMaterial) {
     price += getOptionPrice(selectedMaterial)
+  }
+
+  if (selectedFinish) {
+    price += getOptionPrice(selectedFinish)
   }
 
   for (const accessory of selectedAccessories) {
@@ -144,6 +151,7 @@ function normalizeCartItem(item: any): CartItem | null {
       colorId: item.selectedColor?.id,
       fabricId: item.selectedFabric?.id,
       materialId: item.selectedMaterial?.id,
+      finishId: item.selectedFinish?.id,
       variantId: item.selectedVariant?.id,
       accessoryIds: selectedAccessories.map((a: any) => a?.id).filter(Boolean),
       dimensions: item.customDimensions,
@@ -299,7 +307,8 @@ function AuthenticatedCartProvider({
       selectedAccessories: Accessory[] = [],
       customDimensions?: CustomDimensions,
       selectedFabric?: Variant,
-      selectedMaterial?: Variant
+      selectedMaterial?: Variant,
+      selectedFinish?: Variant
     ) => {
       const safeQuantity = Math.max(
         1,
@@ -311,6 +320,7 @@ function AuthenticatedCartProvider({
         selectedVariant,
         selectedFabric,
         selectedMaterial,
+        selectedFinish,
         selectedAccessories
       )
 
@@ -320,6 +330,7 @@ function AuthenticatedCartProvider({
           colorId: selectedColor?.id,
           fabricId: selectedFabric?.id,
           materialId: selectedMaterial?.id,
+          finishId: selectedFinish?.id,
           variantId: selectedVariant?.id,
           accessoryIds: selectedAccessories
             .map((a) => a.id)
@@ -328,11 +339,12 @@ function AuthenticatedCartProvider({
         }
       )
 
-      const image = selectedColor?.image || selectedVariant?.image || resolveProductImageUrls(product)[0]
+      const image = selectedColor?.image || selectedFinish?.image || selectedVariant?.image || resolveProductImageUrls(product)[0]
       const toastOptions = [
         selectedColor?.label || selectedColor?.name ? `Colour: ${selectedColor.label || selectedColor.name}` : null,
         selectedFabric?.label || selectedFabric?.name ? `Fabric: ${selectedFabric.label || selectedFabric.name}` : null,
         selectedMaterial?.label || selectedMaterial?.name ? `Material: ${selectedMaterial.label || selectedMaterial.name}` : null,
+        selectedFinish?.label || selectedFinish?.name ? `Finish: ${selectedFinish.label || selectedFinish.name}` : null,
         selectedVariant?.label || selectedVariant?.name ? `Option: ${selectedVariant.label || selectedVariant.name}` : null,
         selectedAccessories.length > 0 ? `Add-ons: ${selectedAccessories.map((accessory) => accessory.label || accessory.name).filter(Boolean).join(', ')}` : null,
         customDimensions && Object.values(customDimensions).some(Boolean) ? `Custom sizing: ${[customDimensions.width && `W ${customDimensions.width}`, customDimensions.height && `H ${customDimensions.height}`, customDimensions.depth && `D ${customDimensions.depth}`, customDimensions.unit].filter(Boolean).join(' ')}` : null,
@@ -364,6 +376,7 @@ function AuthenticatedCartProvider({
           selectedColor,
           selectedFabric,
           selectedMaterial,
+          selectedFinish,
           selectedVariant,
           selectedAccessories,
 
@@ -379,6 +392,7 @@ function AuthenticatedCartProvider({
             material:
               selectedMaterial?.label ||
               selectedMaterial?.name,
+            finish: selectedFinish?.label || selectedFinish?.name,
             variant:
               selectedVariant?.label ||
               selectedVariant?.name,

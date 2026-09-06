@@ -14,7 +14,7 @@ import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductIm
 import PickupStationMap from '@/components/delivery/pickup-station-map'
 
 function getProductImage(item: any): string {
-  const image = item?.selectedColor?.image || item?.selectedVariant?.image || item?.image
+  const image = item?.selectedColor?.image || item?.selectedFinish?.image || item?.selectedVariant?.image || item?.image
   if (typeof image === 'string' && image.trim()) return image
   if (image && typeof image === 'object' && typeof image.url === 'string' && image.url.trim()) return image.url
   return resolveProductImageUrls(item?.product)[0] || DEFAULT_PRODUCT_IMAGE
@@ -308,6 +308,7 @@ export default function CheckoutPage() {
               color: item.selectedColor,
               fabric: item.selectedFabric,
               material: item.selectedMaterial,
+              finish: item.selectedFinish,
               variant: item.selectedVariant,
               accessories: item.selectedAccessories,
               selectedOptions: item.selectedOptions,

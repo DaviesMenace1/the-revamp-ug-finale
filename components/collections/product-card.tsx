@@ -38,8 +38,8 @@ type ProductRecord = {
   editorialHighlight?: string | null
   description?: string | null
   subCategory?: { name?: string | null; category?: { name?: string | null } | null } | null
-  productImages?: { url?: string | null; altText?: string | null; isPrimary?: boolean | null; displayOrder?: number | null }[]
-  productVariants?: { id: string; type?: string | null; value?: string | null; label?: string | null }[]
+  productImages?: { url?: string | null; altText?: string | null; isPrimary?: boolean | null; displayOrder?: number | null; variantId?: string | null }[]
+  productVariants?: { id: string; type?: string | null; value?: string | null; label?: string | null; swatchImage?: string | null }[]
   [key: string]: unknown
 }
 
@@ -80,7 +80,7 @@ export function ProductCard({ product, featured = false, className, style }: { p
   const variants = Array.isArray(product.productVariants) ? product.productVariants : []
   const colorVariants: SwatchVariant[] = variants
     .filter((variant) => variant.type === 'COLOR')
-    .map((variant) => ({ id: variant.id, hex: variant.value, label: variant.label, image: resolveProductVariantImage(product, variant.id) }))
+    .map((variant) => ({ id: variant.id, hex: variant.value, label: variant.label, image: variant.swatchImage || resolveProductVariantImage(product, variant.id) }))
   const selectedColor = colorVariants.find((variant) => variant.id === selectedColorId)
   const displayImage = selectedColor?.image || mainImage
   const displayHoverImage = selectedColor?.image ? images.find((image) => image !== selectedColor.image) || selectedColor.image : hoverImage
@@ -174,7 +174,7 @@ export function ProductCard({ product, featured = false, className, style }: { p
           <div className="mt-1 flex min-h-6 items-center justify-between gap-2 text-[10px]">
             <span className={cn(availability.canAdd ? 'text-emerald-700 dark:text-emerald-400' : 'text-destructive')}>{availability.label}</span>
             {visibleSwatches.length > 0 && <div className="flex items-center gap-1" aria-label={`${colorVariants.length} colour options`}>
-              {visibleSwatches.map((swatch) => <button type="button" key={swatch.id} title={swatch.label ?? undefined} aria-label={`Show ${swatch.label || 'colour'} option`} aria-pressed={selectedColorId === swatch.id} onClick={() => setSelectedColorId(swatch.id)} className={cn('size-3 rounded-full border border-border/70 transition-transform duration-200 hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', selectedColorId === swatch.id && 'scale-125 ring-1 ring-primary ring-offset-1')} style={{ backgroundColor: swatch.hex?.startsWith('#') ? swatch.hex : '#e5e5e5' }} />)}
+              {visibleSwatches.map((swatch) => <button type="button" key={swatch.id} title={swatch.label ?? undefined} aria-label={`Show ${swatch.label || 'colour'} option`} aria-pressed={selectedColorId === swatch.id} onClick={() => setSelectedColorId(swatch.id)} className={cn('relative size-5 overflow-hidden rounded-full border border-border/70 bg-muted transition-transform duration-200 hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', selectedColorId === swatch.id && 'scale-125 ring-1 ring-primary ring-offset-1')} style={{ backgroundColor: swatch.hex?.startsWith('#') ? swatch.hex : '#e5e5e5' }}>{swatch.image && <Image src={swatch.image} alt="" fill sizes="20px" className="object-cover" />}</button>)}
               {overflowCount > 0 && <span className="text-[9px] text-muted-foreground">+{overflowCount}</span>}
             </div>}
           </div>

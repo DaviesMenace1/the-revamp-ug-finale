@@ -81,6 +81,7 @@ export const variantTypeEnum = pgEnum("variant_type", [
   "COLOR",
   "FABRIC",
   "MATERIAL",
+  "FINISH",
   "SIZE",
 ])
 
@@ -657,6 +658,9 @@ export const productVariants = pgTable(
         onDelete: "set null",
       },
     ),
+    finishId: uuid("finish_id").references(() => finishLibrary.id, {
+      onDelete: "set null",
+    }),
 
     sku: varchar("sku", { length: 100 }),
     mpn: varchar("mpn", { length: 100 }),
@@ -693,6 +697,7 @@ export const productVariants = pgTable(
     materialIdx: index("product_variants_material_idx").on(
       table.materialId,
     ),
+    finishIdx: index("product_variants_finish_idx").on(table.finishId),
     skuIdx: uniqueIndex("product_variants_sku_idx").on(table.sku),
   }),
 )

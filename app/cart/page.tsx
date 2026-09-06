@@ -11,7 +11,7 @@ import { useCart } from '@/lib/context/cart-context'
 import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
 
 function getImage(item: any) {
-  const image = item.image || item.selectedColor?.image || item.selectedVariant?.image
+  const image = item.image || item.selectedColor?.image || item.selectedFinish?.image || item.selectedVariant?.image
   if (typeof image === 'string' && image.trim()) return image
   if (image && typeof image === 'object' && typeof image.url === 'string' && image.url.trim()) return image.url
   return resolveProductImageUrls(item.product)[0] || DEFAULT_PRODUCT_IMAGE
@@ -22,6 +22,7 @@ function optionsFor(item: any) {
     item.selectedColor?.label || item.selectedColor?.name ? `Colour: ${item.selectedColor.label || item.selectedColor.name}` : null,
     item.selectedFabric?.label || item.selectedFabric?.name ? `Fabric: ${item.selectedFabric.label || item.selectedFabric.name}` : null,
     item.selectedMaterial?.label || item.selectedMaterial?.name ? `Material: ${item.selectedMaterial.label || item.selectedMaterial.name}` : null,
+    item.selectedFinish?.label || item.selectedFinish?.name ? `Finish: ${item.selectedFinish.label || item.selectedFinish.name}` : null,
     item.selectedVariant?.label || item.selectedVariant?.name ? `Variant: ${item.selectedVariant.label || item.selectedVariant.name}` : null,
     Array.isArray(item.selectedAccessories) && item.selectedAccessories.length > 0 ? `Add-ons: ${item.selectedAccessories.map((option: any) => option.label || option.name).filter(Boolean).join(', ')}` : null,
   ].filter(Boolean) as string[]

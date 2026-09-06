@@ -6,6 +6,7 @@ import {
   useState,
 } from "react"
 import { useRouter } from "next/navigation"
+import { CldUploadWidget } from "next-cloudinary"
 
 type Department = {
   id: string
@@ -467,6 +468,16 @@ export default function NewProductPage() {
           : "colors"
 
       const items = libraries[libraryKey]
+      const customValue =
+        value && typeof value === "object"
+          ? String((value as { value?: unknown }).value ?? "")
+          : ""
+      const customSwatchImage =
+        value && typeof value === "object"
+          ? String((value as { swatchImage?: unknown }).swatchImage ?? "")
+          : ""
+      const selectedLibraryId = typeof value === "string" ? value : ""
+      const selectedLibraryItem = items.find((item) => item.id === selectedLibraryId)
 
       return (
         <div key={field.key} className="space-y-2">
@@ -475,10 +486,14 @@ export default function NewProductPage() {
             {field.required && <span className="ml-1 text-red-500">*</span>}
           </label>
           <select
-            value={typeof value === "string" ? value : ""}
-            onChange={(event) =>
-              updateAttribute(field.key, event.target.value)
-            }
+            value={selectedLibraryId || (customValue ? "__custom__" : "")}
+            onChange={(event) => {
+              if (event.target.value === "__custom__") {
+                updateAttribute(field.key, { value: customValue, swatchImage: customSwatchImage })
+              } else {
+                updateAttribute(field.key, event.target.value)
+              }
+            }}
             className={commonClass}
           >
             <option value="">Select {field.label}</option>
@@ -488,7 +503,42 @@ export default function NewProductPage() {
                 {item.code ? ` (${item.code})` : ""}
               </option>
             ))}
+            <option value="__custom__">Add a custom {field.label.toLowerCase()}</option>
           </select>
+          {selectedLibraryItem?.swatchImage && (
+            <div className="flex items-center gap-2 text-xs text-neutral-500">
+              <img src={selectedLibraryItem.swatchImage} alt="" className="h-8 w-8 rounded-full border border-neutral-200 object-cover" />
+              Library swatch
+            </div>
+          )}
+          {customValue !== "" || (value && typeof value === "object") ? (
+            <div className="space-y-2 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-3">
+              <input
+                value={customValue}
+                onChange={(event) =>
+                  updateAttribute(field.key, { value: event.target.value, swatchImage: customSwatchImage })
+                }
+                placeholder={`Enter a custom ${field.label.toLowerCase()}`}
+                className={commonClass}
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                {customSwatchImage && <img src={customSwatchImage} alt="" className="h-10 w-10 rounded-full border border-neutral-200 object-cover" />}
+                <CldUploadWidget
+                  uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "revamp_preset"}
+                  onSuccess={(result: any) => {
+                    const url = result?.info?.secure_url
+                    if (url) updateAttribute(field.key, { value: customValue, swatchImage: url })
+                  }}
+                >
+                  {({ open }) => (
+                    <button type="button" onClick={() => open()} className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs hover:bg-neutral-100">
+                      {customSwatchImage ? "Replace swatch image" : "Upload swatch image"}
+                    </button>
+                  )}
+                </CldUploadWidget>
+              </div>
+            </div>
+          ) : null}
           {field.description && (
             <p className="text-xs text-neutral-500">{field.description}</p>
           )}

@@ -6,7 +6,7 @@ import { eq, asc } from "drizzle-orm"
 import { requireAdminApi } from "@/lib/auth/api"
 
 const variantSchema = z.object({
-  type: z.enum(["COLOR", "FABRIC", "MATERIAL", "SIZE"]),
+  type: z.enum(["COLOR", "FABRIC", "MATERIAL", "FINISH", "SIZE"]),
   label: z.string().min(1),
   value: z.string().min(1),
   sku: z.string().optional().nullable(),
@@ -20,6 +20,7 @@ const variantSchema = z.object({
   colorId: z.string().optional().nullable(),
   fabricId: z.string().optional().nullable(),
   materialId: z.string().optional().nullable(),
+  finishId: z.string().optional().nullable(),
   attributes: z.record(z.string(), z.unknown()).default({}),
 })
 
@@ -115,6 +116,7 @@ export async function POST(
         colorId: data.colorId || null,
         fabricId: data.fabricId || null,
         materialId: data.materialId || null,
+        finishId: data.finishId || null,
         attributes: data.attributes,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -179,6 +181,7 @@ export async function PATCH(
         ...(data.colorId !== undefined && { colorId: data.colorId || null }),
         ...(data.fabricId !== undefined && { fabricId: data.fabricId || null }),
         ...(data.materialId !== undefined && { materialId: data.materialId || null }),
+        ...(data.finishId !== undefined && { finishId: data.finishId || null }),
         ...(data.attributes !== undefined && { attributes: data.attributes }),
         updatedAt: new Date(),
       })

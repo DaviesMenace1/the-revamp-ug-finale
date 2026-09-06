@@ -15,7 +15,7 @@ export interface Color extends ProductOption {
 
 export interface Variant extends ProductOption {
   id: string
-  type?: 'COLOR' | 'FABRIC' | 'MATERIAL' | 'SIZE' | string
+  type?: 'COLOR' | 'FABRIC' | 'MATERIAL' | 'FINISH' | 'SIZE' | string
   sku?: string
   gtin?: string
   mpn?: string
@@ -48,6 +48,7 @@ export interface CartItem {
   selectedColor?: Color
   selectedFabric?: Variant
   selectedMaterial?: Variant
+  selectedFinish?: Variant
   selectedVariant?: Variant
   selectedAccessories: Accessory[]
 
@@ -124,7 +125,8 @@ export interface CartContextType {
     selectedAccessories?: Accessory[],
     customDimensions?: CustomDimensions,
     selectedFabric?: Variant,
-    selectedMaterial?: Variant
+    selectedMaterial?: Variant,
+    selectedFinish?: Variant
   ) => void
 
   removeFromCart: (cartItemId: string) => void

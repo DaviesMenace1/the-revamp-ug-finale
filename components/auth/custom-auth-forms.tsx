@@ -3,8 +3,7 @@
 import { FormEvent, useRef, useState } from 'react'
 import { useSignIn, useSignUp } from '@clerk/nextjs'
 import { ArrowRight, Check, Eye, EyeOff, Loader2, ShieldCheck } from '@/components/ui/luxury-icons'
-import { FaLinkedinIn } from '@/components/ui/luxury-icons'
-import { SiGoogle } from '@/components/ui/luxury-icons'
+import { GoogleMark, LinkedInMark } from '@/components/auth/social-provider-icons'
 import Link from 'next/link'
 import { AUTH_NAME_MAX_LENGTH, AUTH_USERNAME_MAX_LENGTH, isBoundedAuthText, isValidAuthEmail, isValidAuthPassword, isValidVerificationCode, normalizeAuthEmail } from '@/lib/auth/input-validation'
 
@@ -110,7 +109,7 @@ function OAuthButtons({ onOAuth, loading }: { onOAuth: (strategy: OAuthStrategy)
         disabled={!!loading}
         className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
       >
-        <SiGoogle color="default" size={18} aria-hidden="true" />
+        <GoogleMark size={19} />
         {loading === 'oauth_google' ? 'Connecting…' : 'Continue with Google'}
       </button>
       <button
@@ -119,7 +118,7 @@ function OAuthButtons({ onOAuth, loading }: { onOAuth: (strategy: OAuthStrategy)
         disabled={!!loading}
         className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
       >
-        <FaLinkedinIn color="#0A66C2" size={18} aria-hidden="true" />
+        <LinkedInMark size={19} />
         {loading === 'oauth_linkedin_oidc' ? 'Connecting…' : 'Continue with LinkedIn'}
       </button>
     </div>

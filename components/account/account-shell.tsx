@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useClerk } from '@clerk/nextjs'
-import { BookOpen, BriefcaseBusiness, Home, ShoppingBag, UserRound, LogOut, X } from '@/components/ui/luxury-icons'
-import { LuxuryAccountIcon, LuxuryBagIcon, LuxuryMenuIcon } from '@/components/ui/luxury-nav-icons'
+import { BookOpen, BriefcaseBusiness, Home, ShoppingBag, ShoppingCart, UserRound, LogOut, X } from '@/components/ui/luxury-icons'
+import { LuxuryAccountIcon, LuxuryMenuIcon } from '@/components/ui/luxury-nav-icons'
 
 const navItems = [
   { label: 'Home', href: '/', icon: Home },
@@ -27,7 +27,7 @@ export function AccountShell({ children, cartCount = 0 }: { children: React.Reac
           <p className="hidden font-serif text-sm text-muted-foreground lg:block">The architecture of refined living</p>
           <div className="flex items-center gap-1 sm:gap-2">
             <Link href="/cart" className="relative rounded-full p-2 text-foreground/70 transition hover:text-primary" aria-label="Open cart">
-              <LuxuryBagIcon size={20} />
+              <ShoppingCart className="size-5" />
               {cartCount > 0 && <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground">{cartCount}</span>}
             </Link>
             <Link href="/user-profile" className="hidden rounded-full p-2 text-foreground/70 transition hover:text-primary sm:block" aria-label="Open profile"><LuxuryAccountIcon size={20} /></Link>

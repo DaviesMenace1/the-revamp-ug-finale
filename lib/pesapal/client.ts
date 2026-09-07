@@ -67,11 +67,13 @@ export function getPesapalBaseUrl() {
 }
 
 export function getPesapalConfig() {
-  const consumerKey = env('PESAPAL_CONSUMER_KEY')
-  const consumerSecret = env('PESAPAL_CONSUMER_SECRET')
-  const ipnId = env('PESAPAL_IPN_ID')
+  const isProduction = getPesapalBaseUrl() === PRODUCTION_BASE_URL
+  const consumerKey = env(isProduction ? 'PESAPAL_PRODUCTION_CONSUMER_KEY' : 'PESAPAL_SANDBOX_CONSUMER_KEY') || env('PESAPAL_CONSUMER_KEY')
+  const consumerSecret = env(isProduction ? 'PESAPAL_PRODUCTION_CONSUMER_SECRET' : 'PESAPAL_SANDBOX_CONSUMER_SECRET') || env('PESAPAL_CONSUMER_SECRET')
+  const ipnId = env(isProduction ? 'PESAPAL_PRODUCTION_IPN_ID' : 'PESAPAL_SANDBOX_IPN_ID') || env('PESAPAL_IPN_ID')
   if (!consumerKey || !consumerSecret || !ipnId) {
-    return { ok: false as const, error: 'Pesapal is not configured. Add PESAPAL_CONSUMER_KEY, PESAPAL_CONSUMER_SECRET, and PESAPAL_IPN_ID.' }
+    const environment = isProduction ? 'production' : 'sandbox'
+    return { ok: false as const, error: `Pesapal ${environment} is not configured. Add matching ${environment} consumer credentials and IPN ID.` }
   }
   return { ok: true as const, consumerKey, consumerSecret, ipnId, baseUrl: getPesapalBaseUrl() }
 }

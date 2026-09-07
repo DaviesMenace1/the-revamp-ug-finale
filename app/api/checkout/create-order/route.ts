@@ -5,6 +5,7 @@ import { db } from '@/lib/db/client'
 import { and, eq, inArray } from 'drizzle-orm'
 import { orders, orderShipments, orderTrackingEvents, paymentRecords, pickupStations, products, savedAddresses } from '@/lib/db/schema'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
+import { getTradePrice, hasApprovedTradeAccess } from '@/lib/server/trade-pricing'
 import { reservePointsForOrder, safelyReleasePointsForOrder } from '@/lib/loyalty/service'
 import { buildFlutterwavePaymentMethod, createFlutterwaveCharge, flutterwaveConfigurationMessage, flutterwaveErrorMessage, getFlutterwaveAuthorizationType, getFlutterwaveConfig, normalizeUgandaPhone } from '@/lib/flutterwave-config'
 import { notifyUser } from '@/lib/notifications/service'
@@ -126,6 +127,7 @@ export async function POST(request: Request) {
 
     const localUser = await getOrCreateCurrentUser(userId)
     if (!localUser) return NextResponse.json({ error: 'Your account is not ready to place this order yet.' }, { status: 503 })
+    const tradeAccess = await hasApprovedTradeAccess(localUser.id, localUser.role)
 
     let shippingAddress: Record<string, unknown>
     if (deliveryMethod === 'pickup_station') {
@@ -201,11 +203,12 @@ export async function POST(request: Request) {
 
     const validItems = parsedItems as Array<{ value: Record<string, unknown>; productId: string; quantity: number; unitPrice: number }>
     const productIds = [...new Set(validItems.map((item) => item.productId))]
-    const catalogProducts = await db.select({ id: products.id, name: products.name, price: products.price, currency: products.currency, status: products.status, availability: products.availability }).from(products).where(inArray(products.id, productIds))
+    const catalogProducts = await db.select({ id: products.id, name: products.name, price: products.price, tradeDiscountPercent: products.tradeDiscountPercent, currency: products.currency, status: products.status, availability: products.availability }).from(products).where(inArray(products.id, productIds))
     const catalogById = new Map(catalogProducts.map((product) => [product.id, product]))
     const normalizedItems = validItems.map(({ value, productId, quantity, unitPrice }) => {
       const product = catalogById.get(productId)
-      if (!product || product.status !== 'published' || product.availability === 'out_of_stock' || product.currency.toUpperCase() !== expectedCurrency || unitPrice + 0.01 < Number(product.price)) return null
+      const minimumPrice = tradeAccess ? getTradePrice(Number(product?.price), Number(product?.tradeDiscountPercent)) : Number(product?.price)
+      if (!product || product.status !== 'published' || product.availability === 'out_of_stock' || product.currency.toUpperCase() !== expectedCurrency || unitPrice + 0.01 < minimumPrice) return null
       const color = optionSnapshot(value.color)
       const fabric = optionSnapshot(value.fabric)
       const material = optionSnapshot(value.material)

@@ -4,6 +4,7 @@ import { db } from '@/lib/db/client'
 import { products } from '@/lib/db/schema'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
 import { getCollectionPromotionQuote } from '@/lib/collection-commerce'
+import { getTradePrice, hasApprovedTradeAccess } from '@/lib/server/trade-pricing'
 
 function normalizeCurrency(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim().slice(0, 3).toUpperCase() : 'UGX'
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
     if (!userId) return Response.json({ error: 'Please sign in before applying a collection promo code.' }, { status: 401 })
     const localUser = await getOrCreateCurrentUser(userId)
     if (!localUser) return Response.json({ error: 'Your account is not ready to apply a promotion.' }, { status: 503 })
+    const tradeAccess = await hasApprovedTradeAccess(localUser.id, localUser.role)
     const body = await request.json() as { code?: unknown; items?: unknown; currency?: unknown }
     const submittedItems = Array.isArray(body.items) ? body.items : []
     if (submittedItems.length === 0 || submittedItems.length > 100) return Response.json({ error: 'Your cart is empty or too large to quote.' }, { status: 400 })
@@ -33,11 +35,12 @@ export async function POST(request: Request) {
     const expectedCurrency = (process.env.FLUTTERWAVE_CURRENCY || 'UGX').toUpperCase()
     if (currency !== expectedCurrency) return Response.json({ error: `Checkout currently supports ${expectedCurrency} only.` }, { status: 400 })
     const productIds = [...new Set(validItems.map((item) => item.productId))]
-    const catalog = await db.select({ id: products.id, price: products.price, currency: products.currency, status: products.status, availability: products.availability }).from(products).where(inArray(products.id, productIds))
+    const catalog = await db.select({ id: products.id, price: products.price, tradeDiscountPercent: products.tradeDiscountPercent, currency: products.currency, status: products.status, availability: products.availability }).from(products).where(inArray(products.id, productIds))
     const catalogById = new Map(catalog.map((product) => [product.id, product]))
     if (validItems.some((item) => {
       const product = catalogById.get(item.productId)
-      return !product || product.status !== 'published' || product.availability === 'out_of_stock' || (product.currency || '').toUpperCase() !== expectedCurrency || item.unitPrice + 0.01 < Number(product.price)
+      const minimumPrice = tradeAccess ? getTradePrice(Number(product?.price), Number(product?.tradeDiscountPercent)) : Number(product?.price)
+      return !product || product.status !== 'published' || product.availability === 'out_of_stock' || (product.currency || '').toUpperCase() !== expectedCurrency || item.unitPrice + 0.01 < minimumPrice
     })) return Response.json({ error: 'One or more products changed. Refresh your cart and try again.' }, { status: 409 })
 
     const result = await getCollectionPromotionQuote({ userId: localUser.id, code: body.code, items: validItems })

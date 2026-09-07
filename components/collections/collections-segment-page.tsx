@@ -14,6 +14,8 @@ import { SchemaScript } from '@/components/seo/schema-script'
 import { generateBreadcrumbSchema, generateProductSchema } from '@/lib/seo/schema-generator'
 import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
 import { normalizeProductTags } from '@/lib/products/tags'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
+import { getTradePrice, hasApprovedTradeAccess } from '@/lib/server/trade-pricing'
 
 // Database & Drizzle Imports
 import { db } from '@/lib/db/client'
@@ -155,8 +157,10 @@ export async function generateMetadata({
 
 export default async function ProductPage({
   params,
+  tradeContext = false,
 }: {
   params: Promise<{ segments?: string[] }>
+  tradeContext?: boolean
 }) {
   const { segments = [] } = await params
   const slug = segments.length === 2 ? segments[1] : segments[0]
@@ -218,6 +222,16 @@ export default async function ProductPage({
 
   if (!product) notFound()
 
+  let tradePrice: number | null = null
+  let tradeDiscountPercent = 0
+  if (tradeContext) {
+    const authorization = await getCurrentUserWithRole([])
+    if (authorization.authorized && authorization.user && await hasApprovedTradeAccess(authorization.user.id, authorization.user.role)) {
+      tradeDiscountPercent = Math.min(100, Math.max(0, Number(product.tradeDiscountPercent || 0)))
+      if (tradeDiscountPercent > 0) tradePrice = getTradePrice(Number(product.price), tradeDiscountPercent)
+    }
+  }
+
   // --- COMPREHENSIVE SANITIZATION & IMAGE RESOLUTION ---
   const safeImages = extractProductImages(product)
 
@@ -261,6 +275,7 @@ export default async function ProductPage({
 
   const safeProduct = {
     ...product,
+    ...(tradePrice !== null ? { price: String(tradePrice), tradePrice, tradeOriginalPrice: Number(product.price), tradeDiscountPercent } : {}),
     rating: Number.isNaN(safeRating) ? 5 : safeRating,
     ratingCount: Number.isNaN(safeRatingCount) ? 0 : safeRatingCount,
     images: safeImages,

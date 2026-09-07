@@ -3,8 +3,9 @@ import CollectionsSegmentPage from '@/components/collections/collections-segment
 
 export const dynamic = 'force-dynamic'
 
-export default async function CollectionsRoute({ params }: { params: Promise<{ segments?: string[] }> }) {
+export default async function CollectionsRoute({ params, searchParams }: { params: Promise<{ segments?: string[] }>; searchParams: Promise<{ trade?: string }> }) {
   const { segments = [] } = await params
   if (segments.length === 0) return <CollectionsLanding />
-  return <CollectionsSegmentPage params={Promise.resolve({ segments })} />
+  const { trade } = await searchParams
+  return <CollectionsSegmentPage params={Promise.resolve({ segments })} tradeContext={trade === '1'} />
 }

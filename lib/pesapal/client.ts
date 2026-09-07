@@ -59,11 +59,13 @@ function env(name: string) {
 }
 
 export function getPesapalBaseUrl() {
+  const environment = env('PESAPAL_ENV').toLowerCase()
+  if (environment === 'production' || environment === 'live') return PRODUCTION_BASE_URL
+  if (environment === 'sandbox' || environment === 'demo') return SANDBOX_BASE_URL
   const explicit = env('PESAPAL_API_BASE_URL')
   if (explicit) return explicit.replace(/\/$/, '')
-  return env('PESAPAL_ENV').toLowerCase() === 'production' || env('PESAPAL_ENV').toLowerCase() === 'live'
-    ? PRODUCTION_BASE_URL
-    : SANDBOX_BASE_URL
+  if (env('PESAPAL_PRODUCTION_CONSUMER_KEY') || env('PESAPAL_PRODUCTION_CONSUMER_SECRET') || env('PESAPAL_PRODUCTION_IPN_ID')) return PRODUCTION_BASE_URL
+  return SANDBOX_BASE_URL
 }
 
 export function getPesapalConfig() {
@@ -115,7 +117,7 @@ async function pesapalRequest<T>(path: string, init: RequestInit = {}) {
 export async function submitPesapalOrder(input: PesapalSubmitOrderInput) {
   const config = getPesapalConfig()
   if (!config.ok) throw new Error(config.error)
-  return pesapalRequest<PesapalSubmitOrderResponse>('/Transactions/SubmitOrderRequest', {
+  const payload = await pesapalRequest<PesapalSubmitOrderResponse>('/Transactions/SubmitOrderRequest', {
     method: 'POST',
     body: JSON.stringify({
       id: input.id.slice(0, 50),
@@ -142,6 +144,10 @@ export async function submitPesapalOrder(input: PesapalSubmitOrderInput) {
       },
     }),
   })
+  const responseStatus = String(payload.status ?? '')
+  if (responseStatus && responseStatus !== '200') throw new Error(responseMessage(payload, `Pesapal rejected the payment request with status ${responseStatus}.`))
+  if (!payload.order_tracking_id || !payload.redirect_url) throw new Error(responseMessage(payload, 'Pesapal did not return a payment URL. Check that the production credentials and production IPN ID belong to the same merchant account.'))
+  return payload
 }
 
 export async function getPesapalTransactionStatus(orderTrackingId: string) {

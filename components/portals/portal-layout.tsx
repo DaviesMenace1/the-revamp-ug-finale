@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Home } from '@/components/ui/luxury-icons'
 import { LuxuryCloseIcon, LuxuryMenuIcon } from '@/components/ui/luxury-nav-icons'
@@ -41,9 +42,8 @@ export function PortalLayout({ children, portalName, portalSlug, homeHref, navIt
     <a href="#portal-main-content" className="sr-only fixed left-4 top-4 z-[70] rounded bg-foreground px-4 py-3 text-xs font-semibold text-background focus:not-sr-only">Skip to content</a>
     <header className={`fixed inset-x-0 top-0 z-40 border-b ${surface}`}>
       <div className="mx-auto flex min-h-20 max-w-[1440px] items-center gap-3 px-4 py-3 sm:px-6 lg:gap-6 lg:px-12">
-        <Link href={brandHref} aria-label={clientPortal ? 'Go to The Revamp UG homepage' : `Go to ${portalName} home`} className="flex min-w-0 shrink-0 items-center gap-2.5 font-serif text-xl tracking-[-0.04em] sm:text-2xl">
-          <Home className="size-5 shrink-0" aria-hidden="true" />
-          <span className="truncate">The Revamp <span className={clientPortal ? 'italic text-gold-light' : 'italic text-gilded'}>UG</span></span>
+        <Link href={brandHref} aria-label={clientPortal ? 'Go to The Revamp UG homepage' : `Go to ${portalName} home`} className="flex min-w-0 shrink-0 items-center gap-2.5 tracking-[-0.04em]">
+          <Image src="/brand/revamp-mark.png" alt="The Revamp UG" width={48} height={48} className="size-10 shrink-0 object-contain" />
           <span className={`hidden whitespace-nowrap text-[9px] font-sans font-semibold uppercase tracking-[0.2em] xl:inline ${clientPortal ? 'text-white/70' : 'text-muted-foreground'}`}>{portalName}</span>
         </Link>
 

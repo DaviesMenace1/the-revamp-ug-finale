@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useUser } from '@clerk/nextjs'
@@ -42,7 +43,7 @@ export function SiteHeader() {
     <a href="#site-main-content" className="sr-only fixed left-4 top-4 z-[70] rounded bg-obsidian px-4 py-3 text-xs font-semibold text-canvas focus:not-sr-only">Skip to content</a>
     <header className="fixed inset-x-0 top-0 z-50 border-b border-obsidian/10 bg-canvas/95 text-obsidian shadow-[0_1px_0_rgba(28,28,28,0.04)] backdrop-blur-xl">
       <div className="mx-auto flex min-h-[4.75rem] max-w-7xl items-center justify-between gap-5 px-5 sm:px-8 lg:px-12">
-        <Link href="/" className="shrink-0 font-serif text-[1.45rem] font-medium tracking-tighter sm:text-2xl">The Revamp <span className="font-normal italic text-gilded">UG</span></Link>
+        <Link href="/" aria-label="The Revamp UG home" className="inline-flex size-11 shrink-0 items-center sm:size-12"><Image src="/brand/revamp-mark.png" alt="The Revamp UG" width={64} height={64} className="size-full object-contain" /></Link>
         <nav className="hidden items-center gap-6 text-[10px] font-semibold uppercase tracking-[0.16em] lg:flex xl:gap-8" aria-label="Main navigation">
           {nav.map((item) => <Link key={item.href} href={item.href} aria-current={active(item.href) ? 'page' : undefined} className={cn('whitespace-nowrap transition-colors hover:text-gilded', active(item.href) && 'text-gilded')}>{item.label}</Link>)}
           <Link href="/book-consultation" className="inline-flex min-h-10 items-center gap-2 rounded-full bg-obsidian px-4 text-canvas transition-colors hover:bg-gilded hover:text-obsidian"><MessageCircle className="size-4" aria-hidden="true" />Book a consultation</Link>

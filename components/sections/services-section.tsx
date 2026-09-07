@@ -96,7 +96,7 @@ export function ServicesSection() {
           </div>
           <div className="max-w-md">
             <p className="text-sm leading-6 text-muted-foreground">Architecture and interiors, connected by one considered approach to how a space should look, feel and live.</p>
-            <Link href="/services" className="group mt-6 inline-flex min-h-12 w-full max-w-[17rem] items-center justify-center gap-3 rounded-full bg-foreground px-6 py-3.5 text-center text-[11px] font-medium uppercase tracking-[0.18em] text-background shadow-sm transition-all hover:-translate-y-0.5 hover:bg-gold hover:text-foreground hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 sm:w-auto">Explore More Services<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></Link>
+            <Link href="/services" className="group mt-6 inline-flex min-h-12 w-full max-w-[17rem] items-center justify-center gap-3 rounded-full bg-foreground px-6 py-3.5 text-center text-[11px] font-medium uppercase tracking-[0.18em] text-background shadow-sm transition-all hover:-translate-y-0.5 hover:bg-gold hover:text-foreground hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 sm:w-auto">See all studio services<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></Link>
           </div>
         </div>
 
@@ -113,7 +113,7 @@ export function ServicesSection() {
                   <div className="mt-7 grid gap-2 sm:grid-cols-2">
                     {group.services.slice(0, 4).map((service) => (
                       <Link key={`${service.categorySlug}-${service.serviceSlug}`} href={`/services/${service.categorySlug}/${service.serviceSlug}`} className={`flex items-center justify-between border-t py-3 text-xs uppercase tracking-[0.12em] transition-colors ${groupIndex === 0 ? 'border-background/20 text-background/70 hover:text-primary' : 'border-border text-muted-foreground hover:text-primary'}`}>
-                        <span>{service.serviceName}</span><ArrowUpRight size={13} />
+                        <span><span className="block">{service.serviceName}</span><span className="mt-1 block text-[9px] uppercase tracking-[0.12em] opacity-70">See service details</span></span><ArrowUpRight size={13} />
                       </Link>
                     ))}
                   </div>
@@ -122,7 +122,7 @@ export function ServicesSection() {
             ))}
           </div>
         ) : (
-          <div className="border border-dashed border-border p-8 text-center"><p className="font-serif text-2xl text-foreground">Explore the studio’s services.</p><Link href="/services" className="mt-5 inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-widest text-primary">Open services <ArrowRight size={14} /></Link></div>
+          <div className="border border-dashed border-border p-8 text-center"><p className="font-serif text-2xl text-foreground">Explore the studio’s services.</p><Link href="/services" className="mt-5 inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-widest text-primary">See all studio services <ArrowRight size={14} /></Link></div>
         )}
       </div>
     </section>

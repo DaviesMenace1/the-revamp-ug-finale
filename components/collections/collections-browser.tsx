@@ -52,8 +52,10 @@ export default function CollectionsBrowser({
           </p>
 
           <h1 className="text-3xl font-semibold tracking-tight">
-            Explore our collections
+            Find the right collection
           </h1>
+
+          <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Choose a category to browse its rooms, subcategories, and available pieces.</p>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -61,7 +63,7 @@ export default function CollectionsBrowser({
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search collections...."
+            placeholder="Search by collection name"
             className="h-10 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
 
@@ -72,18 +74,18 @@ export default function CollectionsBrowser({
             }
             className="h-10 rounded-md border bg-background px-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-ring"
           >
-            <option value="name">Sort by name</option>
-            <option value="products">Sort by products</option>
+            <option value="name">Sort collections alphabetically</option>
+            <option value="products">Show collections with most pieces first</option>
           </select>
         </div>
       </div>
 
       {filteredCollections.length === 0 ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
-          <h2 className="text-lg font-medium">No collections found</h2>
+          <h2 className="text-lg font-medium">We could not find that collection</h2>
 
           <p className="mt-2 text-sm text-muted-foreground">
-            Try changing your search or check back later for new collections.
+            Try a different room, category, or search term.
           </p>
         </div>
       ) : (
@@ -132,8 +134,8 @@ export default function CollectionsBrowser({
                   )}
                 </div>
 
-                <div className="mt-5 text-xs font-medium uppercase tracking-[0.18em]">
-                  View collection
+                <div className="mt-5 inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em]">
+                  Browse this collection <span aria-hidden="true">→</span>
                 </div>
               </div>
             </Link>

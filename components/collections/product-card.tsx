@@ -144,7 +144,7 @@ export function ProductCard({ product, featured = false, className, style }: { p
 
         <button type="button" onClick={handleQuickAdd} disabled={!availability.canAdd} aria-label={availability.canAdd ? `Add ${product.name} to cart` : `${product.name} is sold out`} className={cn('absolute bottom-2.5 right-2.5 z-20 inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-background px-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground shadow-md transition-all duration-200 hover:bg-gold hover:text-obsidian focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold sm:bottom-3 sm:right-3 sm:min-h-11 sm:px-3.5', !availability.canAdd && 'cursor-not-allowed opacity-60 hover:bg-background hover:text-foreground')}>
           {justAdded ? <Check size={15} aria-hidden="true" /> : <ShoppingCart size={15} aria-hidden="true" />}
-          <span>{justAdded ? 'Added' : 'Add to Cart'}</span>
+          <span>{justAdded ? 'Added to cart' : availability.canAdd ? 'Add to cart' : 'Sold out'}</span>
         </button>
       </div>
 
@@ -178,6 +178,7 @@ export function ProductCard({ product, featured = false, className, style }: { p
               {overflowCount > 0 && <span className="text-[9px] text-muted-foreground">+{overflowCount}</span>}
             </div>}
           </div>
+          <Link href={productHref} className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary hover:underline">View product details <span aria-hidden="true">→</span></Link>
         </div>
       </div>
     </article>

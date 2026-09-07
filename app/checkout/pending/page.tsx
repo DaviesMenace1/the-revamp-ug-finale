@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, RefreshCw, ShoppingBag } from '@/components/ui/luxury-icons'
+import { Loader2, RefreshCw, ShoppingCart } from '@/components/ui/luxury-icons'
 import { SiteFooter } from '@/components/site-footer'
 import { SiteHeader } from '@/components/site-header'
 import { useCart } from '@/lib/context/cart-context'
@@ -78,7 +78,7 @@ function PendingContent() {
     <main className="flex min-h-[70dvh] items-center justify-center px-4 py-24 sm:px-6">
       <section className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-lift sm:p-10" aria-live="polite">
         <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-          {status === 'checking' ? <Loader2 className="size-8 animate-spin" aria-label="Checking payment" /> : status === 'failed' || status === 'error' ? <RefreshCw className="size-8" aria-hidden="true" /> : <ShoppingBag className="size-8" aria-hidden="true" />}
+          {status === 'checking' ? <Loader2 className="size-8 animate-spin" aria-label="Checking payment" /> : status === 'failed' || status === 'error' ? <RefreshCw className="size-8" aria-hidden="true" /> : <ShoppingCart className="size-8" aria-hidden="true" />}
         </div>
         <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.25em] text-primary">Payment update</p>
         <h1 className="mt-3 font-serif text-4xl text-foreground">{status === 'failed' ? 'Payment not completed' : status === 'error' ? 'We could not confirm it yet' : 'Confirming your payment'}</h1>

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import {
   Star,
   Heart,
-  ShoppingBag,
+  ShoppingCart,
   Check,
   Ruler,
   ChevronDown,
@@ -499,7 +499,7 @@ export function ProductDetail({ product }: { product: any }) {
             onClick={handleAddToCart}
             className="flex-1 bg-gold hover:bg-gold/90 text-black font-semibold py-3 px-6 transition-colors text-xs uppercase tracking-widest flex items-center justify-center gap-2"
           >
-            {added ? <Check size={16} /> : <ShoppingBag size={16} />}
+            {added ? <Check size={16} /> : <ShoppingCart size={16} />}
             {added ? 'Added To Selection' : 'Add To Cart'}
           </button>
 

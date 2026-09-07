@@ -118,6 +118,7 @@ type FormState = {
   tags: string
 
   price: string
+  tradeDiscountPercent: string
   originalPrice: string
   currency: string
 
@@ -165,6 +166,7 @@ const initialForm: FormState = {
   tags: "",
 
   price: "",
+  tradeDiscountPercent: "0",
   originalPrice: "",
   currency: "UGX",
 
@@ -631,6 +633,7 @@ export default function NewProductPage() {
         body: JSON.stringify({
           ...form,
           price: Number(form.price),
+          tradeDiscountPercent: Number(form.tradeDiscountPercent || 0),
           originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
           quantity: Number(form.quantity || 0),
           weight: form.weight ? Number(form.weight) : null,
@@ -1028,6 +1031,20 @@ export default function NewProductPage() {
                   }
                   className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm"
                 />
+              </div>
+
+              <div className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3">
+                <label className="text-sm font-semibold text-emerald-950">Trade collection discount (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  value={form.tradeDiscountPercent}
+                  onChange={(event) => updateField("tradeDiscountPercent", event.target.value)}
+                  className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2.5 text-sm"
+                />
+                <p className="text-xs leading-5 text-emerald-900/75">Shown only to approved Trade members. Public pricing stays unchanged.</p>
               </div>
 
               <div className="space-y-2">

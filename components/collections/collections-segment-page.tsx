@@ -351,7 +351,7 @@ export default async function ProductPage({
             <EditorialProductDetail product={safeProduct as any} />
             
             {/* The standalone Reviews component placed securely right underneath */}
-            <div className="mt-20">
+            <div id="product-reviews" className="mt-20 scroll-mt-24">
               <ProductReviews product={safeProduct as any} />
             </div>
 

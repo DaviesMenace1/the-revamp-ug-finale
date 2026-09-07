@@ -38,6 +38,7 @@ type Product = {
   tags?: unknown
 
   price?: string | number | null
+  tradeDiscountPercent?: string | number | null
   originalPrice?: string | number | null
   currency?: string | null
 
@@ -333,6 +334,7 @@ export default function EditProductPage() {
           ...product,
           status: status ?? product.status,
           price: Number(product.price ?? 0),
+          tradeDiscountPercent: Number(product.tradeDiscountPercent ?? 0),
           originalPrice:
             product.originalPrice === null || product.originalPrice === ""
               ? null
@@ -955,6 +957,19 @@ export default function EditProductPage() {
                   onChange={(e) => update("originalPrice", e.target.value)}
                   className={inputClass}
                 />
+              </Field>
+
+              <Field label="Trade collection discount (%)">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  value={product.tradeDiscountPercent ?? 0}
+                  onChange={(e) => update("tradeDiscountPercent", e.target.value)}
+                  className={inputClass}
+                />
+                <p className="mt-1 text-xs leading-5 text-emerald-800">Shown only to approved Trade members. Public pricing stays unchanged.</p>
               </Field>
 
               <Field label="Currency">

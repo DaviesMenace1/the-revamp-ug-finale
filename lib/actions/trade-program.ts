@@ -26,16 +26,22 @@ export async function submitTradeApplication(input: Record<string, unknown>) {
   const certificate = text(input.certificate, 500)
   if (!businessName || !QUALIFYING_GROUPS.has(businessCategory)) return { success: false, error: 'Enter your practice name and choose a qualifying professional group.' }
 
-  const existing = await db.query.tradeMembers.findFirst({ where: eq(tradeMembers.userId, authorization.user.id) })
-  const values = { businessName, businessCategory, tradeType: tradeType || null, taxNumber: taxNumber || null, businessLicense: businessLicense || null, certificate: certificate || null, status: 'pending', updatedAt: new Date() }
-  if (existing) {
-    await db.update(tradeMembers).set(values).where(eq(tradeMembers.id, existing.id))
-  } else {
-    await db.insert(tradeMembers).values({ userId: authorization.user.id, ...values })
-  }
+  try {
+    const existing = await db.query.tradeMembers.findFirst({ where: eq(tradeMembers.userId, authorization.user.id) })
+    const values = { businessName, businessCategory, tradeType: tradeType || null, taxNumber: taxNumber || null, businessLicense: businessLicense || null, certificate: certificate || null, status: 'pending', updatedAt: new Date() }
+    if (existing) {
+      await db.update(tradeMembers).set(values).where(eq(tradeMembers.id, existing.id))
+    } else {
+      await db.insert(tradeMembers).values({ userId: authorization.user.id, ...values })
+    }
 
-  revalidatePath('/trade-program')
-  return { success: true }
+    revalidatePath('/trade-program')
+    revalidatePath('/admin/trade-applications')
+    return { success: true }
+  } catch (error) {
+    console.error('[trade-program] application submission failed:', error)
+    return { success: false, error: 'We could not save your application right now. Please try again.' }
+  }
 }
 
 export async function reviewTradeApplication(input: { id: string; status: string; tier: string; discountRate: number }) {

@@ -10,7 +10,6 @@ import ConsultationNotificationPrompt from '@/components/notifications/consultat
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import PesapalEmbeddedCheckout from '@/components/payments/pesapal-embedded-checkout'
 
 const MODE_META: Record<string, { label: string; icon: LucideIcon; detail: string }> = {
   virtual: { label: 'Virtual consultation', icon: Video, detail: 'A private video call with the studio.' },
@@ -105,7 +104,6 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isApplyingPromo, setIsApplyingPromo] = useState(false)
   const [paymentState, setPaymentState] = useState<PaymentState>(null)
-  const [embeddedPaymentUrl, setEmbeddedPaymentUrl] = useState<string | null>(null)
   const [authorizationChallenge, setAuthorizationChallenge] = useState<AuthorizationChallenge | null>(null)
   const [authorizationCode, setAuthorizationCode] = useState('')
   const [error, setError] = useState('')
@@ -220,7 +218,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
         return
       }
       if (typeof payload.paymentUrl === 'string' && payload.paymentUrl) {
-        setEmbeddedPaymentUrl(payload.paymentUrl)
+        window.location.assign(payload.paymentUrl)
         return
       }
       if (payload.status === 'paid' || payload.status === 'paid_review') {
@@ -285,7 +283,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
         return
       }
       if (typeof payload.paymentUrl === 'string' && payload.paymentUrl) {
-        setEmbeddedPaymentUrl(payload.paymentUrl)
+        window.location.assign(payload.paymentUrl)
         return
       }
       if (payload.status === 'paid' || payload.status === 'paid_review') {
@@ -302,10 +300,10 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
       }
       if (typeof payload.chargeId === 'string' && (payload.authorizationType === 'pin' || payload.authorizationType === 'otp')) {
         setAuthorizationChallenge({ chargeId: payload.chargeId, paymentIntentId: typeof payload.paymentIntentId === 'string' ? payload.paymentIntentId : '', authorizationType: payload.authorizationType })
-        setPaymentState({ status: 'pending', message: payload.authorizationType === 'pin' ? 'Pesapal requires additional payment authorization. Continue on the secure payment page.' : 'Pesapal requires additional payment authorization. Continue on the secure payment page.' })
+        setPaymentState({ status: 'pending', message: payload.authorizationType === 'pin' ? 'Flutterwave requires additional payment authorization. Continue securely.' : 'Flutterwave requires additional payment authorization. Continue securely.' })
         return
       }
-      setError('Pesapal did not return a usable payment page. Please try again.')
+      setError('Flutterwave did not return a usable payment state. Please try again.')
     } catch {
       setError('We could not reach payment securely. Please check your connection and try again.')
     } finally {
@@ -337,7 +335,6 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
   return (
     <>
       <SiteHeader />
-      {embeddedPaymentUrl && <PesapalEmbeddedCheckout paymentUrl={embeddedPaymentUrl} title="Complete your consultation booking" onClose={() => { setEmbeddedPaymentUrl(null); setPaymentState({ status: 'pending', message: 'Your consultation time is held while you complete payment. Reopen the secure payment panel when you are ready.' }) }} />}
       <main className="min-h-screen bg-background">
         <section className="relative overflow-hidden bg-obsidian px-5 pb-16 pt-36 text-ivory sm:px-8 md:pb-24 md:pt-48 lg:px-16">
           <div className="absolute right-[-12%] top-[-30%] size-[40rem] rounded-full border border-gold/20" aria-hidden="true" />
@@ -366,7 +363,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
               </div>
 
               <section className="rounded-xl border border-border/70 bg-card p-5 motion-reveal" style={{ animationDelay: '200ms' }}>
-                <div><p className="text-[10px] uppercase tracking-[0.22em] text-primary">04 / Payment method</p><h2 className="mt-2 font-serif text-2xl font-light text-foreground">Choose how to pay.</h2><p className="mt-2 text-xs leading-5 text-muted-foreground">You will choose card or mobile money securely on Pesapal. Your payment details stay on the secure payment page.</p></div>
+                <div><p className="text-[10px] uppercase tracking-[0.22em] text-primary">04 / Payment method</p><h2 className="mt-2 font-serif text-2xl font-light text-foreground">Choose how to pay.</h2><p className="mt-2 text-xs leading-5 text-muted-foreground">Choose card or mobile money securely with Flutterwave. Your payment details stay protected throughout the payment process.</p></div>
                 <div className="mt-5 grid gap-2 sm:grid-cols-2">
                   <button type="button" onClick={() => setPaymentMethod('mobile_money')} aria-pressed={paymentMethod === 'mobile_money'} className={`flex min-h-12 items-center gap-3 rounded-md border px-4 text-left text-sm transition-colors ${paymentMethod === 'mobile_money' ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-primary/60'}`}><Smartphone className="size-4" aria-hidden="true" /><span><span className="block font-medium">Mobile Money</span><span className="text-xs opacity-70">MTN or Airtel</span></span></button>
                   <button type="button" onClick={() => setPaymentMethod('card')} aria-pressed={paymentMethod === 'card'} className={`flex min-h-12 items-center gap-3 rounded-md border px-4 text-left text-sm transition-colors ${paymentMethod === 'card' ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:border-primary/60'}`}><CreditCard className="size-4" aria-hidden="true" /><span><span className="block font-medium">Card</span><span className="text-xs opacity-70">Visa or Mastercard</span></span></button>
@@ -386,7 +383,7 @@ export default function BookConsultationClient({ slots = [], loadError = null }:
               {authorizationChallenge && <div className="space-y-4 rounded-xl border border-primary/30 bg-primary/5 p-5"><div><p className="text-sm font-medium text-foreground">Complete card authorization</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Enter the {authorizationChallenge.authorizationType === 'pin' ? 'Sandbox card PIN' : 'Sandbox OTP'}.</p></div><div className="flex flex-col gap-2 sm:flex-row"><Input aria-label={authorizationChallenge.authorizationType === 'pin' ? 'Card PIN or OTP' : 'Card OTP'} inputMode="numeric" type="password" value={authorizationCode} onChange={(event) => setAuthorizationCode(event.target.value)} placeholder={authorizationChallenge.authorizationType === 'pin' ? 'PIN or OTP' : 'OTP'} className="min-h-11 rounded-none" /><Button type="button" onClick={submitAuthorization} disabled={isSubmitting || !authorizationCode.trim()} className="min-h-11 rounded-none px-5 text-xs uppercase tracking-[0.12em]">{isSubmitting ? 'Authorizing…' : 'Authorize payment'}</Button></div></div>}
               {error && <p role="alert" className="border border-rose-300/70 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-400/40 dark:bg-rose-950/40 dark:text-rose-100">{error}</p>}
               {slots.length === 0 ? <Button type="button" onClick={() => router.push('/contact')} className="motion-reveal min-h-12 w-full rounded-none text-xs uppercase tracking-[0.18em]" style={{ animationDelay: '220ms' }}>Request a consultation window</Button> : <Button type="submit" disabled={isSubmitting} className="motion-reveal min-h-12 w-full rounded-none text-xs uppercase tracking-[0.18em]" style={{ animationDelay: '220ms' }}>{isSubmitting ? `Preparing ${money(totalAmount, appliedQuote?.currency || pricing.currency)} payment…` : `Pay ${money(totalAmount, appliedQuote?.currency || pricing.currency)} & confirm`}</Button>}
-              <p className="text-center text-xs leading-5 text-muted-foreground">You will continue to Pesapal’s secure checkout. Your slot is held briefly while payment is completed.</p>
+              <p className="text-center text-xs leading-5 text-muted-foreground">You will continue with Flutterwave securely. Your slot is held briefly while payment is completed.</p>
             </div>
           </form>
         </section>

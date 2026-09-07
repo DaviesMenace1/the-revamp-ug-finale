@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server'
 import { and, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { getCurrentUserWithRole } from '@/lib/auth/server'
-import { projectActivity, projectAssets, projects } from '@/lib/db/schema'
+import { projectActivity, projectAssets, projectMembers, projects } from '@/lib/db/schema'
 import { createProjectUploadUrl, headFromR2, isR2Configured, publicR2Url } from '@/lib/storage/r2'
+import { notifyUser } from '@/lib/notifications/service'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,6 +37,22 @@ function errorResponse(message: string, status: number) {
   return NextResponse.json({ success: false, error: message }, { status, headers: { 'Cache-Control': 'no-store' } })
 }
 
+
+async function notifyProjectClient(projectId: string, projectTitle: string, projectSlug: string, assetTitle: string, assetType: string) {
+  const [member] = await db.select({ userId: projectMembers.userId }).from(projectMembers).where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.role, 'client'))).limit(1)
+  if (!member) return
+  await notifyUser({
+    userId: member.userId,
+    type: 'project_asset_added',
+    priority: 'important',
+    title: `${projectTitle}: new project update`,
+    message: `${assetTitle} is now available in your client portal.`,
+    actionUrl: `/client/projects/${encodeURIComponent(projectSlug)}`,
+    metadata: { projectId, projectTitle, assetTitle, assetType },
+    channels: ['in_app', 'push', 'email'],
+  })
+}
+
 async function readJson(request: Request) {
   try {
     return await request.json() as AssetPayload
@@ -53,7 +70,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
   const staff = authorization.user
   const { id: projectId } = await context.params
-  const project = await db.query.projects.findFirst({ where: eq(projects.id, projectId), columns: { id: true, title: true } })
+  const project = await db.query.projects.findFirst({ where: eq(projects.id, projectId), columns: { id: true, title: true, slug: true } })
   if (!project) return errorResponse('Project not found.', 404)
 
   const payload = await readJson(request)
@@ -92,6 +109,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         summary: `${title} was added as a hosted 3D experience`,
         relatedAssetId: asset.id,
       })
+      await notifyProjectClient(projectId, project.title, project.slug, title, 'external_3d')
       return NextResponse.json({ success: true, asset }, { status: 201 })
     } catch (error) {
       console.error('Failed to add external project visualization link:', error)
@@ -152,6 +170,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       summary: `${title} was uploaded`,
       relatedAssetId: asset.id,
     })
+    await notifyProjectClient(projectId, project.title, project.slug, title, assetType)
     return NextResponse.json({ success: true, asset }, { status: 201 })
   } catch (error) {
     console.error('Failed to complete project asset upload:', error)

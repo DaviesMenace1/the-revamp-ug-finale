@@ -44,7 +44,7 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
           <aside className="lg:sticky lg:top-28 lg:self-start">
             <div className="flex items-center gap-3 border-b border-border pb-6"><div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-muted font-serif text-2xl text-foreground">{firstName.charAt(0).toUpperCase()}</div><div className="min-w-0"><p className="font-serif text-lg leading-tight">Welcome back,<br />{firstName}</p><Link href="/user-profile" className="mt-2 inline-block text-[10px] uppercase tracking-[0.15em] text-muted-foreground underline underline-offset-4">Edit profile</Link></div></div>
             <nav className="mt-5 grid gap-1" aria-label="Account sections"><AccountNav href="/account" icon={UserRound} label="Overview" active /><AccountNav href="/client/orders" icon={Package} label="Orders" /><AccountNav href="/user-profile#addresses" icon={MapPin} label="Addresses" /><AccountNav href="/wishlist" icon={Heart} label="Saved items" /><AccountNav href="/user-profile#settings" icon={Settings} label="Preferences" /><AccountNav href="/user-profile" icon={ShieldCheck} label="Account details" /></nav>
-            <div className="mt-6 border-t border-border pt-5"><Link href="/trade-program" className="flex items-center gap-3 px-3 py-3 text-sm text-foreground/75 transition hover:text-primary"><BriefcaseBusiness className="size-4" />Trade Program</Link></div>
+            <div className="mt-6 border-t border-border pt-5"><Link href="/trade-program" className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-foreground/80 transition hover:text-primary"><BriefcaseBusiness className="size-4" />Trade programme</Link></div>
           </aside>
 
           <main className="min-w-0">
@@ -53,6 +53,14 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
               <Metric label="Orders" value={orders.length} href="/client/orders" icon={Package} />
               <Metric label="Membership" value={membership?.status === 'active' ? 'Active' : 'Signature'} href="/membership" icon={Heart} />
               <Metric label="Consultations" value={nextConsultation ? '1' : '0'} href="/client/consultations" icon={CalendarDays} />
+            </section>
+
+            <section className="mt-8 border-b border-border pb-10" aria-labelledby="account-spaces-title">
+              <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.24em] text-primary">Your spaces</p><h2 id="account-spaces-title" className="mt-2 font-serif text-3xl sm:text-4xl">Continue where you belong.</h2></div><p className="max-w-sm text-sm leading-6 text-muted-foreground">Keep your project conversations close or explore privileges created for design professionals.</p></div>
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <Link href="/client" className="group flex min-h-40 flex-col justify-between border border-border bg-muted/20 p-5 transition hover:border-primary hover:bg-muted/40 sm:p-6"><BriefcaseBusiness className="size-6 text-foreground" /><span><span className="block font-serif text-2xl">Client portal</span><span className="mt-1 block text-sm leading-6 text-muted-foreground">Review projects, documents, appointments, and messages.</span><span className="mt-4 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]">Open portal <ArrowRight className="size-3 transition-transform group-hover:translate-x-1" /></span></span></Link>
+                <Link href="/trade-program" className="group flex min-h-40 flex-col justify-between border border-border bg-muted/20 p-5 transition hover:border-primary hover:bg-muted/40 sm:p-6"><ShieldCheck className="size-6 text-foreground" /><span><span className="block font-serif text-2xl">Trade programme</span><span className="mt-1 block text-sm leading-6 text-muted-foreground">Apply for professional access and product-specific privileges.</span><span className="mt-4 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]">Explore access <ArrowRight className="size-3 transition-transform group-hover:translate-x-1" /></span></span></Link>
+              </div>
             </section>
 
             <section className="mt-10 grid gap-5 border-b border-border pb-10 md:grid-cols-[1fr_0.82fr]">

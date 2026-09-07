@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gte, isNull, or } from 'drizzle-orm'
+import { and, asc, count, eq, gte, inArray, isNull, or } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { eventRsvps, membershipEvents } from '@/lib/db/schema'
 import { requirePortalUser } from '@/lib/auth/portal-auth'
@@ -12,9 +12,9 @@ export default async function TradeEventsPage() {
   const myRsvps = await db.select({ eventId: eventRsvps.eventId }).from(eventRsvps).where(eq(eventRsvps.userId, user.id))
   const registered = new Set(myRsvps.map((item) => item.eventId))
   const rsvpCounts: Record<string, number> = {}
-  for (const event of events) {
-    const [result] = await db.select({ value: count() }).from(eventRsvps).where(eq(eventRsvps.eventId, event.id))
-    rsvpCounts[event.id] = Number(result?.value ?? 0)
+  if (events.length > 0) {
+    const countRows = await db.select({ eventId: eventRsvps.eventId, value: count() }).from(eventRsvps).where(inArray(eventRsvps.eventId, events.map((event) => event.id))).groupBy(eventRsvps.eventId)
+    for (const row of countRows) rsvpCounts[row.eventId] = Number(row.value ?? 0)
   }
   return <TradeEventsClient events={events.map((event) => ({ id: event.id, title: event.title, description: event.description, image: event.image, location: event.location, meetingUrl: event.meetingUrl, eventDate: event.eventDate.toISOString(), capacity: event.capacity,
  rsvpCount: rsvpCounts[event.id] ?? 0, isRegistered: registered.has(event.id) }))} />

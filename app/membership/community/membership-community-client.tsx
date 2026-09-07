@@ -2,74 +2,14 @@
 
 import Image from 'next/image'
 import { PortalLayout } from '@/components/portals/portal-layout'
-
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Megaphone, Users } from '@/components/ui/luxury-icons'
+import { membershipNavItems } from '@/components/portals/portal-navigation'
 
-const membershipNavItems = [
-  { label: 'Dashboard', href: '/membership' },
-  { label: 'Collections', href: '/membership/collections' },
-  { label: 'Events', href: '/membership/events' },
-  { label: 'Community', href: '/membership/community' },
-  { label: 'Benefits', href: '/membership/benefits' },
-]
-
-type CommunityPost = {
-  id: string
-  title: string
-  body: string
-  image: string | null
-  category: string
-  createdAt: string
-}
-
-type Member = {
-
-  id: string
-  name: string
-  tier: string
-  company: string | null
-  city: string | null
-  memberSince: string
-}
+ type CommunityPost = { id: string; title: string; body: string; image: string | null; category: string; createdAt: string }
+ type Member = { id: string; name: string; tier: string }
 
 export default function MembershipCommunityClient({ members = [], posts = [] }: { members: Member[]; posts?: CommunityPost[] }) {
-
-  return (
-    <PortalLayout portalName="VIP Membership" portalSlug="membership" navItems={membershipNavItems}>
-      <div className="space-y-8">
-        <div className="space-y-2">
-          <h1 className="font-serif text-4xl md:text-5xl font-light text-foreground">Community</h1>
-          <p className="text-muted-foreground">Connect with fellow members of The Revamp UG.</p>
-        </div>
-
-                {posts.length > 0 && <section className="space-y-4"><div className="flex items-center gap-2"><Megaphone className="size-5 text-primary" aria-hidden="true" /><h2 className="font-serif text-2xl font-light text-foreground">From the studio</h2></div><div className="grid gap-4 lg:grid-cols-2">{posts.map((post) => <article key={post.id} className="overflow-hidden rounded-lg border border-border/40 bg-card">{post.image && <Image src={post.image} alt="" width={960} height={540} unoptimized className="h-44 w-full object-cover" />}{<div className="p-5"><p className="text-[10px] uppercase tracking-[0.16em] text-primary">{post.category}</p><h3 className="mt-2 font-serif text-xl text-foreground">{post.title}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{post.body}</p><time dateTime={post.createdAt} className="mt-4 block text-xs text-muted-foreground">{new Date(post.createdAt).toLocaleDateString('en-UG', { year: 'numeric', month: 'long', day: 'numeric' })}</time></div>}</article>)}</div></section>}
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-
-          {members.map((member) => (
-            <Card key={member.id} className="p-5">
-              <div className="flex items-center justify-between mb-2">
-                <p className="font-medium text-foreground">{member.name}</p>
-                <Badge className="capitalize">{member.tier}</Badge>
-              </div>
-              {member.company && <p className="text-sm text-muted-foreground">{member.company}</p>}
-              {member.city && <p className="text-sm text-muted-foreground">{member.city}</p>}
-              <p className="text-xs text-muted-foreground mt-2">
-                Member since {new Date(member.memberSince).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-              </p>
-            </Card>
-          ))}
-
-          {members.length === 0 && (
-            <div className="sm:col-span-2 lg:col-span-3 flex flex-col items-center rounded-lg border border-dashed border-border/40 p-12 text-center">
-              <Users className="mb-3 h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">No community members yet. Be the first to join!</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </PortalLayout>
-  )
+  return <PortalLayout portalName="Revamp Membership" portalSlug="membership" navItems={[...membershipNavItems]}><div className="space-y-10"><header className="max-w-3xl space-y-4"><p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-primary">Membership community</p><h1 className="font-serif text-4xl font-light leading-[1.04] text-foreground md:text-6xl">A quieter room for shared perspective.</h1><p className="text-base leading-7 text-muted-foreground">Meet the people in the membership space and keep up with notes from the studio. Profiles are intentionally kept simple.</p></header>{posts.length > 0 && <section className="space-y-5"><div className="flex items-center gap-3"><Megaphone className="size-5 text-primary" aria-hidden="true" /><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">From the studio</p><h2 className="font-serif text-3xl font-light text-foreground">Notes worth opening.</h2></div></div><div className="grid gap-5 lg:grid-cols-2">{posts.map((post) => <article key={post.id} className="overflow-hidden rounded-xl border border-border/70 bg-card">{post.image && <Image src={post.image} alt={post.title} width={960} height={540} unoptimized className="h-48 w-full object-cover" />}<div className="p-6"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">{post.category}</p><h3 className="mt-2 font-serif text-2xl text-foreground">{post.title}</h3><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{post.body}</p><time dateTime={post.createdAt} className="mt-5 block text-xs text-muted-foreground">{new Date(post.createdAt).toLocaleDateString('en-UG', { year: 'numeric', month: 'long', day: 'numeric' })}</time></div></article>)}</div></section>}<section className="space-y-5"><div className="flex items-end justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">The room</p><h2 className="font-serif text-3xl font-light text-foreground">Members in the space.</h2></div><span className="text-xs text-muted-foreground">{members.length} active members</span></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{members.map((member) => <Card key={member.id} className="p-5"><div className="flex items-center justify-between gap-3"><p className="font-medium text-foreground">{member.name}</p><Badge className="capitalize">{member.tier}</Badge></div><p className="mt-3 text-sm leading-6 text-muted-foreground">A member of The Revamp UG community.</p></Card>)}{members.length === 0 && <div className="sm:col-span-2 lg:col-span-3 flex flex-col items-center rounded-xl border border-dashed border-border/50 p-12 text-center"><Users className="mb-3 size-8 text-muted-foreground" /><p className="text-sm text-muted-foreground">The member room is being prepared.</p><p className="mt-2 text-xs text-muted-foreground/70">Return soon for studio notes and community introductions.</p></div>}</div></section></div></PortalLayout>
 }

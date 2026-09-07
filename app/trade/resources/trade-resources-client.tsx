@@ -1,15 +1,9 @@
 'use client'
 
 import { PortalLayout } from '@/components/portals/portal-layout'
+import { tradeNavItems } from '@/components/portals/portal-navigation'
 import { FileText, Video, Download } from '@/components/ui/luxury-icons'
 
-const tradeNavItems = [
-  { label: 'Dashboard', href: '/trade' },
-  { label: 'Collections', href: '/trade/collections' },
-  { label: 'Wholesale Pricing', href: '/trade/pricing' },
-  { label: 'Orders', href: '/trade/orders' },
-  { label: 'Resources', href: '/trade/resources' },
-]
 
 type Resource = {
   id: string
@@ -23,11 +17,11 @@ type Resource = {
 
 export default function TradeResourcesClient({ resources = [] }: { resources: Resource[] }) {
   return (
-    <PortalLayout portalName="Trade Portal" portalSlug="trade" navItems={tradeNavItems}>
+    <PortalLayout portalName="Trade Portal" portalSlug="trade" navItems={[...tradeNavItems]}>
       <div className="space-y-8">
         <div className="space-y-2">
           <h1 className="font-serif text-4xl md:text-5xl font-light text-foreground">Resources</h1>
-          <p className="text-muted-foreground">Catalogs, guides, and assets for trade partners.</p>
+          <p className="text-muted-foreground">Catalogues, guides, and studio assets to support your practice.</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -58,7 +52,7 @@ export default function TradeResourcesClient({ resources = [] }: { resources: Re
                     )}
                   </div>
                 </div>
-                <Download className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">Open <Download className="h-4 w-4" /></span>
               </a>
             )
           })}

@@ -1,17 +1,11 @@
 'use client'
 
 import { PortalLayout } from '@/components/portals/portal-layout'
+import { membershipNavItems } from '@/components/portals/portal-navigation'
 import { Check, Zap, Gift, ArrowRight } from '@/components/ui/luxury-icons'
 import BrowserNotificationPrompt from '@/components/notifications/browser-notification-prompt'
 import Link from 'next/link'
 
-const membershipNavItems = [
-  { label: 'Overview', href: '/membership' },
-  { label: 'Collections', href: '/membership/collections' },
-  { label: 'Events', href: '/membership/events' },
-  { label: 'Community', href: '/membership/community' },
-  { label: 'Benefits', href: '/membership/benefits' },
-]
 
 type Rewards = {
   tier: string
@@ -24,7 +18,7 @@ type Rewards = {
 
 export default function MembershipBenefitsClient({ rewards }: { rewards: Rewards }) {
   return (
-    <PortalLayout portalName="Revamp Membership" portalSlug="membership" navItems={membershipNavItems}>
+    <PortalLayout portalName="Revamp Membership" portalSlug="membership" navItems={[...membershipNavItems]}>
       <div className="space-y-12">
         <BrowserNotificationPrompt context="membership" />
         <div><p className="text-xs uppercase tracking-[0.2em] text-primary">Points-led access</p><h1 className="mt-3 font-serif text-4xl font-light text-foreground md:text-5xl">Membership privileges</h1><p className="mt-3 max-w-2xl text-lg text-muted-foreground">There is no membership fee. Your access grows through the points you accumulate with The Revamp UG.</p></div>

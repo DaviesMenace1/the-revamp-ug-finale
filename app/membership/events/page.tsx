@@ -1,7 +1,7 @@
 import { requirePortalUser } from '@/lib/auth/portal-auth'
 import { db } from '@/lib/db/client'
 import { membershipEvents, eventRsvps } from '@/lib/db/schema'
-import { and, asc, count, eq, gte, isNull, or } from 'drizzle-orm'
+import { and, asc, count, eq, gte, inArray, isNull, or } from 'drizzle-orm'
 import MembershipEventsClient from './membership-events-client'
 
 export const dynamic = 'force-dynamic'
@@ -27,9 +27,9 @@ export default async function MembershipEvents() {
   const rsvpEventIds = new Set(myRsvps.map((r) => r.eventId))
 
   const rsvpCounts: Record<string, number> = {}
-  for (const event of events) {
-    const [result] = await db.select({ value: count() }).from(eventRsvps).where(eq(eventRsvps.eventId, event.id))
-    rsvpCounts[event.id] = Number(result?.value ?? 0)
+  if (events.length > 0) {
+    const countRows = await db.select({ eventId: eventRsvps.eventId, value: count() }).from(eventRsvps).where(inArray(eventRsvps.eventId, events.map((event) => event.id))).groupBy(eventRsvps.eventId)
+    for (const row of countRows) rsvpCounts[row.eventId] = Number(row.value ?? 0)
   }
 
   const formatted = events.map((e) => ({
@@ -47,4 +47,3 @@ export default async function MembershipEvents() {
 
   return <MembershipEventsClient events={formatted} />
 }
-

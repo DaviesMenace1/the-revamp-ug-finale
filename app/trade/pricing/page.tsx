@@ -10,9 +10,5 @@ export default async function TradePricing() {
   const user = await requirePortalUser(['trade_member', 'admin'], '/trade/pricing')
   const member = await db.query.tradeMembers.findFirst({ where: eq(tradeMembers.userId, user.id) })
 
-  return <TradePricingClient member={{
-    businessName: member?.businessName || 'Approved trade account',
-    tier: member?.tier || 'approved',
-    status: member?.status || 'pending',
-  }} />
+  return <TradePricingClient member={member ? { businessName: member.businessName, tier: member.tier || 'Trade access', status: member.status || 'pending' } : null} />
 }

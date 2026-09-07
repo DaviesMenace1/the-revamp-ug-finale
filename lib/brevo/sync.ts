@@ -80,17 +80,18 @@ export async function subscribeToNewsletter(email: string, firstName?: string, l
  * Send the single first-party welcome note. This remains opt-in so deployments
  * can keep an existing Brevo automation disabled until the direct email is ready.
  */
-export async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
+export async function sendNewsletterWelcomeEmail(email: string, firstName?: string): Promise<void> {
   if (process.env.BREVO_WELCOME_EMAIL_ENABLED !== 'true') return;
 
   const senderEmail = process.env.BREVO_SENDER_EMAIL;
   if (!senderEmail) throw new Error('BREVO_SENDER_EMAIL is required when the welcome email is enabled.');
 
   const senderName = process.env.BREVO_SENDER_NAME || 'The Revamp UG';
+  const replyToEmail = process.env.BREVO_REPLY_TO_EMAIL || 'support@therevampug.com';
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://therevampug.com').replace(/\/$/, '');
+  const recipientName = firstName?.trim() || 'there';
   const subject = 'Welcome to The Revamp UG';
-  const previewText = 'A world of refined living, thoughtfully curated.';
-  const textContent = `Welcome to The Revamp UG.\n\nA world of refined living, thoughtfully curated.\n\nThank you for joining The Revamp UG. You are now part of a growing community of people who appreciate considered spaces, exceptional materials, and the quiet beauty of things made well.\n\nThrough our journal and newsletter, we will share inspiration, new collections, design perspectives, curated discoveries, and stories from the world of interiors and architecture.\n\nA gift from The Revamp UG\nYour promised guide will be shared with you separately once it is available.\n\nConsider this the beginning of your journey with us. There is much more to come.\n\nWith warmth,\nThe Revamp UG\n\nKyanja | Kampala, Uganda\n\nYou received this because you subscribed to our newsletter.`;
+  const textContent = `Hello ${recipientName},\n\nThank you for joining The Revamp UG. Your subscription is confirmed.\n\nA world of refined living, thoughtfully curated.\n\nWe are glad to have you with us. When we write, we will keep it considered and useful, with occasional notes from the studio and ideas for creating spaces that feel like your own.\n\nVisit The Revamp UG: ${siteUrl}\n\nWith warmth,\nThe Revamp UG\nKyanja | Kampala, Uganda\n\nYou received this confirmation because you subscribed on our website. To stop receiving these notes, reply to this email with unsubscribe.`;
   const logoUrl = `${siteUrl}/brand/revamp-logo.png`;
   const guideUrl = process.env.BREVO_WELCOME_GUIDE_URL?.trim();
   const attachment = guideUrl ? [{ url: guideUrl, name: 'MountViewSample-Model.pdf' }] : undefined;
@@ -101,33 +102,27 @@ export async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${subject}</title>
   </head>
-  <body style="margin:0;background:#e9dfd3;color:#292521;font-family:Arial,Helvetica,sans-serif">
-    <div style="width:100%;background:#e9dfd3;padding:28px 12px">
-      <div style="max-width:620px;margin:0 auto;background:#e9dfd3">
-        <div style="background:#0f0e0d;padding:44px 30px;text-align:center">
-          <img src="${logoUrl}" alt="The Revamp UG" width="260" style="display:block;width:260px;max-width:100%;height:auto;margin:0 auto">
+  <body style="margin:0;background:#f7f4ef;color:#292521;font-family:Arial,Helvetica,sans-serif">
+    <div style="width:100%;background:#f7f4ef;padding:30px 14px">
+      <div style="max-width:590px;margin:0 auto;background:#f7f4ef">
+        <div style="padding:18px 0 28px;border-bottom:1px solid #d8d0c7;text-align:center">
+          <img src="${logoUrl}" alt="The Revamp UG" width="180" style="display:block;width:180px;max-width:72%;height:auto;margin:0 auto">
         </div>
-        <div style="padding:68px 44px 36px;background:#e9dfd3">
-          <p style="margin:0;font-size:10px;letter-spacing:4px;text-transform:uppercase;color:#8c795a">Welcome to The Revamp UG</p>
-          <h1 style="margin:24px 0 22px;font-family:Georgia,'Times New Roman',serif;font-size:42px;line-height:1.04;font-weight:400;color:#292521">A world of refined living,<br>thoughtfully curated.</h1>
-          <div style="width:38px;height:1px;background:#8c795a;margin:0 0 25px"></div>
-          <p style="margin:0 0 24px;font-size:14px;line-height:1.8;color:#514a42">Thank you for joining The Revamp UG.</p>
-          <p style="margin:0 0 24px;font-size:14px;line-height:1.8;color:#514a42">You are now part of a growing community of people who appreciate considered spaces, exceptional materials, and the quiet beauty of things made well.</p>
-          <p style="margin:0;font-size:14px;line-height:1.8;color:#514a42">Through our journal and newsletter, we will share inspiration, new collections, design perspectives, curated discoveries, and stories from the world of interiors and architecture.</p>
-          <div style="margin:38px 0 30px;border:1px solid #d0c4b6;padding:25px 24px;background:#eee6dc">
-            <p style="margin:0 0 12px;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#8c795a">A gift from The Revamp UG</p>
-            <h2 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:1.2;font-weight:400;color:#292521">Your promised guide is on its way.</h2>
-            <p style="margin:0;font-size:12px;line-height:1.7;color:#514a42">We will share your complimentary guide as soon as it is connected to the welcome email. We hope it gives you a little inspiration for the spaces you are creating, refining, or dreaming about.</p>
-          </div>
-          <p style="margin:0 0 30px;font-size:14px;line-height:1.8;color:#514a42">Consider this the beginning of your journey with us. There is much more to come.</p>
+        <div style="padding:48px 28px 34px">
+          <p style="margin:0;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#8c795a">Welcome to The Revamp UG</p>
+          <h1 style="margin:22px 0 20px;font-family:Georgia,'Times New Roman',serif;font-size:38px;line-height:1.08;font-weight:400;color:#292521">A world of refined living,<br>thoughtfully curated.</h1>
+          <div style="width:34px;height:1px;background:#8c795a;margin:0 0 28px"></div>
+          <p style="margin:0 0 20px;font-size:15px;line-height:1.8;color:#514a42">Hello ${recipientName},</p>
+          <p style="margin:0 0 20px;font-size:15px;line-height:1.8;color:#514a42">Thank you for joining The Revamp UG. Your subscription is confirmed.</p>
+          <p style="margin:0 0 20px;font-size:15px;line-height:1.8;color:#514a42">We are glad to have you with us. When we write, we will keep it considered and useful, with occasional notes from the studio and ideas for creating spaces that feel like your own.</p>
+          <a href="${siteUrl}" style="display:inline-block;margin:8px 0 34px;padding:14px 19px;background:#292521;color:#f7f4ef;text-decoration:none;font-size:10px;letter-spacing:1.8px;text-transform:uppercase">Visit The Revamp UG</a>
           <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:18px;color:#292521">With warmth,</p>
-          <p style="margin:7px 0 0;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#8c795a">The Revamp UG</p>
+          <p style="margin:8px 0 0;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#8c795a">The Revamp UG</p>
         </div>
-        <div style="padding:30px 24px 36px;background:#e9dfd3;text-align:center;border-top:1px solid #d0c4b6">
-          <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:17px;color:#292521">The Revamp UG</p>
-          <p style="margin:7px 0 25px;font-size:12px;color:#6c6258">Kyanja | Kampala, Uganda</p>
-          <p style="margin:0;font-size:11px;line-height:1.7;color:#6c6258">You received this because you subscribed to our newsletter.</p>
-          <p style="margin:10px 0 0;font-size:11px;color:#6c6258">You can unsubscribe by replying to this email.</p>
+        <div style="padding:26px 28px 34px;border-top:1px solid #d8d0c7;text-align:center">
+          <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:16px;color:#292521">Kyanja | Kampala, Uganda</p>
+          <p style="margin:12px 0 0;font-size:11px;line-height:1.7;color:#6c6258">You received this confirmation because you subscribed on our website.</p>
+          <p style="margin:8px 0 0;font-size:11px;line-height:1.7;color:#6c6258">To stop receiving these notes, reply to this email with unsubscribe.</p>
         </div>
       </div>
     </div>
@@ -139,7 +134,7 @@ export async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
     headers: getHeaders(),
     body: JSON.stringify({
       sender: { name: senderName, email: senderEmail },
-      replyTo: { email: process.env.BREVO_REPLY_TO_EMAIL || 'support@therevampug.com', name: senderName },
+      replyTo: { email: replyToEmail, name: senderName },
       to: [{ email }],
       subject,
       textContent,

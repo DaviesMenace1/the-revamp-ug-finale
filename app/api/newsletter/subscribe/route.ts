@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     });
 
     try {
-      await sendNewsletterWelcomeEmail(normalizedEmail);
+      await sendNewsletterWelcomeEmail(normalizedEmail, firstName);
     } catch (welcomeError) {
       console.warn('[Brevo] Welcome email failed after subscription:', welcomeError);
     }

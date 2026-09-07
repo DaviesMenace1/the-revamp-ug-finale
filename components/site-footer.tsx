@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState } from 'react'
 import { ChevronDown, ChevronUpIcon, FaInstagram, Mail, MapPin, Phone } from '@/components/ui/luxury-icons'
 import { siteContact } from '@/lib/site-config'
@@ -62,7 +63,7 @@ export function SiteFooter() {
   return <footer className="border-t border-border bg-canvas text-foreground">
     <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
       <div className="grid gap-12 lg:grid-cols-[1.05fr_1.7fr_1.2fr] lg:gap-16">
-        <div><Link href="/" className="inline-flex items-start" aria-label="The Revamp UG home"><span className="font-serif text-7xl font-light leading-[0.72]">R</span></Link><p className="mt-5 text-[10px] uppercase tracking-[0.35em] text-muted-foreground">The Revamp UG</p><p className="mt-8 max-w-xs font-serif text-4xl font-light leading-[0.98] sm:text-5xl">The architecture of refined living.</p><p className="mt-5 max-w-sm text-sm leading-6 text-muted-foreground">Interiors. Architecture. Global sourcing.<br />A more considered way to live.</p></div>
+        <div><Link href="/" className="inline-flex items-start" aria-label="The Revamp UG home"><Image src="/brand/revamp-logo.png" alt="The Revamp UG" width={220} height={84} className="h-auto w-[180px] object-contain object-left" /></Link><p className="mt-8 max-w-xs font-serif text-4xl font-light leading-[0.98] sm:text-5xl">The architecture of refined living.</p><p className="mt-5 max-w-sm text-sm leading-6 text-muted-foreground">Interiors. Architecture. Global sourcing.<br />A more considered way to live.</p></div>
         <div className="hidden gap-10 sm:grid sm:grid-cols-3"><FooterGroup group={footerGroups[0]} expanded={false} onToggle={() => undefined} /><FooterGroup group={footerGroups[1]} expanded={false} onToggle={() => undefined} /><FooterGroup group={footerGroups[2]} expanded={false} onToggle={() => undefined} /></div>
         <div><NewsletterSignup variant="footer" consentRequired title="Curated stories, new arrivals and inspiration, to your inbox." subtitle="" buttonText="Join" /></div>
       </div>

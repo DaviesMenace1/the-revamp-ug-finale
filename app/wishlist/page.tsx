@@ -5,7 +5,7 @@ import Image from 'next/image'
 import {
   ArrowRight,
   Heart,
-  ShoppingBag,
+  ShoppingCart,
   Trash2,
 } from '@/components/ui/luxury-icons'
 import { useEffect, useState } from 'react'
@@ -300,7 +300,7 @@ export default function WishlistPage() {
                       )
                     }
                   >
-                    <ShoppingBag
+                    <ShoppingCart
                       data-icon="inline-start"
                     />
                     Add to cart

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, CalendarDays, Heart, MapPin, Package, Settings, ShieldCheck, ShoppingBag, UserRound, BriefcaseBusiness } from '@/components/ui/luxury-icons'
+import { ArrowRight, CalendarDays, Heart, MapPin, Package, Settings, ShieldCheck, ShoppingCart, UserRound, BriefcaseBusiness } from '@/components/ui/luxury-icons'
 import { useEffect, useState } from 'react'
 import { useCart } from '@/lib/context/cart-context'
 
@@ -49,7 +49,7 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
 
           <main className="min-w-0">
             <section className="grid gap-3 border-b border-border pb-8 sm:grid-cols-2 xl:grid-cols-4" aria-label="Account overview">
-              <Metric label="Cart items" value={displayCartCount} href="/cart" icon={ShoppingBag} />
+              <Metric label="Cart items" value={displayCartCount} href="/cart" icon={ShoppingCart} />
               <Metric label="Orders" value={orders.length} href="/client/orders" icon={Package} />
               <Metric label="Membership" value={membership?.status === 'active' ? 'Active' : 'Signature'} href="/membership" icon={Heart} />
               <Metric label="Consultations" value={nextConsultation ? '1' : '0'} href="/client/consultations" icon={CalendarDays} />
@@ -69,7 +69,7 @@ export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
             </section>
 
             <AccountSectionTitle title="Recent orders" href="/client/orders" />
-            <section className="divide-y divide-border border-b border-border">{recentOrder ? <Link href="/client/orders" className="flex items-center gap-4 py-4 transition hover:bg-muted/30 sm:gap-5"><div className="size-16 shrink-0 overflow-hidden bg-muted">{recentOrderImage ? <img src={recentOrderImage} alt="" className="h-full w-full object-cover" /> : <ShoppingBag className="m-5 size-6 text-muted-foreground" />}</div><div className="min-w-0 flex-1"><p className="font-serif text-xl">Order #{recentOrder.orderNumber}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(recentOrder.createdAt)}</p><span className="mt-2 inline-flex text-xs capitalize text-foreground/65">●&nbsp; {orderStatus}</span></div><ArrowRight className="size-4 shrink-0 text-muted-foreground" /></Link> : <p className="py-8 text-sm text-muted-foreground">Your orders will appear here after your first purchase.</p>}</section>
+            <section className="divide-y divide-border border-b border-border">{recentOrder ? <Link href="/client/orders" className="flex items-center gap-4 py-4 transition hover:bg-muted/30 sm:gap-5"><div className="size-16 shrink-0 overflow-hidden bg-muted">{recentOrderImage ? <img src={recentOrderImage} alt="" className="h-full w-full object-cover" /> : <ShoppingCart className="m-5 size-6 text-muted-foreground" />}</div><div className="min-w-0 flex-1"><p className="font-serif text-xl">Order #{recentOrder.orderNumber}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(recentOrder.createdAt)}</p><span className="mt-2 inline-flex text-xs capitalize text-foreground/65">●&nbsp; {orderStatus}</span></div><ArrowRight className="size-4 shrink-0 text-muted-foreground" /></Link> : <p className="py-8 text-sm text-muted-foreground">Your orders will appear here after your first purchase.</p>}</section>
 
             <div className="mt-10 grid gap-8 md:grid-cols-2"><section><AccountSectionTitle title="Saved items" href="/wishlist" /><Link href="/wishlist" className="flex min-h-28 items-center justify-center border border-dashed border-border text-sm text-muted-foreground transition hover:border-primary hover:text-primary"><Heart className="mr-2 size-4" />View your saved pieces</Link></section><section><AccountSectionTitle title="Addresses" href="/user-profile#addresses" /><Link href="/user-profile#addresses" className="flex min-h-28 items-center gap-3 border border-border p-5 text-sm text-muted-foreground transition hover:border-primary hover:text-primary"><MapPin className="size-5" /><span>Manage your delivery addresses</span><ArrowRight className="ml-auto size-4" /></Link></section></div>
 

@@ -3,12 +3,12 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useClerk } from '@clerk/nextjs'
-import { BookOpen, BriefcaseBusiness, Home, ShoppingBag, ShoppingCart, UserRound, LogOut, X } from '@/components/ui/luxury-icons'
+import { BookOpen, BriefcaseBusiness, Home, ShoppingCart, UserRound, LogOut, X } from '@/components/ui/luxury-icons'
 import { LuxuryAccountIcon, LuxuryMenuIcon } from '@/components/ui/luxury-nav-icons'
 
 const navItems = [
   { label: 'Home', href: '/', icon: Home },
-  { label: 'Shop', href: '/collections', icon: ShoppingBag },
+  { label: 'Shop', href: '/collections', icon: ShoppingCart },
   { label: 'Projects', href: '/client/projects', icon: BriefcaseBusiness },
   { label: 'Journal', href: '/journal', icon: BookOpen },
   { label: 'Account', href: '/account', icon: UserRound },

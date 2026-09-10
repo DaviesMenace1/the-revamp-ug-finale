@@ -3,6 +3,7 @@ import { db } from '@/lib/db/client'
 import { projects } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import ProjectsClient from './projects-client'
+import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,15 +13,19 @@ export default async function ClientProjects() {
     '/client/projects',
   )
 
-  const myProjects = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.userId, user.id))
-    .orderBy(desc(projects.createdAt))
+  const result = await safeQuery(
+    db
+      .select()
+      .from(projects)
+      .where(eq(projects.userId, user.id))
+      .orderBy(desc(projects.createdAt)),
+    'client projects',
+    [],
+  )
 
-  const formatted = myProjects.map((p) => ({
+  const formatted = result.data.map((p) => ({
     id: p.id,
-    slug: p.slug,
+    slug: p.slug?.trim() || p.id,
     title: p.title,
     status: p.status,
     progress: p.progress ?? 0,
@@ -30,6 +35,6 @@ export default async function ClientProjects() {
     dueDate: p.dueDate ? p.dueDate.toISOString() : null,
   }))
 
-  return <ProjectsClient projects={formatted} />
+  return <ProjectsClient projects={formatted} loadError={result.error ? 'Projects are temporarily unavailable. You can retry the page.' : null} />
 }
 

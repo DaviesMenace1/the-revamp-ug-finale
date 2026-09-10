@@ -1,187 +1,29 @@
-'use client'
-
+import Image from 'next/image'
+import Link from 'next/link'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
+import { getSetting } from '@/lib/actions/settings'
+import { DEFAULT_ABOUT, type AboutContent } from '@/lib/about-content'
+import { getPublishedProjects } from '@/lib/db/queries'
+import { resolveProductImageUrls } from '@/lib/utils'
 
-const teamMembers = [
-  {
-    name: 'Faridah Nakayiwa A.',
-    title: 'Founder & Creative Director',
-    bio: 'The visionary behind The Revamp UG, blending refined East African craft with world-class design sensibility.',
-    image: '/team/faridah-nakayiwa.webp',
-  },
-  {
-    name: 'Davis Musinguzi',
-    title: 'Technical Lead',
-    bio:'Coordinates technical projects, platform maintenance, and developer workflows.',
-    image: '/team/davis-musinguzi.jpg',
-  },
-]
+export const dynamic = 'force-dynamic'
+export const metadata = { title: 'The Studio - The Revamp UG', description: "Meet The Revamp UG, a Kampala studio bringing together architecture, interiors, sourcing and thoughtful project direction across East Africa." }
 
-const stats = [
-  { number: '120+', label: 'Projects Completed' },
-  { number: '14', label: 'Years of Experience' },
-  { number: '98%', label: 'Client Satisfaction' },
-  { number: '25+', label: 'Countries Sourced From' },
-]
-
-export default function AboutPage() {
-  return (
-    <>
-      <SiteHeader />
-      <main className="min-h-screen bg-background">
-        {/* Hero */}
-        <section className="border-b border-border/20 bg-gradient-to-br from-background via-background to-muted/20 py-24 md:py-32">
-          <div className="mx-auto max-w-5xl px-6 md:px-8 space-y-6">
-            <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground">
-              About Revamp UG
-            </h1>
-            <p className="max-w-2xl text-xl text-muted-foreground font-light">
-              Transforming spaces and lives through thoughtful design, architecture, and global curation
-            </p>
-          </div>
-        </section>
-
-        {/* Story */}
-        <section className="py-20 md:py-28 border-b border-border/20">
-          <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <div className="grid md:grid-cols-2 gap-16 items-center">
-              <div className="space-y-6">
-                <h2 className="font-serif text-4xl font-light text-foreground">Our Story</h2>
-                <p className="text-lg text-muted-foreground font-light leading-relaxed">
-                  Revamp UG was founded with a simple mission: to bring world-class design and architecture to East Africa. 
-                  What started as a dream in Kampala has grown into a full-service design studio serving clients across Uganda, 
-                  Kenya, Tanzania, and beyond.
-                </p>
-                <p className="text-lg text-muted-foreground font-light leading-relaxed">
-                  We believe that exceptional design isn't a luxury—it's a necessity. Every project, from residential apartments 
-                  to commercial spaces, deserves thoughtful design, quality materials, and meticulous execution.
-                </p>
-              </div>
-              <div className="h-96 bg-gradient-to-br from-muted to-muted/50 rounded-lg overflow-hidden" >
-                  <img
-                      src="https://res.cloudinary.com/r8epy5mg/image/upload/v1785658769/file_0000000044ec71f48458614b2de85725_l4eeso.png"
-                      alt="The Revamp UG design showcase"
-                      className="w-full h-full object-cover"
-                    />   
-             </div>
-           </div>
-          </div>
-        </section>
-
-        {/* Mission & Values */}
-        <section className="py-20 md:py-28 border-b border-border/20 bg-muted/5">
-          <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <div className="grid md:grid-cols-2 gap-16">
-              <div className="space-y-4">
-                <h3 className="font-serif text-3xl font-light text-foreground">Our Mission</h3>
-                <p className="text-muted-foreground font-light leading-relaxed">
-                  To create exceptional spaces that inspire, function beautifully, and reflect the unique personalities 
-                  and aspirations of our clients. We combine international design expertise with local knowledge to deliver 
-                  truly transformative projects.
-                </p>
-              </div>
-              <div className="space-y-4">
-                <h3 className="font-serif text-3xl font-light text-foreground">Our Values</h3>
-                <ul className="space-y-3">
-                  {['Quality & Craftsmanship', 'Client-Centered Design', 'Global Vision, Local Touch', 'Sustainable Practices'].map(
-                    value => (
-                      <li key={value} className="flex items-start gap-3">
-                        <span className="text-primary/60 mt-1">•</span>
-                        <span className="text-muted-foreground font-light">{value}</span>
-                      </li>
-                    )
-                  )}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Stats */}
-        <section className="py-20 md:py-28 border-b border-border/20">
-          <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <div className="grid md:grid-cols-4 gap-8 text-center">
-              {stats.map(stat => (
-                <div key={stat.label} className="space-y-2">
-                  <p className="font-serif text-5xl font-light text-primary">{stat.number}</p>
-                  <p className="text-muted-foreground font-light">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Team */}
-        <section className="py-20 md:py-28 border-b border-border/20 bg-muted/5">
-          <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <h2 className="font-serif text-4xl font-light text-foreground mb-16 text-center">Meet Our Team</h2>
-            <div className="grid md:grid-cols-2 gap-12">
-              {teamMembers.map(member => (
-                <div key={member.name} className="space-y-4 p-6 rounded-lg border border-border/20 hover:border-primary/20 transition-colors">
-                  <div className="relative h-80 overflow-hidden rounded-lg mb-4 bg-gradient-to-br from-muted to-muted/50">
-                    {member.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={member.image || "/placeholder.svg"}
-                        alt={`Portrait of ${member.name}`}
-                        className="absolute inset-0 h-full w-full object-cover object-top"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="font-serif text-5xl font-light text-primary/40">
-                          {member.name
-                            .split(' ')
-                            .map(n => n[0])
-                            .slice(0, 2)
-                            .join('')}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="font-serif text-2xl font-light text-foreground">{member.name}</h3>
-                  <p className="text-primary/80 font-medium text-sm uppercase tracking-wider">{member.title}</p>
-                  <p className="text-muted-foreground font-light leading-relaxed">{member.bio}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="py-20 md:py-24">
-          <div className="mx-auto max-w-3xl px-6 md:px-8 text-center space-y-8">
-            <div className="space-y-4">
-              <h2 className="font-serif text-4xl font-light text-foreground">
-                Let's Create Something Beautiful Together
-              </h2>
-              <p className="text-lg text-muted-foreground font-light">
-                Ready to transform your space? Get in touch with our team.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Button
-                asChild
-                size="lg"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none font-light text-base px-8 py-6"
-              >
-                <Link href="/book-consultation">Book Consultation</Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="rounded-none font-light text-base px-8 py-6"
-              >
-                <Link href="/contact">Contact Us</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-      </main>
-      <SiteFooter />
-    </>
-  )
+export default async function AboutPage() {
+  const [about, projects] = await Promise.all([getSetting<AboutContent>('aboutPage', DEFAULT_ABOUT), getPublishedProjects(6, 0)])
+  const storyParagraphs = about.story.split(/\n+/).filter(Boolean)
+  const founderParagraphs = about.founderStory.split(/\n+/).filter(Boolean)
+  const heroImage = about.heroImage || '/prototype/hero-villa.jpg'
+  const storyImage = about.storyImage || heroImage
+  return <><SiteHeader /><main>
+    <section className="px-6 pb-20 pt-16 lg:px-12"><div className="mx-auto grid max-w-7xl grid-cols-1 items-end gap-12 lg:grid-cols-12"><div className="lg:col-span-7"><div className="mb-6 inline-flex items-center gap-3"><span className="h-px w-8 bg-gilded" /><span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">The Studio</span></div><h1 className="font-serif text-5xl font-medium leading-[1.05] text-balance md:text-7xl">{about.heroTitle}</h1></div><div className="lg:col-span-5"><p className="text-lg leading-relaxed text-muted-foreground">{about.heroIntro}</p></div></div></section>
+    <section className="px-6 pb-24 lg:px-12"><div className="mx-auto grid max-w-7xl grid-cols-1 gap-2 md:grid-cols-3"><Image src={heroImage} alt="The Revamp UG studio and interior work" width={1200} height={1600} priority className="aspect-[3/4] w-full rounded-md object-cover md:col-span-2" /><Image src={storyImage} alt="A detail from The Revamp UG design practice" width={800} height={1067} className="mt-12 aspect-[3/4] w-full rounded-md object-cover" /></div></section>
+    <section className="px-6 pb-24 lg:px-12"><div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 lg:grid-cols-12"><div className="lg:col-span-5"><p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">{about.storyTitle}</p><h2 className="mt-5 font-serif text-4xl font-medium leading-tight md:text-5xl">The work starts with listening.</h2></div><div className="space-y-6 text-lg leading-relaxed text-muted-foreground lg:col-span-7">{storyParagraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div></div></section>
+    <section className="bg-obsidian px-6 py-28 text-canvas lg:px-12"><div className="mx-auto grid max-w-7xl gap-16 lg:grid-cols-12 lg:items-center"><div className="lg:col-span-5"><Image src={about.founderImage || '/team/faridah-nakayiwa.webp'} alt={about.founderTitle || 'The Revamp UG founder'} width={900} height={1100} className="aspect-[4/5] w-full rounded-md object-cover" /></div><div className="lg:col-span-7"><p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">A point of view from here</p><h2 className="mt-5 font-serif text-4xl leading-tight md:text-6xl">{about.founderTitle}</h2><div className="mt-8 max-w-2xl space-y-5 text-lg leading-relaxed text-canvas/70">{founderParagraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div></div></div></section>
+    {about.capabilities.length > 0 && <section className="px-6 py-24 lg:px-12"><div className="mx-auto max-w-7xl"><div className="mb-12"><p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">What we do</p><h2 className="font-serif text-4xl leading-tight md:text-5xl">One studio, several ways to help.</h2></div><div className="grid grid-cols-1 gap-10 border-t border-border pt-10 sm:grid-cols-2 lg:grid-cols-4">{about.capabilities.map((capability) => <article key={capability.title}><h3 className="font-serif text-2xl font-medium">{capability.title}</h3><p className="mt-3 text-sm leading-6 text-muted-foreground">{capability.description}</p></article>)}</div></div></section>}
+    {projects.length > 0 && <section className="bg-canvas-dark px-6 py-24 lg:px-12"><div className="mx-auto max-w-7xl"><div className="flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">The work</p><h2 className="mt-4 font-serif text-4xl md:text-5xl">A few places we have shaped.</h2></div><Link href="/portfolio" className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gilded">View the full archive →</Link></div><div className="mt-12 grid gap-6 md:grid-cols-3">{projects.slice(0, 6).map((project) => <Link key={project.id} href={`/portfolio/${project.slug}`} className="group"><div className="relative aspect-[4/3] overflow-hidden rounded-md bg-muted"><Image src={resolveProductImageUrls(project)[0]} alt={project.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" /></div><p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-gilded">{project.category || 'Project'}{project.location ? ` · ${project.location}` : ''}</p><h3 className="mt-2 font-serif text-2xl">{project.title}</h3><p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{project.shortDescription || project.description || 'A considered space shaped around the people who use it.'}</p></Link>)}</div></div></section>}
+    {about.references.length > 0 && <section className="px-6 py-24 lg:px-12"><div className="mx-auto max-w-7xl"><p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">References</p><h2 className="font-serif text-4xl md:text-5xl">Selected notes from the studio.</h2><div className="mt-12 grid gap-8 md:grid-cols-3">{about.references.map((reference) => <article key={reference.title} className="border-t border-border pt-5"><p className="text-[10px] uppercase tracking-[0.2em] text-gilded">{reference.category}</p><h3 className="mt-3 font-serif text-2xl">{reference.title}</h3><p className="mt-3 text-sm leading-6 text-muted-foreground">{reference.description}</p></article>)}</div></div></section>}
+    {about.employees.length > 0 && <section className="px-6 pb-28 lg:px-12"><div className="mx-auto max-w-7xl"><p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">The people</p><h2 className="font-serif text-4xl md:text-5xl">The team behind the details.</h2><div className="mt-12 grid gap-8 sm:grid-cols-2">{about.employees.map((employee) => <article key={employee.name} className="grid gap-5 sm:grid-cols-[180px_1fr] sm:items-start"><Image src={employee.image || '/brand/revamp-logo.png'} alt={employee.name} width={360} height={450} className="aspect-[4/5] w-full rounded-md object-cover" /><div><h3 className="font-serif text-2xl">{employee.name}</h3><p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-gilded">{employee.role}</p><p className="mt-4 text-sm leading-6 text-muted-foreground">{employee.bio}</p></div></article>)}</div></div></section>}
+  </main><SiteFooter /></>
 }

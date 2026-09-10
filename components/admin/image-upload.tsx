@@ -1,8 +1,8 @@
 'use client'
 
-import { X, Upload } from 'lucide-react'
+import { X, Upload } from '@/components/ui/luxury-icons'
 import Image from 'next/image'
-import { CldUploadWidget } from 'next-cloudinary'
+import { CldUploadWidget } from '@/components/admin/cloudflare-upload-widget'
 
 interface ImageUploadProps {
   value: string[]
@@ -39,6 +39,7 @@ export function ImageUpload({
 
         {value.length < maxImages && (
           <CldUploadWidget
+            options={{ multiple: true, maxFiles: Math.max(1, maxImages - value.length) }}
             uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'revamp_preset'}
             onSuccess={(result: any) => {
               if (result?.info?.secure_url) {

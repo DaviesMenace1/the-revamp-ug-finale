@@ -3,6 +3,7 @@ import { db } from '@/lib/db/client'
 import { products } from '@/lib/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
 import MembershipCollectionsClient from './membership-collections-client'
+import { resolveProductImageUrls } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,7 +26,7 @@ export default async function MembershipCollections() {
     price: Number(p.price),
     originalPrice: p.originalPrice ? Number(p.originalPrice) : null,
     currency: p.currency,
-    image: p.productImages?.find((img) => img.isPrimary)?.url || p.productImages?.[0]?.url || null,
+    image: resolveProductImageUrls(p)[0],
   }))
 
   return <MembershipCollectionsClient products={formatted} />

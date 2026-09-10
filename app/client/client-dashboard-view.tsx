@@ -1,63 +1,51 @@
-'use client'
-
 import { PortalLayout } from '@/components/portals/portal-layout'
-import { Card } from '@/components/ui/card'
 import Link from 'next/link'
-import { FileText, MessageSquare, ShoppingBag, Calendar } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Calendar, FileText, MessageSquare, Package, ShoppingCart } from '@/components/ui/luxury-icons'
+import { formatMoney } from '@/lib/utils'
 
 const clientNavItems = [
-  { label: 'Dashboard', href: '/client' },
+  { label: 'Overview', href: '/client' },
   { label: 'Projects', href: '/client/projects' },
-  { label: 'Consultations', href: '/client/consultations' },
   { label: 'Orders', href: '/client/orders' },
   { label: 'Messages', href: '/client/messages' },
-  { label: 'Support', href: '/client/tickets' },
   { label: 'Documents', href: '/client/documents' },
+  { label: 'Appointments', href: '/client/consultations' },
+  { label: 'Account', href: '/account' },
 ]
 
-type Stats = {
-  orders: number
-  activeProjects: number
-  consultations: number
-  unreadMessages: number
-}
+type Stats = { orders: number; activeProjects: number; consultations: number; unreadMessages: number }
+type RecentOrder = { id: string; orderNumber: string; total: string; status: string | null; paymentStatus: string | null; createdAt: string }
+type RecentProject = { id: string; title: string; slug: string; status: string | null; progress: number | null; updatedAt: string }
+type RecentConsultation = { id: string; title: string; status: string | null; preferredDate: string | null; createdAt: string }
 
-export default function ClientDashboardView({
-  firstName,
-  stats,
-}: {
-  firstName: string | null
-  stats: Stats
-}) {
-  const cards = [
-    { label: 'Active Projects', value: stats.activeProjects, icon: FileText, href: '/client/projects' },
-    { label: 'Orders', value: stats.orders, icon: ShoppingBag, href: '/client/orders' },
-    { label: 'Consultations', value: stats.consultations, icon: Calendar, href: '/client/consultations' },
-    { label: 'Unread Messages', value: stats.unreadMessages, icon: MessageSquare, href: '/client/messages' },
-  ]
+function displayStatus(status: string | null | undefined) { return (status || 'pending').replace(/_/g, ' ') }
+function formatDate(value: string | null, withTime = false) { if (!value) return 'Date to be confirmed'; return new Date(value).toLocaleDateString('en-UG', withTime ? { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' } : { month: 'short', day: 'numeric', year: 'numeric' }) }
 
+export default function ClientDashboardView({ firstName, loadError, stats, recentOrders = [], recentProjects = [], recentConsultations = [] }: { firstName: string | null; loadError?: string | null; stats: Stats; recentOrders?: RecentOrder[]; recentProjects?: RecentProject[]; recentConsultations?: RecentConsultation[] }) {
   return (
     <PortalLayout portalName="Client Portal" portalSlug="client" navItems={clientNavItems}>
-      <div className="space-y-12">
-        <div className="space-y-2">
-          <h1 className="font-serif text-4xl md:text-5xl font-light text-foreground">
-            Welcome back{firstName ? `, ${firstName}` : ''}
-          </h1>
-          <p className="text-muted-foreground">Here's what's happening with your account.</p>
-        </div>
+      <div className="-mx-5 -mt-8 sm:-mx-8 lg:-mx-12">
+        <section className="relative min-h-[22rem] overflow-hidden bg-obsidian text-ivory sm:min-h-[27rem]"><img src="/prototype/hero-natural-light.jpg" alt="A refined Revamp interior" className="absolute inset-0 h-full w-full object-cover opacity-70" /><div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-black/10" /><div className="relative mx-auto flex min-h-[22rem] max-w-[1440px] items-end justify-between gap-10 px-5 pb-10 sm:min-h-[27rem] sm:px-8 sm:pb-14 lg:px-12"><div><p className="text-[10px] uppercase tracking-[0.3em] text-ivory/65">Client portal</p><h1 className="mt-5 font-serif text-6xl font-light leading-[0.86] sm:text-8xl">Welcome back,<br />{firstName || 'friend'}.</h1><p className="mt-6 max-w-md text-sm leading-6 text-ivory/75">Your spaces. Your selections. Your journey with Revamp.</p></div><p className="hidden max-w-[10rem] border-l border-ivory/35 pl-5 font-serif text-2xl leading-tight text-ivory/80 md:block">A more considered way of living.</p></div></section>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map((card) => (
-            <Link key={card.label} href={card.href}>
-              <Card className="p-6 hover:border-primary/40 transition-colors">
-                <card.icon className="w-6 h-6 text-primary mb-3" />
-                <p className="text-3xl font-light text-foreground">{card.value}</p>
-                <p className="text-sm text-muted-foreground mt-1">{card.label}</p>
-              </Card>
-            </Link>
-          ))}
+        <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 sm:py-12 lg:px-12">
+          {loadError && <div role="status" className="mb-8 border border-amber-300/70 bg-amber-50 p-4 text-sm text-amber-950"><span>{loadError}</span><button type="button" onClick={() => window.location.reload()} className="ml-3 underline underline-offset-4">Retry</button></div>}
+          <div className="flex gap-6 overflow-x-auto border-b border-border pb-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground"><span className="border-b border-foreground pb-3 text-foreground">Overview</span><Link href="/client/projects">Projects</Link><Link href="/client/orders">Orders</Link><Link href="/client/messages">Messages</Link><Link href="/client/documents">Documents</Link><Link href="/client/consultations">Appointments</Link><Link href="/account">Account</Link></div>
+          <section className="mt-10" aria-labelledby="glance-heading"><div className="flex items-end justify-between"><div><h2 id="glance-heading" className="font-serif text-3xl">At a glance</h2><p className="mt-2 text-xs text-muted-foreground">Everything related to your projects, orders, and communications in one place.</p></div><span className="hidden text-xs text-muted-foreground sm:block">{new Date().toLocaleDateString('en-UG', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span></div><div className="mt-6 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><PortalMetric icon={FileText} value={stats.activeProjects} label="Active projects" href="/client/projects" /><PortalMetric icon={ShoppingCart} value={stats.orders} label="Orders" href="/client/orders" /><PortalMetric icon={MessageSquare} value={stats.unreadMessages} label="New messages" href="/client/messages" /><PortalMetric icon={FileText} value="" label="Documents" href="/client/documents" /></div></section>
+
+          <section className="mt-12" aria-labelledby="projects-heading"><SectionTitle title="Your active projects" href="/client/projects" /><div className="grid gap-4 md:grid-cols-2">{recentProjects.slice(0, 2).map((project) => <Link key={project.id} href={`/client/projects/${project.slug}`} className="group grid overflow-hidden border border-border bg-card sm:grid-cols-[0.9fr_1.1fr]"><div className="min-h-48 bg-muted"><img src="/prototype/hero-villa.jpg" alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /></div><div className="flex flex-col justify-between p-5"><div><p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Residential</p><h3 className="mt-2 font-serif text-3xl leading-none">{project.title}</h3><p className="mt-2 text-xs text-muted-foreground">Updated {formatDate(project.updatedAt)}</p></div><div className="mt-8"><div className="flex justify-between text-[10px] text-muted-foreground"><span className="capitalize">{displayStatus(project.status)}</span><span>{project.progress ?? 0}%</span></div><div className="mt-2 h-1 bg-muted"><div className="h-full bg-foreground" style={{ width: `${project.progress ?? 0}%` }} /></div><span className="mt-4 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]">View project <ArrowRight className="size-3" /></span></div></div></Link>)}{recentProjects.length === 0 && <div className="border border-dashed border-border p-8 text-sm text-muted-foreground">No projects have been linked to your account yet.</div>}</div></section>
+
+          <section className="mt-12" aria-labelledby="orders-heading"><SectionTitle title="Recent orders" href="/client/orders" /><div className="divide-y divide-border border-y border-border">{recentOrders.slice(0, 4).map((order) => <Link key={order.id} href="/client/orders" className="flex items-center gap-4 py-4"><span className="flex size-14 shrink-0 items-center justify-center bg-muted"><Package className="size-5" /></span><span className="min-w-0 flex-1"><span className="block font-serif text-lg">{order.orderNumber}</span><span className="mt-1 block text-xs text-muted-foreground">{formatDate(order.createdAt)} · <span className="capitalize">{displayStatus(order.status)}</span></span></span><span className="hidden text-right text-sm sm:block">{formatMoney(order.total, 'UGX')}</span><ArrowRight className="size-4 text-muted-foreground" /></Link>)}{recentOrders.length === 0 && <p className="py-8 text-sm text-muted-foreground">No previous orders were found for this account.</p>}</div></section>
+
+          <section className="mt-12 grid gap-8 border-t border-border pt-8 lg:grid-cols-2"><div><SectionTitle title="Recent messages" href="/client/messages" /><div className="divide-y divide-border">{[...Array(Math.min(3, Math.max(1, stats.unreadMessages)))].map((_, index) => <Link key={index} href="/client/messages" className="flex items-center gap-3 py-4"><span className="flex size-9 items-center justify-center rounded-full bg-muted font-serif text-sm">{index === 0 ? 'RT' : 'SK'}</span><span className="min-w-0 flex-1"><span className="block text-sm font-medium">Revamp Team</span><span className="mt-1 block truncate text-xs text-muted-foreground">Your studio updates are ready to review.</span></span><ArrowRight className="size-4 text-muted-foreground" /></Link>)}</div></div><div><SectionTitle title="Documents" href="/client/documents" /><div className="divide-y divide-border">{['Design presentation', 'Quotation · Phase 2', 'Final drawings', 'Material selections'].map((name) => <Link key={name} href="/client/documents" className="flex items-center gap-3 py-4"><FileText className="size-5" /><span className="flex-1 text-sm">{name}</span><ArrowUpRight className="size-4 text-muted-foreground" /></Link>)}</div></div></section>
+
+          <section className="mt-12" aria-labelledby="appointments-heading"><SectionTitle title="Upcoming appointments" href="/client/consultations" />{recentConsultations[0] ? <div className="flex flex-wrap items-center gap-5 border border-border p-5"><div className="border-r border-border pr-5 text-center"><p className="font-serif text-4xl">{recentConsultations[0].preferredDate ? new Date(recentConsultations[0].preferredDate).getDate().toString().padStart(2, '0') : 'to be confirmed'}</p><p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{recentConsultations[0].preferredDate ? new Date(recentConsultations[0].preferredDate).toLocaleDateString('en-UG', { month: 'short' }) : 'TBC'}</p></div><div className="flex-1"><h3 className="font-serif text-2xl">{recentConsultations[0].title}</h3><p className="mt-1 text-xs text-muted-foreground">{formatDate(recentConsultations[0].preferredDate, true)}</p></div><Link href="/client/consultations" className="inline-flex min-h-10 items-center gap-2 border border-border px-4 text-[10px] uppercase tracking-[0.14em]">View appointment <ArrowRight className="size-3" /></Link></div> : <div className="border border-dashed border-border p-6 text-sm text-muted-foreground">No appointments are scheduled yet. <Link href="/book-consultation" className="underline underline-offset-4">Book a consultation</Link>.</div>}</section>
+
+          <section className="mt-12 grid overflow-hidden bg-obsidian text-ivory sm:grid-cols-2"><div className="p-7 sm:p-10"><p className="text-[10px] uppercase tracking-[0.25em] text-ivory/55">Need something?</p><h2 className="mt-4 font-serif text-4xl leading-none sm:text-5xl">We&apos;re here for you.</h2><p className="mt-5 max-w-xs text-sm leading-6 text-ivory/65">Speak to your dedicated project team or send us a message anytime.</p><Link href="/client/messages" className="mt-7 inline-flex min-h-10 items-center gap-2 rounded-full border border-ivory/40 px-4 text-[10px] uppercase tracking-[0.16em]">Contact your team <ArrowRight className="size-3" /></Link></div><img src="/prototype/feature-console.jpg" alt="Revamp interior detail" className="min-h-56 w-full object-cover opacity-75" /></section>
         </div>
       </div>
     </PortalLayout>
   )
 }
+
+function PortalMetric({ icon: Icon, value, label, href }: { icon: typeof FileText; value: string | number; label: string; href: string }) { return <Link href={href} className="border border-border bg-muted/25 p-5 transition hover:border-primary"><Icon className="size-5" /><p className="mt-5 font-serif text-4xl">{value || '0'}</p><p className="mt-1 text-xs">{label}</p><span className="mt-3 block text-[10px] uppercase tracking-[0.14em]">View <ArrowRight className="ml-1 inline size-3" /></span></Link> }
+function SectionTitle({ title, href }: { title: string; href: string }) { return <div className="mb-4 flex items-center justify-between"><h2 className="font-serif text-3xl">{title}</h2><Link href={href} className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">View all <ArrowRight className="ml-1 inline size-3" /></Link></div> }

@@ -1,8 +1,9 @@
 import { requirePortalUser } from '@/lib/auth/portal-auth'
 import { db } from '@/lib/db/client'
-import { quotes, invoices } from '@/lib/db/schema'
+import { quotes, invoices, financialDocuments } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import BillingClientView from './billing-client-view'
+import { safeQuery } from '@/lib/server/safe-query'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,12 +13,26 @@ export default async function ClientBillingPage() {
     '/client/billing',
   )
 
-  // Every query here is filtered to this user's id — a client only ever
-  // sees their own quotes, invoices, and receipts, never another client's.
-  const [myQuotes, myInvoices] = await Promise.all([
-    db.select().from(quotes).where(eq(quotes.userId, user.id)).orderBy(desc(quotes.createdAt)),
-    db.select().from(invoices).where(eq(invoices.userId, user.id)).orderBy(desc(invoices.createdAt)),
-  ])
+  const quoteResult = await safeQuery(
+    db.select().from(quotes).where(eq(quotes.userId, user.id)).orderBy(desc(quotes.createdAt)).limit(100),
+    'quotes',
+    [],
+  )
+  const invoiceResult = await safeQuery(
+    db.select().from(invoices).where(eq(invoices.userId, user.id)).orderBy(desc(invoices.createdAt)).limit(100),
+    'invoices',
+    [],
+  )
+  const documentResult = await safeQuery(
+    db.select({ id: financialDocuments.id, documentNumber: financialDocuments.documentNumber, documentType: financialDocuments.documentType, amount: financialDocuments.amount, currency: financialDocuments.currency, fileUrl: financialDocuments.fileUrl, createdAt: financialDocuments.createdAt }).from(financialDocuments).where(eq(financialDocuments.userId, user.id)).orderBy(desc(financialDocuments.createdAt)).limit(100),
+    'generated documents',
+    [],
+  )
+
+  const myQuotes = quoteResult.data ?? []
+  const myInvoices = invoiceResult.data ?? []
+  const myDocuments = documentResult.data ?? []
+  const failed = [quoteResult, invoiceResult, documentResult].some((result) => result.error)
 
   return (
     <BillingClientView
@@ -30,6 +45,10 @@ export default async function ClientBillingPage() {
         validUntil: q.validUntil ? q.validUntil.toISOString() : null,
         createdAt: q.createdAt.toISOString(),
       }))}
+      documents={myDocuments.map((document) => ({
+        ...document,
+        createdAt: document.createdAt.toISOString(),
+      }))}
       invoices={myInvoices.map((i) => ({
         id: i.id,
         invoiceNumber: i.invoiceNumber,
@@ -41,6 +60,7 @@ export default async function ClientBillingPage() {
         dueDate: i.dueDate ? i.dueDate.toISOString() : null,
         createdAt: i.createdAt.toISOString(),
       }))}
+      loadError={failed ? 'Some billing records are temporarily unavailable. The available records are still shown.' : null}
     />
   )
 }

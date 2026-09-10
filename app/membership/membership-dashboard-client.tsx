@@ -3,127 +3,50 @@
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Card } from '@/components/ui/card'
 import Link from 'next/link'
-import { Star, Users, Ticket, Crown, Calendar } from 'lucide-react'
+import { ArrowRight, Calendar, Clock, Gift, Share2, Star, Users } from '@/components/ui/luxury-icons'
+import { membershipNavItems } from '@/components/portals/portal-navigation'
 
-const membershipNavItems = [
-  { label: 'Dashboard', href: '/membership' },
-  { label: 'Collections', href: '/membership/collections' },
-  { label: 'Events', href: '/membership/events' },
-  { label: 'Community', href: '/membership/community' },
-  { label: 'Benefits', href: '/membership/benefits' },
-]
-
-type Membership = {
-  type: string
-  status: string
-  benefits: string[]
-} | null
-
-type Event = {
-  id: string
-  title: string
-  eventDate: string
-  location: string | null
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('en-UG', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value))
 }
 
-export default function MembershipDashboardClient({
-  membership,
-  upcomingEvents,
-}: {
-  membership: Membership
-  upcomingEvents: Event[]
-}) {
+type Rewards = {
+  tier: string
+  balancePoints: number
+  lifetimeEarned: number
+  lifetimeRedeemed: number
+  tierPrivileges: ReadonlyArray<string>
+  nextTier: string | null
+  pointsToNextTier: number
+  nextTierPoints: number | null
+  referralCode: string | null
+  referralLinkPath: string | null
+  recentTransactions: Array<{ id: string; points: number; description: string | null; createdAt: string }>
+  rules: { dailyLoginPoints: number; reviewPoints: number; consultationPoints: number; referralRewardPoints: number }
+} | null
+
+type Event = { id: string; title: string; eventDate: string; location: string | null }
+
+export default function MembershipDashboard({ rewards, upcomingEvents, dataIssue }: { rewards: Rewards; upcomingEvents: Event[]; dataIssue?: boolean }) {
+  const progress = rewards?.nextTierPoints && rewards.nextTierPoints > 0 ? Math.min(100, Math.round((rewards.lifetimeEarned / rewards.nextTierPoints) * 100)) : 100
+  const privilegeList = rewards?.tierPrivileges?.length ? rewards.tierPrivileges : ['Access to the Revamp membership space']
+
   return (
-    <PortalLayout portalName="VIP Membership" portalSlug="membership" navItems={membershipNavItems}>
+    <PortalLayout portalName="Revamp Membership" portalSlug="membership" navItems={[...membershipNavItems]}>
       <div className="space-y-12">
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Crown className="w-8 h-8 text-primary" />
-            <h1 className="font-serif text-4xl md:text-5xl font-light text-foreground">
-              {membership ? `${membership.type} Member` : 'Membership'}
-            </h1>
-          </div>
-          <p className="text-muted-foreground">
-            Exclusive access to curated collections, private events, and concierge services.
-          </p>
-        </div>
+        <header className="max-w-3xl space-y-4"><p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-primary">The Revamp UG / Membership</p><h1 className="font-serif text-4xl font-light leading-[1.04] text-foreground sm:text-5xl md:text-6xl">Access that grows with you.</h1><p className="text-base leading-7 text-muted-foreground">A free, points-led membership space for considered access, studio invitations, and privileges shaped by meaningful engagement.</p></header>
+        {dataIssue && <Card className="border-destructive/30 bg-destructive/5 p-5" role="alert"><p className="font-medium text-foreground">Your membership information is temporarily unavailable.</p><p className="mt-1 text-sm text-muted-foreground">Refresh this page or contact the studio if the issue continues. We have not changed your account.</p></Card>}
+        {!rewards && !dataIssue && <Card className="border-primary/20 bg-primary/5 p-6"><p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary">Membership unavailable</p><h2 className="mt-2 font-serif text-3xl font-light text-foreground">Your points space is not active yet.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">The studio is preparing the membership programme. You can continue exploring the public collection while access is being configured.</p><Link href="/collections" className="mt-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">Explore collections <ArrowRight className="size-4" /></Link></Card>}
 
-        {membership ? (
-          <Card className="p-8 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Membership Status</p>
-                <p className="text-2xl font-light text-foreground capitalize">{membership.status}</p>
-              </div>
-              {membership.benefits.length > 0 && (
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Benefits</p>
-                  <p className="text-sm text-foreground">{membership.benefits.length} included</p>
-                </div>
-              )}
-            </div>
-          </Card>
-        ) : (
-          <Card className="p-8 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 border-dashed">
-            <div className="text-center py-6">
-              <p className="text-muted-foreground mb-2">No active membership</p>
-              <p className="text-sm text-muted-foreground/70">Membership data will appear here once enrolled.</p>
-            </div>
-          </Card>
-        )}
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 p-6 sm:p-8"><div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary">Current privilege band</p><p className="mt-2 font-serif text-4xl font-light text-foreground">{rewards?.tier || 'Member'}</p><p className="mt-2 text-sm text-muted-foreground">{(rewards?.lifetimeEarned || 0).toLocaleString('en-UG')} accumulated points</p></div><div className="md:text-right"><p className="text-sm text-muted-foreground">Available balance</p><p className="mt-1 font-serif text-3xl font-light text-foreground">{(rewards?.balancePoints || 0).toLocaleString('en-UG')} points</p><p className="mt-1 text-xs text-muted-foreground">{(rewards?.lifetimeRedeemed || 0).toLocaleString('en-UG')} points redeemed</p></div></div><div className="mt-8"><div className="flex items-center justify-between gap-4 text-xs text-muted-foreground"><span>{rewards?.nextTier ? `${rewards.pointsToNextTier.toLocaleString('en-UG')} points to ${rewards.nextTier}` : 'Highest current privilege band'}</span><span>{progress}%</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-background/70"><div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${progress}%` }} /></div><p className="mt-3 text-xs text-muted-foreground">Progress is based on accumulated points. Available balance is the portion currently available for eligible privileges.</p></div></Card>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          <Link
-            href="/membership/collections"
-            className="p-6 border border-border/20 rounded-lg hover:border-primary/20 hover:bg-primary/5 transition-all"
-          >
-            <Star className="w-8 h-8 text-primary mb-3" />
-            <h3 className="font-medium text-foreground mb-1">Exclusive Collections</h3>
-            <p className="text-sm text-muted-foreground">Members-only curated selections</p>
-          </Link>
-          <Link
-            href="/membership/events"
-            className="p-6 border border-border/20 rounded-lg hover:border-primary/20 hover:bg-primary/5 transition-all"
-          >
-            <Ticket className="w-8 h-8 text-primary mb-3" />
-            <h3 className="font-medium text-foreground mb-1">Private Events</h3>
-            <p className="text-sm text-muted-foreground">Invitation-only showings and launches</p>
-          </Link>
-          <Link
-            href="/membership/community"
-            className="p-6 border border-border/20 rounded-lg hover:border-primary/20 hover:bg-primary/5 transition-all"
-          >
-            <Users className="w-8 h-8 text-primary mb-3" />
-            <h3 className="font-medium text-foreground mb-1">Community</h3>
-            <p className="text-sm text-muted-foreground">Connect with fellow collectors</p>
-          </Link>
-        </div>
+        <section><div className="flex items-end justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary">Your current privileges</p><h2 className="mt-2 font-serif text-3xl font-light text-foreground">What your band opens.</h2></div><Link href="/membership/benefits" className="hidden items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary sm:flex">View all benefits <ArrowRight className="size-4" /></Link></div><div className="mt-6 grid gap-4 md:grid-cols-3">{privilegeList.slice(0, 6).map((privilege) => <Card key={privilege} className="p-6"><Star className="size-5 text-primary" /><p className="mt-5 text-sm leading-6 text-foreground">{privilege}</p></Card>)}</div></section>
 
-        <div className="space-y-4">
-          <h2 className="font-serif text-2xl font-light text-foreground">Upcoming Member Events</h2>
+        <section className="grid gap-4 md:grid-cols-3"><Link href="/membership/collections" className="group rounded-xl border border-border/70 bg-card p-6 transition hover:border-primary/40 hover:bg-primary/5"><Gift className="size-7 text-primary" /><h2 className="mt-5 font-serif text-2xl font-light">Member collections</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Explore pieces selected for the membership space and move into the product detail when something catches you.</p><span className="mt-5 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">Explore pieces <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></span></Link><Link href="/membership/events" className="group rounded-xl border border-border/70 bg-card p-6 transition hover:border-primary/40 hover:bg-primary/5"><Calendar className="size-7 text-primary" /><h2 className="mt-5 font-serif text-2xl font-light">Studio invitations</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">See upcoming gatherings, reserve your place, and keep the date in view.</p><span className="mt-5 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">View events <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></span></Link><Link href={rewards?.referralLinkPath || '/membership/benefits'} className="group rounded-xl border border-border/70 bg-card p-6 transition hover:border-primary/40 hover:bg-primary/5"><Share2 className="size-7 text-primary" /><h2 className="mt-5 font-serif text-2xl font-light">Share the studio</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Invite someone who would value the world we are building and grow your points together.</p><span className="mt-5 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">View referral path <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></span></Link></section>
 
-          {upcomingEvents.length > 0 ? (
-            <div className="grid gap-3">
-              {upcomingEvents.map((event) => (
-                <Card key={event.id} className="p-5 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-foreground">{event.title}</p>
-                    {event.location && <p className="text-sm text-muted-foreground">{event.location}</p>}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="w-4 h-4" />
-                    {new Date(event.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="p-8 border-border/20 border-dashed flex flex-col items-center justify-center text-center">
-              <p className="text-muted-foreground mb-3">No events scheduled</p>
-              <p className="text-sm text-muted-foreground/70">Events will be added through the admin panel.</p>
-            </Card>
-          )}
-        </div>
+        <section className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]"><Card className="p-6 sm:p-8"><div className="flex items-center gap-3"><Clock className="size-5 text-primary" /><h2 className="font-serif text-2xl font-light">Recent points activity</h2></div>{rewards?.recentTransactions?.length ? <div className="mt-6 divide-y divide-border/60">{rewards.recentTransactions.slice(0, 5).map((item) => <div key={item.id} className="flex items-center justify-between gap-4 py-4 first:pt-0"><div><p className="text-sm text-foreground">{item.description || 'Membership activity'}</p><time className="mt-1 block text-xs text-muted-foreground" dateTime={item.createdAt}>{formatDate(item.createdAt)}</time></div><span className={`text-sm font-medium ${item.points >= 0 ? 'text-emerald-700' : 'text-destructive'}`}>{item.points >= 0 ? '+' : ''}{item.points.toLocaleString('en-UG')}</span></div>)}</div> : <p className="mt-6 text-sm leading-6 text-muted-foreground">Your points activity will appear here as you engage with the studio.</p>}<Link href="/membership/benefits" className="mt-6 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">Understand your benefits <ArrowRight className="size-4" /></Link></Card><Card className="p-6 sm:p-8"><div className="flex items-center gap-3"><Users className="size-5 text-primary" /><h2 className="font-serif text-2xl font-light">Ways to build points</h2></div><div className="mt-6 space-y-4 text-sm leading-6 text-muted-foreground"><p>Daily check-in: <strong className="text-foreground">{rewards?.rules.dailyLoginPoints || 0} points</strong></p><p>Verified review: <strong className="text-foreground">{rewards?.rules.reviewPoints || 0} points</strong></p><p>Completed consultation: <strong className="text-foreground">{rewards?.rules.consultationPoints || 0} points</strong></p><p>Qualified referral: <strong className="text-foreground">{rewards?.rules.referralRewardPoints || 0} points</strong></p></div><Link href="/book-consultation" className="mt-6 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">Book a consultation <ArrowRight className="size-4" /></Link></Card></section>
+
+        <section className="space-y-4"><div className="flex items-end justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary">The calendar</p><h2 className="mt-2 font-serif text-3xl font-light text-foreground">Upcoming invitations.</h2></div><Link href="/membership/events" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">View all <ArrowRight className="size-4" /></Link></div>{upcomingEvents.length > 0 ? <div className="grid gap-3">{upcomingEvents.map((event) => <Link key={event.id} href="/membership/events" className="group"><Card className="flex flex-col gap-4 p-5 transition hover:border-primary/40 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium text-foreground">{event.title}</p>{event.location && <p className="mt-1 text-sm text-muted-foreground">{event.location}</p>}</div><div className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="size-4 text-primary" />{new Date(event.eventDate).toLocaleDateString('en-UG', { day: 'numeric', month: 'short', year: 'numeric' })}<ArrowRight className="size-4 text-primary transition-transform group-hover:translate-x-1" /></div></Card></Link>)}</div> : <Card className="flex flex-col items-center justify-center border-dashed p-8 text-center"><p className="text-muted-foreground">No invitations are scheduled yet.</p><p className="mt-2 text-sm text-muted-foreground/70">Browse your benefits while the studio prepares the next gathering.</p><Link href="/membership/benefits" className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-primary underline underline-offset-4">View benefits</Link></Card>}</section>
       </div>
     </PortalLayout>
   )

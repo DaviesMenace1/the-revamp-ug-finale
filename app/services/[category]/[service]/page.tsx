@@ -1,16 +1,43 @@
+import type { Metadata } from 'next'
 import { db } from '@/lib/db/client'
 import { serviceCategories, services } from '@/lib/db/schema'
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import Link from 'next/link'
-import { ArrowRight, ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ArrowRight } from '@/components/ui/luxury-icons'
 import { notFound } from 'next/navigation'
+import { SchemaScript } from '@/components/seo/schema-script'
+import { generateBreadcrumbSchema, generateServiceSchema } from '@/lib/seo/schema-generator'
+import { serviceTemplateFromRecord } from '@/lib/content/section-templates'
 
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: Promise<{ category: string; service: string }>
+}
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { category: categorySlug, service: serviceSlug } = await params
+  const category = await db.query.serviceCategories.findFirst({ where: eq(serviceCategories.slug, categorySlug) })
+  if (!category) return {}
+  const service = await db.query.services.findFirst({
+    where: and(eq(services.categoryId, category.id), eq(services.slug, serviceSlug), eq(services.status, 'published')),
+  })
+  if (!service) return {}
+  const description = service.description || `${service.name} from The Revamp UG, a Uganda-based interior design and architecture studio.`
+  const canonical = `${SITE_URL}/services/${encodeURIComponent(category.slug)}/${encodeURIComponent(service.slug)}`
+  const image = service.ogImage || service.image || undefined
+  return {
+    title: `${service.name} | ${category.name}`,
+    description,
+    keywords: [service.name, category.name, 'The Revamp UG', 'Uganda', 'Kampala'],
+    alternates: { canonical },
+    openGraph: { type: 'article', url: canonical, title: `${service.name} | The Revamp UG`, description, images: image ? [{ url: image, alt: service.name }] : undefined },
+    twitter: { card: 'summary_large_image', title: `${service.name} | The Revamp UG`, description, images: image ? [image] : undefined },
+  }
 }
 
 export default async function ServiceDetailPage({ params }: PageProps) {
@@ -41,9 +68,24 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
   const prevService = serviceIndex > 0 ? publishedServices[serviceIndex - 1] : null
   const nextService = serviceIndex < publishedServices.length - 1 ? publishedServices[serviceIndex + 1] : null
+  const serviceUrl = `${SITE_URL}/services/${encodeURIComponent(category.slug)}/${encodeURIComponent(service.slug)}`
+  const serviceImage = service.ogImage || service.image || undefined
+  const serviceTemplate = serviceTemplateFromRecord(service as unknown as Record<string, unknown>)
+  const storySections = serviceTemplate.sections
+  const processSteps = serviceTemplate.processSteps
+  const faqs = serviceTemplate.faqs
+  const galleryImages = Array.isArray(service.gallery) ? service.gallery.filter((url): url is string => typeof url === 'string' && url.trim().length > 0) : []
+  const inquiryHref = `/contact?interest=service_inquiry&service=${encodeURIComponent(service.name)}&serviceId=${encodeURIComponent(service.id)}`
 
   return (
     <>
+      <SchemaScript schema={generateServiceSchema({ name: service.name, description: service.longDescription || service.description || '', options: { url: serviceUrl, image: serviceImage } })} />
+      <SchemaScript schema={generateBreadcrumbSchema([
+        { name: 'Home', url: `${SITE_URL}/` },
+        { name: 'Services', url: `${SITE_URL}/services` },
+        { name: category.name, url: `${SITE_URL}/services/${encodeURIComponent(category.slug)}` },
+        { name: service.name, url: serviceUrl },
+      ])} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
         <section className="border-b border-border/20 py-6">
@@ -83,6 +125,8 @@ export default async function ServiceDetailPage({ params }: PageProps) {
               <p className="max-w-2xl text-lg text-muted-foreground font-light">
                 {service.description}
               </p>
+              {service.image && <img src={service.image} alt={service.name} className="mt-8 aspect-[16/8] w-full object-cover" />}
+              {galleryImages.length > 0 && <div className="mt-4 grid grid-cols-3 gap-3">{galleryImages.slice(0, 3).map((url, index) => <img key={`${url}-${index}`} src={url} alt={`${service.name} preview ${index + 1}`} className="aspect-[4/3] w-full object-cover" />)}</div>}
             </div>
           </div>
         </section>
@@ -92,13 +136,21 @@ export default async function ServiceDetailPage({ params }: PageProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
               <div className="md:col-span-2 space-y-8">
                 <div>
-                  <h2 className="font-serif text-3xl font-light text-foreground mb-4">
-                    Overview
-                  </h2>
-                  <p className="text-foreground/70 leading-relaxed">
-                    {service.longDescription || service.description}
-                  </p>
+                  {serviceTemplate.visionStatement && <p className="mb-6 border-l-2 border-gold/50 pl-4 font-serif text-2xl leading-8 text-foreground">{serviceTemplate.visionStatement}</p>}
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-primary">The brief</p>
+                  <h2 className="mt-3 font-serif text-4xl font-light leading-tight text-foreground">{service.name}, considered from the inside out.</h2>
+                  <p className="mt-5 text-foreground/70 leading-8">{serviceTemplate.whatWeSolve || service.longDescription || service.description}</p>
+                  {serviceTemplate.approach && <p className="mt-5 text-foreground/70 leading-8"><span className="font-medium text-foreground">Our approach. </span>{serviceTemplate.approach}</p>}
+                  {serviceTemplate.deliverables.length > 0 && <div className="mt-6 grid gap-2 sm:grid-cols-2">{serviceTemplate.deliverables.map((item) => <p key={item} className="border-b border-border/30 py-2 text-sm text-muted-foreground">{item}</p>)}</div>}
                 </div>
+                {storySections.map((section, index) => (
+                  <article key={`${section.title}-${index}`} className={`grid gap-8 items-center ${section.image ? 'md:grid-cols-2' : ''}`}>
+                    <div className={section.imagePosition === 'right' ? 'md:order-first' : ''}><p className="text-[10px] uppercase tracking-[0.25em] text-primary">{section.eyebrow || 'Studio perspective'}</p><h2 className="mt-3 font-serif text-3xl font-light">{section.title}</h2><p className="mt-4 whitespace-pre-line leading-8 text-muted-foreground">{section.body}</p></div>
+                    {section.image && <img src={section.image} alt={section.title} className="aspect-[4/3] w-full object-cover" />}
+                  </article>
+                ))}
+
+                {Array.isArray(service.highlights) && service.highlights.length > 0 && <div><h2 className="font-serif text-3xl font-light text-foreground mb-4">Highlights</h2><div className="grid gap-4 sm:grid-cols-2">{(service.highlights as Array<{ label?: string; value?: string }>).map((highlight, index) => <div key={`${highlight.label}-${index}`} className="border-l-2 border-gold/50 pl-4"><p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{highlight.label || `Detail ${index + 1}`}</p><p className="mt-1 text-foreground/80">{highlight.value}</p></div>)}</div></div>}
 
                 {Array.isArray(service.gallery) && service.gallery.length > 0 && (
                   <div>
@@ -118,85 +170,42 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                   </div>
                 )}
 
-                <div>
-                  <h2 className="font-serif text-3xl font-light text-foreground mb-4">
-                    What We Offer
-                  </h2>
-                  <ul className="space-y-3">
-                    {[
-                      'Expert consultation and assessment',
-                      'Customized solutions tailored to your needs',
-                      'Professional execution and management',
-                      'Post-delivery support and follow-up',
-                    ].map((item) => (
-                      <li key={item} className="flex items-start gap-3 text-foreground/70">
-                        <span className="text-gold mt-1">→</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h2 className="font-serif text-3xl font-light text-foreground mb-4">
-                    Our Process
-                  </h2>
+                {processSteps.length > 0 && <div>
+                  <h2 className="font-serif text-3xl font-light text-foreground mb-4">Our process</h2>
                   <div className="space-y-4">
-                    {[
-                      { step: '01', title: 'Consultation', desc: 'We meet to understand your vision, requirements, and budget.' },
-                      { step: '02', title: 'Design', desc: 'Our team creates comprehensive designs and proposals.' },
-                      { step: '03', title: 'Implementation', desc: 'Meticulous execution with attention to every detail.' },
-                      { step: '04', title: 'Completion', desc: 'Final delivery and handover with ongoing support.' },
-                    ].map((item) => (
-                      <div key={item.step} className="flex gap-4 pb-4 border-b border-border/20 last:border-0">
-                        <div className="text-2xl font-light text-muted-foreground">{item.step}</div>
-                        <div>
-                          <h3 className="font-medium text-foreground">{item.title}</h3>
-                          <p className="text-sm text-foreground/60 mt-1">{item.desc}</p>
-                        </div>
-                      </div>
-                    ))}
+                    {processSteps.map((item, index) => <div key={`${item.title}-${index}`} className="border-b border-border/20 pb-4 last:border-0"><div><h3 className="font-medium text-foreground">{item.title}</h3><p className="text-sm text-foreground/60 mt-1">{item.description}</p></div></div>)}
                   </div>
-                </div>
+                </div>}
               </div>
 
               <div className="md:col-span-1">
                 <div className="sticky top-24 space-y-6">
-                  <div className="p-6 bg-gold/5 border border-gold/20 rounded-lg">
-                    <h3 className="font-serif text-xl font-light text-foreground mb-2">
-                      {service.name}
-                    </h3>
-                    <p className="text-sm text-foreground/70">
-                      Part of our {category.name} services
-                    </p>
+                  <div className="rounded-lg border border-gold/20 bg-gold/5 p-6">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-primary">Ready when you are</p>
+                    <h3 className="mt-3 font-serif text-2xl font-light text-foreground">Start with {service.name}.</h3>
+                    <p className="mt-3 text-sm leading-6 text-foreground/70">Share a few details about your space and the studio will take it from there.</p>
                   </div>
+                  <Link href={inquiryHref} className="flex min-h-13 w-full items-center justify-center rounded bg-gold px-6 text-center font-medium text-foreground transition-colors hover:bg-gold/90">Request this service</Link>
+                                </div>
 
-                  <Link
-                    href="/book-consultation"
-                    className="block w-full text-center px-6 py-3 bg-gold text-foreground rounded font-medium hover:bg-gold/90 transition-colors"
-                  >
-                    Request Service
-                  </Link>
-
-                  <div className="p-6 border border-border/30 rounded-lg space-y-3">
-                    <p className="text-sm font-medium text-foreground">Have questions?</p>
-                    <p className="text-sm text-foreground/70">
-                      Contact our team to discuss how this service can transform your project.
-                    </p>
-                    <Link
-                      href="/contact"
-                      className="inline-flex items-center gap-1 text-sm text-gold hover:text-gold/80 transition-colors"
-                    >
-                      Get in Touch
-                      <ArrowRight size={14} />
-                    </Link>
+                {faqs.length > 0 && <div>
+                  <h2 className="font-serif text-3xl font-light text-foreground mb-4">Frequently asked</h2>
+                  <div className="divide-y divide-border border-y border-border/60">
+                    {faqs.map((faq) => (
+                      <details key={faq.question} className="group py-4">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-medium text-foreground">
+                          {faq.question}
+                          <span className="text-gold transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+                        </summary>
+                        <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">{faq.answer}</p>
+                      </details>
+                    ))}
                   </div>
-                </div>
+                </div>}
               </div>
             </div>
           </div>
         </section>
-
         {(prevService || nextService) && (
           <section className="border-t border-border/20 py-16">
             <div className="mx-auto max-w-7xl px-6 md:px-8">

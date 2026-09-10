@@ -1,10 +1,15 @@
 'use server'
 
 import { db } from '@/lib/db/client'
-import { projectAssets, projectAssetComments, projectActivity, projects } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { projectAssets, projectAssetComments, projectActivity, projectMembers, projectNotes, projects } from '@/lib/db/schema'
+
+import { and, desc, eq } from 'drizzle-orm'
+
 import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
+
+const STAFF_ROLES = ['admin', 'designer', 'architect', 'interior_designer', 'trade_member'] as const
 
 async function assertClientOwnsProject(assetId: string) {
   const user = await getOrCreateCurrentUser()
@@ -89,14 +94,19 @@ export async function requestAssetChanges(assetId: string, feedback: string) {
   }
 }
 
-export async function addAssetComment(assetId: string, body: string, senderType: 'client' | 'admin') {
-  const user = await getOrCreateCurrentUser()
-  if (!user) return { success: false, error: 'Not signed in.' }
+export async function addAssetComment(assetId: string, body: string, _senderType: 'client' | 'admin') {
+  const authorization = await getCurrentUserWithRole()
+  const user = authorization.user
+  if (!authorization.authorized || !user) return { success: false, error: 'Not signed in.' }
   if (!body.trim()) return { success: false, error: 'Comment cannot be empty.' }
 
   try {
     const asset = await db.query.projectAssets.findFirst({ where: eq(projectAssets.id, assetId) })
     if (!asset) return { success: false, error: 'Asset not found.' }
+    const project = await db.query.projects.findFirst({ where: eq(projects.id, asset.projectId) })
+    if (_senderType !== 'client' && _senderType !== 'admin') return { success: false, error: 'Invalid sender type.' }
+    const senderType = user.role === 'admin' ? 'admin' : 'client'
+    if (!project || (senderType === 'client' && project.userId !== user.id)) return { success: false, error: 'Not authorized.' }
 
     const [comment] = await db
       .insert(projectAssetComments)
@@ -113,6 +123,7 @@ export async function addAssetComment(assetId: string, body: string, senderType:
     })
 
     revalidatePath(`/admin/projects/${asset.projectId}`)
+    revalidatePath(`/client/projects/${project.slug}`)
     return { success: true, comment }
   } catch (error) {
     console.error('Failed to add comment:', error)
@@ -120,8 +131,75 @@ export async function addAssetComment(assetId: string, body: string, senderType:
   }
 }
 
-export async function getAssetComments(assetId: string) {
+export async function addProjectNote(projectId: string, body: string) {
+  const authorization = await getCurrentUserWithRole()
+  const user = authorization.user
+  const noteBody = body.trim().slice(0, 4000)
+  if (!authorization.authorized || !user) return { success: false, error: 'Not signed in.' }
+  if (!noteBody) return { success: false, error: 'Note cannot be empty.' }
+
   try {
+    const project = await db.query.projects.findFirst({ where: eq(projects.id, projectId), columns: { id: true, userId: true, slug: true } })
+    if (!project) return { success: false, error: 'Project not found.' }
+    const isStaff = STAFF_ROLES.includes(user.role as typeof STAFF_ROLES[number])
+    if (!isStaff && project.userId !== user.id) {
+      const member = await db.query.projectMembers.findFirst({
+        where: and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, user.id)),
+        columns: { id: true },
+      })
+      if (!member) return { success: false, error: 'Not authorized.' }
+    }
+
+    const authorType = isStaff ? 'admin' : 'client'
+    const [note] = await db.insert(projectNotes).values({ projectId, userId: user.id, authorType, body: noteBody }).returning()
+    await db.insert(projectActivity).values({
+      projectId,
+      actorUserId: user.id,
+      actorType: authorType,
+      action: 'note_added',
+      summary: `${authorType === 'admin' ? 'Studio' : 'Client'} added a project note`,
+    })
+    revalidatePath(`/admin/client-projects/${projectId}`)
+    if (project.slug) revalidatePath(`/client/projects/${project.slug}`)
+    return { success: true, note: { ...note, createdAt: note.createdAt.toISOString() } }
+  } catch (error) {
+    console.error('Failed to add project note:', error)
+    return { success: false, error: 'Failed to add project note.' }
+  }
+}
+
+export async function getProjectNotes(projectId: string) {
+  const authorization = await getCurrentUserWithRole()
+  const user = authorization.user
+  if (!authorization.authorized || !user) return { success: false, notes: [] }
+
+  try {
+    const project = await db.query.projects.findFirst({ where: eq(projects.id, projectId), columns: { id: true, userId: true } })
+    if (!project) return { success: false, notes: [] }
+    const isStaff = STAFF_ROLES.includes(user.role as typeof STAFF_ROLES[number])
+    if (!isStaff && project.userId !== user.id) {
+      const member = await db.query.projectMembers.findFirst({
+        where: and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, user.id)),
+        columns: { id: true },
+      })
+      if (!member) return { success: false, notes: [] }
+    }
+    const notes = await db.select().from(projectNotes).where(eq(projectNotes.projectId, projectId)).orderBy(desc(projectNotes.createdAt)).limit(100)
+    return { success: true, notes: notes.map((note) => ({ ...note, createdAt: note.createdAt.toISOString(), updatedAt: note.updatedAt.toISOString() })) }
+  } catch (error) {
+    console.error('Failed to load project notes:', error)
+    return { success: false, notes: [] }
+  }
+}
+
+export async function getAssetComments(assetId: string) {
+  const authorization = await getCurrentUserWithRole()
+  const user = authorization.user
+  if (!authorization.authorized || !user) return { success: false, comments: [] }
+  try {
+    const asset = await db.query.projectAssets.findFirst({ where: eq(projectAssets.id, assetId) })
+    const project = asset ? await db.query.projects.findFirst({ where: eq(projects.id, asset.projectId) }) : null
+    if (!asset || !project || (user.role !== 'admin' && project.userId !== user.id)) return { success: false, comments: [] }
     const comments = await db
       .select()
       .from(projectAssetComments)

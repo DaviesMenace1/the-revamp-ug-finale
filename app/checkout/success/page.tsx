@@ -2,29 +2,42 @@
 
 import React, { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/context/cart-context'
+import { formatMoney, normalizeCurrency } from '@/lib/utils'
 import {
   CheckCircle2,
   Package,
   MapPin,
   Mail,
   Printer,
-  ShoppingBag,
   ArrowRight,
   Loader2,
   Sparkles,
-} from 'lucide-react'
+} from '@/components/ui/luxury-icons'
 
-// Helper for formatting currency safely
-const safeFormatNumber = (num: any): string => {
-  const val = typeof num === 'string' ? parseFloat(num) : Number(num)
-  if (isNaN(val) || val === null || val === undefined) return '0.00'
-  return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+function parseObject(value: unknown): Record<string, any> {
+  if (typeof value !== 'string') return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {}
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, any> : {}
+  } catch {
+    return {}
+  }
+}
+
+function parseItems(value: unknown): any[] {
+  if (Array.isArray(value)) return value
+  if (typeof value !== 'string') return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
 }
 
 function SuccessContent() {
@@ -33,36 +46,50 @@ function SuccessContent() {
   const { clearCart } = useCart()
 
   const [order, setOrder] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(Boolean(orderRef))
+  const [loadError, setLoadError] = useState<string | null>(orderRef ? null : 'This confirmation link is missing an order reference.')
 
-  // 1. Clear shopping cart state immediately upon landing on success page
+  // Fetch the order first; the cart is cleared only after the server confirms payment.
   useEffect(() => {
-    clearCart()
-  }, [clearCart])
-
-  // 2. Fetch completed order details from DB via orderRef
-  useEffect(() => {
-    if (!orderRef) {
-      setLoading(false)
-      return
-    }
+    const reference = orderRef || ''
+    if (!reference) return
 
     async function fetchOrderDetails() {
       try {
-        const res = await fetch(`/api/orders/details?ref=${orderRef}`)
-        if (res.ok) {
-          const data = await res.json()
-          setOrder(data.order)
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          const reconciliationResponse = await fetch(`/api/orders/reconcile?ref=${encodeURIComponent(reference)}`, { cache: 'no-store' })
+          const reconciliation = await reconciliationResponse.json().catch(() => null) as { status?: string; success?: boolean; error?: string } | null
+          if (reconciliation?.status === 'paid' && reconciliation.success !== false) clearCart()
+          const res = await fetch(`/api/orders/details?ref=${encodeURIComponent(reference)}`, { cache: 'no-store' })
+          if (res.ok) {
+            const data = await res.json()
+            const orderData = data?.order
+            const isPayOnDelivery = orderData?.paymentMode === 'pay_on_delivery'
+            const isConfirmedPayOnDelivery = isPayOnDelivery && ['confirmed', 'processing', 'shipped', 'delivered'].includes(String(orderData?.status || ''))
+            if (orderData?.paymentStatus === 'completed' || isConfirmedPayOnDelivery) {
+              setOrder(orderData)
+              setLoadError(null)
+              clearCart()
+              return
+            }
+            if (orderData?.paymentStatus === 'failed' || orderData?.status === 'cancelled') {
+              setLoadError('This payment was not completed, so no successful receipt is shown. Please return to checkout and try again.')
+              return
+            }
+          }
+          if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 1000))
         }
+        setLoadError('We could not load the confirmed order details yet. Your payment was not changed. Please retry this view in a moment.')
       } catch (error) {
         console.error('Failed to load order details:', error)
+        setLoadError('We could not load the confirmed order details yet. Your payment was not changed. Please retry this view in a moment.')
       } finally {
         setLoading(false)
       }
     }
 
     fetchOrderDetails()
-  }, [orderRef])
+  }, [clearCart, orderRef])
 
   if (loading) {
     return (
@@ -75,17 +102,22 @@ function SuccessContent() {
     )
   }
 
-  const shippingAddress = order?.shippingAddress
-    ? typeof order.shippingAddress === 'string'
-      ? JSON.parse(order.shippingAddress)
-      : order.shippingAddress
-    : null
+  const deliveryAddress = order?.deliveryAddress ? parseObject(order.deliveryAddress) : null
+  const items = parseItems(order?.items)
+  const isPayOnDelivery = order?.paymentMode === 'pay_on_delivery'
 
-  const items = order?.items
-    ? typeof order.items === 'string'
-      ? JSON.parse(order.items)
-      : order.items
-    : []
+  if (loadError || !order) {
+    return (
+      <div className="mx-auto max-w-xl py-24 text-center">
+        <div className="rounded-xl border border-amber-300/70 bg-amber-50 p-6 text-amber-950 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50">
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em]">The Revamp UG</p>
+          <h1 className="mt-3 font-serif text-3xl">Your order is still being confirmed.</h1>
+          <p className="mt-3 text-sm leading-6">{loadError || 'We are retrieving your order details. Your payment was not changed.'}</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-5 min-h-11 rounded bg-amber-950 px-4 text-sm font-medium text-white dark:bg-amber-200 dark:text-amber-950">Retry confirmation</button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -97,8 +129,9 @@ function SuccessContent() {
         <h1 className="font-serif text-3xl sm:text-4xl font-light text-foreground mb-2">
           Thank You For Your Order!
         </h1>
-        <p className="text-muted-foreground text-sm max-w-md mx-auto">
-          We’ve received your payment and sent a receipt confirmation email to{' '}
+                  <p className="text-muted-foreground text-sm max-w-md mx-auto">
+          {isPayOnDelivery ? 'Your order has been confirmed. Payment is due when your order is delivered or collected. A confirmation email has been sent to ' : 'We’ve received your payment and sent a receipt confirmation email to '}{' '}
+
           <span className="text-foreground font-medium">{order?.userEmail || 'your email'}</span>.
         </p>
       </div>
@@ -114,7 +147,7 @@ function SuccessContent() {
             </p>
           </div>
           <div className="sm:text-right">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Date Paid</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">{isPayOnDelivery ? 'Order Date' : 'Date Paid'}</p>
             <p className="text-sm font-medium text-foreground mt-0.5">
               {order?.createdAt
                 ? new Date(order.createdAt).toLocaleDateString('en-US', {
@@ -127,21 +160,23 @@ function SuccessContent() {
           </div>
         </div>
 
-        {/* Shipping & Payment Grid */}
+          {/* Delivery & Payment Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
-          {/* Shipping Address */}
+          {/* Delivery details */}
           <div className="space-y-2 p-4 bg-muted/30 border border-border">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-primary" /> Delivery Address
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-primary" /> {deliveryAddress?.deliveryMethod === 'pickup_station' ? 'Pickup Station' : 'Delivery Address'}
+
             </p>
-            {shippingAddress ? (
+            {deliveryAddress ? (
               <div className="space-y-0.5 text-foreground text-xs leading-relaxed">
-                <p className="font-semibold text-sm">{shippingAddress.name}</p>
-                <p>{shippingAddress.address}</p>
+                <p className="font-semibold text-sm">{deliveryAddress.deliveryMethod === 'pickup_station' ? deliveryAddress.pickupStation?.name || 'Pickup station' : deliveryAddress.name}</p>
+                <p>{deliveryAddress.deliveryMethod === 'pickup_station' ? deliveryAddress.pickupStation?.address || deliveryAddress.address : deliveryAddress.address}</p>
                 <p>
-                  {shippingAddress.city}, {shippingAddress.country}
+                  {deliveryAddress.city}{deliveryAddress.region ? ` · ${deliveryAddress.region}` : ''}, {deliveryAddress.country}
                 </p>
-                <p className="text-muted-foreground pt-1">{shippingAddress.phone}</p>
+                <p className="text-muted-foreground pt-1">{deliveryAddress.phone}</p>
+                {deliveryAddress.deliveryMethod === 'pickup_station' && deliveryAddress.pickupStation?.instructions && <p className="pt-1 text-primary">{deliveryAddress.pickupStation.instructions}</p>}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">Standard Delivery</p>
@@ -156,18 +191,18 @@ function SuccessContent() {
             <div className="space-y-1 text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Method:</span>
-                <span className="font-medium text-foreground">Flutterwave</span>
+                <span className="font-medium text-foreground">{isPayOnDelivery ? 'Pay on delivery' : 'Flutterwave'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status:</span>
-                <span className="text-emerald-600 font-semibold uppercase tracking-wider text-[10px] bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/20">
-                  Paid / Confirmed
+                <span className={`${isPayOnDelivery ? 'text-amber-700 bg-amber-500/10 border-amber-500/20' : 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20'} font-semibold uppercase tracking-wider text-[10px] px-2 py-0.5 border`}>
+                  {isPayOnDelivery ? 'Payment due at fulfilment' : 'Paid / Confirmed'}
                 </span>
               </div>
               <div className="flex justify-between pt-2 border-t border-border/50 text-sm font-semibold">
-                <span>Total Amount:</span>
+                <span>{isPayOnDelivery ? 'Total Due:' : 'Total Amount:'}</span>
                 <span className="font-mono text-primary">
-                  {order?.currency || 'USD'} ${safeFormatNumber(order?.totalAmount || 0)}
+                  {formatMoney(order?.totalAmount || 0, normalizeCurrency(order?.currency))}
                 </span>
               </div>
             </div>
@@ -186,16 +221,15 @@ function SuccessContent() {
               </p>
             ) : (
               items.map((item: any, idx: number) => (
-                <div key={idx} className="p-4 flex items-center justify-between gap-4 text-sm">
+                <div key={item.cartItemId || item.productId || item.id || `${item.name || 'item'}-${idx}`} className="p-4 flex items-center justify-between gap-4 text-sm">
                   <div className="flex items-center gap-3">
                     {item.image && (
                       <div className="relative w-12 h-12 bg-muted border border-border shrink-0 overflow-hidden">
-                        <Image
+                        <img
                           src={item.image}
-                          alt={item.name}
-                          fill
-                          className="object-cover"
-                          unoptimized={item.image.startsWith('http')}
+                          alt={item.name || 'Purchased product'}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
                         />
                       </div>
                     )}
@@ -226,7 +260,7 @@ function SuccessContent() {
                   </div>
 
                   <div className="text-right font-mono font-medium">
-                    ${safeFormatNumber(item.unitPrice * item.quantity)}
+                    {formatMoney(Number(item.unitPrice ?? item.price ?? 0) * Number(item.quantity || 0), normalizeCurrency(item.currency || order?.currency))}
                   </div>
                 </div>
               ))

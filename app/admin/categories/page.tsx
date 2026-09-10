@@ -6,15 +6,13 @@ import CategoriesClient from './categories-client'
 export const dynamic = 'force-dynamic'
 
 export default async function AdminCategoriesPage() {
-  const [allDepartments, allCategories, allSubCategories, allTemplates] = await Promise.all([
-    db.query.departments.findMany({ orderBy: asc(departments.order) }),
-    db.query.categories.findMany({ orderBy: asc(categories.order) }),
-    db.query.subCategories.findMany({ orderBy: asc(subCategories.order) }),
-    db.query.attributeTemplates.findMany({
-      columns: { id: true, name: true },
-      orderBy: asc(attributeTemplates.name),
-    }),
-  ])
+  const allDepartments = await db.query.departments.findMany({ orderBy: asc(departments.order) })
+  const allCategories = await db.query.categories.findMany({ orderBy: asc(categories.order) })
+  const allSubCategories = await db.query.subCategories.findMany({ orderBy: asc(subCategories.order) })
+  const allTemplates = await db.query.attributeTemplates.findMany({
+    columns: { id: true, name: true },
+    orderBy: asc(attributeTemplates.name),
+  })
 
   return (
     <CategoriesClient

@@ -6,6 +6,7 @@ import {
   useState,
 } from "react"
 import { useRouter } from "next/navigation"
+import { CldUploadWidget } from '@/components/admin/cloudflare-upload-widget'
 
 type Department = {
   id: string
@@ -114,8 +115,10 @@ type FormState = {
   description: string
   longDescription: string
   editorialHighlight: string
+  tags: string
 
   price: string
+  tradeDiscountPercent: string
   originalPrice: string
   currency: string
 
@@ -160,8 +163,10 @@ const initialForm: FormState = {
   description: "",
   longDescription: "",
   editorialHighlight: "",
+  tags: "",
 
   price: "",
+  tradeDiscountPercent: "0",
   originalPrice: "",
   currency: "UGX",
 
@@ -465,6 +470,16 @@ export default function NewProductPage() {
           : "colors"
 
       const items = libraries[libraryKey]
+      const customValue =
+        value && typeof value === "object"
+          ? String((value as { value?: unknown }).value ?? "")
+          : ""
+      const customSwatchImage =
+        value && typeof value === "object"
+          ? String((value as { swatchImage?: unknown }).swatchImage ?? "")
+          : ""
+      const selectedLibraryId = typeof value === "string" ? value : ""
+      const selectedLibraryItem = items.find((item) => item.id === selectedLibraryId)
 
       return (
         <div key={field.key} className="space-y-2">
@@ -473,10 +488,14 @@ export default function NewProductPage() {
             {field.required && <span className="ml-1 text-red-500">*</span>}
           </label>
           <select
-            value={typeof value === "string" ? value : ""}
-            onChange={(event) =>
-              updateAttribute(field.key, event.target.value)
-            }
+            value={selectedLibraryId || (customValue ? "__custom__" : "")}
+            onChange={(event) => {
+              if (event.target.value === "__custom__") {
+                updateAttribute(field.key, { value: customValue, swatchImage: customSwatchImage })
+              } else {
+                updateAttribute(field.key, event.target.value)
+              }
+            }}
             className={commonClass}
           >
             <option value="">Select {field.label}</option>
@@ -486,7 +505,42 @@ export default function NewProductPage() {
                 {item.code ? ` (${item.code})` : ""}
               </option>
             ))}
+            <option value="__custom__">Add a custom {field.label.toLowerCase()}</option>
           </select>
+          {selectedLibraryItem?.swatchImage && (
+            <div className="flex items-center gap-2 text-xs text-neutral-500">
+              <img src={selectedLibraryItem.swatchImage} alt="" className="h-8 w-8 rounded-full border border-neutral-200 object-cover" />
+              Library swatch
+            </div>
+          )}
+          {customValue !== "" || (value && typeof value === "object") ? (
+            <div className="space-y-2 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-3">
+              <input
+                value={customValue}
+                onChange={(event) =>
+                  updateAttribute(field.key, { value: event.target.value, swatchImage: customSwatchImage })
+                }
+                placeholder={`Enter a custom ${field.label.toLowerCase()}`}
+                className={commonClass}
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                {customSwatchImage && <img src={customSwatchImage} alt="" className="h-10 w-10 rounded-full border border-neutral-200 object-cover" />}
+                <CldUploadWidget
+                  uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "revamp_preset"}
+                  onSuccess={(result: any) => {
+                    const url = result?.info?.secure_url
+                    if (url) updateAttribute(field.key, { value: customValue, swatchImage: url })
+                  }}
+                >
+                  {({ open }) => (
+                    <button type="button" onClick={() => open()} className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-xs hover:bg-neutral-100">
+                      {customSwatchImage ? "Replace swatch image" : "Upload swatch image"}
+                    </button>
+                  )}
+                </CldUploadWidget>
+              </div>
+            </div>
+          ) : null}
           {field.description && (
             <p className="text-xs text-neutral-500">{field.description}</p>
           )}
@@ -579,6 +633,7 @@ export default function NewProductPage() {
         body: JSON.stringify({
           ...form,
           price: Number(form.price),
+          tradeDiscountPercent: Number(form.tradeDiscountPercent || 0),
           originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
           quantity: Number(form.quantity || 0),
           weight: form.weight ? Number(form.weight) : null,
@@ -883,6 +938,17 @@ export default function NewProductPage() {
                 />
               </div>
 
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium">Product Tags</label>
+                <input
+                  value={form.tags}
+                  onChange={(event) => updateField("tags", event.target.value)}
+                  placeholder="handmade, oak, living room, Ugandan design"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-black"
+                />
+                <p className="text-xs text-neutral-500">Comma-separated terms used for SEO, site search, and product feeds.</p>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Product Type</label>
                 <select
@@ -965,6 +1031,20 @@ export default function NewProductPage() {
                   }
                   className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm"
                 />
+              </div>
+
+              <div className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3">
+                <label className="text-sm font-semibold text-emerald-950">Trade collection discount (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  value={form.tradeDiscountPercent}
+                  onChange={(event) => updateField("tradeDiscountPercent", event.target.value)}
+                  className="w-full rounded-lg border border-emerald-300 bg-white px-3 py-2.5 text-sm"
+                />
+                <p className="text-xs leading-5 text-emerald-900/75">Shown only to approved Trade members. Public pricing stays unchanged.</p>
               </div>
 
               <div className="space-y-2">

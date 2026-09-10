@@ -4,6 +4,15 @@ import { db } from '@/lib/db/client'
 import { articles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
+import { invalidateCachePattern } from '@/lib/redis/cache'
+
+async function revalidatePublicArticleContent() {
+  revalidatePath('/')
+  revalidatePath('/journal')
+  revalidatePath('/journal/[slug]', 'page')
+  await invalidateCachePattern('articles:list:*')
+}
 
 function slugify(input: string) {
   return input
@@ -13,32 +22,62 @@ function slugify(input: string) {
     .replace(/(^-|-$)/g, '')
 }
 
+export async function getArticleForAdmin(id: string) {
+  if (!(await getCurrentUserWithRole(['admin', 'editor'])).authorized) return { success: false, error: 'You are not authorized to manage articles.' }
+  try {
+    if (!id || typeof id !== 'string') return { success: false, error: 'A valid article is required.' }
+    const article = await db.query.articles.findFirst({ where: eq(articles.id, id) })
+    if (!article) return { success: false, error: 'Article not found. Refresh the blogs page and try again.' }
+    return { success: true, article }
+  } catch (error) {
+    console.error('Failed to load article for editing:', error)
+    return { success: false, error: 'Failed to load the article editor. Refresh the page and try again.' }
+  }
+}
+
 export async function createArticle(data: {
   title: string
+  introduction?: string
   excerpt?: string
   content?: string
   author?: string
   category?: string
   featuredImage?: string
+  gallery?: string[]
+  storySections?: unknown[]
+  pullQuotes?: unknown[]
+  relatedArticles?: string[]
+  relatedServices?: string[]
+  relatedProjects?: string[]
   status?: string
 }) {
+  if (!(await getCurrentUserWithRole(['admin', 'editor'])).authorized) return { success: false, error: 'You are not authorized to manage articles.' }
   try {
+    const status = data.status === 'draft' ? 'draft' : 'published'
     const [article] = await db
       .insert(articles)
       .values({
         title: data.title,
+        introduction: data.introduction || null,
+        pullQuotes: data.pullQuotes || [],
+        relatedArticles: data.relatedArticles || [],
+        relatedServices: data.relatedServices || [],
+        relatedProjects: data.relatedProjects || [],
         slug: slugify(data.title),
         excerpt: data.excerpt || null,
-        content: data.content || null,
+        content: data.content?.trim() || '',
         author: data.author || null,
         category: data.category || null,
         featuredImage: data.featuredImage || null,
-        status: data.status || 'draft',
-        publishedAt: data.status === 'published' ? new Date() : null,
+        gallery: data.gallery || [],
+        storySections: data.storySections || [],
+        status,
+        publishedAt: status === 'published' ? new Date() : null,
       })
       .returning()
 
     revalidatePath('/admin/blogs')
+    await revalidatePublicArticleContent()
     return { success: true, article }
   } catch (error) {
     console.error('Failed to create article:', error)
@@ -50,18 +89,27 @@ export async function updateArticle(
   id: string,
   data: Partial<{
     title: string
+    introduction: string
     excerpt: string
     content: string
     author: string
     category: string
     featuredImage: string
+    gallery: string[]
+    storySections: unknown[]
+    pullQuotes: unknown[]
+    relatedArticles: string[]
+    relatedServices: string[]
+    relatedProjects: string[]
     status: string
   }>,
 ) {
+  if (!(await getCurrentUserWithRole(['admin', 'editor'])).authorized) return { success: false, error: 'You are not authorized to manage articles.' }
   try {
     const patch: Record<string, unknown> = { ...data, updatedAt: new Date() }
+    if (data.status !== undefined) patch.status = data.status === 'draft' ? 'draft' : 'published'
 
-    if (data.status === 'published') {
+    if (patch.status === 'published') {
       const existing = await db.query.articles.findFirst({
         where: eq(articles.id, id),
         columns: { publishedAt: true },
@@ -74,6 +122,7 @@ export async function updateArticle(
     await db.update(articles).set(patch).where(eq(articles.id, id))
 
     revalidatePath('/admin/blogs')
+    await revalidatePublicArticleContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to update article:', error)
@@ -82,9 +131,11 @@ export async function updateArticle(
 }
 
 export async function deleteArticle(id: string) {
+  if (!(await getCurrentUserWithRole(['admin', 'editor'])).authorized) return { success: false, error: 'You are not authorized to manage articles.' }
   try {
     await db.delete(articles).where(eq(articles.id, id))
     revalidatePath('/admin/blogs')
+    await revalidatePublicArticleContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to delete article:', error)

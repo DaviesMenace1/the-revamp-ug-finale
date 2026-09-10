@@ -1,10 +1,16 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, CheckCircle2, Download, ArrowRight } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { X, CheckCircle2, Download, ArrowRight } from '@/components/ui/luxury-icons'
 import { Button } from '@/components/ui/button'
 
+const NEWSLETTER_DELAY_MS = 2 * 60 * 1000
+const NEWSLETTER_DISMISSED_KEY = 'revamp-newsletter-dismissed'
+
 export function NewsletterPopup() {
+  const pathname = usePathname()
+  const isAuthRoute = pathname === '/sign-in' || pathname.startsWith('/sign-in/') || pathname === '/sign-up' || pathname.startsWith('/sign-up/') || pathname === '/reset-password'
   const [isOpen, setIsOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -12,22 +18,21 @@ export function NewsletterPopup() {
   const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
-    // Check if the user has already seen or dismissed the popup
-    const hasSeenPopup = localStorage.getItem('revamp-newsletter-dismissed')
+    if (isAuthRoute) return
+    const hasSeenPopup = window.localStorage.getItem(NEWSLETTER_DISMISSED_KEY)
 
-    if (!hasSeenPopup) {
-      // Trigger popup 4 seconds after arrival
-      const timer = setTimeout(() => {
-        setIsOpen(true)
-      }, 4000)
+    if (hasSeenPopup) return
 
-      return () => clearTimeout(timer)
-    }
-  }, [])
+    const timer = window.setTimeout(() => {
+      setIsOpen(true)
+    }, NEWSLETTER_DELAY_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [isAuthRoute])
 
   const handleClose = () => {
     setIsOpen(false)
-    localStorage.setItem('revamp-newsletter-dismissed', 'true')
+    window.localStorage.setItem(NEWSLETTER_DISMISSED_KEY, 'true')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,7 +59,7 @@ export function NewsletterPopup() {
 
       // Success (New subscriber OR already subscribed)
       setIsSubmitted(true)
-      localStorage.setItem('revamp-newsletter-dismissed', 'true')
+      window.localStorage.setItem(NEWSLETTER_DISMISSED_KEY, 'true')
     } catch (error: any) {
       setErrorMessage(error.message || 'Something went wrong. Please try again.')
     } finally {
@@ -62,7 +67,7 @@ export function NewsletterPopup() {
     }
   }
 
-  if (!isOpen) return null
+  if (isAuthRoute || !isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-opacity duration-300">
@@ -86,16 +91,16 @@ export function NewsletterPopup() {
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3.5 py-1">
               <Download className="h-3.5 w-3.5 text-primary" />
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary font-medium">
-                Complimentary Design Guide
+                Join the Journal
               </span>
             </div>
 
             <div className="space-y-2">
               <h2 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
-                Elevate Your Living Space
+                A considered note for your inbox
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                Subscribe today to receive our exclusive <strong className="text-foreground font-semibold">2026 Interior Styling Guide (PDF)</strong> emailed directly to your inbox.
+                Subscribe for studio notes on interiors, materials, sourcing, projects, and the details that make a space feel complete.
               </p>
             </div>
 
@@ -123,14 +128,14 @@ export function NewsletterPopup() {
                   'Processing...'
                 ) : (
                   <span className="flex items-center justify-center gap-2">
-                    Claim Free Design PDF <ArrowRight className="h-4 w-4" />
+                    Join the newsletter <ArrowRight className="h-4 w-4" />
                   </span>
                 )}
               </Button>
             </form>
 
             <p className="text-[11px] text-muted-foreground/70">
-              PDF guide emailed upon subscription. No spam, ever.
+              You can unsubscribe whenever you choose.
             </p>
           </div>
         ) : (
@@ -140,9 +145,9 @@ export function NewsletterPopup() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="font-serif text-3xl font-bold">Check Your Inbox!</h3>
+              <h3 className="font-serif text-3xl font-bold">You are on the list</h3>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                We've sent your complimentary <strong className="text-foreground">2026 Interior Styling Guide PDF</strong> directly to <span className="text-foreground font-medium">{email}</span>.
+                You are now on the studio newsletter list at <span className="text-foreground font-medium">{email}</span>.
               </p>
             </div>
 

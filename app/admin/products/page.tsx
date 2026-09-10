@@ -11,7 +11,7 @@ import {
   Archive,
   ExternalLink,
   Pencil,
-} from "lucide-react"
+} from '@/components/ui/luxury-icons'
 
 import { db } from "@/lib/db"
 import {
@@ -68,8 +68,8 @@ function googleStatusLabel(status: string | null | undefined) {
       return "Synced"
     case "pending":
       return "Pending"
-    case "failed":
-      return "Sync Failed"
+    case "error":
+      return "Sync Error"
     case "not_synced":
       return "Not Synced"
     default:
@@ -205,8 +205,7 @@ export default async function AdminProductsPage({
   ).length
   const googleIssues = allProducts.filter(
     (product) =>
-      product.googleSyncStatus === "failed" ||
-      product.googleSyncStatus === "not_synced" ||
+      product.googleSyncStatus === "error" ||
       !product.googleSyncStatus,
   ).length
 
@@ -410,7 +409,7 @@ export default async function AdminProductsPage({
 
                           <div className="min-w-0">
                             <Link
-                              href={`/admin/products/${product.productId}`}
+                              href={`/admin/products/${product.id}`}
                               className="block max-w-[280px] truncate text-sm font-medium text-stone-900 hover:text-stone-600"
                             >
                               {product.name}
@@ -425,11 +424,11 @@ export default async function AdminProductsPage({
 
                       <td className="px-5 py-4">
                         <div className="text-xs text-stone-700">
-                          {product.departmentName || "—"}
+                          {product.departmentName || "N/A"}
                         </div>
 
                         <div className="mt-1 text-[11px] text-stone-400">
-                          {product.categoryName || "—"}
+                          {product.categoryName || "N/A"}
                           {product.subCategoryName
                             ? ` → ${product.subCategoryName}`
                             : ""}
@@ -475,7 +474,7 @@ export default async function AdminProductsPage({
                         >
                           {product.googleSyncStatus === "synced" ? (
                             <CheckCircle2 className="h-3.5 w-3.5" />
-                          ) : product.googleSyncStatus === "failed" ? (
+                          ) : product.googleSyncStatus === "error" ? (
                             <AlertCircle className="h-3.5 w-3.5" />
                           ) : product.googleSyncStatus === "pending" ? (
                             <Clock3 className="h-3.5 w-3.5" />

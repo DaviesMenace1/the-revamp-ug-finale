@@ -1,433 +1,61 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Menu, X, ChevronDown, ShoppingBag, Search, Heart, User, MessageSquare } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { useUser } from '@clerk/nextjs'
+import { MessageCircle, ShoppingCart, User, Search, Menu, X } from '@/components/ui/luxury-icons'
 import { useCart } from '@/lib/context/cart-context'
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
-  import { ThemeSwitcher } from '@/components/theme-switcher'
+import { cn } from '@/lib/utils'
+import { SearchDrawer } from '@/components/search/search-drawer'
+import NotificationBell from '@/components/notifications/notification-bell'
 
-  interface NavLink {
-    label: string
-    href: string
-    submenu?: NavLink[]
-  }
-
-  // Primary links shown directly in the header bar
-  const primaryNavLinks: NavLink[] = [
-  { label: 'About', href: '/about' },
-  { 
-    label: 'Services', 
-    href: '/services',
-    submenu: [
-      { label: 'Interior Design', href: '/services/interior-design' },
-      { label: 'Architecture', href: '/services/architecture' },
-      { label: '3D Visualization', href: '/services/3d-visualization' },
-      { label: 'Renovation & Construction', href: '/services/renovation' },
-      { label: 'Procurement & Sourcing', href: '/services/procurement' },
-      { label: 'Furniture & Manufacturing', href: '/services/furniture' },
-      { label: 'Styling & Living', href: '/services/styling' },
-      { label: 'Consultancy', href: '/services/consultancy' },
-      { label: 'Property Services', href: '/services/property' },
-      { label: 'Project Management', href: '/services/project-management' },
-      { label: 'Signature Services', href: '/services/signature-services' },
-    ]
-  },
-  { label: 'Projects', href: '/portfolio' },
-  { label: 'Shop', href: '/collections' },
-  { label: 'FAQs', href: '/faqs' },
-]
-
-// Secondary links available via the Drawer/Sheet
-const secondaryNavLinks: NavLink[] = [
+const nav = [
+  { label: 'Collections', href: '/collections' },
+  { label: 'Services', href: '/services' },
+  { label: 'Architecture', href: '/architecture' },
+  { label: 'The Studio', href: '/about' },
   { label: 'Journal', href: '/journal' },
-  { label: 'Source With Revamp', href: '/source-with-revamp' },
-  { label: 'Trade Program', href: '/trade' },
-  { label: 'Membership', href: '/membership' },
-  { label: 'Contact', href: '/contact' },
 ]
-
-// Complete list rendered inside the Drawer
-const allNavLinks = [...primaryNavLinks, ...secondaryNavLinks]
 
 export function SiteHeader() {
-  const CartContext = useCart()
-  const cartCount = CartContext ? CartContext.cartCount : 0
-  const [scrolled, setScrolled] = useState(false)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
-  const [desktopDropdownOpen, setDesktopDropdownOpen] = useState<string | null>(null)
-
   const pathname = usePathname()
-  const isHome = pathname === '/'
-  const dropdownRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const onScroll = () => {
-      const currentScroll = window.scrollY || document.documentElement.scrollTop
-      setScrolled(currentScroll > 40)
+  const router = useRouter()
+  const { isLoaded, isSignedIn } = useUser()
+  const [open, setOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const cart = useCart()
+  const cartCount = cart?.cartCount ?? 0
+  const active = (href: string) => href === '/about' ? pathname.startsWith('/about') : pathname === href || pathname.startsWith(`${href}/`)
+  const close = () => setOpen(false)
+  const account = () => {
+    if (!isLoaded) return
+    close()
+    if (isSignedIn) {
+      router.push('/account')
+      return
     }
-
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  // Close desktop dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDesktopDropdownOpen(null)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  // Close menus on page route changes
-  useEffect(() => {
-    setDesktopDropdownOpen(null)
-    setDrawerOpen(false)
-  }, [pathname])
-
-  const toggleSubmenu = (href: string) => {
-    setOpenSubmenu(prev => (prev === href ? null : href))
+    window.dispatchEvent(new Event('revamp:open-auth'))
   }
 
-  const toggleDesktopDropdown = (href: string) => {
-    setDesktopDropdownOpen(prev => (prev === href ? null : href))
-  }
-
-  return (
-    <>
-      <header
-        className={cn(
-          'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
-          scrolled || !isHome
-            ? 'bg-background/95 backdrop-blur-md border-b border-border'
-            : 'bg-transparent',
-        )}
-      >
-        <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-12">
-          <div className="flex items-center justify-between h-16 md:h-20">
-          
-            {/* 1. LEFT SECTION */}
-            <div className="flex items-center gap-1 sm:gap-2">
-              {/* Mobile Only: Menu & Search */}
-              <div className="flex items-center gap-1 md:hidden">
-                <button
-                  className={cn(
-                    'p-1.5 transition-colors',
-                    scrolled || !isHome ? 'text-foreground' : 'text-white',
-                  )}
-                  onClick={() => setDrawerOpen(true)}
-                  aria-label="Open menu"
-                >
-                  <Menu size={20} />
-                </button>
-
-                <Link
-                  href="/search"
-                  className={cn(
-                    'p-1.5 hover:text-gold transition-colors',
-                    scrolled || !isHome ? 'text-foreground' : 'text-white',
-                  )}
-                  aria-label="Search"
-                >
-                  <Search size={18} />
-                </Link>
-              </div>
-
-              {/* Desktop Only: Brand Logo */}
-              <div className="hidden md:flex items-center">
-                <Link
-                  href="/"
-                  className={cn(
-                    'font-serif text-xl md:text-2xl font-light tracking-widest uppercase transition-colors',
-                    scrolled || !isHome ? 'text-foreground' : 'text-white',
-                  )}
-                >
-                  The Revamp
-                  <span className="text-gold ml-1">UG</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* 2. CENTER SECTION */}
-            {/* Mobile: Clean Logo */}
-            <div className="flex md:hidden items-center justify-center text-center px-1">
-              <Link
-                href="/"
-                className={cn(
-                  'font-serif text-xs sm:text-sm font-medium tracking-wider uppercase transition-colors whitespace-nowrap',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-              >
-                The Revamp<span className="text-gold ml-0.5">UG</span>
-              </Link>
-            </div>
-
-            {/* Desktop: Navigation Links with Fixed Dropdown */}
-            <nav className="hidden md:flex items-center gap-6 lg:gap-8" aria-label="Main navigation" ref={dropdownRef}>
-              {primaryNavLinks.map((link) => (
-                <div 
-                  key={link.href} 
-                  className="relative group"
-                  onMouseEnter={() => link.submenu && setDesktopDropdownOpen(link.href)}
-                  onMouseLeave={() => link.submenu && setDesktopDropdownOpen(null)}
-                >
-                  {link.submenu ? (
-                    <div className="flex items-center gap-1 cursor-pointer">
-                      <Link
-                        href={link.href}
-                        className={cn(
-                          'font-sans text-xs lg:text-sm tracking-wide uppercase transition-colors',
-                          scrolled || !isHome ? 'text-foreground/80 hover:text-foreground' : 'text-white/80 hover:text-white',
-                          pathname.startsWith(link.href) && 'text-gold',
-                        )}
-                      >
-                        {link.label}
-                      </Link>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          toggleDesktopDropdown(link.href)
-                        }}
-                        className={cn(
-                          'p-1 transition-colors',
-                          scrolled || !isHome ? 'text-foreground/80 hover:text-foreground' : 'text-white/80 hover:text-white'
-                        )}
-                        aria-label="Toggle Submenu"
-                      >
-                        <ChevronDown 
-                          size={14} 
-                          className={cn(
-                            'transition-transform duration-200 opacity-70',
-                            desktopDropdownOpen === link.href && 'rotate-180 text-gold'
-                          )} 
-                        />
-                      </button>
-                    </div>
-                  ) : (
-                    <Link
-                      href={link.href}
-                      className={cn(
-                        'font-sans text-xs lg:text-sm tracking-wide uppercase transition-colors',
-                        scrolled || !isHome ? 'text-foreground/80 hover:text-foreground' : 'text-white/80 hover:text-white',
-                        pathname === link.href && 'text-gold',
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  )}
-                
-                  {/* Dropdown Container */}
-                  {link.submenu && (
-                    <div
-                      className={cn(
-                        'absolute left-0 top-full pt-2 w-64 transition-all duration-200 z-50',
-                        desktopDropdownOpen === link.href
-                          ? 'opacity-100 visible translate-y-0'
-                          : 'opacity-0 invisible -translate-y-2 pointer-events-none'
-                      )}
-                    >
-                      <div className="bg-background border border-border shadow-xl rounded-sm py-2 max-h-80 overflow-y-auto">
-                        {link.submenu.map((subitem) => (
-                          <Link
-                            key={subitem.href}
-                            href={subitem.href}
-                            className="block px-4 py-2 text-xs uppercase tracking-wider text-foreground/70 hover:text-gold hover:bg-muted/50 border-b border-border/30 last:border-b-0 transition-colors"
-                          >
-                            {subitem.label}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </nav>
-
-            {/* 3. RIGHT SECTION */}
-            <div className="flex items-center gap-0.5 sm:gap-1.5 md:gap-3">
-              {/* Desktop Search Icon */}
-              <Link
-                href="/search"
-                className={cn(
-                  'hidden md:block p-1.5 hover:text-gold transition-colors',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-                aria-label="Search"
-              >
-                <Search size={20} />
-              </Link>
-
-              {/* Theme Switcher */}
-              <div className="scale-90 sm:scale-100">
-                <ThemeSwitcher />
-              </div>
-
-              {/* Wishlist Icon */}
-              <Link
-                href="/wishlist"
-                className={cn(
-                  'p-1 sm:p-1.5 hover:text-gold transition-colors',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-                aria-label="Wishlist"
-              >
-                <Heart size={18} className="sm:w-[20px] sm:h-[20px]" />
-              </Link>
-
-              {/* Profile / Account Icon */}
-              <Link
-                href="/account"
-                className={cn(
-                  'p-1 sm:p-1.5 hover:text-gold transition-colors',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-                aria-label="Account"
-              >
-                <User size={18} className="sm:w-[20px] sm:h-[20px]" />
-              </Link>
-
-              {/* Shopping Cart Icon */}
-              <Link
-                href="/cart"
-                className={cn(
-                  'relative p-1 sm:p-1.5 hover:text-gold transition-colors',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-                aria-label="Shopping Cart"
-              >
-                <ShoppingBag size={18} className="sm:w-[20px] sm:h-[20px]" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gold text-white text-[9px] sm:text-[10px] font-bold rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
-
-              {/* Desktop Drawer Toggle */}
-              <button
-                className={cn(
-                  'hidden md:flex p-1.5 transition-colors items-center ml-1',
-                  scrolled || !isHome ? 'text-foreground' : 'text-white',
-                )}
-                onClick={() => setDrawerOpen(true)}
-                aria-label="Open full menu"
-              >
-                <Menu size={22} />
-              </button>
-            </div>
-
-          </div>
-        </div>
-      </header>
-
-      {/* FLOATING INQUIRE BUTTON */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <Link href="/contact">
-          <Button
-            size="lg"
-            className="shadow-2xl bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest uppercase px-5 py-6 rounded-full flex items-center gap-2 border border-border/20 backdrop-blur-md transition-all duration-300 hover:scale-105"
-          >
-            <MessageSquare size={16} />
-            <span>Inquire</span>
-          </Button>
-        </Link>
+  return <>
+    <a href="#site-main-content" className="sr-only fixed left-4 top-4 z-[70] rounded bg-obsidian px-4 py-3 text-xs font-semibold text-canvas focus:not-sr-only">Skip to content</a>
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-obsidian/10 bg-canvas/95 text-obsidian shadow-[0_1px_0_rgba(28,28,28,0.04)] backdrop-blur-xl">
+      <div className="mx-auto flex min-h-[4.75rem] max-w-7xl items-center justify-between gap-5 px-5 sm:px-8 lg:px-12">
+        <Link href="/" className="shrink-0 font-serif text-[1.45rem] font-medium tracking-tighter sm:text-2xl">The Revamp <span className="font-normal italic text-gilded">UG</span></Link>
+        <nav className="hidden items-center gap-6 text-[10px] font-semibold uppercase tracking-[0.16em] lg:flex xl:gap-8" aria-label="Main navigation">
+          {nav.map((item) => <Link key={item.href} href={item.href} aria-current={active(item.href) ? 'page' : undefined} className={cn('whitespace-nowrap transition-colors hover:text-gilded', active(item.href) && 'text-gilded')}>{item.label}</Link>)}
+          <Link href="/book-consultation" className="inline-flex min-h-10 items-center gap-2 rounded-full bg-obsidian px-4 text-canvas transition-colors hover:bg-gilded hover:text-obsidian"><MessageCircle className="size-4" aria-hidden="true" />Book a consultation</Link>
+          <button type="button" aria-label="Open search" onClick={() => setSearchOpen(true)} className="p-2 text-obsidian/65 hover:text-gilded"><Search className="size-4" /></button>
+          <NotificationBell className="text-obsidian/65 hover:text-gilded" />
+          <Link href="/cart" aria-label={`Cart${cartCount ? `, ${cartCount} items` : ''}`} className="relative p-2 text-obsidian/65 hover:text-gilded"><ShoppingCart className="size-4" />{cartCount > 0 && <span className="absolute right-0 top-0 text-[9px] font-semibold text-gilded">{cartCount}</span>}</Link>
+          <button type="button" aria-label="Account access" onClick={account} className="p-2 text-obsidian/65 hover:text-gilded"><User className="size-4" /></button>
+        </nav>
+        <div className="flex items-center gap-1 lg:hidden"><button type="button" aria-label="Open search" onClick={() => setSearchOpen(true)} className="p-2 text-obsidian/70"><Search className="size-5" /></button><NotificationBell className="text-obsidian/70" /><Link href="/cart" aria-label="Cart" className="relative p-2 text-obsidian/70"><ShoppingCart className="size-5" />{cartCount > 0 && <span className="absolute right-0 top-0 text-[9px] font-semibold text-gilded">{cartCount}</span>}</Link><button type="button" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen((value) => !value)} className="ml-1 flex size-11 items-center justify-center rounded-md border border-obsidian/15 text-obsidian transition-colors hover:border-gilded hover:text-gilded">{open ? <X className="size-5" /> : <Menu className="size-5" />}</button></div>
       </div>
-
-      {/* Side Drawer */}
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="right" className="w-full max-w-md bg-background border-border p-0">
-          <SheetTitle className="sr-only">Main Navigation Menu</SheetTitle>
-          <div className="flex flex-col h-full">
-            {/* Header section inside Drawer */}
-            <div className="flex items-center justify-between px-6 h-20 border-b border-border">
-              <span className="font-serif text-xl tracking-widest uppercase">
-                The Revamp<span className="text-gold ml-1">UG</span>
-              </span>
-              {/*  <button onClick={() => setDrawerOpen(false)} className="text-foreground/60 hover:text-foreground p-2">
-                <X size={20} />
-              </button>*/}
-            </div>
-
-            {/* Navigation links inside Drawer */}
-            <nav className="flex flex-col px-6 py-6 overflow-y-auto flex-1 gap-1" aria-label="Expanded menu navigation">
-              {allNavLinks.map((link) => (
-                <div key={link.href} className="border-b border-border/40">
-                  {link.submenu ? (
-                    <button
-                      onClick={() => toggleSubmenu(link.href)}
-                      className={cn(
-                        'w-full text-left font-sans text-sm tracking-widest uppercase py-4 text-foreground/80 hover:text-gold transition-colors flex items-center justify-between',
-                        pathname === link.href && 'text-gold',
-                      )}
-                    >
-                      <span>{link.label}</span>
-                      <ChevronDown
-                        size={16}
-                        className={cn(
-                          'transition-transform duration-200',
-                          openSubmenu === link.href && 'rotate-180'
-                        )}
-                      />
-                    </button>
-                  ) : (
-                    <Link
-                      href={link.href}
-                      onClick={() => setDrawerOpen(false)}
-                      className={cn(
-                        'block w-full font-sans text-sm tracking-widest uppercase py-4 text-foreground/80 hover:text-gold transition-colors',
-                        pathname === link.href && 'text-gold',
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  )}
-
-                  {/* Submenu expansion inside drawer */}
-                  {link.submenu && openSubmenu === link.href && (
-                    <div className="bg-muted/30 mb-2 rounded-sm border-l-2 border-gold pl-4 py-2">
-                      {link.submenu.map((subitem) => (
-                        <Link
-                          key={subitem.href}
-                          href={subitem.href}
-                          onClick={() => setDrawerOpen(false)}
-                          className="block py-2 text-xs uppercase tracking-wider text-foreground/70 hover:text-gold transition-colors"
-                        >
-                          {subitem.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </nav>
-
-            {/* Bottom Actions */}
-            <div className="p-6 border-t border-border mt-auto flex flex-col gap-3">
-              <Link href="/client/tickets" onClick={() => setDrawerOpen(false)}>
-                <Button className="w-full rounded bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest  py-6">
-                  Support Tickets
-                </Button>
-              </Link>
-              <Link href="/book-consultation" onClick={() => setDrawerOpen(false)}>
-                <Button className="w-full rounded-none bg-foreground text-background hover:bg-gold hover:text-white font-sans text-xs tracking-widest uppercase py-6">
-                  Book a Consultation
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-    </>
-  )
+      {open && <div className="border-t border-obsidian/10 bg-canvas px-5 pb-7 pt-5 sm:px-8 lg:px-12"><nav className="mx-auto flex max-w-7xl flex-col gap-1" aria-label="Mobile navigation"><Link href="/" onClick={close} className="border-b border-border py-3 text-[11px] font-semibold uppercase tracking-[0.2em]">Home</Link>{nav.map((item) => <Link key={item.href} href={item.href} onClick={close} className={cn('border-b border-border py-3 text-[11px] font-semibold uppercase tracking-[0.2em]', active(item.href) ? 'text-gilded' : 'text-obsidian')}>{item.label}</Link>)}<div className="mt-4 flex flex-wrap gap-3"><Link href="/book-consultation" onClick={close} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-obsidian px-5 text-[10px] font-semibold uppercase tracking-[0.2em] text-canvas">Book a consultation <MessageCircle className="size-4" /></Link><Link href="/contact" onClick={close} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-obsidian/20 px-5 text-[10px] font-semibold uppercase tracking-[0.2em]">General inquiry</Link><Link href="/client" onClick={close} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-obsidian/20 px-5 text-[10px] font-semibold uppercase tracking-[0.2em]">Client portal</Link><Link href="/trade-program" onClick={close} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-obsidian/20 px-5 text-[10px] font-semibold uppercase tracking-[0.2em]">Trade programme</Link><button type="button" onClick={account} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-obsidian/20 px-5 text-[10px] font-semibold uppercase tracking-[0.2em]">Account <User className="size-4" /></button></div></nav></div>}
+    </header>
+    <div id="site-main-content" tabIndex={-1} className="h-[4.75rem] outline-none sm:h-20" />
+    <SearchDrawer open={searchOpen} onClose={() => setSearchOpen(false)} />
+  </>
 }
-
-
-

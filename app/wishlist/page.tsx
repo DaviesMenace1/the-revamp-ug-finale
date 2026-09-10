@@ -5,13 +5,14 @@ import Image from 'next/image'
 import {
   ArrowRight,
   Heart,
-  ShoppingBag,
+  ShoppingCart,
   Trash2,
-} from 'lucide-react'
+} from '@/components/ui/luxury-icons'
 import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/context/cart-context'
+import { formatMoney, resolveProductImageUrls } from '@/lib/utils'
 
 const STORAGE_KEY = 'revamp:wishlist'
 
@@ -24,24 +25,12 @@ type WishlistProduct = {
   productImages?: { url: string; isPrimary?: boolean }[]
 }
 
-function formatPrice(
-  value: number,
-  currency = 'UGX'
-) {
-  return new Intl.NumberFormat('en-UG', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits:
-      currency === 'UGX' ? 0 : 2,
-  }).format(Number(value) || 0)
+function formatPrice(value: number, currency = 'UGX') {
+  return formatMoney(value, currency)
 }
 
 function getImage(product: WishlistProduct) {
-  const images = Array.isArray(product.productImages)
-    ? product.productImages
-    : []
-  const primary = images.find((img) => img?.isPrimary) || images[0]
-  return primary?.url || '/placeholder.jpg'
+  return resolveProductImageUrls(product)[0]
 }
 
 export default function WishlistPage() {
@@ -311,7 +300,7 @@ export default function WishlistPage() {
                       )
                     }
                   >
-                    <ShoppingBag
+                    <ShoppingCart
                       data-icon="inline-start"
                     />
                     Add to cart

@@ -5,41 +5,49 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Edit, Trash2, Search, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, X } from '@/components/ui/luxury-icons'
 import { ImageUpload } from '@/components/admin/image-upload'
-import { createArticle, updateArticle, deleteArticle } from '@/lib/actions/articles'
+import { createArticle, getArticleForAdmin, updateArticle, deleteArticle } from '@/lib/actions/articles'
+import { StructuredListEditor } from '@/components/admin/structured-list-editor'
 
 type Article = {
   id: string
   title: string
   slug: string
   excerpt: string | null
-  content: string | null
+  content?: string | null
   author: string | null
   category: string | null
   featuredImage: string | null
+  gallery?: string[] | null
+  storySections?: unknown[] | null
   status: string | null
   createdAt: string
 }
 
-const emptyForm = {
+type ArticleForm = { title: string; excerpt: string; content: string; author: string; category: string; featuredImage: string; gallery: string[]; storySections: unknown[]; status: string }
+
+const emptyForm: ArticleForm = {
   title: '',
   excerpt: '',
   content: '',
   author: '',
   category: '',
   featuredImage: '',
-  status: 'draft',
+  gallery: [],
+  storySections: [],
+  status: 'published',
 }
 
-export default function BlogsClient({ initialArticles = [] }: { initialArticles: Article[] }) {
+export default function BlogsClient({ initialArticles = [], loadError = null }: { initialArticles: Article[]; loadError?: string | null }) {
   const [list, setList] = useState(initialArticles)
   const [searchTerm, setSearchTerm] = useState('')
   const [isPending, startTransition] = useTransition()
 
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState<ArticleForm>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase()
@@ -48,51 +56,103 @@ export default function BlogsClient({ initialArticles = [] }: { initialArticles:
   }, [list, searchTerm])
 
   function openNew() {
+    setActionError(null)
     setForm(emptyForm)
     setEditingId(null)
     setShowForm(true)
   }
 
   function openEdit(article: Article) {
-    setForm({
-      title: article.title,
-      excerpt: article.excerpt ?? '',
-      content: article.content ?? '',
-      author: article.author ?? '',
-      category: article.category ?? '',
-      featuredImage: article.featuredImage ?? '',
-      status: article.status ?? 'draft',
+    setActionError(null)
+    startTransition(async () => {
+      try {
+        const result = await getArticleForAdmin(article.id)
+        if (!result.success || !result.article) {
+          setActionError(result.error || 'The article could not be loaded. Refresh the page and try again.')
+          return
+        }
+        const detail = result.article
+        setForm({
+          title: detail.title,
+          excerpt: detail.excerpt ?? '',
+          content: detail.content ?? '',
+          author: detail.author ?? '',
+          category: detail.category ?? '',
+          featuredImage: detail.featuredImage ?? '',
+          gallery: Array.isArray(detail.gallery) ? detail.gallery as string[] : [],
+          storySections: Array.isArray(detail.storySections) ? detail.storySections : [],
+          status: detail.status ?? 'draft',
+        })
+        setEditingId(detail.id)
+        setShowForm(true)
+      } catch (error) {
+        console.error('Failed to load article editor:', error)
+        setActionError('The article editor could not be opened. Check your connection and try again.')
+      }
     })
-    setEditingId(article.id)
-    setShowForm(true)
   }
 
   function handleSave() {
-    if (!form.title.trim()) return
+    if (!form.title.trim()) {
+      setActionError('Add a title before saving this article.')
+      return
+    }
 
+    setActionError(null)
     startTransition(async () => {
-      if (editingId) {
-        const res = await updateArticle(editingId, form)
-        if (res.success) {
+      try {
+        if (editingId) {
+          const res = await updateArticle(editingId, form)
+          if (!res.success) {
+            setActionError(res.error || 'The article could not be saved.')
+            return
+          }
           setList((prev) => prev.map((a) => (a.id === editingId ? { ...a, ...form } : a)))
           setShowForm(false)
-        }
-      } else {
-        const res = await createArticle(form)
-        if (res.success && res.article) {
-          setList((prev) => [res.article as Article, ...prev])
+        } else {
+          const res = await createArticle(form)
+          if (!res.success || !res.article) {
+            setActionError(res.error || 'The article could not be created.')
+            return
+          }
+          const article: Article = {
+            id: res.article.id,
+            title: res.article.title,
+            slug: res.article.slug,
+            excerpt: res.article.excerpt,
+            content: res.article.content,
+            author: res.article.author,
+            category: res.article.category,
+            featuredImage: res.article.featuredImage,
+            gallery: res.article.gallery ?? [],
+            storySections: res.article.storySections ?? [],
+            status: res.article.status,
+            createdAt: new Date(res.article.createdAt).toISOString(),
+          }
+          setList((prev) => [article, ...prev])
           setShowForm(false)
         }
+      } catch (error) {
+        console.error('Failed to save article:', error)
+        setActionError('The article could not be saved. Check your connection and try again.')
       }
     })
   }
 
   function handleDelete(id: string) {
     if (!confirm('Delete this article?')) return
+    setActionError(null)
     startTransition(async () => {
-      const res = await deleteArticle(id)
-      if (res.success) {
+      try {
+        const res = await deleteArticle(id)
+        if (!res.success) {
+          setActionError(res.error || 'The article could not be deleted.')
+          return
+        }
         setList((prev) => prev.filter((a) => a.id !== id))
+      } catch (error) {
+        console.error('Failed to delete article:', error)
+        setActionError('The article could not be deleted. Check your connection and try again.')
       }
     })
   }
@@ -110,6 +170,13 @@ export default function BlogsClient({ initialArticles = [] }: { initialArticles:
         </Button>
       </div>
 
+      {loadError && (
+        <div role="status" className="flex items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+          <span>{loadError}</span>
+          <button type="button" onClick={() => window.location.reload()} className="font-medium underline underline-offset-4">Retry</button>
+        </div>
+      )}
+
       <div className="relative w-64">
         <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
         <Input
@@ -120,11 +187,17 @@ export default function BlogsClient({ initialArticles = [] }: { initialArticles:
         />
       </div>
 
+      {actionError && <div role="alert" className="rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{actionError}</div>}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((article) => (
           <Card key={article.id} className="overflow-hidden">
             {article.featuredImage && (
-              <img src={article.featuredImage} alt="" className="h-36 w-full object-cover" />
+              <>
+                {/* Admin-uploaded URLs may come from configured or legacy media hosts. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={article.featuredImage} alt="" className="h-36 w-full object-cover" />
+              </>
             )}
             <div className="p-4">
               <div className="flex items-center justify-between">
@@ -138,10 +211,10 @@ export default function BlogsClient({ initialArticles = [] }: { initialArticles:
                   {article.status}
                 </span>
                 <div className="flex gap-2">
-                  <button onClick={() => openEdit(article)}>
+                  <button type="button" onClick={() => openEdit(article)}>
                     <Edit className="w-4 h-4 text-muted-foreground" />
                   </button>
-                  <button onClick={() => handleDelete(article.id)}>
+                  <button type="button" onClick={() => handleDelete(article.id)}>
                     <Trash2 className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </div>
@@ -164,7 +237,7 @@ export default function BlogsClient({ initialArticles = [] }: { initialArticles:
               <h2 className="text-lg font-medium text-foreground">
                 {editingId ? 'Edit Article' : 'New Article'}
               </h2>
-              <button onClick={() => setShowForm(false)}>
+              <button type="button" onClick={() => setShowForm(false)}>
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
@@ -213,6 +286,11 @@ export default function BlogsClient({ initialArticles = [] }: { initialArticles:
                 </div>
               </div>
 
+              <div>
+                <label className="text-sm font-medium text-foreground">Article gallery</label>
+                <ImageUpload value={form.gallery} onChange={(gallery) => setForm((f) => ({ ...f, gallery }))} maxImages={12} />
+              </div>
+              <StructuredListEditor kind="story" value={form.storySections} onChange={(storySections) => setForm((f) => ({ ...f, storySections }))} />
               <select
                 value={form.status}
                 onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
@@ -222,7 +300,7 @@ export default function BlogsClient({ initialArticles = [] }: { initialArticles:
                 <option value="published">Published</option>
               </select>
 
-              <Button disabled={isPending} onClick={handleSave} className="rounded-none w-full">
+              <Button type="button" disabled={isPending} onClick={handleSave} className="rounded-none w-full">
                 {editingId ? 'Save Changes' : 'Create Article'}
               </Button>
             </div>

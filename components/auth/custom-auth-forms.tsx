@@ -1,12 +1,35 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useRef, useState } from 'react'
 import { useSignIn, useSignUp } from '@clerk/nextjs'
-import { ArrowRight, Check, Globe2, Link2, Loader2, ShieldCheck } from 'lucide-react'
-import { FcGoogle, FaLinkedin } from 'react-icons/all'
+import { ArrowRight, Check, Eye, EyeOff, Loader2, ShieldCheck } from '@/components/ui/luxury-icons'
+import { GoogleMark, LinkedInMark } from '@/components/auth/social-provider-icons'
 import Link from 'next/link'
+import { AUTH_NAME_MAX_LENGTH, AUTH_USERNAME_MAX_LENGTH, isBoundedAuthText, isValidAuthEmail, isValidAuthPassword, isValidVerificationCode, normalizeAuthEmail } from '@/lib/auth/input-validation'
 
 type OAuthStrategy = 'oauth_google' | 'oauth_linkedin_oidc'
+
+async function authorizeAuthAttempt(identifier?: string) {
+  let response: Response
+  try {
+    response = await fetch('/api/auth/attempt', {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(identifier ? { identifier: normalizeAuthEmail(identifier) } : {}),
+    })
+  } catch (error) {
+    console.error('[auth] rate-limit request failed:', error)
+    throw new Error('Authentication protection is temporarily unavailable. Refresh the page and try again.')
+  }
+
+  const result = (await response.json().catch(() => null)) as { allowed?: boolean; error?: string } | null
+  if (!response.ok || !result?.allowed) {
+    const retryAfter = Number(response.headers.get('Retry-After'))
+    const retryMessage = Number.isFinite(retryAfter) && retryAfter > 0 ? ` Try again in about ${retryAfter} seconds.` : ''
+    throw new Error(`${result?.error || 'Authentication attempts are temporarily limited.'}${retryMessage}`)
+  }
+}
 
 /**
  * Maps Clerk error codes to clear, user-safe messages.
@@ -38,7 +61,7 @@ function clerkErrorMessage(err: unknown, fallback: string): string {
     case 'too_many_requests':
       return 'Too many requests. Wait a moment and try again.'
     case 'session_exists':
-      return 'You are already signed in. Refresh the page to continue.'
+      return 'You are already signed in.Refresh the page to continue.'
     case 'form_password_pwned':
       return 'This password has appeared in a data breach. Choose a different, stronger password.'
     case 'form_password_length_too_short':
@@ -86,8 +109,8 @@ function OAuthButtons({ onOAuth, loading }: { onOAuth: (strategy: OAuthStrategy)
         disabled={!!loading}
         className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
       >
-        <Globe2 className="size-4" aria-hidden="true" />
-        {loading === 'oauth_google' ? 'Connecting…' : 'Google'}
+        <GoogleMark size={19} />
+        {loading === 'oauth_google' ? 'Connecting…' : 'Continue with Google'}
       </button>
       <button
         type="button"
@@ -95,8 +118,8 @@ function OAuthButtons({ onOAuth, loading }: { onOAuth: (strategy: OAuthStrategy)
         disabled={!!loading}
         className="flex h-11 items-center justify-center gap-2 border border-border text-sm transition-colors hover:bg-muted disabled:opacity-50"
       >
-        <Link2 className="size-4" aria-hidden="true" />
-        {loading === 'oauth_linkedin_oidc' ? 'Connecting…' : 'LinkedIn'}
+        <LinkedInMark size={19} />
+        {loading === 'oauth_linkedin_oidc' ? 'Connecting…' : 'Continue with LinkedIn'}
       </button>
     </div>
   )
@@ -110,6 +133,7 @@ function Field({
   autoComplete,
   placeholder,
   inputMode,
+  required = true,
 }: {
   label: string
   type?: string
@@ -118,21 +142,60 @@ function Field({
   autoComplete?: string
   placeholder?: string
   inputMode?: 'text' | 'numeric' | 'email'
+  required?: boolean
 }) {
+  const [passwordVisible, setPasswordVisible] = useState(false)
   return (
     <label className="grid gap-2 text-sm font-medium">
       <span>{label}</span>
-      <input
-        required
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        autoComplete={autoComplete}
-        inputMode={inputMode}
-        placeholder={placeholder}
-        className="h-12 border border-border bg-background px-3 outline-none ring-primary/30 transition focus:ring-2"
-      />
+      <div className="relative">
+        <input
+          required={required}
+          type={type === 'password' && passwordVisible ? 'text' : type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete={autoComplete}
+          inputMode={inputMode}
+          placeholder={placeholder}
+          className="h-12 w-full border border-border bg-background/75 px-3 pr-12 outline-none ring-primary/30 transition focus:ring-2"
+        />
+        {type === 'password' && (
+          <button type="button" onClick={() => setPasswordVisible((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground" aria-label={passwordVisible ? 'Hide password' : 'Show password'}>
+            {passwordVisible ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+          </button>
+        )}
+      </div>
     </label>
+  )
+}
+
+function VerificationCodeBoxes({ value, onChange, onComplete, disabled = false }: { value: string; onChange: (value: string) => void; onComplete?: (value: string) => void; disabled?: boolean }) {
+  const refs = useRef<Array<HTMLInputElement | null>>([])
+  const digits = value.replace(/\D/g, '').slice(0, 6).split('')
+  const update = (index: number, raw: string) => {
+    const incoming = raw.replace(/\D/g, '')
+    if (!incoming) {
+      const next = digits.slice()
+      next[index] = ''
+      onChange(next.join(''))
+      return
+    }
+    const next = digits.slice()
+    incoming.split('').forEach((digit, offset) => { if (index + offset < 6) next[index + offset] = digit })
+    const nextValue = next.join('').slice(0, 6)
+    onChange(nextValue)
+    refs.current[Math.min(index + incoming.length, 5)]?.focus()
+    if (nextValue.length === 6) onComplete?.(nextValue)
+  }
+  return (
+    <div className="grid gap-2">
+      <span className="text-xs font-medium text-foreground">Verification code</span>
+      <div className="grid grid-cols-6 gap-2" role="group" aria-label="Six digit verification code">
+        {Array.from({ length: 6 }, (_, index) => (
+          <input key={index} ref={(element) => { refs.current[index] = element }} value={digits[index] || ''} onChange={(event) => update(index, event.target.value)} onKeyDown={(event) => { if (event.key === 'Backspace' && !digits[index] && index > 0) refs.current[index - 1]?.focus(); if (event.key === 'ArrowLeft' && index > 0) refs.current[index - 1]?.focus(); if (event.key === 'ArrowRight' && index < 5) refs.current[index + 1]?.focus() }} onPaste={(event) => { event.preventDefault(); update(index, event.clipboardData.getData('text')) }} inputMode="numeric" pattern="[0-9]*" maxLength={6} autoComplete={index === 0 ? 'one-time-code' : 'off'} aria-label={`Verification digit ${index + 1}`} disabled={disabled} className="h-12 w-full rounded-md border border-border bg-background/70 text-center font-serif text-xl text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-60 sm:h-14" />
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -146,6 +209,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+  const verifyFormRef = useRef<HTMLFormElement>(null)
 
   const isLoaded = !!signIn
   const destination = redirectUrl || '/account'
@@ -221,11 +285,22 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
       setError('Authentication is still loading. Refresh the page and try again.')
       return
     }
+    const normalizedEmail = normalizeAuthEmail(email)
+    if (!isValidAuthEmail(normalizedEmail)) {
+      setError('Enter a valid email address.')
+      return
+    }
+    if (!isValidAuthPassword(password)) {
+      setError('Use a password between 8 and 128 characters without control characters.')
+      return
+    }
+
     setLoading(true)
     setError(null)
     setInfo(null)
     try {
-      const { error: passwordError } = await signIn.password({ identifier: email, password })
+      await authorizeAuthAttempt(normalizedEmail)
+      const { error: passwordError } = await signIn.password({ identifier: normalizedEmail, password })
       if (passwordError) throw passwordError
       await advance()
     } catch (err) {
@@ -243,10 +318,15 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
     setError(null)
     setInfo(null)
     try {
+      if (!isValidVerificationCode(code)) {
+        setError('Enter the verification code exactly as provided.')
+        return
+      }
+      await authorizeAuthAttempt(normalizeAuthEmail(email))
       const { error: verifyError } =
         step === 'verify-email'
-          ? await signIn.emailCode.verifyCode({ code })
-          : await signIn.mfa.verifyEmailCode({ code })
+          ? await signIn.emailCode.verifyCode({ code: code.trim() })
+          : await signIn.mfa.verifyEmailCode({ code: code.trim() })
       if (verifyError) throw verifyError
       await advance()
     } catch (err) {
@@ -262,6 +342,9 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
     setLoading(true)
     setError(null)
     try {
+      const normalizedEmail = normalizeAuthEmail(email)
+      if (!isValidAuthEmail(normalizedEmail)) throw new Error('Enter a valid email address.')
+      await authorizeAuthAttempt(normalizedEmail)
       const { error: sendError } =
         step === 'verify-email' ? await signIn.emailCode.sendCode() : await signIn.mfa.sendEmailCode()
       if (sendError) throw sendError
@@ -284,9 +367,11 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
 
   const oauth = async (strategy: OAuthStrategy) => {
     if (!signIn) return
+
     setOauthLoading(strategy)
     setError(null)
     try {
+      await authorizeAuthAttempt()
       // Redirects the browser to the provider; only returns here on error.
       const { error: ssoError } = await signIn.sso({
         strategy,
@@ -305,24 +390,17 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
 
   return (
     <AuthCard
-      eyebrow={step === 'verify-device' ? 'New device detected' : verifying ? 'Verify your sign-in' : 'Welcome back'}
+      eyebrow={step === 'verify-device' ? 'New device detected' : verifying ? 'Email verification' : 'Sign in'}
       title={verifying ? 'Enter your verification code' : 'Sign in to your account'}
       description={
         verifying
           ? `We've sent a verification code to ${email}. Enter it below to finish signing in on this device.`
-          : 'Continue your considered design journey.'
+          : 'Enter your details to continue.'
       }
     >
       {verifying ? (
-        <form onSubmit={verify} className="grid gap-5">
-          <Field
-            label="Verification code"
-            value={code}
-            onChange={setCode}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="123456"
-          />
+          <form ref={verifyFormRef} onSubmit={verify} className="grid gap-5">
+          <VerificationCodeBoxes value={code} onChange={setCode} disabled={loading} onComplete={() => window.setTimeout(() => verifyFormRef.current?.requestSubmit(), 0)} />
           <InfoText message={info} />
           <ErrorText message={error} />
           <AuthButton disabled={!isLoaded || loading}>
@@ -352,8 +430,6 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
         </form>
       ) : (
         <form onSubmit={submit} className="grid gap-5">
-          <OAuthButtons onOAuth={oauth} loading={oauthLoading} />
-          <Divider />
           <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" />
           <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
           <div className="flex justify-end">
@@ -362,6 +438,7 @@ export function CustomSignIn({ redirectUrl }: { redirectUrl: string }) {
             </Link>
           </div>
           <ErrorText message={error} />
+          <div className="grid gap-3 pt-2"><p className="text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Continue with</p><OAuthButtons onOAuth={oauth} loading={oauthLoading} /></div>
           <AuthButton disabled={!isLoaded || loading}>
             {loading ? 'Signing in…' : (
               <>
@@ -399,6 +476,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
+  const verifyFormRef = useRef<HTMLFormElement>(null)
 
   const isLoaded = !!signUp
   const destination = redirectUrl || '/account'
@@ -437,12 +515,18 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     setError(null)
     setInfo(null)
     try {
+      const normalizedEmail = normalizeAuthEmail(email)
+      if (!isValidAuthEmail(normalizedEmail)) throw new Error('Enter a valid email address.')
+      if (!isValidAuthPassword(password)) throw new Error('Use a password between 8 and 128 characters without control characters.')
+      if (!isBoundedAuthText(firstName, AUTH_NAME_MAX_LENGTH, true) || !isBoundedAuthText(lastName, AUTH_NAME_MAX_LENGTH)) throw new Error('Check the name fields and try again.')
+      if (username && !isBoundedAuthText(username, AUTH_USERNAME_MAX_LENGTH)) throw new Error('Check the username and try again.')
+      await authorizeAuthAttempt(normalizedEmail)
       const { error: createError } = await signUp.password({
-        emailAddress: email,
+        emailAddress: normalizedEmail,
         password,
-        firstName,
-        lastName,
-        username, // Pass username to Clerk
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        username: username.trim() || undefined,
       })
 
       if (createError) throw createError
@@ -473,7 +557,12 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     setError(null)
     setInfo(null)
     try {
-      const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code })
+      if (!isValidVerificationCode(code)) {
+        setError('Enter the verification code exactly as provided.')
+        return
+      }
+      await authorizeAuthAttempt(normalizeAuthEmail(email))
+      const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code: code.trim() })
       if (verifyError) throw verifyError
 
       if (signUp.status === 'complete') {
@@ -495,6 +584,9 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     setLoading(true)
     setError(null)
     try {
+      const normalizedEmail = normalizeAuthEmail(email)
+      if (!isValidAuthEmail(normalizedEmail)) throw new Error('Enter a valid email address.')
+      await authorizeAuthAttempt(normalizedEmail)
       const { error: sendError } = await signUp.verifications.sendEmailCode()
       if (sendError) throw sendError
       setInfo('A new verification code has been sent to your email.')
@@ -511,6 +603,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
     setOauthLoading(strategy)
     setError(null)
     try {
+      await authorizeAuthAttempt()
       const { error: ssoError } = await signUp.sso({
         strategy,
         redirectUrl: destination,
@@ -526,24 +619,17 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
 
   return (
     <AuthCard
-      eyebrow={step === 'verify' ? 'Verify your email' : 'Start here'}
+      eyebrow={step === 'verify' ? 'Email verification' : 'Create account'}
       title={step === 'verify' ? 'Check your inbox' : 'Create your account'}
       description={
         step === 'verify'
           ? `We sent a six-digit code to ${email}.`
-          : 'A personal space for pieces, projects, and possibilities.'
+          : 'Enter your details to get started.'
       }
     >
       {step === 'verify' ? (
-        <form onSubmit={verify} className="grid gap-5">
-          <Field
-            label="Verification code"
-            value={code}
-            onChange={setCode}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            required
-          />
+        <form ref={verifyFormRef} onSubmit={verify} className="grid gap-5">
+          <VerificationCodeBoxes value={code} onChange={setCode} disabled={loading} onComplete={() => window.setTimeout(() => verifyFormRef.current?.requestSubmit(), 0)} />
           <InfoText message={info} />
           <ErrorText message={error} />
           <AuthButton disabled={!isLoaded || loading}>
@@ -566,8 +652,8 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
         </form>
       ) : (
         <form onSubmit={submit} className="grid gap-5">
-          <OAuthButtons onOAuth={oauth} loading={oauthLoading} />
-          <Divider />
+          <div className="grid gap-3"><p className="text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Continue with</p><OAuthButtons onOAuth={oauth} loading={oauthLoading} /></div>
+          <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground"><span className="h-px flex-1 bg-border" />Or<span className="h-px flex-1 bg-border" /></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="First name" value={firstName} onChange={setFirstName} autoComplete="given-name" required />
             <Field label="Last name" value={lastName} onChange={setLastName} autoComplete="family-name" required />
@@ -575,6 +661,7 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
           <Field label="Username" value={username} onChange={setUsername} autoComplete="username" required />
           <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" required />
           <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="new-password" required />
+          <p className="-mt-2 text-xs leading-5 text-muted-foreground">Use 8–128 characters. Choose a unique password with a mix of letters, numbers, and symbols.</p>
 
           {/* Terms & Privacy Policy Checkbox */}
           <div className="flex items-start gap-3 text-xs text-muted-foreground">
@@ -588,11 +675,11 @@ export function CustomSignUp({ redirectUrl }: { redirectUrl: string }) {
             />
             <label htmlFor="terms" className="leading-snug">
               I agree to the{' '}
-              <Link href="/terms" className="underline underline-offset-2 hover:text-foreground">
+              <Link href="/legal/terms" className="underline underline-offset-2 hover:text-foreground">
                 Terms of Use
               </Link>{' '}
               and{' '}
-              <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+              <Link href="/legal/privacy" className="underline underline-offset-2 hover:text-foreground">
                 Privacy Policy
               </Link>
               .
@@ -635,6 +722,7 @@ export function CustomResetPassword() {
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const verifyFormRef = useRef<HTMLFormElement>(null)
 
   const isLoaded = !!signIn
 
@@ -649,7 +737,10 @@ export function CustomResetPassword() {
     setInfo(null)
     try {
       if (step === 'email') {
-        const { error: createError } = await signIn.create({ identifier: email })
+          const normalizedEmail = normalizeAuthEmail(email)
+        if (!isValidAuthEmail(normalizedEmail)) throw new Error('Enter a valid email address.')
+        await authorizeAuthAttempt(normalizedEmail)
+        const { error: createError } = await signIn.create({ identifier: normalizedEmail })
         if (!createError) {
           const { error: sendError } = await signIn.resetPasswordEmailCode.sendCode()
           if (sendError) console.error('[v0] Reset-code send error:', sendError)
@@ -660,7 +751,12 @@ export function CustomResetPassword() {
         setInfo('If an account exists for that email, a reset code has been sent. Check your inbox.')
         setStep('code')
       } else {
-        const { error: verifyError } = await signIn.resetPasswordEmailCode.verifyCode({ code })
+        if (!isValidVerificationCode(code)) {
+          setError('Enter the verification code exactly as provided.')
+          return
+        }
+        await authorizeAuthAttempt(normalizeAuthEmail(email))
+        const { error: verifyError } = await signIn.resetPasswordEmailCode.verifyCode({ code: code.trim() })
         if (verifyError) throw verifyError
         if (signIn.status === 'needs_new_password') {
           setStep('new-password')
@@ -684,7 +780,10 @@ export function CustomResetPassword() {
     setLoading(true)
     setError(null)
     try {
-      const { error: createError } = await signIn.create({ identifier: email })
+      const normalizedEmail = normalizeAuthEmail(email)
+      if (!isValidAuthEmail(normalizedEmail)) throw new Error('Enter a valid email address.')
+      await authorizeAuthAttempt(normalizedEmail)
+      const { error: createError } = await signIn.create({ identifier: normalizedEmail })
       if (!createError) await signIn.resetPasswordEmailCode.sendCode()
     } catch (err) {
       console.error('[v0] Reset-password resend error:', err)
@@ -705,9 +804,14 @@ export function CustomResetPassword() {
       setError('Passwords do not match.')
       return
     }
+    if (!isValidAuthPassword(password)) {
+      setError('Use a password between 8 and 128 characters without control characters.')
+      return
+    }
     setLoading(true)
     setError(null)
     try {
+      await authorizeAuthAttempt(normalizeAuthEmail(email))
       const { error: submitError } = await signIn.resetPasswordEmailCode.submitPassword({
         password,
         signOutOfOtherSessions: true,
@@ -763,15 +867,8 @@ export function CustomResetPassword() {
           <AuthButton disabled={!isLoaded || loading}>{loading ? 'Updating…' : 'Update password'}</AuthButton>
         </form>
       ) : (
-        <form onSubmit={submit} className="grid gap-5">
-          <Field
-            label={step === 'email' ? 'Email address' : 'Verification code'}
-            type={step === 'email' ? 'email' : 'text'}
-            value={step === 'email' ? email : code}
-            onChange={step === 'email' ? setEmail : setCode}
-            autoComplete={step === 'email' ? 'email' : 'one-time-code'}
-            inputMode={step === 'email' ? 'email' : 'numeric'}
-          />
+        <form ref={step === 'code' ? verifyFormRef : undefined} onSubmit={submit} className="grid gap-5">
+          {step === 'email' ? <Field label="Email address" type="email" value={email} onChange={setEmail} autoComplete="email" /> : <VerificationCodeBoxes value={code} onChange={setCode} disabled={loading} onComplete={() => window.setTimeout(() => verifyFormRef.current?.requestSubmit(), 0)} />}
           <InfoText message={info} />
           <ErrorText message={error} />
           <AuthButton disabled={!isLoaded || loading}>
@@ -798,7 +895,7 @@ export function CustomResetPassword() {
 
 function AuthCard({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="w-full max-w-md border border-border bg-card p-6 shadow-sm sm:p-8">
+    <div className="max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain animate-in fade-in slide-in-from-bottom-2 rounded-2xl border border-white/45 bg-[#f5eee4]/30 p-5 text-foreground shadow-[0_28px_90px_rgba(18,13,9,0.34)] backdrop-blur-xl duration-300 sm:max-h-[calc(100dvh-4rem)] sm:p-8">
       <div className="mb-7">
         <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-primary">{eyebrow}</p>
         <h2 className="font-serif text-3xl leading-tight text-foreground">{title}</h2>
@@ -809,13 +906,6 @@ function AuthCard({ eyebrow, title, description, children }: { eyebrow: string; 
   )
 }
 
-function Divider() {
-  return (
-    <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-      <span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" />
-    </div>
-  )
-}
 
 export function AuthIntro({ title, description }: { title: string; description: string }) {
   return (

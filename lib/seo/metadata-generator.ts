@@ -25,7 +25,7 @@ export function generateMetadata(input: SEOMetadataInput): Metadata {
     title,
     description,
     url,
-    image = 'https://therevampug.com/default-og-image.png',
+    image = 'https://therevampug.com/brand/revamp-logo.png',
     type = 'website',
     author,
     publishedDate,
@@ -33,7 +33,7 @@ export function generateMetadata(input: SEOMetadataInput): Metadata {
     keywords = [],
   } = input
 
-  const siteUrl = 'https://therevampug.com'
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
   const fullUrl = `${siteUrl}${url}`
 
   return {

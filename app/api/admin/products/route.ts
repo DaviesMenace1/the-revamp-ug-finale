@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { eq } from "drizzle-orm"
 import {
@@ -6,6 +7,8 @@ import {
   products,
   subCategories,
 } from "@/lib/db"
+import { requireAdminApi } from "@/lib/auth/api"
+import { normalizeProductTags } from "@/lib/products/tags"
 
 const productSchema = z.object({
   name: z.string().min(1),
@@ -22,7 +25,16 @@ const productSchema = z.object({
   categoryId: z.string().min(1),
   subCategoryId: z.string().min(1),
 
-  productType: z.string().default("standard"),
+  productType: z.enum([
+    "standard",
+    "made_to_order",
+    "custom_bespoke",
+    "sourced_on_request",
+    "pre_order",
+    "set",
+    "bundle",
+    "sample",
+  ]).default("standard"),
 
   description: z.string().optional().nullable(),
   longDescription: z.string().optional().nullable(),
@@ -30,13 +42,25 @@ const productSchema = z.object({
     z.string().optional().nullable(),
 
   price: z.number().nonnegative(),
+  tradeDiscountPercent: z.coerce.number().min(0).max(100).default(0),
   originalPrice:
     z.number().nonnegative().optional().nullable(),
   currency: z.string().default("UGX"),
 
-  condition: z.string().default("new"),
-  availability:
-    z.string().default("in_stock"),
+  condition: z.enum(["new", "refurbished", "used"]).default("new"),
+  availability: z.enum([
+    "in_stock",
+    "out_of_stock",
+    "made_to_order",
+    "pre_order",
+    "available_on_request",
+  ]).default("in_stock"),
+
+  customizationEnabled: z.boolean().default(false),
+  customizationHeading: z.string().max(160).optional().nullable(),
+  customizationDescription: z.string().optional().nullable(),
+  customizationLeadTime: z.string().max(120).optional().nullable(),
+  customizationRequestLabel: z.string().max(120).optional().nullable(),
 
   quantity: z.number().int().nonnegative().default(0),
   inStock: z.boolean().default(true),
@@ -62,6 +86,8 @@ const productSchema = z.object({
   seoDescription:
     z.string().optional().nullable(),
 
+  tags: z.union([z.string(), z.array(z.string())]).optional().default([]),
+
   featured: z.boolean().default(false),
   isNewArrival: z.boolean().default(false),
   isBestSeller: z.boolean().default(false),
@@ -84,6 +110,9 @@ const productSchema = z.object({
 export async function POST(
   request: Request,
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const body = await request.json()
 
@@ -230,10 +259,6 @@ export async function POST(
             data.countryOfOrigin ||
             null,
 
-          departmentId:
-            data.departmentId,
-          categoryId:
-            data.categoryId,
           subCategoryId:
             data.subCategoryId,
 
@@ -253,6 +278,7 @@ export async function POST(
           price: String(
             data.price,
           ),
+          tradeDiscountPercent: String(data.tradeDiscountPercent),
           originalPrice:
             data.originalPrice !==
             null
@@ -269,6 +295,12 @@ export async function POST(
 
           availability:
             data.availability,
+
+          customizationEnabled: data.customizationEnabled,
+          customizationHeading: data.customizationHeading || null,
+          customizationDescription: data.customizationDescription || null,
+          customizationLeadTime: data.customizationLeadTime || null,
+          customizationRequestLabel: data.customizationRequestLabel || null,
 
           quantity:
             data.quantity,
@@ -305,6 +337,8 @@ export async function POST(
             data.seoDescription ||
             null,
 
+          tags: normalizeProductTags(data.tags),
+
           featured:
             data.featured,
 
@@ -331,6 +365,7 @@ export async function POST(
         })
         .returning()
 
+    revalidatePath('/')
     return NextResponse.json(
       {
         success: true,

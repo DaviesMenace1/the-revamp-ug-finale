@@ -2,9 +2,11 @@
 
 import { db } from '@/lib/db/client'
 import { projectTasks, projectActivity, projects } from '@/lib/db/schema'
-import { eq, and, asc } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
+
 import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
 
 export async function createTask(data: {
   projectId: string
@@ -13,6 +15,7 @@ export async function createTask(data: {
   assignedTo: 'client' | 'admin'
   dueDate?: string | null
 }) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to create tasks.' }
   if (!data.title.trim()) return { success: false, error: 'Title is required.' }
 
   try {
@@ -47,6 +50,7 @@ export async function createTask(data: {
 }
 
 export async function updateTaskStatus(taskId: string, status: 'pending' | 'in_progress' | 'done') {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to update tasks.' }
   try {
     const task = await db.query.projectTasks.findFirst({ where: eq(projectTasks.id, taskId) })
     if (!task) return { success: false, error: 'Task not found.' }
@@ -81,6 +85,7 @@ export async function updateTaskStatus(taskId: string, status: 'pending' | 'in_p
 }
 
 export async function deleteTask(taskId: string) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to delete tasks.' }
   try {
     const task = await db.query.projectTasks.findFirst({ where: eq(projectTasks.id, taskId) })
     if (!task) return { success: false, error: 'Task not found.' }

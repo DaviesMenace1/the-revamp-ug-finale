@@ -5,7 +5,7 @@ import Image from 'next/image'
 import {
   Star,
   Heart,
-  ShoppingBag,
+  ShoppingCart,
   Check,
   Ruler,
   ChevronDown,
@@ -13,33 +13,16 @@ import {
   Truck,
   Sparkle,
   Share2,
-  Copy,
-  MessageCircle,
-  X,
-  Send
-} from 'lucide-react'
+  Send,
+} from '@/components/ui/luxury-icons'
 import { useCart } from '@/lib/context/cart-context'
-import { useRouter } from 'next/navigation' 
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { DEFAULT_PRODUCT_IMAGE, formatMoney, normalizeCurrency, resolveProductImageUrls, resolveProductVariantImage } from '@/lib/utils'
+import { ProductShareSheet } from '@/components/collections/product-share-sheet'
+import { getProductDimensions } from '@/lib/product-dimensions'
 
-const DEFAULT_IMAGE = '/images/placeholder.jpg'
 const WISHLIST_STORAGE_KEY = 'revamp:wishlist'
-
-// Localized Currency Formatter
-const formatUGX = (amount: number) => {
-  return new Intl.NumberFormat('en-UG', {
-    style: 'currency',
-    currency: 'UGX',
-    maximumFractionDigits: 0,
-  }).format(amount || 0)
-}
-
-const formatUSD = (amount: number, exchangeRate = 3700) => {
-  const usdValue = (amount || 0) / exchangeRate
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(usdValue)
-}
 
 // Helper component for Accordions
 function AccordionItem({
@@ -58,12 +41,12 @@ function AccordionItem({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex justify-between items-center text-left text-xs uppercase tracking-widest font-medium text-foreground hover:text-gold transition-colors"
+        className="w-full flex justify-between items-center text-left text-xs uppercase tracking-widest font-medium text-foreground hover:text-gilded transition-colors"
       >
         <span>{title}</span>
         <ChevronDown
           className={`w-4 h-4 transition-transform duration-200 ${
-            isOpen ? 'rotate-180 text-gold' : 'text-muted-foreground'
+            isOpen ? 'rotate-180 text-gilded' : 'text-muted-foreground'
           }`}
         />
       </button>
@@ -75,37 +58,40 @@ function AccordionItem({
 export function ProductDetail({ product }: { product: any }) {
   const cart = useCart() as any
 
-  // Relational productImages fallback
-  const productImages = Array.isArray(product?.productImages) ? product.productImages : []
-
-  // Images resolution
-  const rawImages: string[] =
-    Array.isArray(product?.images) && product.images.length > 0
-      ? product.images.filter(Boolean)
-      : productImages.length > 0
-      ? productImages.map((img: any) => img?.url || img).filter(Boolean)
-      : [DEFAULT_IMAGE]
+  // Images are sorted by primary flag and display order, with safe legacy fallbacks.
+  const rawImages = resolveProductImageUrls(product)
 
   // Variants extraction
   const variants = Array.isArray(product?.productVariants) ? product.productVariants : []
-  const colors = variants.filter((v: any) => v?.type === 'COLOR')
-  const fabrics = variants.filter((v: any) => v?.type === 'FABRIC')
+  const colors = variants.filter((variant: any) => variant?.type === 'COLOR')
+  const fabrics = variants.filter((variant: any) => variant?.type === 'FABRIC')
+  const materials = variants.filter((variant: any) => variant?.type === 'MATERIAL')
+  const otherVariants = variants.filter((variant: any) => !['COLOR', 'FABRIC', 'MATERIAL'].includes(variant?.type))
+  const accessories = Array.isArray(product?.addons) ? product.addons : []
 
-  const rawDims = product?.dimensions || {}
-  const initialWidth = typeof rawDims === 'object' ? rawDims.width || '' : ''
-  const initialHeight = typeof rawDims === 'object' ? rawDims.height || '' : ''
-  const initialDepth = typeof rawDims === 'object' ? rawDims.depth || '' : ''
+  const productDimensions = getProductDimensions(product)
+  const initialWidth = productDimensions.find((dimension) => dimension.key.toLowerCase() === 'width')?.value ?? ''
+  const initialHeight = productDimensions.find((dimension) => dimension.key.toLowerCase() === 'height')?.value ?? ''
+  const initialDepth = productDimensions.find((dimension) => dimension.key.toLowerCase() === 'depth')?.value ?? ''
+  const searchableProductText = [
+    product?.productType,
+    product?.availability,
+    ...(Array.isArray(product?.tags) ? product.tags : []),
+    typeof product?.attributes === 'object' && product?.attributes !== null ? Object.values(product.attributes) : [],
+  ].flat().filter(Boolean).join(' ').toLowerCase()
+  const isCustomizable = ['made_to_order', 'custom_bespoke', 'sourced_on_request', 'available_on_request', 'bespoke', 'made to order', 'custom'].some((value) => searchableProductText.includes(value))
 
-  const [selectedImage, setSelectedImage] = useState<string>(rawImages[0] || DEFAULT_IMAGE)
+  const [selectedImage, setSelectedImage] = useState<string>(rawImages[0] || DEFAULT_PRODUCT_IMAGE)
   const [selectedColor, setSelectedColor] = useState(colors[0] || null)
   const [selectedFabric, setSelectedFabric] = useState(fabrics[0] || null)
+  const [selectedMaterial, setSelectedMaterial] = useState(materials[0] || null)
+  const [selectedVariant, setSelectedVariant] = useState(otherVariants[0] || null)
+  const [selectedAccessories, setSelectedAccessories] = useState<any[]>([])
   const [quantity, setQuantity] = useState<number>(1)
   const [isWishlisted, setIsWishlisted] = useState<boolean>(false)
   const [added, setAdded] = useState<boolean>(false)
 
-  // Share Modal State
   const [isShareOpen, setIsShareOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
 
   // Accordion State Management
   const [openAccordion, setOpenAccordion] = useState<string | null>('specs')
@@ -155,18 +141,21 @@ export function ProductDetail({ product }: { product: any }) {
   const reviewsCount = Array.isArray(product?.reviews) ? product.reviews.length : product?.ratingCount || 0
   const rating = typeof product?.rating === 'number' ? product.rating : parseFloat(product?.rating || '5.0')
 
-  // Pricing (UGX)
-  const basePrice = parseFloat(product?.price || '0')
-  const fabricDelta = selectedFabric ? parseFloat(selectedFabric.priceDelta || '0') : 0
-  const unitPrice = basePrice + fabricDelta
+  // Pricing stays in the product currency and is shared with the cart snapshot.
+  const basePrice = Number(product?.salePrice ?? product?.price ?? 0)
+  const optionPrice = (option: any) => Number(option?.priceDelta ?? option?.price ?? 0) || 0
+  const fabricDelta = optionPrice(selectedFabric)
+  const unitPrice = basePrice + fabricDelta + optionPrice(selectedMaterial) + optionPrice(selectedVariant) + selectedAccessories.reduce((sum, accessory) => sum + optionPrice(accessory), 0)
   const totalPrice = unitPrice * quantity
+
+  const selectVariantImage = (variant: any) => {
+    const matchingImage = resolveProductVariantImage(product, variant?.id)
+    if (matchingImage) setSelectedImage(matchingImage)
+  }
 
   const handleColorSelect = (color: any) => {
     setSelectedColor(color)
-    const matchingImage = productImages.find((img: any) => img?.variantId === color?.id)
-    if (matchingImage?.url) {
-      setSelectedImage(matchingImage.url)
-    }
+    selectVariantImage(color)
   }
 
   const handleAddToCart = () => {
@@ -178,69 +167,40 @@ export function ProductDetail({ product }: { product: any }) {
         }
       : undefined
 
-    const itemToAdd = {
+    const productForCart = {
+      ...product,
       id: product?.id,
-      productId: product?.id,
-      name: product?.name,
-      slug: product?.slug,
-      price: unitPrice,
-      quantity,
-      selectedColor,
-      selectedFabric,
-      color: selectedColor?.label || null,
-      fabric: selectedFabric?.label || null,
-      image: selectedImage,
-      customDimensions: customDimensionsToPass,
-      product,
+      slug: product?.slug || product?.id,
+      name: product?.name || 'Untitled Piece',
+      price: basePrice,
+      currency: normalizeCurrency(product?.currency),
+      images: rawImages,
+      thumbnailImage: selectedImage,
     }
 
-    if (cart) {
-      if (typeof cart.addToCart === 'function') {
-        cart.addToCart(itemToAdd, quantity)
-      } else if (typeof cart.addItem === 'function') {
-        cart.addItem(itemToAdd, quantity, selectedColor, selectedFabric, [], customDimensionsToPass)
-      }
-    } else {
-      const existing = JSON.parse(localStorage.getItem('cart') || '[]')
-      existing.push(itemToAdd)
-      localStorage.setItem('cart', JSON.stringify(existing))
-    }
+    cart.addToCart(
+      productForCart,
+      quantity,
+      selectedColor,
+      selectedVariant,
+      selectedAccessories,
+      customDimensionsToPass,
+      selectedFabric,
+      selectedMaterial,
+    )
 
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
   }
 
-  const handleCopyLink = () => {
-    if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(window.location.href)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
-  const shareToSocial = (platform: 'whatsapp' | 'twitter' | 'facebook') => {
-    const url = encodeURIComponent(window.location.href)
-    const text = encodeURIComponent(`Check out "${product?.name}" on The Revamp UG:`)
-
-    let shareUrl = ''
-    if (platform === 'whatsapp') {
-      shareUrl = `https://wa.me/?text=${text}%20${url}`
-    } else if (platform === 'twitter') {
-      shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`
-    } else if (platform === 'facebook') {
-      shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`
-    }
-
-    window.open(shareUrl, '_blank', 'noopener,noreferrer')
-  }
-
   const categoryName = product?.category?.name || product?.category || 'Luxury Collection'
+  const productInquiryHref = `/contact?interest=product_inquiry&product=${encodeURIComponent(product?.name || '')}`
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
       {/* LEFT: GALLERY (7 columns) */}
       <div className="lg:col-span-7 flex flex-col gap-4">
-        <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted border border-border">
+        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-md bg-muted/30 border border-border">
           <Image
             src={selectedImage}
             alt={product?.name || 'Product Image'}
@@ -259,7 +219,7 @@ export function ProductDetail({ product }: { product: any }) {
                 onClick={() => setSelectedImage(img)}
                 className={`relative aspect-square w-20 flex-shrink-0 overflow-hidden border transition-all ${
                   selectedImage === img
-                    ? 'border-gold ring-1 ring-gold'
+                    ? 'border-gilded ring-1 ring-gilded'
                     : 'border-border/60 opacity-60 hover:opacity-100'
                 }`}
               >
@@ -273,14 +233,16 @@ export function ProductDetail({ product }: { product: any }) {
       {/* RIGHT: BUY BOX & SPECS (5 columns) */}
       <div className="lg:col-span-5 flex flex-col">
         <div className="flex justify-between items-start mb-2">
-          <span className="text-[11px] uppercase tracking-widest font-semibold text-gold">
+          <span className="text-[11px] uppercase tracking-widest font-semibold text-gilded">
             {categoryName}
           </span>
           {/* Share Button Trigger */}
           <button
-            onClick={() => setIsShareOpen(!isShareOpen)}
-            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-            title="Share Product"
+            type="button"
+            onClick={() => setIsShareOpen((open) => !open)}
+            aria-label={`Share ${product?.name || 'this product'}`}
+            className="flex min-h-11 items-center gap-2 rounded-full px-3 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            title="Share product"
           >
             <Share2 size={14} />
             <span className="uppercase text-[10px] tracking-wider font-medium">Share</span>
@@ -291,54 +253,26 @@ export function ProductDetail({ product }: { product: any }) {
           {product?.name || 'Untitled Piece'}
         </h1>
 
-        {/* Share Popover Drawer */}
-        {isShareOpen && (
-          <div className="mb-6 p-4 border border-border bg-card rounded shadow-lg space-y-3 relative animate-in fade-in slide-in-from-top-2">
-            <button
-              onClick={() => setIsShareOpen(false)}
-              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground"
-            >
-              <X size={14} />
-            </button>
-            <p className="text-xs font-medium uppercase tracking-wider text-foreground">Share this piece</p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => shareToSocial('whatsapp')}
-                className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-600 px-3 py-1.5 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
-              >
-                <MessageCircle size={14} /> WhatsApp
-              </button>
-              <button
-                onClick={() => shareToSocial('twitter')}
-                className="flex items-center gap-1.5 text-xs bg-sky-500/10 text-sky-600 px-3 py-1.5 border border-sky-500/20 hover:bg-sky-500/20 transition-colors"
-              >
-                X / Twitter
-              </button>
-              <button
-                onClick={() => shareToSocial('facebook')}
-                className="flex items-center gap-1.5 text-xs bg-blue-500/10 text-blue-600 px-3 py-1.5 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
-              >
-                Facebook
-              </button>
-              <button
-                onClick={handleCopyLink}
-                className="flex items-center gap-1.5 text-xs bg-muted text-foreground px-3 py-1.5 border border-border hover:bg-muted/80 transition-colors"
-              >
-                {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                {copied ? 'Copied Link' : 'Copy Link'}
-              </button>
-            </div>
-          </div>
-        )}
+        <ProductShareSheet
+          product={{
+            name: product?.name || 'Untitled Piece',
+            price: totalPrice,
+            currency: normalizeCurrency(product?.currency),
+            image: selectedImage,
+            description: product?.description,
+          }}
+          open={isShareOpen}
+          onOpenChange={setIsShareOpen}
+        />
 
         {/* Rating Overview */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="flex items-center text-amber-500 gap-0.5">
+          <div className="flex items-center text-gilded gap-0.5">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
                 size={14}
-                className={i < Math.floor(rating) ? 'fill-current text-amber-500' : 'text-muted'}
+                className={i < Math.floor(rating) ? 'fill-current text-gilded' : 'text-muted'}
               />
             ))}
           </div>
@@ -350,21 +284,21 @@ export function ProductDetail({ product }: { product: any }) {
         {/* Price Display */}
         <div className="flex items-baseline gap-3 mb-6 pb-6 border-b border-border">
           <span className="text-2xl font-serif text-foreground font-medium">
-            {formatUGX(totalPrice)}
+            {formatMoney(totalPrice, normalizeCurrency(product?.currency))}
           </span>
           <span className="text-xs text-muted-foreground">
-            (≈ {formatUSD(totalPrice)})
+            Final price updates with your selected finish.
           </span>
         </div>
 
         {/* Editorial Highlight */}
         {product?.editorialHighlight && (
-          <div className="mb-6 p-4 border border-gold/30 bg-gold/5 space-y-1">
-            <div className="flex items-center gap-1.5 text-xs font-serif text-gold font-medium">
+          <div className="mb-6 p-4 border border-gilded/30 bg-gilded/5 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-serif text-gilded font-medium">
               <Sparkle className="w-3.5 h-3.5" />
               <span>Why We Love This Piece</span>
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed italic">
+            <p className="text-xs text-muted-foreground leading-relaxed font-serif">
               "{product.editorialHighlight}"
             </p>
           </div>
@@ -374,16 +308,19 @@ export function ProductDetail({ product }: { product: any }) {
         {colors.length > 0 && (
           <div className="mb-6">
             <label className="block text-xs uppercase tracking-widest font-medium text-foreground mb-3">
-              Color Finish: <span className="text-gold">{selectedColor?.label || 'Select'}</span>
+              Color Finish: <span className="text-gilded">{selectedColor?.label || 'Select'}</span>
             </label>
             <div className="flex flex-wrap gap-2.5">
               {colors.map((color: any, idx: number) => (
                 <button
+                  type="button"
                   key={color?.id || idx}
                   onClick={() => handleColorSelect(color)}
+                  aria-pressed={selectedColor?.id === color?.id}
+                  aria-label={`Select ${color?.label || 'colour'} colour`}
                   className={`flex items-center gap-2 h-10 px-3 border text-xs font-medium transition-all ${
                     selectedColor?.id === color?.id
-                      ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold'
+                      ? 'border-gilded bg-gilded/10 text-foreground ring-1 ring-gilded'
                       : 'border-border text-muted-foreground hover:border-foreground'
                   }`}
                 >
@@ -403,7 +340,7 @@ export function ProductDetail({ product }: { product: any }) {
           <div className="mb-6">
             <label className="block text-xs uppercase tracking-widest font-medium text-foreground mb-3">
               Material / Upholstery:{' '}
-              <span className="text-gold">{selectedFabric?.label || 'Standard'}</span>
+              <span className="text-gilded">{selectedFabric?.label || 'Standard'}</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {fabrics.map((fabric: any, idx: number) => {
@@ -413,20 +350,15 @@ export function ProductDetail({ product }: { product: any }) {
                     key={fabric?.id || idx}
                     onClick={() => {
                       setSelectedFabric(fabric)
-                      const matchingImage = productImages.find(
-                        (img: any) => img?.variantId === fabric?.id,
-                      )
-                      if (matchingImage?.url) {
-                        setSelectedImage(matchingImage.url)
-                      }
+                      selectVariantImage(fabric)
                     }}
                     className={`h-9 px-4 border text-xs font-medium transition-all ${
                       selectedFabric?.id === fabric?.id
-                        ? 'border-gold bg-gold/10 text-foreground ring-1 ring-gold'
+                        ? 'border-gilded bg-gilded/10 text-foreground ring-1 ring-gilded'
                         : 'border-border text-muted-foreground hover:border-foreground'
                     }`}
                   >
-                    {fabric?.label} {delta > 0 ? `(+${formatUGX(delta)})` : ''}
+                    {fabric?.label} {delta > 0 ? `(+${formatMoney(delta, normalizeCurrency(product?.currency))})` : ''}
                   </button>
                 )
               })}
@@ -434,19 +366,57 @@ export function ProductDetail({ product }: { product: any }) {
           </div>
         )}
 
+        {materials.length > 0 && (
+          <div className="mb-6">
+            <label className="mb-3 block text-xs font-medium uppercase tracking-widest text-foreground">Material: <span className="text-gilded">{selectedMaterial?.label || 'Standard'}</span></label>
+            <div className="flex flex-wrap gap-2">
+              {materials.map((material: any, index: number) => (
+                <button type="button" key={material?.id || index} onClick={() => { setSelectedMaterial(material); selectVariantImage(material) }} className={`min-h-11 border px-4 text-xs font-medium transition-all ${selectedMaterial?.id === material?.id ? 'border-gilded bg-gilded/10 text-foreground ring-1 ring-gilded' : 'border-border text-muted-foreground hover:border-foreground'}`}>
+                  {material?.label || material?.name} {optionPrice(material) > 0 ? `(+${formatMoney(optionPrice(material), normalizeCurrency(product?.currency))})` : ''}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {otherVariants.length > 0 && (
+          <div className="mb-6">
+            <label className="mb-3 block text-xs font-medium uppercase tracking-widest text-foreground">Style / size: <span className="text-gilded">{selectedVariant?.label || 'Select'}</span></label>
+            <div className="flex flex-wrap gap-2">
+              {otherVariants.map((variant: any, index: number) => (
+                <button type="button" key={variant?.id || index} onClick={() => { setSelectedVariant(variant); selectVariantImage(variant) }} className={`min-h-11 border px-4 text-xs font-medium transition-all ${selectedVariant?.id === variant?.id ? 'border-gilded bg-gilded/10 text-foreground ring-1 ring-gilded' : 'border-border text-muted-foreground hover:border-foreground'}`}>
+                  {variant?.label || variant?.name} {optionPrice(variant) > 0 ? `(+${formatMoney(optionPrice(variant), normalizeCurrency(product?.currency))})` : ''}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {accessories.length > 0 && (
+          <div className="mb-6">
+            <p className="mb-3 text-xs font-medium uppercase tracking-widest text-foreground">Complete the setting</p>
+            <div className="space-y-2">
+              {accessories.map((accessory: any, index: number) => {
+                const isSelected = selectedAccessories.some((selected) => selected?.id === accessory?.id)
+                return <label key={accessory?.id || index} className={`flex min-h-11 cursor-pointer items-center justify-between gap-4 border px-3 text-xs transition-colors ${isSelected ? 'border-gilded bg-gilded/10' : 'border-border hover:border-foreground'}`}><span className="flex items-center gap-2"><input type="checkbox" checked={isSelected} onChange={() => setSelectedAccessories((current) => isSelected ? current.filter((selected) => selected?.id !== accessory?.id) : [...current, accessory])} className="size-4 accent-[var(--primary)]" />{accessory?.label || accessory?.name}</span><span className="text-muted-foreground">{optionPrice(accessory) > 0 ? `+${formatMoney(optionPrice(accessory), normalizeCurrency(product?.currency))}` : 'Included'}</span></label>
+              })}
+            </div>
+          </div>
+        )}
+
         {/* BESPOKE TAILORING DRAWER */}
-        <div className="mb-8 border border-border p-4 bg-muted/20 space-y-3">
+        {isCustomizable && <div className="mb-8 border border-primary/35 bg-primary/5 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Ruler className="w-4 h-4 text-gold" />
+              <Ruler className="w-4 h-4 text-gilded" />
               <span className="text-xs uppercase tracking-wider font-medium text-foreground">
-                Custom Tailoring
+                Customize this piece
               </span>
             </div>
             <button
               type="button"
               onClick={() => setUseCustomDims(!useCustomDims)}
-              className="text-xs text-gold hover:underline flex items-center gap-1 font-medium"
+              className="text-xs text-gilded hover:underline flex items-center gap-1 font-medium"
             >
               {useCustomDims ? 'Use Standard Dimensions' : '+ Request Bespoke Sizing'}
             </button>
@@ -455,7 +425,7 @@ export function ProductDetail({ product }: { product: any }) {
           {useCustomDims ? (
             <div className="space-y-3 pt-2 border-t border-border/60">
               <p className="text-[11px] text-muted-foreground">
-                Specify exact dimensions in inches for our East Africa artisan workshop:
+                Add approximate dimensions if you already have them. The studio will confirm the final specification, finish, and lead time before custom work is accepted.
               </p>
               <div className="grid grid-cols-3 gap-2">
                 <div>
@@ -467,7 +437,7 @@ export function ProductDetail({ product }: { product: any }) {
                     placeholder="e.g. 64"
                     value={dimensions.width}
                     onChange={(e) => setDimensions({ ...dimensions, width: e.target.value })}
-                    className="w-full p-2 text-xs border border-border bg-background focus:border-gold outline-none"
+                    className="w-full p-2 text-xs border border-border bg-background focus:border-gilded outline-none"
                   />
                 </div>
                 <div>
@@ -479,7 +449,7 @@ export function ProductDetail({ product }: { product: any }) {
                     placeholder="e.g. 32"
                     value={dimensions.height}
                     onChange={(e) => setDimensions({ ...dimensions, height: e.target.value })}
-                    className="w-full p-2 text-xs border border-border bg-background focus:border-gold outline-none"
+                    className="w-full p-2 text-xs border border-border bg-background focus:border-gilded outline-none"
                   />
                 </div>
                 <div>
@@ -491,31 +461,35 @@ export function ProductDetail({ product }: { product: any }) {
                     placeholder="e.g. 28"
                     value={dimensions.depth}
                     onChange={(e) => setDimensions({ ...dimensions, depth: e.target.value })}
-                    className="w-full p-2 text-xs border border-border bg-background focus:border-gold outline-none"
+                    className="w-full p-2 text-xs border border-border bg-background focus:border-gilded outline-none"
                   />
                 </div>
               </div>
             </div>
           ) : (
             <div className="text-xs text-muted-foreground">
-              Standard specifications applied.
+              Choose your preferred size, finish, or upholstery and our studio will confirm the final specification with you.
             </div>
           )}
-        </div>
+        </div>}
 
         {/* QUANTITY, ADD TO CART & WISHLIST */}
         <div className="flex gap-4 mb-8">
           <div className="flex items-center border border-border">
-            <button
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="px-3 py-2 text-foreground hover:bg-muted transition-colors"
+                            <button
+                  type="button"
+                  aria-label="Decrease quantity"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              className="px-3 py-2 text-obsidian hover:bg-gilded/10 transition-colors"
             >
               -
             </button>
             <span className="px-4 py-2 text-xs font-medium">{quantity}</span>
             <button
+              type="button"
+              aria-label="Increase quantity"
               onClick={() => setQuantity((q) => q + 1)}
-              className="px-3 py-2 text-foreground hover:bg-muted transition-colors"
+              className="px-3 py-2 text-obsidian hover:bg-gilded/10 transition-colors"
             >
               +
             </button>
@@ -525,7 +499,7 @@ export function ProductDetail({ product }: { product: any }) {
             onClick={handleAddToCart}
             className="flex-1 bg-gold hover:bg-gold/90 text-black font-semibold py-3 px-6 transition-colors text-xs uppercase tracking-widest flex items-center justify-center gap-2"
           >
-            {added ? <Check size={16} /> : <ShoppingBag size={16} />}
+            {added ? <Check size={16} /> : <ShoppingCart size={16} />}
             {added ? 'Added To Selection' : 'Add To Cart'}
           </button>
 
@@ -534,13 +508,21 @@ export function ProductDetail({ product }: { product: any }) {
             className={`p-3 border transition-colors ${
               isWishlisted
                 ? 'border-red-500 text-red-500 bg-red-500/10'
-                : 'border-border text-foreground hover:border-gold'
+                : 'border-border text-foreground hover:border-gilded'
             }`}
             title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
           >
             <Heart size={18} className={isWishlisted ? 'fill-current text-red-500' : ''} />
           </button>
         </div>
+
+        {isCustomizable && <div className="mb-8 flex flex-col gap-2 border border-border/70 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-widest text-foreground">Need a different finish or size?</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Send the studio this piece as the starting point for a customization conversation.</p>
+          </div>
+          <Link href={productInquiryHref} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 border border-border px-4 text-xs font-medium uppercase tracking-wider text-foreground transition-colors hover:border-gilded hover:text-gilded"><Send className="size-4" aria-hidden="true" />Customize with the studio</Link>
+        </div>}
 
         {/* ACCORDIONS */}
         <div className="border-t border-border mt-2">
@@ -549,7 +531,7 @@ export function ProductDetail({ product }: { product: any }) {
             isOpen={openAccordion === 'description'}
             onToggle={() => toggleAccordion('description')}
           >
-            <p>{product?.description || 'Crafted with premium materials and engineered for refined living.'}</p>
+            <p>{product?.description || 'The studio will confirm the product description and suitable specifications with your order brief.'}</p>
           </AccordionItem>
 
           <AccordionItem
@@ -557,24 +539,18 @@ export function ProductDetail({ product }: { product: any }) {
             isOpen={openAccordion === 'specs'}
             onToggle={() => toggleAccordion('specs')}
           >
-            <div className="grid grid-cols-2 gap-3">
-              <div className="border border-border/60 p-2.5">
-                <span className="block text-[10px] uppercase text-muted-foreground">Overall Width</span>
-                <span className="font-medium text-foreground">{rawDims?.width || '32'} in</span>
+            {productDimensions.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3">
+                {productDimensions.map(({ key, label, value, unit }) => (
+                  <div key={key} className="border border-border/60 p-2.5">
+                    <span className="block text-[10px] uppercase text-muted-foreground">{label}</span>
+                    <span className="font-medium text-foreground">{value}{unit ? ` ${unit}` : ''}</span>
+                  </div>
+                ))}
               </div>
-              <div className="border border-border/60 p-2.5">
-                <span className="block text-[10px] uppercase text-muted-foreground">Overall Height</span>
-                <span className="font-medium text-foreground">{rawDims?.height || '34'} in</span>
-              </div>
-              <div className="border border-border/60 p-2.5">
-                <span className="block text-[10px] uppercase text-muted-foreground">Depth</span>
-                <span className="font-medium text-foreground">{rawDims?.depth || '30'} in</span>
-              </div>
-              <div className="border border-border/60 p-2.5">
-                <span className="block text-[10px] uppercase text-muted-foreground">Seat Height</span>
-                <span className="font-medium text-foreground">{rawDims?.seatHeight || '18'} in</span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Product dimensions have not been supplied.</p>
+            )}
           </AccordionItem>
 
           <AccordionItem
@@ -584,7 +560,7 @@ export function ProductDetail({ product }: { product: any }) {
           >
             <p>
               {product?.material ||
-                'Solid hardwood frame sourced sustainably, upholstered in top-tier performance fabric designed for longevity.'}
+                'Material and finish details will be confirmed for the selected piece and options.'}
             </p>
           </AccordionItem>
 
@@ -594,20 +570,21 @@ export function ProductDetail({ product }: { product: any }) {
             onToggle={() => toggleAccordion('care')}
           >
             <p>
-              Wipe clean with a soft, dry cloth. Avoid abrasive cleaners or direct harsh sunlight to maintain original luster.
+              Follow the care guidance supplied with your order. The studio can confirm suitable care for the selected material and finish.
             </p>
           </AccordionItem>
         </div>
 
         {/* Trust Badges */}
-        <div className="border-t border-border pt-6 mt-6 space-y-3 text-xs text-muted-foreground">
+                  <div className="border-t border-border pt-6 mt-6 space-y-3 text-xs text-muted-foreground">
+
           <div className="flex items-center gap-3">
-            <Truck size={16} className="text-gold" />
-            <span>Complimentary white-glove assembly on luxury orders.</span>
+            <Truck size={16} className="text-gilded" />
+            <span>Delivery and installation options are confirmed with your order brief.</span>
           </div>
           <div className="flex items-center gap-3">
-            <ShieldCheck size={16} className="text-gold" />
-            <span>Authenticity guarantee & 2-year warranty included.</span>
+            <ShieldCheck size={16} className="text-gilded" />
+            <span>Specifications and any applicable warranty terms are confirmed before purchase.</span>
           </div>
         </div>
       </div>
@@ -617,6 +594,7 @@ export function ProductDetail({ product }: { product: any }) {
 
 // PRODUCT REVIEWS WITH INTERACTIVE FORM
 export function ProductReviews({ product }: { product: any }) {
+  const router = useRouter()
   const [reviewsList, setReviewsList] = useState<any[]>(
     Array.isArray(product?.reviews) ? product.reviews : product?.productReviews || []
   )
@@ -687,7 +665,7 @@ export function ProductReviews({ product }: { product: any }) {
           
           <div>
             <label className="block text-xs uppercase text-muted-foreground mb-1">Rating</label>
-            <div className="flex gap-1 text-amber-500">
+            <div className="flex gap-1 text-gilded">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   type="button"
@@ -695,7 +673,7 @@ export function ProductReviews({ product }: { product: any }) {
                   onClick={() => setRating(star)}
                   className="p-1 hover:scale-110 transition-transform"
                 >
-                  <Star size={20} className={star <= rating ? 'fill-current text-amber-500' : 'text-muted'} />
+                  <Star size={20} className={star <= rating ? 'fill-current text-gilded' : 'text-muted'} />
                 </button>
               ))}
             </div>
@@ -709,7 +687,7 @@ export function ProductReviews({ product }: { product: any }) {
               placeholder="e.g. Sarah K."
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
-              className="w-full p-2.5 text-xs bg-background border border-border focus:border-gold outline-none"
+              className="w-full p-2.5 text-xs bg-background border border-border focus:border-gilded outline-none"
             />
           </div>
 
@@ -721,7 +699,7 @@ export function ProductReviews({ product }: { product: any }) {
               placeholder="Describe your experience with this piece..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full p-2.5 text-xs bg-background border border-border focus:border-gold outline-none"
+              className="w-full p-2.5 text-xs bg-background border border-border focus:border-gilded outline-none"
             />
           </div>
 
@@ -742,12 +720,12 @@ export function ProductReviews({ product }: { product: any }) {
           {avgRating.toFixed(1)}
         </div>
         <div>
-          <div className="flex items-center text-amber-500 gap-0.5 mb-1">
+          <div className="flex items-center text-gilded gap-0.5 mb-1">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
                 size={16}
-                className={i < Math.floor(avgRating) ? 'fill-current text-amber-500' : 'text-muted'}
+                className={i < Math.floor(avgRating) ? 'fill-current text-gilded' : 'text-muted'}
               />
             ))}
           </div>
@@ -768,12 +746,12 @@ export function ProductReviews({ product }: { product: any }) {
                   {rev?.createdAt ? new Date(rev.createdAt).toLocaleDateString() : 'Recently'}
                 </span>
               </div>
-              <div className="flex items-center text-amber-500 gap-0.5 mb-2">
+              <div className="flex items-center text-gilded gap-0.5 mb-2">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
                     size={12}
-                    className={i < (rev?.rating || 5) ? 'fill-current text-amber-500' : 'text-muted'}
+                    className={i < (rev?.rating || 5) ? 'fill-current text-gilded' : 'text-muted'}
                   />
                 ))}
               </div>
@@ -782,9 +760,8 @@ export function ProductReviews({ product }: { product: any }) {
           ))}
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground italic">No customer reviews yet for this product.</p>
+        <p className="text-xs text-muted-foreground font-serif">No customer reviews yet for this product.</p>
       )}
     </div>
   )
 }
-

@@ -23,6 +23,11 @@ export const userRoleEnum = pgEnum("user_role", [
   "trade_member",
   "architect",
   "interior_designer",
+  "editor",
+  "operations_manager",
+  "logistics_coordinator",
+  "support_agent",
+  "finance_viewer",
 ])
 
 export const projectStatusEnum = pgEnum("project_status", [
@@ -50,10 +55,33 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "refunded",
 ])
 
+export const shipmentStatusEnum = pgEnum("shipment_status", [
+  "awaiting_payment",
+  "processing",
+  "packed",
+  "assigned",
+  "out_for_delivery",
+  "ready_for_pickup",
+  "delivered",
+  "collected",
+  "exception",
+  "cancelled",
+])
+
+export const refundStatusEnum = pgEnum("refund_status", [
+  "not_requested",
+  "requested",
+  "processing",
+  "completed",
+  "failed",
+  "rejected",
+])
+
 export const variantTypeEnum = pgEnum("variant_type", [
   "COLOR",
   "FABRIC",
   "MATERIAL",
+  "FINISH",
   "SIZE",
 ])
 
@@ -444,6 +472,11 @@ export const products = pgTable(
       scale: 2,
     }).notNull(),
 
+    tradeDiscountPercent: numeric("trade_discount_percent", {
+      precision: 5,
+      scale: 2,
+    }).notNull().default("0"),
+
     originalPrice: numeric("original_price", {
       precision: 14,
       scale: 2,
@@ -460,6 +493,14 @@ export const products = pgTable(
     availability: productAvailabilityEnum("availability")
       .notNull()
       .default("in_stock"),
+
+    customizationEnabled: boolean("customization_enabled")
+      .notNull()
+      .default(false),
+    customizationHeading: varchar("customization_heading", { length: 160 }),
+    customizationDescription: text("customization_description"),
+    customizationLeadTime: varchar("customization_lead_time", { length: 120 }),
+    customizationRequestLabel: varchar("customization_request_label", { length: 120 }),
 
     quantity: integer("quantity").notNull().default(0),
 
@@ -617,6 +658,9 @@ export const productVariants = pgTable(
         onDelete: "set null",
       },
     ),
+    finishId: uuid("finish_id").references(() => finishLibrary.id, {
+      onDelete: "set null",
+    }),
 
     sku: varchar("sku", { length: 100 }),
     mpn: varchar("mpn", { length: 100 }),
@@ -653,6 +697,7 @@ export const productVariants = pgTable(
     materialIdx: index("product_variants_material_idx").on(
       table.materialId,
     ),
+    finishIdx: index("product_variants_finish_idx").on(table.finishId),
     skuIdx: uniqueIndex("product_variants_sku_idx").on(table.sku),
   }),
 )
@@ -871,6 +916,12 @@ export const projects = pgTable(
     dueDate: timestamp("due_date"),
     images: jsonb("images").default([]),
     gallery: jsonb("gallery").default([]),
+    storySections: jsonb("story_sections").$type<any[]>().default([]),
+    clientBrief: text("client_brief"),
+    designPhilosophy: text("design_philosophy"),
+    materials: jsonb("materials").$type<string[]>().default([]),
+    servicesInvolved: jsonb("services_involved").$type<string[]>().default([]),
+    highlights: jsonb("highlights").$type<any[]>().default([]),
     thumbnailImage: text("thumbnail_image"),
     designer: varchar("designer", { length: 255 }),
     status: projectStatusEnum("status").default(
@@ -913,11 +964,18 @@ export const articles = pgTable(
     title: varchar("title", { length: 255 }).notNull(),
     slug: varchar("slug", { length: 255 }).notNull().unique(),
     content: text("content").notNull(),
+    introduction: text("introduction"),
     excerpt: varchar("excerpt", { length: 500 }),
     author: varchar("author", { length: 255 }),
     category: varchar("category", { length: 100 }),
     tags: jsonb("tags").default([]),
     featuredImage: text("featured_image"),
+    gallery: jsonb("gallery").$type<string[]>().default([]),
+    storySections: jsonb("story_sections").$type<any[]>().default([]),
+    pullQuotes: jsonb("pull_quotes").$type<any[]>().default([]),
+    relatedArticles: jsonb("related_articles").$type<string[]>().default([]),
+    relatedServices: jsonb("related_services").$type<string[]>().default([]),
+    relatedProjects: jsonb("related_projects").$type<string[]>().default([]),
     rating: decimal("rating", {
       precision: 3,
       scale: 2,
@@ -929,7 +987,6 @@ export const articles = pgTable(
     seoDescription: varchar("seo_description", {
       length: 255,
     }),
-    featured: boolean("featured").default(false),
     status: varchar("status", { length: 50 }).default("published"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -939,7 +996,6 @@ export const articles = pgTable(
     categoryIdx: index("article_category_idx").on(table.category),
     statusIdx: index("article_status_idx").on(table.status),
     slugIdx: uniqueIndex("article_slug_idx").on(table.slug),
-    featuredIdx: index("article_featured_idx").on(table.featured),
   }),
 )
 
@@ -958,6 +1014,57 @@ export const carts = pgTable(
   },
   (table) => ({
     userIdIdx: uniqueIndex("cart_user_idx").on(table.userId),
+  }),
+)
+
+export const savedAddresses = pgTable(
+  "saved_addresses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    label: varchar("label", { length: 120 }).notNull().default("Home"),
+    recipientName: varchar("recipient_name", { length: 255 }).notNull(),
+    phone: varchar("phone", { length: 30 }).notNull(),
+    address: text("address").notNull(),
+    city: varchar("city", { length: 120 }).notNull(),
+    region: varchar("region", { length: 120 }),
+    country: varchar("country", { length: 100 }).notNull().default("Uganda"),
+    notes: text("notes"),
+    isDefault: boolean("is_default").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("saved_addresses_user_idx").on(table.userId),
+    defaultIdx: index("saved_addresses_default_idx").on(table.userId, table.isDefault),
+  }),
+)
+
+export const pickupStations = pgTable(
+  "pickup_stations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 180 }).notNull(),
+    address: text("address").notNull(),
+    city: varchar("city", { length: 120 }).notNull().default("Kampala"),
+    region: varchar("region", { length: 120 }),
+    country: varchar("country", { length: 100 }).notNull().default("Uganda"),
+    phone: varchar("phone", { length: 30 }),
+    instructions: text("instructions"),
+    fee: numeric("fee", { precision: 12, scale: 2 }).notNull().default("0"),
+    latitude: numeric("latitude", { precision: 10, scale: 7 }),
+    longitude: numeric("longitude", { precision: 10, scale: 7 }),
+    active: boolean("active").notNull().default(true),
+    displayOrder: integer("display_order").notNull().default(0),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    activeOrderIdx: index("pickup_stations_active_order_idx").on(table.active, table.displayOrder),
+    cityIdx: index("pickup_stations_city_idx").on(table.city),
   }),
 )
 
@@ -996,7 +1103,16 @@ export const orders = pgTable(
     paymentStatus: paymentStatusEnum("payment_status").default(
       "pending",
     ),
+    paymentMode: varchar("payment_mode", { length: 30 }).notNull().default("pay_now"),
+    paymentMethod: varchar("payment_method", { length: 40 }),
     deliveryAddress: jsonb("delivery_address"),
+    cancellationReason: text("cancellation_reason"),
+    cancelledAt: timestamp("cancelled_at"),
+    refundStatus: refundStatusEnum("refund_status").notNull().default("not_requested"),
+    promotionId: uuid("promotion_id").references(() => collectionPromotions.id, { onDelete: "set null" }),
+    promotionCode: varchar("promotion_code", { length: 40 }),
+    promotionName: varchar("promotion_name", { length: 160 }),
+    promotionDiscount: decimal("promotion_discount", { precision: 12, scale: 2 }).default("0"),
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -1007,6 +1123,50 @@ export const orders = pgTable(
     orderNumberIdx: uniqueIndex("order_number_idx").on(
       table.orderNumber,
     ),
+    paymentModeIdx: index("order_payment_mode_idx").on(table.paymentMode),
+    refundStatusIdx: index("order_refund_status_idx").on(table.refundStatus),
+  }),
+)
+
+export const orderShipments = pgTable(
+  "order_shipments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id").notNull().unique().references(() => orders.id, { onDelete: "cascade" }),
+    trackingCode: varchar("tracking_code", { length: 80 }).notNull().unique(),
+    status: shipmentStatusEnum("status").notNull().default("awaiting_payment"),
+    assignedTo: uuid("assigned_to").references(() => users.id, { onDelete: "set null" }),
+    assignedAt: timestamp("assigned_at"),
+    estimatedDeliveryAt: timestamp("estimated_delivery_at"),
+    dispatchedAt: timestamp("dispatched_at"),
+    deliveredAt: timestamp("delivered_at"),
+    lastNote: text("last_note"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    orderIdx: uniqueIndex("order_shipments_order_idx").on(table.orderId),
+    statusIdx: index("order_shipments_status_idx").on(table.status),
+    assignedIdx: index("order_shipments_assigned_idx").on(table.assignedTo),
+    trackingCodeIdx: uniqueIndex("order_shipments_tracking_code_idx").on(table.trackingCode),
+  }),
+)
+
+export const orderTrackingEvents = pgTable(
+  "order_tracking_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    shipmentId: uuid("shipment_id").notNull().references(() => orderShipments.id, { onDelete: "cascade" }),
+    status: shipmentStatusEnum("status").notNull(),
+    note: text("note"),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    customerVisible: boolean("customer_visible").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    orderIdx: index("order_tracking_events_order_idx").on(table.orderId, table.createdAt),
+    shipmentIdx: index("order_tracking_events_shipment_idx").on(table.shipmentId, table.createdAt),
   }),
 )
 
@@ -1029,6 +1189,14 @@ export const consultations = pgTable(
     durationMinutes: integer("duration_minutes").notNull().default(45),
     confirmedAt: timestamp("confirmed_at"),
     status: varchar("status", { length: 50 }).default("pending"),
+    paymentStatus: varchar("payment_status", { length: 30 }).notNull().default("pending"),
+    paymentAmount: decimal("payment_amount", { precision: 12, scale: 2 }),
+    paymentCurrency: varchar("payment_currency", { length: 3 }).default("UGX"),
+    paymentReference: varchar("payment_reference", { length: 120 }),
+    baseFee: decimal("base_fee", { precision: 12, scale: 2 }),
+    discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).default("0"),
+    taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).default("0"),
+    promotionCode: varchar("promotion_code", { length: 40 }),
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -1036,6 +1204,173 @@ export const consultations = pgTable(
   (table) => ({
     userIdIdx: index("consultation_user_idx").on(table.userId),
     statusIdx: index("consultation_status_idx").on(table.status),
+  }),
+)
+
+export const consultationPromotions = pgTable(
+  "consultation_promotions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 160 }).notNull(),
+    code: varchar("code", { length: 40 }),
+    discountType: varchar("discount_type", { length: 20 }).notNull().default("percentage"),
+    discountValue: decimal("discount_value", { precision: 12, scale: 2 }).notNull(),
+    maxDiscount: decimal("max_discount", { precision: 12, scale: 2 }),
+    serviceTypes: jsonb("service_types").notNull().default([]),
+    audience: varchar("audience", { length: 30 }).notNull().default("all"),
+    startsAt: timestamp("starts_at"),
+    endsAt: timestamp("ends_at"),
+    totalUsageLimit: integer("total_usage_limit"),
+    perCustomerLimit: integer("per_customer_limit").notNull().default(1),
+    status: varchar("status", { length: 20 }).notNull().default("draft"),
+    stackable: boolean("stackable").notNull().default(false),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    codeIdx: uniqueIndex("consultation_promotions_code_idx").on(table.code),
+    statusIdx: index("consultation_promotions_status_idx").on(table.status),
+    validityIdx: index("consultation_promotions_validity_idx").on(table.startsAt, table.endsAt),
+  }),
+)
+
+export const collectionPromotions = pgTable(
+  "collection_promotions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 160 }).notNull(),
+    code: varchar("code", { length: 40 }).notNull(),
+    discountType: varchar("discount_type", { length: 20 }).notNull().default("percentage"),
+    discountValue: decimal("discount_value", { precision: 12, scale: 2 }).notNull(),
+    maxDiscount: decimal("max_discount", { precision: 12, scale: 2 }),
+    targetType: varchar("target_type", { length: 20 }).notNull().default("all"),
+    collectionSlugs: jsonb("collection_slugs").notNull().default([]),
+    productIds: jsonb("product_ids").notNull().default([]),
+    audience: varchar("audience", { length: 30 }).notNull().default("all"),
+    startsAt: timestamp("starts_at"),
+    endsAt: timestamp("ends_at"),
+    totalUsageLimit: integer("total_usage_limit"),
+    perCustomerLimit: integer("per_customer_limit").notNull().default(1),
+    status: varchar("status", { length: 20 }).notNull().default("draft"),
+    stackable: boolean("stackable").notNull().default(false),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    codeIdx: uniqueIndex("collection_promotions_code_idx").on(table.code),
+    statusIdx: index("collection_promotions_status_idx").on(table.status),
+    validityIdx: index("collection_promotions_validity_idx").on(table.startsAt, table.endsAt),
+  }),
+)
+
+export const consultationPaymentIntents = pgTable(
+  "consultation_payment_intents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
+    slotId: uuid("slot_id").notNull(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    txRef: varchar("tx_ref", { length: 120 }).notNull().unique(),
+    idempotencyKey: varchar("idempotency_key", { length: 120 }).notNull().unique(),
+    baseAmount: decimal("base_amount", { precision: 12, scale: 2 }).notNull(),
+    discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+    taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+    amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+    taxRate: decimal("tax_rate", { precision: 6, scale: 3 }).notNull().default("0"),
+    currency: varchar("currency", { length: 3 }).notNull().default("UGX"),
+    promotionId: uuid("promotion_id").references(() => consultationPromotions.id, { onDelete: "set null" }),
+    promotionCode: varchar("promotion_code", { length: 40 }),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    flutterwaveTransactionId: varchar("flutterwave_transaction_id", { length: 120 }),
+    paymentMethod: varchar("payment_method", { length: 40 }),
+    paymentUrl: text("payment_url"),
+    expiresAt: timestamp("expires_at").notNull(),
+    paidAt: timestamp("paid_at"),
+    failedAt: timestamp("failed_at"),
+    metadata: jsonb("metadata").notNull().default({}),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("consultation_payment_intents_user_idx").on(table.userId),
+    slotIdx: index("consultation_payment_intents_slot_idx").on(table.slotId),
+    statusExpiryIdx: index("consultation_payment_intents_status_expiry_idx").on(table.status, table.expiresAt),
+    consultationIdx: index("consultation_payment_intents_consultation_idx").on(table.consultationId),
+  }),
+)
+
+export const consultationPromotionRedemptions = pgTable(
+  "consultation_promotion_redemptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    promotionId: uuid("promotion_id").notNull().references(() => consultationPromotions.id, { onDelete: "cascade" }),
+    paymentIntentId: uuid("payment_intent_id").notNull().references(() => consultationPaymentIntents.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    code: varchar("code", { length: 40 }),
+    discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("reserved"),
+    reservedAt: timestamp("reserved_at").notNull().defaultNow(),
+    appliedAt: timestamp("applied_at"),
+    releasedAt: timestamp("released_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    paymentIntentIdx: uniqueIndex("consultation_promotion_redemptions_intent_idx").on(table.paymentIntentId),
+    promotionUserIdx: index("consultation_promotion_redemptions_promotion_user_idx").on(table.promotionId, table.userId),
+    statusIdx: index("consultation_promotion_redemptions_status_idx").on(table.status),
+  }),
+)
+
+export const orderPromotionRedemptions = pgTable(
+  "order_promotion_redemptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    promotionId: uuid("promotion_id").notNull().references(() => collectionPromotions.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id").notNull().unique().references(() => orders.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    code: varchar("code", { length: 40 }).notNull(),
+    discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("reserved"),
+    reservedAt: timestamp("reserved_at").notNull().defaultNow(),
+    appliedAt: timestamp("applied_at"),
+    releasedAt: timestamp("released_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    orderIdx: uniqueIndex("order_promotion_redemptions_order_idx").on(table.orderId),
+    promotionUserIdx: index("order_promotion_redemptions_promotion_user_idx").on(table.promotionId, table.userId),
+    statusIdx: index("order_promotion_redemptions_status_idx").on(table.status),
+  }),
+)
+
+export const consultationReminders = pgTable(
+  "consultation_reminders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    consultationId: uuid("consultation_id")
+      .notNull()
+      .references(() => consultations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reminderKey: varchar("reminder_key", { length: 20 }).notNull(),
+    scheduledFor: timestamp("scheduled_for").notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    lastAttemptAt: timestamp("last_attempt_at"),
+    sentAt: timestamp("sent_at"),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    consultationReminderIdx: uniqueIndex("consultation_reminders_consultation_key_idx").on(table.consultationId, table.reminderKey),
+    dueIdx: index("consultation_reminders_status_scheduled_idx").on(table.status, table.scheduledFor),
+    userIdx: index("consultation_reminders_user_idx").on(table.userId),
   }),
 )
 
@@ -1215,6 +1550,16 @@ export const services = pgTable(
     icon: varchar("icon", { length: 100 }),
     image: text("image"),
     gallery: jsonb("gallery").default([]),
+    storySections: jsonb("story_sections").$type<any[]>().default([]),
+    visionStatement: text("vision_statement"),
+    whatWeSolve: text("what_we_solve"),
+    approach: text("approach"),
+    deliverables: jsonb("deliverables").$type<string[]>().default([]),
+    relatedServices: jsonb("related_services").$type<string[]>().default([]),
+    relatedProjects: jsonb("related_projects").$type<string[]>().default([]),
+    processSteps: jsonb("process_steps").$type<any[]>().default([]),
+    faqs: jsonb("faqs").$type<any[]>().default([]),
+    highlights: jsonb("highlights").$type<any[]>().default([]),
     order: integer("order").default(0),
     featured: boolean("featured").default(false),
     seoTitle: varchar("seo_title", { length: 255 }),
@@ -1368,6 +1713,7 @@ export const conversationMessages = pgTable(
     senderName: varchar("sender_name", { length: 255 }),
     body: text("body").notNull(),
     attachments: jsonb("attachments").default([]),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
     readAt: timestamp("read_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
@@ -1385,8 +1731,11 @@ export const supportTickets = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     ticketNumber: varchar("ticket_number", { length: 50 }).notNull().unique(),
     userId: uuid("user_id")
-      .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    requesterType: varchar("requester_type", { length: 20 }).notNull().default("client"),
+    guestSessionId: text("guest_session_id"),
+    guestEmail: varchar("guest_email", { length: 255 }),
+    guestName: varchar("guest_name", { length: 255 }),
     subject: varchar("subject", { length: 255 }).notNull(),
     description: text("description"),
     category: varchar("category", { length: 100 }),
@@ -1399,6 +1748,7 @@ export const supportTickets = pgTable(
   },
   (table) => ({
     userIdx: index("support_tickets_user_idx").on(table.userId),
+    guestSessionIdx: index("support_tickets_guest_session_idx").on(table.guestSessionId),
     statusIdx: index("support_tickets_status_idx").on(table.status),
   }),
 )
@@ -1464,6 +1814,9 @@ export const membershipEvents = pgTable(
     description: text("description"),
     image: text("image"),
     location: varchar("location", { length: 255 }),
+    meetingProvider: varchar("meeting_provider", { length: 30 }),
+    meetingUrl: text("meeting_url"),
+    calendarEventId: varchar("calendar_event_id", { length: 255 }),
     eventDate: timestamp("event_date").notNull(),
     capacity: integer("capacity"),
     membershipTier: varchar("membership_tier", { length: 50 }).default("all"),
@@ -1491,6 +1844,26 @@ export const eventRsvps = pgTable(
   (table) => ({
     eventIdx: index("event_rsvps_event_idx").on(table.eventId),
     userIdx: index("event_rsvps_user_idx").on(table.userId),
+    eventUserUnique: uniqueIndex("event_rsvps_event_user_unique").on(table.eventId, table.userId),
+  }),
+)
+
+export const communityPosts = pgTable(
+  "community_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: varchar("title", { length: 255 }).notNull(),
+    body: text("body").notNull(),
+    image: text("image"),
+    category: varchar("category", { length: 50 }).notNull().default("announcement"),
+    status: varchar("status", { length: 20 }).notNull().default("published"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    statusIdx: index("community_posts_status_idx").on(table.status, table.createdAt),
+    categoryIdx: index("community_posts_category_idx").on(table.category),
   }),
 )
 
@@ -1539,6 +1912,7 @@ export const projectAssets = pgTable(
     assetType: varchar("asset_type", { length: 30 }).notNull().default("image"),
     category: varchar("category", { length: 100 }),
     fileUrl: text("file_url").notNull(),
+    storageKey: text("storage_key"),
     thumbnailUrl: text("thumbnail_url"),
     fileSize: integer("file_size"),
     storageProvider: varchar("storage_provider", { length: 20 })
@@ -1562,6 +1936,70 @@ export const projectAssets = pgTable(
   }),
 )
 
+export const projectVisualizations = pgTable(
+  "project_visualizations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    modelType: varchar("model_type", { length: 20 }).notNull().default("glb"),
+    storageProvider: varchar("storage_provider", { length: 20 }).notNull().default("r2"),
+    storageKey: text("storage_key").notNull(),
+    thumbnailKey: text("thumbnail_key"),
+    fileSize: integer("file_size"),
+    version: integer("version").notNull().default(1),
+    status: varchar("status", { length: 20 }).notNull().default("ready"),
+    visibility: varchar("visibility", { length: 20 }).notNull().default("client"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    projectIdx: index("project_visualizations_project_idx").on(table.projectId),
+    statusIdx: index("project_visualizations_status_idx").on(table.status),
+    visibilityIdx: index("project_visualizations_visibility_idx").on(table.visibility),
+  }),
+)
+
+export const visualizationViews = pgTable(
+  "visualization_views",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    visualizationId: uuid("visualization_id").notNull().references(() => projectVisualizations.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 120 }).notNull(),
+    cameraPosition: jsonb("camera_position").$type<number[]>().notNull(),
+    targetPosition: jsonb("target_position").$type<number[]>().notNull(),
+    zoom: decimal("zoom", { precision: 10, scale: 4 }),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    visualizationIdx: index("visualization_views_visualization_idx").on(table.visualizationId),
+  }),
+)
+
+export const visualizationAnnotations = pgTable(
+  "visualization_annotations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    visualizationId: uuid("visualization_id").notNull().references(() => projectVisualizations.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    position: jsonb("position").$type<{ x: number; y: number; z: number }>().notNull(),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    linkedProjectItemId: varchar("linked_project_item_id", { length: 120 }),
+    imageKey: text("image_key"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    visualizationIdx: index("visualization_annotations_visualization_idx").on(table.visualizationId),
+    statusIdx: index("visualization_annotations_status_idx").on(table.status),
+  }),
+)
+
 export const projectAssetComments = pgTable(
   "project_asset_comments",
   {
@@ -1578,6 +2016,27 @@ export const projectAssetComments = pgTable(
   },
   (table) => ({
     assetIdx: index("project_asset_comments_asset_idx").on(table.assetId),
+  }),
+)
+
+export const projectNotes = pgTable(
+  "project_notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    authorType: varchar("author_type", { length: 20 }).notNull().default("client"),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    projectIdx: index("project_notes_project_idx").on(table.projectId, table.createdAt),
+    userIdx: index("project_notes_user_idx").on(table.userId),
   }),
 )
 
@@ -1655,6 +2114,41 @@ export const projectAssetsRelations = relations(
   }),
 )
 
+export const projectVisualizationsRelations = relations(projectVisualizations, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [projectVisualizations.projectId],
+    references: [projects.id],
+  }),
+  creator: one(users, {
+    fields: [projectVisualizations.createdBy],
+    references: [users.id],
+  }),
+  views: many(visualizationViews),
+  annotations: many(visualizationAnnotations),
+}))
+
+export const visualizationViewsRelations = relations(visualizationViews, ({ one }) => ({
+  visualization: one(projectVisualizations, {
+    fields: [visualizationViews.visualizationId],
+    references: [projectVisualizations.id],
+  }),
+  creator: one(users, {
+    fields: [visualizationViews.createdBy],
+    references: [users.id],
+  }),
+}))
+
+export const visualizationAnnotationsRelations = relations(visualizationAnnotations, ({ one }) => ({
+  visualization: one(projectVisualizations, {
+    fields: [visualizationAnnotations.visualizationId],
+    references: [projectVisualizations.id],
+  }),
+  creator: one(users, {
+    fields: [visualizationAnnotations.createdBy],
+    references: [users.id],
+  }),
+}))
+
 export const projectAssetCommentsRelations = relations(
   projectAssetComments,
   ({ one }) => ({
@@ -1700,6 +2194,84 @@ export const consultationsRelations = relations(consultations, ({ one, many }) =
     references: [users.id],
   }),
   slots: many(consultationSlots),
+  reminders: many(consultationReminders),
+  paymentIntents: many(consultationPaymentIntents),
+}))
+
+export const consultationPromotionsRelations = relations(consultationPromotions, ({ one, many }) => ({
+  createdByUser: one(users, {
+    fields: [consultationPromotions.createdBy],
+    references: [users.id],
+  }),
+  paymentIntents: many(consultationPaymentIntents),
+  redemptions: many(consultationPromotionRedemptions),
+  orderRedemptions: many(orderPromotionRedemptions),
+}))
+
+export const collectionPromotionsRelations = relations(collectionPromotions, ({ one, many }) => ({
+  createdByUser: one(users, {
+    fields: [collectionPromotions.createdBy],
+    references: [users.id],
+  }),
+  orders: many(orders),
+  redemptions: many(orderPromotionRedemptions),
+}))
+
+export const consultationPaymentIntentsRelations = relations(consultationPaymentIntents, ({ one, many }) => ({
+  consultation: one(consultations, {
+    fields: [consultationPaymentIntents.consultationId],
+    references: [consultations.id],
+  }),
+  user: one(users, {
+    fields: [consultationPaymentIntents.userId],
+    references: [users.id],
+  }),
+  promotion: one(consultationPromotions, {
+    fields: [consultationPaymentIntents.promotionId],
+    references: [consultationPromotions.id],
+  }),
+  redemptions: many(consultationPromotionRedemptions),
+}))
+
+export const consultationPromotionRedemptionsRelations = relations(consultationPromotionRedemptions, ({ one }) => ({
+  promotion: one(consultationPromotions, {
+    fields: [consultationPromotionRedemptions.promotionId],
+    references: [consultationPromotions.id],
+  }),
+  paymentIntent: one(consultationPaymentIntents, {
+    fields: [consultationPromotionRedemptions.paymentIntentId],
+    references: [consultationPaymentIntents.id],
+  }),
+  user: one(users, {
+    fields: [consultationPromotionRedemptions.userId],
+    references: [users.id],
+  }),
+}))
+
+export const orderPromotionRedemptionsRelations = relations(orderPromotionRedemptions, ({ one }) => ({
+  promotion: one(collectionPromotions, {
+    fields: [orderPromotionRedemptions.promotionId],
+    references: [collectionPromotions.id],
+  }),
+  order: one(orders, {
+    fields: [orderPromotionRedemptions.orderId],
+    references: [orders.id],
+  }),
+  user: one(users, {
+    fields: [orderPromotionRedemptions.userId],
+    references: [users.id],
+  }),
+}))
+
+export const consultationRemindersRelations = relations(consultationReminders, ({ one }) => ({
+  consultation: one(consultations, {
+    fields: [consultationReminders.consultationId],
+    references: [consultations.id],
+  }),
+  user: one(users, {
+    fields: [consultationReminders.userId],
+    references: [users.id],
+  }),
 }))
 
 export const projectActivityRelations = relations(
@@ -1739,6 +2311,38 @@ export const projectTasks = pgTable(
   }),
 )
 
+export const programSubscriptions = pgTable(
+  "program_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    program: varchar("program", { length: 30 }).notNull(),
+    planKey: varchar("plan_key", { length: 50 }).notNull(),
+    billingPeriod: varchar("billing_period", { length: 20 }).notNull(),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+    currency: varchar("currency", { length: 3 }).notNull().default("UGX"),
+    startDate: timestamp("start_date"),
+    endDate: timestamp("end_date"),
+    provider: varchar("provider", { length: 40 }).notNull().default("flutterwave"),
+    transactionReference: varchar("transaction_reference", { length: 120 }).notNull(),
+    idempotencyKey: varchar("idempotency_key", { length: 120 }).notNull(),
+    providerChargeId: varchar("provider_charge_id", { length: 120 }),
+    metadata: jsonb("metadata").default({}),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userProgramIdx: index("program_subscriptions_user_program_idx").on(table.userId, table.program),
+    statusIdx: index("program_subscriptions_status_idx").on(table.status),
+    providerChargeIdx: uniqueIndex("program_subscriptions_provider_charge_idx").on(table.provider, table.providerChargeId),
+    referenceIdx: uniqueIndex("program_subscriptions_reference_idx").on(table.provider, table.transactionReference),
+    idempotencyIdx: uniqueIndex("program_subscriptions_idempotency_idx").on(table.idempotencyKey),
+  }),
+)
+
 export const invoices = pgTable(
   "invoices",
   {
@@ -1749,6 +2353,7 @@ export const invoices = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
     quoteId: uuid("quote_id").references(() => quotes.id, { onDelete: "set null" }),
+    consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
     items: jsonb("items"),
     subtotal: decimal("subtotal", { precision: 12, scale: 2 }),
     tax: decimal("tax", { precision: 12, scale: 2 }).default("0"),
@@ -1768,7 +2373,167 @@ export const invoices = pgTable(
   (table) => ({
     userIdx: index("invoices_user_idx").on(table.userId),
     projectIdx: index("invoices_project_idx").on(table.projectId),
+    consultationIdx: index("invoices_consultation_idx").on(table.consultationId),
     statusIdx: index("invoices_status_idx").on(table.status),
+  }),
+)
+
+export const paymentRecords = pgTable(
+  "payment_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id"),
+    invoiceId: uuid("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
+    consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
+    subscriptionId: uuid("subscription_id").references(() => programSubscriptions.id, { onDelete: "set null" }),
+    provider: varchar("provider", { length: 40 }).notNull().default("manual"),
+    transactionReference: varchar("transaction_reference", { length: 120 }).notNull(),
+    amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+    currency: varchar("currency", { length: 3 }).notNull().default("UGX"),
+    method: varchar("method", { length: 40 }),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    metadata: jsonb("metadata").default({}),
+    paidAt: timestamp("paid_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("payment_records_user_idx").on(table.userId),
+    invoiceIdx: index("payment_records_invoice_idx").on(table.invoiceId),
+    consultationIdx: index("payment_records_consultation_idx").on(table.consultationId),
+    subscriptionIdx: index("payment_records_subscription_idx").on(table.subscriptionId),
+    providerReferenceIdx: uniqueIndex("payment_records_provider_reference_idx").on(
+      table.provider,
+      table.transactionReference,
+    ),
+    statusIdx: index("payment_records_status_idx").on(table.status),
+  }),
+)
+
+export const refundRequests = pgTable(
+  "refund_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    paymentRecordId: uuid("payment_record_id").references(() => paymentRecords.id, { onDelete: "set null" }),
+    requestedBy: uuid("requested_by").references(() => users.id, { onDelete: "set null" }),
+    reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+    amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+    currency: varchar("currency", { length: 3 }).notNull().default("UGX"),
+    reason: text("reason").notNull(),
+    status: refundStatusEnum("status").notNull().default("requested"),
+    providerRefundId: varchar("provider_refund_id", { length: 120 }),
+    providerStatus: varchar("provider_status", { length: 40 }),
+    reviewNote: text("review_note"),
+    processedAt: timestamp("processed_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    orderIdx: index("refund_requests_order_idx").on(table.orderId),
+    statusIdx: index("refund_requests_status_idx").on(table.status),
+    paymentIdx: index("refund_requests_payment_idx").on(table.paymentRecordId),
+  }),
+)
+
+export const financialDocuments = pgTable(
+  "financial_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    documentNumber: varchar("document_number", { length: 80 }).notNull().unique(),
+    documentType: varchar("document_type", { length: 40 }).notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+    quoteId: uuid("quote_id").references(() => quotes.id, { onDelete: "set null" }),
+    consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
+    invoiceId: uuid("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
+    paymentId: uuid("payment_id").references(() => paymentRecords.id, { onDelete: "set null" }),
+    status: varchar("status", { length: 30 }).notNull().default("draft"),
+    amount: decimal("amount", { precision: 12, scale: 2 }),
+    currency: varchar("currency", { length: 3 }).notNull().default("UGX"),
+    storageProvider: varchar("storage_provider", { length: 20 }).notNull().default("r2"),
+    storageKey: text("storage_key"),
+    fileUrl: text("file_url"),
+    fileName: varchar("file_name", { length: 255 }),
+    mimeType: varchar("mime_type", { length: 120 }),
+    fileSize: integer("file_size"),
+    payload: jsonb("payload").notNull().default({}),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("financial_documents_user_idx").on(table.userId),
+    projectIdx: index("financial_documents_project_idx").on(table.projectId),
+    consultationIdx: index("financial_documents_consultation_idx").on(table.consultationId),
+    typeIdx: index("financial_documents_type_idx").on(table.documentType),
+    statusIdx: index("financial_documents_status_idx").on(table.status),
+  }),
+)
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 60 }).notNull(),
+    priority: varchar("priority", { length: 20 }).notNull().default("informational"),
+    title: varchar("title", { length: 255 }).notNull(),
+    message: text("message").notNull(),
+    actionUrl: text("action_url"),
+    metadata: jsonb("metadata").default({}),
+    channels: jsonb("channels").notNull().default(["in_app"]),
+    readAt: timestamp("read_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index("notifications_user_idx").on(table.userId),
+    unreadIdx: index("notifications_unread_idx").on(table.userId, table.readAt),
+    createdIdx: index("notifications_created_idx").on(table.createdAt),
+  }),
+)
+
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    preferences: jsonb("preferences").notNull().default({}),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: uniqueIndex("notification_preferences_user_idx").on(table.userId),
+  }),
+)
+
+export const notificationDeliveries = pgTable(
+  "notification_deliveries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    notificationId: uuid("notification_id")
+      .notNull()
+      .references(() => notifications.id, { onDelete: "cascade" }),
+    provider: varchar("provider", { length: 30 }).notNull(),
+    channel: varchar("channel", { length: 20 }).notNull(),
+    providerMessageId: varchar("provider_message_id", { length: 120 }),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    error: text("error"),
+    sentAt: timestamp("sent_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    notificationIdx: index("notification_deliveries_notification_idx").on(table.notificationId),
+    providerMessageIdx: index("notification_deliveries_provider_message_idx").on(table.providerMessageId),
   }),
 )
 
@@ -1779,7 +2544,13 @@ export const consultationSlots = pgTable(
     startTime: timestamp("start_time").notNull(),
     durationMinutes: integer("duration_minutes").notNull().default(45),
     mode: varchar("mode", { length: 20 }).notNull().default("virtual"),
+    location: varchar("location", { length: 255 }),
+    meetingProvider: varchar("meeting_provider", { length: 30 }),
+    meetingUrl: text("meeting_url"),
+    calendarEventId: varchar("calendar_event_id", { length: 255 }),
     isBooked: boolean("is_booked").notNull().default(false),
+    holdUntil: timestamp("hold_until"),
+    holdUserId: uuid("hold_user_id").references(() => users.id, { onDelete: "set null" }),
     consultationId: uuid("consultation_id").references(() => consultations.id, {
       onDelete: "set null",
     }),
@@ -1788,6 +2559,7 @@ export const consultationSlots = pgTable(
   (table) => ({
     startIdx: index("consultation_slots_start_idx").on(table.startTime),
     bookedIdx: index("consultation_slots_booked_idx").on(table.isBooked),
+    holdIdx: index("consultation_slots_hold_idx").on(table.holdUntil),
   }),
 )
 
@@ -1810,6 +2582,93 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
   quote: one(quotes, {
     fields: [invoices.quoteId],
     references: [quotes.id],
+  }),
+  consultation: one(consultations, {
+    fields: [invoices.consultationId],
+    references: [consultations.id],
+  }),
+}))
+
+export const paymentRecordsRelations = relations(paymentRecords, ({ one, many }) => ({
+  user: one(users, {
+    fields: [paymentRecords.userId],
+    references: [users.id],
+  }),
+  invoice: one(invoices, {
+    fields: [paymentRecords.invoiceId],
+    references: [invoices.id],
+  }),
+  consultation: one(consultations, {
+    fields: [paymentRecords.consultationId],
+    references: [consultations.id],
+  }),
+  subscription: one(programSubscriptions, {
+    fields: [paymentRecords.subscriptionId],
+    references: [programSubscriptions.id],
+  }),
+  documents: many(financialDocuments),
+}))
+
+export const programSubscriptionsRelations = relations(programSubscriptions, ({ one, many }) => ({
+  user: one(users, {
+    fields: [programSubscriptions.userId],
+    references: [users.id],
+  }),
+  paymentRecords: many(paymentRecords),
+}))
+
+export const financialDocumentsRelations = relations(financialDocuments, ({ one }) => ({
+  user: one(users, {
+    relationName: 'financialDocumentsUser',
+    fields: [financialDocuments.userId],
+    references: [users.id],
+  }),
+  project: one(projects, {
+    fields: [financialDocuments.projectId],
+    references: [projects.id],
+  }),
+  quote: one(quotes, {
+    fields: [financialDocuments.quoteId],
+    references: [quotes.id],
+  }),
+  invoice: one(invoices, {
+    fields: [financialDocuments.invoiceId],
+    references: [invoices.id],
+  }),
+  consultation: one(consultations, {
+    fields: [financialDocuments.consultationId],
+    references: [consultations.id],
+  }),
+  payment: one(paymentRecords, {
+    fields: [financialDocuments.paymentId],
+    references: [paymentRecords.id],
+  }),
+  createdByUser: one(users, {
+    relationName: 'financialDocumentsCreator',
+    fields: [financialDocuments.createdBy],
+    references: [users.id],
+  }),
+}))
+
+export const notificationsRelations = relations(notifications, ({ one, many }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  deliveries: many(notificationDeliveries),
+}))
+
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [notificationPreferences.userId],
+    references: [users.id],
+  }),
+}))
+
+export const notificationDeliveriesRelations = relations(notificationDeliveries, ({ one }) => ({
+  notification: one(notifications, {
+    fields: [notificationDeliveries.notificationId],
+    references: [notifications.id],
   }),
 }))
 
@@ -1896,9 +2755,87 @@ export const supportTicketMessagesRelations = relations(
   }),
 )
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const loyaltyAccounts = pgTable(
+  "loyalty_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    balancePoints: integer("balance_points").notNull().default(0),
+    lifetimeEarned: integer("lifetime_earned").notNull().default(0),
+    lifetimeRedeemed: integer("lifetime_redeemed").notNull().default(0),
+    referralCode: varchar("referral_code", { length: 32 }).notNull().unique(),
+    lastDailyClaimedAt: timestamp("last_daily_claimed_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: uniqueIndex("loyalty_accounts_user_idx").on(table.userId),
+    referralCodeIdx: uniqueIndex("loyalty_accounts_referral_code_idx").on(table.referralCode),
+  }),
+)
+
+export const loyaltyTransactions = pgTable(
+  "loyalty_transactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => loyaltyAccounts.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    points: integer("points").notNull(),
+    type: varchar("type", { length: 50 }).notNull(),
+    eventKey: varchar("event_key", { length: 180 }).notNull().unique(),
+    description: varchar("description", { length: 255 }).notNull(),
+    orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+    expiresAt: timestamp("expires_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    accountIdx: index("loyalty_transactions_account_idx").on(table.accountId, table.createdAt),
+    userIdx: index("loyalty_transactions_user_idx").on(table.userId, table.createdAt),
+    typeIdx: index("loyalty_transactions_type_idx").on(table.type),
+    orderIdx: index("loyalty_transactions_order_idx").on(table.orderId),
+    expiryIdx: index("loyalty_transactions_expiry_idx").on(table.expiresAt),
+  }),
+)
+
+export const loyaltyReferrals = pgTable(
+  "loyalty_referrals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    referralCode: varchar("referral_code", { length: 32 }).notNull(),
+    referrerUserId: uuid("referrer_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    referredUserId: uuid("referred_user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
+    qualifyingOrderId: uuid("qualifying_order_id").unique().references(() => orders.id, { onDelete: "set null" }),
+    rewardPoints: integer("reward_points").notNull().default(500),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    qualifiedAt: timestamp("qualified_at"),
+  },
+  (table) => ({
+    codeIdx: index("loyalty_referrals_code_idx").on(table.referralCode),
+    referrerIdx: index("loyalty_referrals_referrer_idx").on(table.referrerUserId, table.createdAt),
+    statusIdx: index("loyalty_referrals_status_idx").on(table.status),
+  }),
+)
+
+export const usersRelations = relations(users, ({ many, one }) => ({
   orders: many(orders),
+  orderShipmentsAssigned: many(orderShipments, { relationName: 'shipmentAssignee' }),
+  orderTrackingEventsActed: many(orderTrackingEvents, { relationName: 'trackingEventActor' }),
   consultations: many(consultations),
+  consultationReminders: many(consultationReminders),
   quotes: many(quotes),
   comments: many(comments),
   likes: many(likes),
@@ -1906,6 +2843,48 @@ export const usersRelations = relations(users, ({ many }) => ({
   memberships: many(memberships),
   sourcingRequests: many(sourcingRequests),
   carts: many(carts),
+  savedAddresses: many(savedAddresses),
+  createdPickupStations: many(pickupStations, { relationName: 'pickupStationCreator' }),
+  paymentRecords: many(paymentRecords),
+  programSubscriptions: many(programSubscriptions),
+  financialDocuments: many(financialDocuments, { relationName: 'financialDocumentsUser' }),
+  visualizations: many(projectVisualizations),
+  visualizationViews: many(visualizationViews),
+  visualizationAnnotations: many(visualizationAnnotations),
+  createdFinancialDocuments: many(financialDocuments, { relationName: 'financialDocumentsCreator' }),
+  notifications: many(notifications),
+  notificationPreferences: one(notificationPreferences),
+  loyaltyAccount: one(loyaltyAccounts),
+  loyaltyTransactions: many(loyaltyTransactions),
+  loyaltyReferralsSent: many(loyaltyReferrals, { relationName: 'loyaltyReferrer' }),
+  loyaltyReferralsReceived: many(loyaltyReferrals, { relationName: 'loyaltyReferred' }),
+}))
+
+export const orderShipmentsRelations = relations(orderShipments, ({ one, many }) => ({
+  order: one(orders, { fields: [orderShipments.orderId], references: [orders.id] }),
+  assignee: one(users, { fields: [orderShipments.assignedTo], references: [users.id], relationName: 'shipmentAssignee' }),
+  events: many(orderTrackingEvents),
+}))
+
+export const orderTrackingEventsRelations = relations(orderTrackingEvents, ({ one }) => ({
+  order: one(orders, { fields: [orderTrackingEvents.orderId], references: [orders.id] }),
+  shipment: one(orderShipments, { fields: [orderTrackingEvents.shipmentId], references: [orderShipments.id] }),
+  actor: one(users, { fields: [orderTrackingEvents.actorId], references: [users.id], relationName: 'trackingEventActor' }),
+}))
+
+export const savedAddressesRelations = relations(savedAddresses, ({ one }) => ({
+  user: one(users, {
+    fields: [savedAddresses.userId],
+    references: [users.id],
+  }),
+}))
+
+export const pickupStationsRelations = relations(pickupStations, ({ one }) => ({
+  creator: one(users, {
+    fields: [pickupStations.createdBy],
+    references: [users.id],
+    relationName: 'pickupStationCreator',
+  }),
 }))
 
 export const departmentsRelations = relations(
@@ -2102,6 +3081,7 @@ export const projectsRelations = relations(
     clientDocuments: many(clientDocuments),
     members: many(projectMembers),
     assets: many(projectAssets),
+    visualizations: many(projectVisualizations),
     documents: many(projectDocuments),
     activity: many(projectActivity),
     tasks: many(projectTasks),
@@ -2157,3 +3137,43 @@ export const serviceRequestsRelations = relations(
 
 
 
+
+export const loyaltyAccountsRelations = relations(loyaltyAccounts, ({ one, many }) => ({
+  user: one(users, {
+    fields: [loyaltyAccounts.userId],
+    references: [users.id],
+  }),
+  transactions: many(loyaltyTransactions),
+}))
+
+export const loyaltyTransactionsRelations = relations(loyaltyTransactions, ({ one }) => ({
+  account: one(loyaltyAccounts, {
+    fields: [loyaltyTransactions.accountId],
+    references: [loyaltyAccounts.id],
+  }),
+  user: one(users, {
+    fields: [loyaltyTransactions.userId],
+    references: [users.id],
+  }),
+  order: one(orders, {
+    fields: [loyaltyTransactions.orderId],
+    references: [orders.id],
+  }),
+}))
+
+export const loyaltyReferralsRelations = relations(loyaltyReferrals, ({ one }) => ({
+  referrer: one(users, {
+    relationName: 'loyaltyReferrer',
+    fields: [loyaltyReferrals.referrerUserId],
+    references: [users.id],
+  }),
+  referred: one(users, {
+    relationName: 'loyaltyReferred',
+    fields: [loyaltyReferrals.referredUserId],
+    references: [users.id],
+  }),
+  qualifyingOrder: one(orders, {
+    fields: [loyaltyReferrals.qualifyingOrderId],
+    references: [orders.id],
+  }),
+}))

@@ -1,91 +1,20 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Badge } from '@/components/ui/badge'
-import { Package } from 'lucide-react'
+import { ArrowRight, Package } from '@/components/ui/luxury-icons'
+import { tradeNavItems } from '@/components/portals/portal-navigation'
 
-const tradeNavItems = [
-  { label: 'Dashboard', href: '/trade' },
-  { label: 'Collections', href: '/trade/collections' },
-  { label: 'Wholesale Pricing', href: '/trade/pricing' },
-  { label: 'Orders', href: '/trade/orders' },
-  { label: 'Resources', href: '/trade/resources' },
-]
+const statusLabels: Record<string, string> = { pending: 'Awaiting payment', confirmed: 'Confirmed', processing: 'In preparation', shipped: 'On the way', delivered: 'Delivered', cancelled: 'Cancelled', failed: 'Payment issue', refunded: 'Refunded' }
+const statusGroups = { all: 'All orders', active: 'In progress', completed: 'Completed', cancelled: 'Cancelled' } as const
 
-function formatCurrency(value: string | number) {
-  return new Intl.NumberFormat('en-UG', {
-    style: 'currency',
-    currency: 'UGX',
-    maximumFractionDigits: 0,
-  }).format(Number(value) || 0)
-}
-
-type Order = {
-  id: string
-  orderNumber: string
-  total: string
-  status: string | null
-  createdAt: string
-  items: any[]
-}
+type Order = { id: string; orderNumber: string; total: string; status: string | null; createdAt: string; items: any[] }
 
 export default function TradeOrdersClient({ orders = [] }: { orders: Order[] }) {
-  const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all')
+  const [filter, setFilter] = useState<keyof typeof statusGroups>('all')
+  const filtered = useMemo(() => orders.filter((order) => { const status = order.status || 'pending'; if (filter === 'all') return true; if (filter === 'active') return ['pending', 'confirmed', 'processing', 'shipped'].includes(status); if (filter === 'completed') return status === 'delivered'; return ['cancelled', 'failed', 'refunded'].includes(status) }), [orders, filter])
 
-  const filtered = useMemo(() => {
-    if (filter === 'all') return orders
-    if (filter === 'completed') return orders.filter((o) => o.status === 'delivered')
-    return orders.filter((o) => o.status === filter)
-  }, [orders, filter])
-
-  return (
-    <PortalLayout portalName="Trade Portal" portalSlug="trade" navItems={tradeNavItems}>
-      <div className="space-y-8">
-        <div className="space-y-2">
-          <h1 className="font-serif text-4xl md:text-5xl font-light text-foreground">Orders</h1>
-          <p className="text-muted-foreground">Track your wholesale orders and shipments.</p>
-        </div>
-
-        <div className="flex gap-2">
-          {(['all', 'pending', 'completed'] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-full text-xs uppercase tracking-wider font-medium transition-colors ${
-                filter === f ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid gap-4">
-          {filtered.map((order) => (
-            <div key={order.id} className="rounded-lg border border-border/20 p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="font-medium text-foreground">{order.orderNumber}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <Badge>{order.status ?? 'pending'}</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mb-2">{order.items.length} item(s)</p>
-              <p className="text-lg font-medium text-foreground">{formatCurrency(order.total)}</p>
-            </div>
-          ))}
-
-          {filtered.length === 0 && (
-            <div className="flex flex-col items-center rounded-lg border border-dashed border-border/40 p-12 text-center">
-              <Package className="mb-3 h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">No orders in this view yet.</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </PortalLayout>
-  )
+  return <PortalLayout portalName="Trade Portal" portalSlug="trade" navItems={[...tradeNavItems]}><div className="space-y-10"><header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-primary">Trade orders</p><h1 className="mt-3 font-serif text-4xl font-light leading-[1.04] text-foreground md:text-6xl">Keep every delivery in view.</h1><p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">Review your trade order history and current fulfilment status. For a detailed update, the studio team can help with delivery and installation.</p></div><Link href="/account" className="inline-flex shrink-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">Open account <ArrowRight className="size-4" /></Link></header><div className="flex flex-wrap gap-2">{(Object.keys(statusGroups) as Array<keyof typeof statusGroups>).map((key) => <button key={key} type="button" onClick={() => setFilter(key)} className={`rounded-full px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] transition ${filter === key ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>{statusGroups[key]}</button>)}</div><div className="grid gap-4">{filtered.map((order) => { const status = order.status || 'pending'; return <article key={order.id} className="rounded-xl border border-border/70 bg-card p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="font-medium text-foreground">{order.orderNumber}</p><p className="mt-1 text-sm text-muted-foreground">{new Date(order.createdAt).toLocaleDateString('en-UG', { day: 'numeric', month: 'short', year: 'numeric' })}</p></div><Badge className="capitalize">{statusLabels[status] || status.replace(/_/g, ' ')}</Badge></div><div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-border/60 pt-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Package className="size-4 text-primary" />{order.items.length} {order.items.length === 1 ? 'item' : 'items'}</div><p className="text-lg font-medium text-foreground">{new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(Number(order.total) || 0)}</p></div></article>})}{filtered.length === 0 && <div className="flex flex-col items-center rounded-xl border border-dashed border-border/50 p-12 text-center"><Package className="mb-3 size-8 text-muted-foreground" /><p className="text-sm text-muted-foreground">No orders in this view yet.</p><Link href="/trade/collections" className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-primary underline underline-offset-4">Browse trade collections</Link></div>}</div></div></PortalLayout>
 }

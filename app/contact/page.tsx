@@ -1,186 +1,24 @@
 'use client'
 
+import { useEffect, useState, useTransition } from 'react'
+import Link from 'next/link'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { useState } from 'react'
+import { submitServiceRequest } from '@/lib/actions/service-request'
+
+type InquiryKind = 'general_inquiry' | 'product_inquiry' | 'service_inquiry'
+type FormState = { name: string; email: string; phone: string; location: string; company: string; budget: string; timeline: string; serviceType: InquiryKind; productName: string; serviceName: string; serviceId: string; vision: string }
+const initial: FormState = { name: '', email: '', phone: '', location: '', company: '', budget: '', timeline: '', serviceType: 'general_inquiry', productName: '', serviceName: '', serviceId: '', vision: '' }
+const inquiryOptions: Array<[InquiryKind, string, string]> = [['general_inquiry', 'General inquiry', 'A question for the studio'], ['product_inquiry', 'Product inquiry', 'Ask about a particular piece'], ['service_inquiry', 'Service inquiry', 'Discuss a service or project']]
 
 export default function ContactPage() {
-  const [formState, setFormState] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    message: '',
-  })
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormState({
-      ...formState,
-      [e.target.name]: e.target.value,
-    })
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Form submission logic here
-    console.log('Form submitted:', formState)
-    setFormState({ name: '', email: '', phone: '', message: '' })
-  }
-
-  return (
-    <>
-      <SiteHeader />
-      <br />
-      <br />
-      <br />
-      <main className="min-h-screen bg-background">
-        {/* Hero */}
-        <section className="border-b border-border/20 bg-gradient-to-br from-background via-background to-muted/20 py-6 md:py-8">
-          <div className="mx-auto max-w-5xl px-6 md:px-8 space-y-6">
-            <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground">
-              Get in Touch
-            </h1>
-          </div>
-        </section>
-
-        {/* Description and Contact Form */}
-        <section className="py-28 md:py-28">
-          <div className="mx-auto max-w-3xl px-6 md:px-8">
-            <div className="space-y-12">
-              <p className="max-w-2xl text-lg text-muted-foreground font-light">
-                Let's discuss your project and explore how we can transform your space
-              </p>
-
-              <div>
-                <h2 className="font-serif text-3xl font-light text-foreground mb-8">Contact Information</h2>
-                <div className="grid md:grid-cols-3 gap-8 mb-14">
-                  <div>
-                    <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-2">Address</p>
-                    <p className="text-muted-foreground font-light">
-                      Plot 12, Kyanja<br />
-                      Kampala, Uganda
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-2">Phone</p>
-                    <p className="text-muted-foreground font-light">
-                      <a href="tel:+256703861668" className="hover:text-primary transition-colors">
-                        +256 (0) 703 861 668
-                      </a>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-2">Email</p>
-                    <p className="text-muted-foreground font-light">
-                      <a href="mailto:support@revampug.com" className="hover:text-primary transition-colors">
-                        support@revampug.com
-                      </a>
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-foreground mb-3">
-                    Name
-                  </label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formState.name}
-                    onChange={handleChange}
-                    placeholder="Your name"
-                    className="rounded-none border-muted"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-foreground mb-3">
-                    Email
-                  </label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formState.email}
-                    onChange={handleChange}
-                    placeholder="your@email.com"
-                    className="rounded-none border-muted"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-3">
-                    Phone (Optional)
-                  </label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    value={formState.phone}
-                    onChange={handleChange}
-                    placeholder="+256 (0) 700 000 000"
-                    className="rounded-none border-muted"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-foreground mb-3">
-                    Message
-                  </label>
-                  <Textarea
-                    id="message"
-                    name="message"
-                    value={formState.message}
-                    onChange={handleChange}
-                    placeholder="Tell us about your project..."
-                    rows={6}
-                    className="rounded-none border-muted resize-none font-light"
-                    required
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-none font-light text-base"
-                >
-                  Send Message
-                </Button>
-              </form>
-
-              <div>
-                <h3 className="font-serif text-2xl font-light text-foreground mb-6">Business Hours</h3>
-                <div className="space-y-2 text-muted-foreground font-light">
-                  <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
-                  <p>Saturday: 10:00 AM - 4:00 PM</p>
-                  <p>Sunday: Closed</p>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-serif text-2xl font-light text-foreground mb-6">Follow Us</h3>
-                <div className="flex gap-4">
-                  {['Instagram', 'Facebook', 'LinkedIn'].map(platform => (
-                    <a
-                      key={platform}
-                      href="#"
-                      className="text-muted-foreground hover:text-primary transition-colors font-light"
-                    >
-                      {platform}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-      <SiteFooter />
-    </>
-  )
+  const [form, setForm] = useState(initial)
+  const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
+  const [pending, startTransition] = useTransition()
+  useEffect(() => { const params = new URLSearchParams(window.location.search); const interest = params.get('interest'); const productName = params.get('product') || params.get('name') || ''; const serviceName = params.get('service') || ''; const serviceId = params.get('serviceId') || ''; const kind = interest === 'product_inquiry' || interest === 'service_inquiry' ? interest : 'general_inquiry'; setForm((current) => ({ ...current, serviceType: kind, productName, serviceName, serviceId, vision: productName ? `I would like to enquire about ${productName}. ` : serviceName ? `I would like to discuss the ${serviceName} service. ` : current.vision })) }, [])
+  const update = (key: keyof FormState, value: string) => setForm((current) => ({ ...current, [key]: value }))
+  const submit = (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); setError(''); startTransition(async () => { const context = [form.productName && `Product: ${form.productName}`, form.serviceName && `Service: ${form.serviceName}`, form.location && `Location: ${form.location}`, form.company && `Company: ${form.company}`].filter(Boolean).join('\n'); const response = await submitServiceRequest({ name: form.name, email: form.email, phone: form.phone, company: form.company, serviceType: form.serviceType, serviceId: form.serviceId || undefined, budget: form.budget, timeline: form.timeline, projectDescription: `${context}${context ? '\n\n' : ''}${form.vision}` }); if (!response.success) setError(response.error || 'We could not send your inquiry. Please try again.'); else { setSubmitted(true); setForm(initial) } }) }
+  const selectedLabel = inquiryOptions.find(([value]) => value === form.serviceType)?.[1] || 'Inquiry'
+  return <><SiteHeader /><main className="bg-canvas"><section className="mx-auto grid max-w-7xl grid-cols-1 gap-16 px-6 pb-32 pt-16 lg:grid-cols-12 lg:px-12"><aside className="lg:col-span-5"><div className="inline-flex items-center gap-3"><span className="h-px w-8 bg-gilded" /><span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">{selectedLabel}</span></div><h1 className="mt-6 font-serif text-5xl font-medium leading-[1.05] md:text-6xl">Begin a <span className="italic">conversation.</span></h1><p className="mt-6 max-w-md text-lg leading-relaxed text-muted-foreground">Tell us what you are looking for and the studio will respond with the right next step.</p><div className="mt-12 space-y-6 border-t border-border pt-6 text-sm"><div><p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gilded">Studio</p><p className="mt-3 leading-relaxed">Plot 185, Kyanja<br />Kampala, Uganda<br />By appointment</p></div><div><p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-gilded">Direct</p><a href="mailto:therevampug@gmail.com" className="mt-3 block hover:text-gilded">therevampug@gmail.com</a><a href="tel:+256703861668" className="mt-2 block hover:text-gilded">+256 703 861 668</a></div></div></aside><div className="rounded-md bg-white p-6 ring-1 ring-border sm:p-10">{submitted ? <div className="flex min-h-[32rem] flex-col items-center justify-center text-center"><p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gilded">Received</p><h2 className="mt-4 font-serif text-4xl">Thank you.</h2><p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">Your {selectedLabel.toLowerCase()} has reached the studio. We will respond within two business days.</p><button type="button" onClick={() => setSubmitted(false)} className="mt-8 rounded-full border border-obsidian/20 px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.2em]">Send another inquiry</button></div> : <form onSubmit={submit} className="space-y-7"><fieldset><legend className="text-[10px] font-semibold uppercase tracking-[0.2em]">What would you like to discuss?</legend><div className="mt-4 grid gap-2 sm:grid-cols-3">{inquiryOptions.map(([value, label, description]) => <button key={value} type="button" onClick={() => update('serviceType', value)} className={`min-h-24 rounded-md border p-4 text-left transition-colors ${form.serviceType === value ? 'border-obsidian bg-obsidian text-canvas' : 'border-border hover:border-gilded'}`}><span className="block text-xs font-semibold">{label}</span><span className={`mt-2 block text-[11px] leading-5 ${form.serviceType === value ? 'text-canvas/70' : 'text-muted-foreground'}`}>{description}</span></button>)}</div></fieldset>{(form.productName || form.serviceName) && <div className="rounded-md border border-gilded/30 bg-gilded/5 px-4 py-3 text-sm"><span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gilded">Your selection</span><p className="mt-1 font-serif text-xl">{form.productName || form.serviceName}</p></div>}<div className="grid gap-7 sm:grid-cols-2"><label className="text-[10px] font-semibold uppercase tracking-[0.2em]">Name<input required value={form.name} onChange={(e) => update('name', e.target.value)} className="mt-3 block w-full border-0 border-b border-border bg-transparent px-0 py-3 text-sm outline-none focus:border-gilded" /></label><label className="text-[10px] font-semibold uppercase tracking-[0.2em]">Email<input required type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="mt-3 block w-full border-0 border-b border-border bg-transparent px-0 py-3 text-sm outline-none focus:border-gilded" /></label></div><div className="grid gap-7 sm:grid-cols-2"><label className="text-[10px] font-semibold uppercase tracking-[0.2em]">Phone<input value={form.phone} onChange={(e) => update('phone', e.target.value)} className="mt-3 block w-full border-0 border-b border-border bg-transparent px-0 py-3 text-sm outline-none focus:border-gilded" /></label><label className="text-[10px] font-semibold uppercase tracking-[0.2em]">Location / company<input value={form.location || form.company} onChange={(e) => update('location', e.target.value)} className="mt-3 block w-full border-0 border-b border-border bg-transparent px-0 py-3 text-sm outline-none focus:border-gilded" /></label></div><div className="grid gap-7 sm:grid-cols-2"><label className="text-[10px] font-semibold uppercase tracking-[0.2em]">Budget <span className="font-normal normal-case tracking-normal text-muted-foreground">(optional)</span><input value={form.budget} onChange={(e) => update('budget', e.target.value)} placeholder="e.g. UGX 10m – 25m" className="mt-3 block w-full border-0 border-b border-border bg-transparent px-0 py-3 text-sm outline-none placeholder:text-muted-foreground/70 focus:border-gilded" /></label><label className="text-[10px] font-semibold uppercase tracking-[0.2em]">Timeline <span className="font-normal normal-case tracking-normal text-muted-foreground">(optional)</span><input value={form.timeline} onChange={(e) => update('timeline', e.target.value)} placeholder="e.g. This quarter" className="mt-3 block w-full border-0 border-b border-border bg-transparent px-0 py-3 text-sm outline-none placeholder:text-muted-foreground/70 focus:border-gilded" /></label></div><label className="block text-[10px] font-semibold uppercase tracking-[0.2em]">Tell us more<textarea required value={form.vision} onChange={(e) => update('vision', e.target.value)} rows={7} placeholder="Share the details that will help us understand how to help." className="mt-3 block w-full resize-none border-0 border-b border-border bg-transparent px-0 py-3 text-sm outline-none placeholder:text-muted-foreground/70 focus:border-gilded" /></label>{error && <p className="text-sm text-red-700" role="alert">{error}</p>}<div className="flex items-center justify-between border-t border-border pt-6"><p className="text-xs text-muted-foreground">Replies within 48 hours.</p><button disabled={pending} className="rounded-full bg-obsidian px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-canvas hover:bg-gilded hover:text-obsidian">{pending ? 'Sending your inquiry…' : 'Send my inquiry'}</button></div><p className="text-xs leading-5 text-muted-foreground">Prefer to choose a time now? <Link href="/book-consultation" className="underline underline-offset-4 hover:text-gilded">Book a consultation</Link>.</p></form>}</div></section></main><SiteFooter /></>
 }

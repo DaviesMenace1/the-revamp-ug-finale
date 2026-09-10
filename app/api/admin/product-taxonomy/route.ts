@@ -7,63 +7,49 @@ import {
   attributeTemplates,
 } from "@/lib/db"
 import { asc, eq } from "drizzle-orm"
+import { requireAdminApi } from "@/lib/auth/api"
 
 export async function GET() {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
-    const [
-      departmentRows,
-      categoryRows,
-      subCategoryRows,
-    ] = await Promise.all([
-      db
-        .select({
-          id: departments.id,
-          name: departments.name,
-          slug: departments.slug,
-        })
-        .from(departments)
-        .where(eq(departments.active, true))
-        .orderBy(asc(departments.order)),
+    const departmentRows = await db
+      .select({
+        id: departments.id,
+        name: departments.name,
+        slug: departments.slug,
+      })
+      .from(departments)
+      .where(eq(departments.active, true))
+      .orderBy(asc(departments.order))
 
-      db
-        .select({
-          id: categories.id,
-          name: categories.name,
-          slug: categories.slug,
-          departmentId:
-            categories.departmentId,
-        })
-        .from(categories)
-        .where(eq(categories.active, true))
-        .orderBy(asc(categories.order)),
+    const categoryRows = await db
+      .select({
+        id: categories.id,
+        name: categories.name,
+        slug: categories.slug,
+        departmentId: categories.departmentId,
+      })
+      .from(categories)
+      .where(eq(categories.active, true))
+      .orderBy(asc(categories.order))
 
-      db
-        .select({
-          id: subCategories.id,
-          name: subCategories.name,
-          slug: subCategories.slug,
-          categoryId:
-            subCategories.categoryId,
-          templateId:
-            subCategories.templateId,
-          googleProductCategoryId:
-            subCategories.googleProductCategoryId,
-          googleProductCategoryPath:
-            subCategories.googleProductCategoryPath,
-          templateSchema:
-            attributeTemplates.schemaDefinition,
-        })
-        .from(subCategories)
-        .leftJoin(
-          attributeTemplates,
-          eq(
-            subCategories.templateId,
-            attributeTemplates.id,
-          ),
-        )
-        .where(eq(subCategories.active, true))
-        .orderBy(asc(subCategories.order)),
-    ])
+    const subCategoryRows = await db
+      .select({
+        id: subCategories.id,
+        name: subCategories.name,
+        slug: subCategories.slug,
+        categoryId: subCategories.categoryId,
+        templateId: subCategories.templateId,
+        googleProductCategoryId: subCategories.googleProductCategoryId,
+        googleProductCategoryPath: subCategories.googleProductCategoryPath,
+        templateSchema: attributeTemplates.schemaDefinition,
+      })
+      .from(subCategories)
+      .leftJoin(attributeTemplates, eq(subCategories.templateId, attributeTemplates.id))
+      .where(eq(subCategories.active, true))
+      .orderBy(asc(subCategories.order))
 
     return NextResponse.json({
       success: true,

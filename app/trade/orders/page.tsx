@@ -12,7 +12,7 @@ export default async function TradeOrders() {
   const myOrders = await db
     .select()
     .from(orders)
-    .where(eq(orders.userId, user.id))
+    .where(eq(orders.userId, user.clerkId))
     .orderBy(desc(orders.createdAt))
 
   const formatted = myOrders.map((o) => ({

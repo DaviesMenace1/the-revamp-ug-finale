@@ -4,9 +4,11 @@ import { useState, useTransition, useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, Upload, Trash2, Loader2, FileText, Clock, Plus, Check, CheckSquare, Square } from 'lucide-react'
+import { ArrowLeft, Upload, Trash2, Loader2, FileText, Clock, Plus, CheckSquare, Square, ExternalLink } from '@/components/ui/luxury-icons'
 import { updateClientProject } from '@/lib/actions/client-projects'
+import ProjectNotesPanel from '@/components/projects/project-notes-panel'
 import { createTask, updateTaskStatus, deleteTask } from '@/lib/actions/tasks'
 
 const PHASE_STEPS = [
@@ -20,19 +22,59 @@ const PHASE_STEPS = [
   'handover',
 ]
 
+const PHASE_LABELS: Record<string, string> = {
+  consultation: 'Briefing & discovery',
+  concept: 'Concept direction',
+  design: 'Design development',
+  visualization: '3D presentation',
+  approval: 'Client approval',
+  procurement: 'Procurement',
+  installation: 'Installation',
+  handover: 'Handover',
+}
+
 const ASSET_TYPES = [
+  'image',
   '3d_render',
   'floor_plan',
+
   'elevation',
   'section',
   'cad',
   'pdf',
-  'image',
   'video',
   '360_view',
   'moodboard',
   'presentation',
 ]
+
+const DOCUMENT_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.rtf', '.odt', '.ods', '.odp'])
+const STORAGE_UPLOAD_TIMEOUT_MS = 5 * 60 * 1000
+
+async function uploadToStorage(uploadUrl: string, file: File, contentType: string) {
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), STORAGE_UPLOAD_TIMEOUT_MS)
+  try {
+    return await fetch(uploadUrl, {
+      method: 'PUT',
+      mode: 'cors',
+      headers: { 'Content-Type': contentType },
+      body: file,
+      signal: controller.signal,
+    })
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('The storage upload timed out. Check your connection and R2 CORS settings, then try again.')
+    }
+    if (error instanceof TypeError) {
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'this site'
+      throw new Error(`The browser could not reach storage from ${origin}. Add this exact origin and its preview domain to the R2 bucket CORS origins, allow PUT, and allow the Content-Type header.`)
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
+}
 
 const APPROVAL_BADGE: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800',
@@ -98,6 +140,8 @@ type Project = {
   documents: Document[]
   tasks: Task[]
   activity: ActivityItem[]
+  notes: { id: string; body: string; authorType: string; createdAt: string }[]
+  notesAvailable: boolean
 }
 
 export default function ClientProjectDetailClient({ project: initialProject }: { project: Project }) {
@@ -107,7 +151,8 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
   const [uploadingDoc, setUploadingDoc] = useState(false)
   const [error, setError] = useState('')
 
-  const [assetForm, setAssetForm] = useState({ title: '', assetType: '3d_render', visibility: 'client' })
+  const [assetForm, setAssetForm] = useState({ title: '', assetType: 'image', visibility: 'client' })
+  const [visualizationForm, setVisualizationForm] = useState({ title: '', url: '', description: '', visibility: 'client' })
   const assetFileRef = useRef<HTMLInputElement>(null)
 
   const [docForm, setDocForm] = useState({ name: '', category: 'general', visibility: 'client', signatureStatus: 'n/a' })
@@ -130,10 +175,23 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
     })
   }
 
+  async function parseApiResponse<T>(response: Response, fallback: string) {
+    const text = await response.text()
+    try {
+      return JSON.parse(text) as T
+    } catch {
+      throw new Error(response.ok ? fallback : `${fallback} (HTTP ${response.status}).`)
+    }
+  }
+
   async function handleUploadAsset() {
     const file = assetFileRef.current?.files?.[0]
     if (!file || !assetForm.title.trim()) {
       setError('Title and file are required.')
+      return
+    }
+    if (file.size <= 0 || file.size > 100 * 1024 * 1024) {
+      setError('Assets must be between 1 byte and 100 MB.')
       return
     }
 
@@ -141,27 +199,69 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
     setUploadingAsset(true)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('title', assetForm.title)
-      formData.append('assetType', assetForm.assetType)
-      formData.append('visibility', assetForm.visibility)
-
-      const res = await fetch(`/api/admin/projects/${project.id}/assets`, {
+      const prepareResponse = await fetch(`/api/admin/projects/${project.id}/assets/upload`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'presign',
+          filename: file.name,
+          assetType: assetForm.assetType,
+          contentType: file.type,
+        }),
       })
-      const data = await res.json()
-
-      if (!res.ok || !data.success) {
-        throw new Error(data?.error || 'Failed to upload asset.')
+      const prepared = await parseApiResponse<{ success?: boolean; uploadUrl?: string; storageKey?: string; contentType?: string; error?: string }>(prepareResponse, 'The asset upload could not be prepared.')
+      if (!prepareResponse.ok || !prepared.success || !prepared.uploadUrl || !prepared.storageKey) {
+        throw new Error(prepared.error || 'The asset upload could not be prepared.')
       }
 
-      setProject((p) => ({ ...p, assets: [data.asset, ...p.assets] }))
-      setAssetForm({ title: '', assetType: '3d_render', visibility: 'client' })
+      const uploadResponse = await uploadToStorage(prepared.uploadUrl, file, prepared.contentType || file.type || 'application/octet-stream')
+      if (!uploadResponse.ok) throw new Error(`The file could not be sent to storage (HTTP ${uploadResponse.status}). Check the R2 bucket CORS settings and try again.`)
+
+      const completeResponse = await fetch(`/api/admin/projects/${project.id}/assets/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'complete',
+          title: assetForm.title,
+          assetType: assetForm.assetType,
+          visibility: assetForm.visibility,
+          filename: file.name,
+          contentType: file.type,
+          storageKey: prepared.storageKey,
+        }),
+      })
+      const data = await parseApiResponse<{ success?: boolean; asset?: Asset; error?: string }>(completeResponse, 'The asset was uploaded but could not be added to the project.')
+      if (!completeResponse.ok || !data.success || !data.asset) throw new Error(data.error || 'The asset was uploaded but could not be added to the project.')
+
+      setProject((p) => ({ ...p, assets: [data.asset as Asset, ...p.assets] }))
+      setAssetForm({ title: '', assetType: 'image', visibility: 'client' })
       if (assetFileRef.current) assetFileRef.current.value = ''
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload asset.')
+    } finally {
+      setUploadingAsset(false)
+    }
+  }
+
+  async function handleAddVisualizationLink() {
+    if (!visualizationForm.title.trim() || !visualizationForm.url.trim()) {
+      setError('A title and hosted 3D link are required.')
+      return
+    }
+    setError('')
+    setUploadingAsset(true)
+    try {
+      const response = await fetch(`/api/admin/projects/${project.id}/assets/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'link', title: visualizationForm.title, externalUrl: visualizationForm.url, description: visualizationForm.description, visibility: visualizationForm.visibility }),
+      })
+      const data = await parseApiResponse<{ success?: boolean; asset?: Asset; error?: string }>(response, 'The hosted 3D link could not be added.')
+      if (!response.ok || !data.success || !data.asset) throw new Error(data.error || 'The hosted 3D link could not be added.')
+      setProject((p) => ({ ...p, assets: [data.asset as Asset, ...p.assets] }))
+      setVisualizationForm({ title: '', url: '', description: '', visibility: 'client' })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'The hosted 3D link could not be added.')
     } finally {
       setUploadingAsset(false)
     }
@@ -174,28 +274,60 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
       return
     }
 
+    const extension = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')).toLowerCase() : ''
+    if (!DOCUMENT_EXTENSIONS.has(extension)) {
+      setError('Choose a supported document: PDF, Word, Excel, PowerPoint, text, CSV, or OpenDocument.')
+      return
+    }
+    if (file.size <= 0 || file.size > 100 * 1024 * 1024) {
+      setError('Documents must be between 1 byte and 100 MB.')
+      return
+    }
+
     setError('')
     setUploadingDoc(true)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('name', docForm.name)
-      formData.append('category', docForm.category)
-      formData.append('visibility', docForm.visibility)
-      formData.append('signatureStatus', docForm.signatureStatus)
-
-      const res = await fetch(`/api/admin/projects/${project.id}/documents`, {
+      const prepareResponse = await fetch(`/api/admin/projects/${project.id}/documents`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'presign',
+          filename: file.name,
+          contentType: file.type,
+        }),
       })
-      const data = await res.json()
-
-      if (!res.ok || !data.success) {
-        throw new Error(data?.error || 'Failed to upload document.')
+      const prepared = await parseApiResponse<{ success?: boolean; uploadUrl?: string; storageKey?: string; contentType?: string; error?: string }>(prepareResponse, 'The document upload could not be prepared.')
+      if (!prepareResponse.ok || !prepared.success || !prepared.uploadUrl || !prepared.storageKey) {
+        throw new Error(prepared.error || 'The document upload could not be prepared.')
       }
 
-      setProject((p) => ({ ...p, documents: [data.document, ...p.documents] }))
+      const uploadResponse = await uploadToStorage(prepared.uploadUrl, file, prepared.contentType || file.type || 'application/octet-stream')
+      if (!uploadResponse.ok) {
+        throw new Error(`The file could not be sent to storage (HTTP ${uploadResponse.status}). Check the R2 bucket CORS settings and try again.`)
+      }
+
+      const completeResponse = await fetch(`/api/admin/projects/${project.id}/documents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'complete',
+          name: docForm.name,
+          category: docForm.category,
+          visibility: docForm.visibility,
+          signatureStatus: docForm.signatureStatus,
+          filename: file.name,
+          contentType: file.type,
+          storageKey: prepared.storageKey,
+        }),
+      })
+      const data = await parseApiResponse<{ success?: boolean; document?: Document; error?: string }>(completeResponse, 'The document was uploaded but could not be added to the project.')
+      const document = data.document
+      if (!completeResponse.ok || !data.success || !document) {
+        throw new Error(data.error || 'The document was uploaded but could not be added to the project.')
+      }
+
+      setProject((p) => ({ ...p, documents: [document, ...p.documents] }))
       setDocForm({ name: '', category: 'general', visibility: 'client', signatureStatus: 'n/a' })
       if (docFileRef.current) docFileRef.current.value = ''
     } catch (err) {
@@ -231,7 +363,16 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
         dueDate: taskForm.dueDate || null,
       })
       if (res.success && res.task) {
-        setProject((p) => ({ ...p, tasks: [res.task, ...p.tasks] }))
+        const task: Task = {
+          id: res.task.id,
+          title: res.task.title,
+          description: res.task.description,
+          assignedTo: res.task.assignedTo,
+          status: res.task.status,
+          dueDate: res.task.dueDate ? new Date(res.task.dueDate).toISOString() : null,
+          createdAt: new Date(res.task.createdAt).toISOString(),
+        }
+        setProject((p) => ({ ...p, tasks: [task, ...p.tasks] }))
         setTaskForm({ title: '', description: '', assignedTo: 'client', dueDate: '' })
         setShowTaskForm(false)
       }
@@ -282,7 +423,7 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
   }
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8 p-5 sm:p-8">
       <Link
         href="/admin/client-projects"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
@@ -316,7 +457,7 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
           >
             {PHASE_STEPS.map((phase) => (
               <option key={phase} value={phase}>
-                {phase.replace('_', ' ')}
+                {PHASE_LABELS[phase] ?? phase.replace('_', ' ')}
               </option>
             ))}
           </select>
@@ -340,19 +481,12 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
         <div className="lg:col-span-2 space-y-6">
           {/* Assets */}
           <Card className="p-6">
-            <h2 className="font-serif text-xl font-light text-foreground mb-4">3D Plans & Assets</h2>
+            <h2 className="font-serif text-xl font-light text-foreground mb-4">Project references & assets</h2>
 
             <div className="grid gap-4 sm:grid-cols-2 mb-6">
               {project.assets.map((asset) => (
                 <div key={asset.id} className="rounded-lg border border-border/20 overflow-hidden">
-                  <img
-                    src={asset.thumbnailUrl || asset.fileUrl}
-                    alt={asset.title}
-                    className="h-32 w-full object-cover bg-muted"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
+                  {asset.assetType === 'external_3d' ? <a href={asset.fileUrl} target="_blank" rel="noreferrer" className="flex h-32 items-center justify-center gap-2 bg-foreground text-sm font-medium text-background hover:bg-foreground/90"><ExternalLink className="size-4" aria-hidden="true" />Open hosted 3D experience</a> : <Image src={asset.thumbnailUrl || asset.fileUrl} alt={asset.title} width={640} height={360} unoptimized className="h-32 w-full object-cover bg-muted" onError={(e) => { e.currentTarget.style.display = 'none' }} />}
                   <div className="p-3">
                     <div className="flex items-start justify-between">
                       <p className="text-sm font-medium text-foreground">
@@ -378,7 +512,7 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
             </div>
 
             <div className="rounded-lg border border-dashed border-border/40 p-4 space-y-3">
-              <p className="text-sm font-medium text-foreground">Upload asset</p>
+              <p className="text-sm font-medium text-foreground">Upload image, plan, render, or document</p>
               <div className="grid gap-3 sm:grid-cols-3">
                 <Input
                   placeholder="Title (e.g. Living Room V3)"
@@ -406,12 +540,23 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
                 </select>
               </div>
               <input ref={assetFileRef} type="file" className="text-sm" />
-              <Button size="sm" disabled={uploadingAsset} onClick={handleUploadAsset} className="rounded-none">
+              <p className="text-xs leading-5 text-muted-foreground">Images, plans, renders, and documents are stored securely. Maximum file size: 100 MB.</p>
+              <Button type="button" size="sm" disabled={uploadingAsset} onClick={handleUploadAsset} className="rounded-none">
                 {uploadingAsset ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Upload className="h-3.5 w-3.5 mr-2" />}
                 Upload Asset
               </Button>
             </div>
+
+            <div className="mt-4 space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-4">
+              <div><p className="text-sm font-medium text-foreground">Add hosted 3D experience</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Paste the link from the service hosting the project’s 3D experience. Clients will open it in a new tab.</p></div>
+              <Input placeholder="Title, e.g. Living room walkthrough" value={visualizationForm.title} onChange={(e) => setVisualizationForm((f) => ({ ...f, title: e.target.value }))} />
+              <Input type="url" placeholder="https://host.example.com/project-room" value={visualizationForm.url} onChange={(e) => setVisualizationForm((f) => ({ ...f, url: e.target.value }))} />
+              <Input placeholder="Short description (optional)" value={visualizationForm.description} onChange={(e) => setVisualizationForm((f) => ({ ...f, description: e.target.value }))} />
+              <div className="flex flex-col gap-3 sm:flex-row"><select value={visualizationForm.visibility} onChange={(e) => setVisualizationForm((f) => ({ ...f, visibility: e.target.value }))} className="min-h-10 rounded border border-muted bg-transparent px-3 py-2 text-sm"><option value="client">Visible to client</option><option value="internal">Internal only</option></select><Button type="button" size="sm" disabled={uploadingAsset} onClick={handleAddVisualizationLink} className="rounded-none"><ExternalLink className="mr-2 h-3.5 w-3.5" />Add 3D link</Button></div>
+            </div>
           </Card>
+
+          <ProjectNotesPanel projectId={project.id} initialNotes={project.notes} available={project.notesAvailable} />
 
           {/* Documents */}
           <Card className="p-6">
@@ -487,8 +632,13 @@ export default function ClientProjectDetailClient({ project: initialProject }: {
                   <option value="internal">Internal only</option>
                 </select>
               </div>
-              <input ref={docFileRef} type="file" className="text-sm" />
-              <Button size="sm" disabled={uploadingDoc} onClick={handleUploadDocument} className="rounded-none">
+              <input
+                ref={docFileRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp"
+                className="text-sm"
+              />
+              <Button type="button" size="sm" disabled={uploadingDoc} onClick={handleUploadDocument} className="rounded-none">
                 {uploadingDoc ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Upload className="h-3.5 w-3.5 mr-2" />}
                 Upload Document
               </Button>

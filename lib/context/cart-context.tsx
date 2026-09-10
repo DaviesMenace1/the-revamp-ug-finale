@@ -9,6 +9,7 @@ import React, {
   useState,
 } from 'react'
 import { useAuth } from '@clerk/nextjs'
+import { usePathname } from 'next/navigation'
 import type {
   Accessory,
   Cart,
@@ -19,6 +20,8 @@ import type {
   Product,
   Variant,
 } from '@/lib/types'
+import { normalizeCurrency, resolveProductImageUrls } from '@/lib/utils'
+import { CartAddedToast, type CartToastData } from '@/components/cart/cart-added-toast'
 
 export const CartContext = createContext<CartContextType | undefined>(undefined)
 
@@ -48,6 +51,7 @@ function createCartItemId(
     colorId?: string
     fabricId?: string
     materialId?: string
+    finishId?: string
     variantId?: string
     accessoryIds?: string[]
     dimensions?: CustomDimensions
@@ -58,6 +62,7 @@ function createCartItemId(
     colorId: options.colorId || null,
     fabricId: options.fabricId || null,
     materialId: options.materialId || null,
+    finishId: options.finishId || null,
     variantId: options.variantId || null,
     accessoryIds: [...(options.accessoryIds || [])].sort(),
     dimensions: options.dimensions || null,
@@ -93,6 +98,7 @@ function getUnitPrice(
   selectedVariant?: Variant,
   selectedFabric?: Variant,
   selectedMaterial?: Variant,
+  selectedFinish?: Variant,
   selectedAccessories: Accessory[] = []
 ) {
   let price = getProductBasePrice(product)
@@ -109,6 +115,10 @@ function getUnitPrice(
     price += getOptionPrice(selectedMaterial)
   }
 
+  if (selectedFinish) {
+    price += getOptionPrice(selectedFinish)
+  }
+
   for (const accessory of selectedAccessories) {
     price += getOptionPrice(accessory)
   }
@@ -117,7 +127,19 @@ function getUnitPrice(
 }
 
 function normalizeCartItem(item: any): CartItem | null {
-  if (!item?.productId || !item?.product) return null
+  if (!item?.productId && !item?.product?.id && !item?.id) return null
+
+  const productId = String(item.productId || item.product?.id || item.id)
+  const embeddedProduct = item.product && typeof item.product === 'object' ? item.product : null
+  const product = embeddedProduct || {
+    id: productId,
+    slug: String(item.slug || productId),
+    name: String(item.name || 'Saved selection'),
+    price: cleanNumber(item.price ?? item.unitPrice, 0),
+    currency: normalizeCurrency(item.currency),
+    images: item.image ? [String(item.image)] : [],
+    thumbnailImage: item.image ? String(item.image) : undefined,
+  }
 
   const selectedAccessories = Array.isArray(item.selectedAccessories)
     ? item.selectedAccessories
@@ -125,10 +147,11 @@ function normalizeCartItem(item: any): CartItem | null {
 
   const cartItemId =
     item.cartItemId ||
-    createCartItemId(item.productId, {
+    createCartItemId(productId, {
       colorId: item.selectedColor?.id,
       fabricId: item.selectedFabric?.id,
       materialId: item.selectedMaterial?.id,
+      finishId: item.selectedFinish?.id,
       variantId: item.selectedVariant?.id,
       accessoryIds: selectedAccessories.map((a: any) => a?.id).filter(Boolean),
       dimensions: item.customDimensions,
@@ -136,6 +159,9 @@ function normalizeCartItem(item: any): CartItem | null {
 
   return {
     ...item,
+    productId,
+    product,
+    unavailable: !embeddedProduct,
     cartItemId,
     quantity: Math.max(1, cleanNumber(item.quantity, 1)),
     selectedAccessories,
@@ -143,7 +169,8 @@ function normalizeCartItem(item: any): CartItem | null {
       item.unitPrice ??
         item.calculatedUnitPrice ??
         item.product?.salePrice ??
-        item.product?.price,
+        item.product?.price ??
+        item.price,
       0
     ),
   }
@@ -167,7 +194,22 @@ function readLocalCart(key: string): CartItem[] {
   }
 }
 
+function isAuthRoute(pathname: string | null) {
+  if (!pathname) return false
+  return pathname === '/sign-in' || pathname.startsWith('/sign-in/') || pathname === '/sign-up' || pathname.startsWith('/sign-up/') || pathname === '/reset-password' || pathname === '/login' || pathname === '/signup'
+}
+
 export function CartProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const pathname = usePathname()
+  if (isAuthRoute(pathname)) return <>{children}</>
+  return <AuthenticatedCartProvider>{children}</AuthenticatedCartProvider>
+}
+
+function AuthenticatedCartProvider({
   children,
 }: {
   children: React.ReactNode
@@ -177,6 +219,7 @@ export function CartProvider({
   const [items, setItems] = useState<CartItem[]>([])
   const [customerName, setCustomerName] = useState('')
   const [isLoaded, setIsLoaded] = useState(false)
+  const [cartToast, setCartToast] = useState<CartToastData | null>(null)
 
   const cartStorageKey = userId
     ? `revamp-cart-${userId}`
@@ -193,10 +236,8 @@ export function CartProvider({
   useEffect(() => {
     if (!isAuthLoaded) return
 
-    const localItems =
-      readLocalCart(cartStorageKey).length > 0
-        ? readLocalCart(cartStorageKey)
-        : readLocalCart(LEGACY_CART_KEY)
+    const storedItems = readLocalCart(cartStorageKey)
+    const localItems = storedItems.length > 0 ? storedItems : readLocalCart(LEGACY_CART_KEY)
 
     setItems(localItems)
 
@@ -266,7 +307,8 @@ export function CartProvider({
       selectedAccessories: Accessory[] = [],
       customDimensions?: CustomDimensions,
       selectedFabric?: Variant,
-      selectedMaterial?: Variant
+      selectedMaterial?: Variant,
+      selectedFinish?: Variant
     ) => {
       const safeQuantity = Math.max(
         1,
@@ -278,6 +320,7 @@ export function CartProvider({
         selectedVariant,
         selectedFabric,
         selectedMaterial,
+        selectedFinish,
         selectedAccessories
       )
 
@@ -287,6 +330,7 @@ export function CartProvider({
           colorId: selectedColor?.id,
           fabricId: selectedFabric?.id,
           materialId: selectedMaterial?.id,
+          finishId: selectedFinish?.id,
           variantId: selectedVariant?.id,
           accessoryIds: selectedAccessories
             .map((a) => a.id)
@@ -295,11 +339,16 @@ export function CartProvider({
         }
       )
 
-      const image =
-        selectedColor?.image ||
-        selectedVariant?.image ||
-        product.thumbnailImage ||
-        product.images?.[0]
+      const image = selectedColor?.image || selectedFinish?.image || selectedVariant?.image || resolveProductImageUrls(product)[0]
+      const toastOptions = [
+        selectedColor?.label || selectedColor?.name ? `Colour: ${selectedColor.label || selectedColor.name}` : null,
+        selectedFabric?.label || selectedFabric?.name ? `Fabric: ${selectedFabric.label || selectedFabric.name}` : null,
+        selectedMaterial?.label || selectedMaterial?.name ? `Material: ${selectedMaterial.label || selectedMaterial.name}` : null,
+        selectedFinish?.label || selectedFinish?.name ? `Finish: ${selectedFinish.label || selectedFinish.name}` : null,
+        selectedVariant?.label || selectedVariant?.name ? `Option: ${selectedVariant.label || selectedVariant.name}` : null,
+        selectedAccessories.length > 0 ? `Add-ons: ${selectedAccessories.map((accessory) => accessory.label || accessory.name).filter(Boolean).join(', ')}` : null,
+        customDimensions && Object.values(customDimensions).some(Boolean) ? `Custom sizing: ${[customDimensions.width && `W ${customDimensions.width}`, customDimensions.height && `H ${customDimensions.height}`, customDimensions.depth && `D ${customDimensions.depth}`, customDimensions.unit].filter(Boolean).join(' ')}` : null,
+      ].filter((option): option is string => Boolean(option))
 
       setItems((previous) => {
         const existingIndex = previous.findIndex(
@@ -327,12 +376,14 @@ export function CartProvider({
           selectedColor,
           selectedFabric,
           selectedMaterial,
+          selectedFinish,
           selectedVariant,
           selectedAccessories,
 
           customDimensions,
 
           unitPrice,
+          currency: normalizeCurrency(product.currency),
           image,
 
           selectedOptions: {
@@ -341,6 +392,7 @@ export function CartProvider({
             material:
               selectedMaterial?.label ||
               selectedMaterial?.name,
+            finish: selectedFinish?.label || selectedFinish?.name,
             variant:
               selectedVariant?.label ||
               selectedVariant?.name,
@@ -355,6 +407,8 @@ export function CartProvider({
 
         return [...previous, item]
       })
+
+      setCartToast({ name: product.name, image, quantity: safeQuantity, options: toastOptions, currency: normalizeCurrency(product.currency) })
     },
     []
   )
@@ -399,7 +453,18 @@ export function CartProvider({
 
   const clearCart = useCallback(() => {
     setItems([])
-  }, [])
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(cartStorageKey, '[]')
+      localStorage.removeItem(LEGACY_CART_KEY)
+    }
+
+    if (userId) {
+      void fetch('/api/cart/clear', { method: 'POST' }).catch((error) => {
+        console.error('Failed to clear the server cart after payment:', error)
+      })
+    }
+  }, [cartStorageKey, userId])
 
   const totals = useMemo(() => {
     const subtotal = items.reduce(
@@ -474,6 +539,7 @@ export function CartProvider({
       }}
     >
       {children}
+      {cartToast && <CartAddedToast data={cartToast} itemCount={cartCount} cartTotal={totals.total} currency={cartToast.currency} onDismiss={() => setCartToast(null)} />}
     </CartContext.Provider>
   )
 }

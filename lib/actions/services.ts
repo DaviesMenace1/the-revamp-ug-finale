@@ -4,6 +4,19 @@ import { db } from '@/lib/db/client'
 import { services, serviceCategories } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
+
+function revalidatePublicServiceContent() {
+  revalidatePath('/')
+  revalidatePath('/services')
+  revalidatePath('/services/[category]', 'page')
+  revalidatePath('/services/[category]/[service]', 'page')
+  revalidatePath('/api/services')
+}
+
+async function isAdmin() {
+  return (await getCurrentUserWithRole(['admin', 'editor'])).authorized
+}
 
 function slugify(input: string) {
   return input
@@ -11,6 +24,19 @@ function slugify(input: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')
+}
+
+export async function getServiceForAdmin(id: string) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
+  try {
+    if (!id || typeof id !== 'string') return { success: false, error: 'A valid service is required.' }
+    const service = await db.query.services.findFirst({ where: eq(services.id, id) })
+    if (!service) return { success: false, error: 'Service not found. Refresh the page and try again.' }
+    return { success: true, service }
+  } catch (error) {
+    console.error('Failed to load service for editing:', error)
+    return { success: false, error: 'Failed to load the service editor. Refresh the page and try again.' }
+  }
 }
 
 // --- Categories ---
@@ -21,6 +47,7 @@ export async function createServiceCategory(data: {
   icon?: string
   image?: string
 }) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
     const [category] = await db
       .insert(serviceCategories)
@@ -30,10 +57,12 @@ export async function createServiceCategory(data: {
         description: data.description || null,
         icon: data.icon || null,
         image: data.image || null,
+        status: 'published',
       })
       .returning()
 
     revalidatePath('/admin/services')
+    revalidatePublicServiceContent()
     return { success: true, category }
   } catch (error) {
     console.error('Failed to create service category:', error)
@@ -52,6 +81,7 @@ export async function updateServiceCategory(
     featured: boolean
   }>,
 ) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
     await db
       .update(serviceCategories)
@@ -59,6 +89,7 @@ export async function updateServiceCategory(
       .where(eq(serviceCategories.id, id))
 
     revalidatePath('/admin/services')
+    revalidatePublicServiceContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to update service category:', error)
@@ -67,9 +98,11 @@ export async function updateServiceCategory(
 }
 
 export async function deleteServiceCategory(id: string) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
     await db.delete(serviceCategories).where(eq(serviceCategories.id, id))
     revalidatePath('/admin/services')
+    revalidatePublicServiceContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to delete service category:', error)
@@ -87,10 +120,21 @@ export async function createService(data: {
   name: string
   description?: string
   longDescription?: string
+  visionStatement?: string
+  whatWeSolve?: string
+  approach?: string
+  deliverables?: string[]
+  relatedServices?: string[]
+  relatedProjects?: string[]
   icon?: string
   image?: string
   gallery?: string[]
+  storySections?: unknown[]
+  processSteps?: unknown[]
+  faqs?: unknown[]
+  highlights?: unknown[]
 }) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
     const [service] = await db
       .insert(services)
@@ -100,13 +144,25 @@ export async function createService(data: {
         slug: slugify(data.name),
         description: data.description || null,
         longDescription: data.longDescription || null,
+        visionStatement: data.visionStatement || null,
+        whatWeSolve: data.whatWeSolve || null,
+        approach: data.approach || null,
+        deliverables: data.deliverables || [],
+        relatedServices: data.relatedServices || [],
+        relatedProjects: data.relatedProjects || [],
         icon: data.icon || null,
         image: data.image || null,
         gallery: data.gallery || [],
+        storySections: data.storySections || [],
+        processSteps: data.processSteps || [],
+        faqs: data.faqs || [],
+        highlights: data.highlights || [],
+        status: 'published',
       })
       .returning()
 
     revalidatePath('/admin/services')
+    revalidatePublicServiceContent()
     return { success: true, service }
   } catch (error) {
     console.error('Failed to create service:', error)
@@ -121,13 +177,24 @@ export async function updateService(
     name: string
     description: string
     longDescription: string
+    visionStatement: string
+    whatWeSolve: string
+    approach: string
+    deliverables: string[]
+    relatedServices: string[]
+    relatedProjects: string[]
     icon: string
     image: string
     gallery: string[]
+    storySections: unknown[]
+    processSteps: unknown[]
+    faqs: unknown[]
+    highlights: unknown[]
     status: string
     featured: boolean
   }>,
 ) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
     await db
       .update(services)
@@ -135,6 +202,7 @@ export async function updateService(
       .where(eq(services.id, id))
 
     revalidatePath('/admin/services')
+    revalidatePublicServiceContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to update service:', error)
@@ -143,9 +211,11 @@ export async function updateService(
 }
 
 export async function deleteService(id: string) {
+  if (!(await isAdmin())) return { success: false, error: 'You are not authorized to manage services.' }
   try {
     await db.delete(services).where(eq(services.id, id))
     revalidatePath('/admin/services')
+    revalidatePublicServiceContent()
     return { success: true }
   } catch (error) {
     console.error('Failed to delete service:', error)

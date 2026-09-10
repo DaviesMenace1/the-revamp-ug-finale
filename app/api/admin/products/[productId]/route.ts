@@ -1,7 +1,10 @@
+import { revalidatePath } from "next/cache"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { products } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
+import { requireAdminApi } from "@/lib/auth/api"
+import { normalizeProductTags } from "@/lib/products/tags"
 
 export const dynamic = "force-dynamic"
 
@@ -19,16 +22,20 @@ type ProductUpdate = {
   manufacturer?: string | null
   countryOfOrigin?: string | null
 
-  departmentId?: string
-  categoryId?: string
   subCategoryId?: string
 
   productType?: string
+  customizationEnabled?: boolean
+  customizationHeading?: string | null
+  customizationDescription?: string | null
+  customizationLeadTime?: string | null
+  customizationRequestLabel?: string | null
   description?: string | null
   longDescription?: string | null
   editorialHighlight?: string | null
 
   price?: number | string
+  tradeDiscountPercent?: number | string | null
   originalPrice?: number | string | null
   currency?: string
 
@@ -47,6 +54,7 @@ type ProductUpdate = {
 
   seoTitle?: string | null
   seoDescription?: string | null
+  tags?: string[] | string | null
 
   featured?: boolean
   isNewArrival?: boolean
@@ -130,6 +138,9 @@ export async function GET(
   _request: NextRequest,
   context: RouteContext,
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId: id } = await context.params
 
@@ -193,6 +204,9 @@ export async function PATCH(
   request: NextRequest,
   context: RouteContext,
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId: id } = await context.params
 
@@ -251,6 +265,13 @@ export async function PATCH(
         { error: "Invalid product price." },
         { status: 400 },
       )
+    }
+
+    if (body.tradeDiscountPercent !== undefined) {
+      const tradeDiscount = Number(body.tradeDiscountPercent)
+      if (!Number.isFinite(tradeDiscount) || tradeDiscount < 0 || tradeDiscount > 100) {
+        return NextResponse.json({ error: "Trade discount must be between 0 and 100 percent." }, { status: 400 })
+      }
     }
 
     if (
@@ -384,14 +405,6 @@ export async function PATCH(
     /*
      * Taxonomy.
      */
-    if (body.departmentId !== undefined) {
-      update.departmentId = body.departmentId
-    }
-
-    if (body.categoryId !== undefined) {
-      update.categoryId = body.categoryId
-    }
-
     if (body.subCategoryId !== undefined) {
       update.subCategoryId = body.subCategoryId
     }
@@ -402,6 +415,26 @@ export async function PATCH(
     if (body.productType !== undefined) {
       update.productType =
         cleanString(body.productType)
+    }
+
+    if (body.customizationEnabled !== undefined) {
+      update.customizationEnabled = Boolean(body.customizationEnabled)
+    }
+
+    if (body.customizationHeading !== undefined) {
+      update.customizationHeading = cleanString(body.customizationHeading)
+    }
+
+    if (body.customizationDescription !== undefined) {
+      update.customizationDescription = cleanString(body.customizationDescription)
+    }
+
+    if (body.customizationLeadTime !== undefined) {
+      update.customizationLeadTime = cleanString(body.customizationLeadTime)
+    }
+
+    if (body.customizationRequestLabel !== undefined) {
+      update.customizationRequestLabel = cleanString(body.customizationRequestLabel)
     }
 
     if (body.description !== undefined) {
@@ -424,6 +457,10 @@ export async function PATCH(
      */
     if (body.price !== undefined) {
       update.price = decimal(body.price)
+    }
+
+    if (body.tradeDiscountPercent !== undefined) {
+      update.tradeDiscountPercent = decimal(body.tradeDiscountPercent) ?? "0"
     }
 
     if (body.originalPrice !== undefined) {
@@ -506,6 +543,10 @@ export async function PATCH(
     if (body.seoDescription !== undefined) {
       update.seoDescription =
         cleanString(body.seoDescription)
+    }
+
+    if (body.tags !== undefined) {
+      update.tags = normalizeProductTags(body.tags)
     }
 
     /*
@@ -595,6 +636,7 @@ export async function PATCH(
       .where(eq(products.id, id))
       .returning()
 
+    revalidatePath('/')
     return NextResponse.json({
       success: true,
       product: updated,
@@ -634,6 +676,9 @@ export async function DELETE(
   _request: NextRequest,
   context: RouteContext,
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId: id } = await context.params
 
@@ -675,6 +720,7 @@ export async function DELETE(
         status: products.status,
       })
 
+    revalidatePath('/')
     return NextResponse.json({
       success: true,
       product: archived,

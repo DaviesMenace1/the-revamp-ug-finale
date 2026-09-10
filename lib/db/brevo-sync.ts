@@ -6,15 +6,7 @@ import { eq } from 'drizzle-orm';
 /**
  * Sync user to Brevo when they sign up
  */
-export {
-  syncContactToBrevo,
-  syncContactsToBrevo,
-  subscribeToNewsletter,
-  unsubscribeFromNewsletter,
-  addContactToList,
-  removeContactFromBrevo,
-  updateContactConsent,
-} from '@/lib/brevo/sync';
+export { syncContactToBrevo, subscribeToNewsletter } from '@/lib/brevo/sync';
 
 export type { ContactData } from '@/lib/brevo/sync';
 
@@ -91,7 +83,7 @@ export async function syncOrderToBrevo(orderId: string) {
     if (!order) return;
 
     const user = await db.query.users.findFirst({
-      where: eq(users.id, order.userId),
+      where: eq(users.clerkId, order.userId),
     });
 
     if (!user) return;

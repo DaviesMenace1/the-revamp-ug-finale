@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Plus, X, FolderKanban } from 'lucide-react'
+import { Plus, X, FolderKanban } from '@/components/ui/luxury-icons'
 import Link from 'next/link'
 import { createClientProject } from '@/lib/actions/client-projects'
 
@@ -28,10 +28,11 @@ type ClientOption = {
 }
 
 const PHASE_LABELS: Record<string, string> = {
-  consultation: 'Consultation',
+    consultation: 'Briefing & discovery',
+
   concept: 'Concept',
   design: 'Design',
-  visualization: '3D Visualization',
+  visualization: '3D Presentation',
   approval: 'Client Approval',
   procurement: 'Procurement',
   installation: 'Installation',
@@ -39,12 +40,15 @@ const PHASE_LABELS: Record<string, string> = {
 }
 
 export default function ClientProjectsListClient({
-  projects = [],
+    projects = [],
   clients = [],
+  loadError = null,
 }: {
   projects: ProjectRow[]
   clients: ClientOption[]
+  loadError?: string | null
 }) {
+
   const [list, setList] = useState(projects)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ title: '', userId: '', description: '', location: '' })
@@ -84,7 +88,7 @@ export default function ClientProjectsListClient({
         <div>
           <h1 className="font-serif text-4xl font-light text-foreground">Client Projects</h1>
           <p className="text-muted-foreground mt-2">
-            Private project workspaces — separate from your public portfolio. Each one belongs to a
+            Private project workspaces are separate from your public portfolio. Each one belongs to a
             client account and includes their own assets, documents, and approvals.
           </p>
         </div>
@@ -92,9 +96,17 @@ export default function ClientProjectsListClient({
           <Plus className="w-4 h-4 mr-2" />
           New Client Project
         </Button>
-      </div>
+            </div>
+
+      {loadError && (
+        <div role="status" className="flex items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+          <span>{loadError}</span>
+          <button type="button" onClick={() => window.location.reload()} className="font-medium underline underline-offset-4">Retry</button>
+        </div>
+      )}
 
       <div className="grid gap-4">
+
         {list.map((project) => (
           <Link key={project.id} href={`/admin/client-projects/${project.id}`}>
             <Card className="p-5 hover:border-primary/40 transition-colors">

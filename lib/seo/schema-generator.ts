@@ -3,6 +3,8 @@
  * Generates JSON-LD structured data for SEO and AI search engines
  */
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
+
 export interface SchemaMarkupOptions {
   url?: string
   image?: string
@@ -19,21 +21,18 @@ export function generateOrganizationSchema() {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'The Revamp UG',
-    url: 'https://therevampug.com',
-    logo: 'https://therevampug.com/logo.png',
+    url: SITE_URL,
+    logo: `${SITE_URL}/brand/revamp-logo.png`,
     description:
-      'Luxury design house offering interior design, architecture, 3D visualization, construction, procurement, and custom furniture services.',
+      'Uganda-based design house offering interior design, architecture, furniture sourcing, custom furniture, procurement, 3D visualization, and installation support.',
     sameAs: [
-      'https://instagram.com/therevampug',
-      'https://linkedin.com/company/therevampug',
-      'https://twitter.com/therevampug',
+      'https://www.instagram.com/therevamp_ug',
+      'https://www.linkedin.com/company/therevampug',
     ],
-    contactPoint: {
-      '@type': 'ContactPoint',
-      contactType: 'Customer Service',
-      telephone: '+256-phone-number',
-      email: 'hello@therevampug.com',
-    },
+    contactPoint: [
+      { '@type': 'ContactPoint', contactType: 'Customer Service', telephone: '+256 783 476 807', email: 'support@therevampug.com' },
+      { '@type': 'ContactPoint', contactType: 'Sales', telephone: '+256 783 476 807', email: 'sales@therevampug.com' },
+    ],
   }
 }
 
@@ -62,7 +61,7 @@ export function generateServiceSchema(...args: any) {
     provider: {
       '@type': 'Organization',
       name: 'The Revamp UG',
-      url: 'https://therevampug.com',
+      url: SITE_URL,
     },
     areaServed: {
       '@type': 'Country',
@@ -85,6 +84,13 @@ export function generateProductSchema(...args: any) {
   let currency: string
   let images: string[]
   let options: SchemaMarkupOptions | undefined
+  let brand = 'The Revamp UG'
+  let sku: string | undefined
+  let mpn: string | undefined
+  let gtin: string | undefined
+  let availability: string | undefined
+  let condition = 'NewCondition'
+  let tags: string[] = []
 
   if (args.length === 1 && typeof args[0] === 'object') {
     const o = args[0]
@@ -94,6 +100,13 @@ export function generateProductSchema(...args: any) {
     currency = o.currency || 'USD'
     images = o.images || (o.image ? [o.image] : [])
     options = o.options || { url: o.url, image: o.image }
+    brand = o.brand || brand
+    sku = o.sku
+    mpn = o.mpn
+    gtin = o.gtin
+    availability = o.availability
+    condition = o.condition || condition
+    tags = Array.isArray(o.tags) ? o.tags.filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim().length > 0) : []
   } else {
     ;[name, description, price, currency, images, options] = args
   }
@@ -104,21 +117,25 @@ export function generateProductSchema(...args: any) {
     name,
     description,
     image: images,
+    ...(sku ? { sku } : {}),
+    ...(mpn ? { mpn } : {}),
+    ...(gtin ? { gtin } : {}),
+    ...(tags.length > 0 ? { keywords: tags.join(', ') } : {}),
     brand: {
       '@type': 'Brand',
-      name: 'The Revamp UG',
+      name: brand,
     },
     offers: {
       '@type': 'Offer',
       url: options?.url,
       priceCurrency: currency,
       price,
-      availability: 'https://schema.org/InStock',
-    },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.8',
-      ratingCount: '150',
+      ...(availability && ['BackOrder', 'Discontinued', 'InStock', 'LimitedAvailability', 'OnlineOnly', 'OutOfStock', 'PreOrder', 'PreSale', 'SoldOut'].includes(availability)
+        ? { availability: `https://schema.org/${availability}` }
+        : {}),
+      ...(condition && ['DamagedCondition', 'NewCondition', 'RefurbishedCondition', 'UsedCondition'].includes(condition)
+        ? { itemCondition: `https://schema.org/${condition}` }
+        : {}),
     },
   }
 }
@@ -244,28 +261,38 @@ export function generateFAQSchema(faqs: Array<{ question: string; answer: string
 /**
  * Generate LocalBusiness schema
  */
+export function generateWebSiteSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'The Revamp UG',
+    url: SITE_URL,
+    inLanguage: 'en-UG',
+    publisher: { '@type': 'Organization', name: 'The Revamp UG', url: SITE_URL },
+  }
+}
+
 export function generateLocalBusinessSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     name: 'The Revamp UG',
-    image: 'https://therevampug.com/logo.png',
+    image: `${SITE_URL}/brand/revamp-logo.png`,
     description:
-      'Luxury design house offering comprehensive interior design, architecture, and procurement services in Uganda.',
-    telephone: '+256-phone-number',
-    email: 'hello@therevampug.com',
+      'Uganda-based design house offering interior design, architecture, furniture sourcing, custom furniture, procurement, and installation support.',
+    telephone: '+256 783 476 807',
+    email: 'support@therevampug.com',
     address: {
       '@type': 'PostalAddress',
-      streetAddress: 'Street Address',
-      addressLocality: 'Kampala',
-      addressRegion: 'Uganda',
-      postalCode: '00256',
+      addressLocality: 'Kyanja',
+      addressRegion: 'Kampala',
       addressCountry: 'UG',
     },
-    url: 'https://therevampug.com',
+    areaServed: { '@type': 'Country', name: 'Uganda' },
+    url: SITE_URL,
     sameAs: [
-      'https://instagram.com/therevampug',
-      'https://linkedin.com/company/therevampug',
+      'https://www.instagram.com/therevamp_ug',
+      'https://www.linkedin.com/company/therevampug',
     ],
   }
 }

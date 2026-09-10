@@ -4,6 +4,7 @@ import { db } from '@/lib/db/client'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { syncNewUserToBrevo } from '@/lib/db/brevo-sync'
+import { awardWelcomePoints } from '@/lib/loyalty/service'
 
 type ClerkUserEvent = {
   data: {
@@ -76,7 +77,16 @@ export async function POST(req: Request) {
         .returning()
 
       // A retried Clerk delivery is successful if the user already exists.
+      const localUser = newUser ?? await db.query.users.findFirst({ where: eq(users.clerkId, data.id) })
       if (newUser) await syncNewUserToBrevo(newUser.id)
+      if (localUser) {
+        try {
+          await awardWelcomePoints(localUser.id)
+        } catch (loyaltyError) {
+          // Loyalty is additive; it must not make Clerk user provisioning fail.
+          console.error('[loyalty] welcome reward skipped:', loyaltyError)
+        }
+      }
     } catch (err) {
       console.error('[v0] Clerk webhook user.created error:', err)
       return new Response('Error creating user', { status: 500 })

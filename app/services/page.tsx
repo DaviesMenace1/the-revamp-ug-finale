@@ -1,40 +1,12 @@
-import { db } from '@/lib/db/client'
-import { serviceCategories, services } from '@/lib/db/schema'
-import { asc, eq } from 'drizzle-orm'
-import ServicesListingClient from './services-listing-client'
+import { SiteHeader } from '@/components/site-header'
+import { SiteFooter } from '@/components/site-footer'
+import { PrototypeServices } from '@/components/sections/prototype-services'
+import { getPublishedServices } from '@/lib/db/queries'
 
 export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Services - The Revamp UG', description: 'End-to-end concierge for luxury interiors and architecture: sourcing, importing, white-glove installation, styling and architectural services for residences in Uganda.' }
 
 export default async function ServicesPage() {
-  const [categories, allServices] = await Promise.all([
-    db
-      .select()
-      .from(serviceCategories)
-      .where(eq(serviceCategories.status, 'published'))
-      .orderBy(asc(serviceCategories.order)),
-    db
-      .select()
-      .from(services)
-      .where(eq(services.status, 'published'))
-      .orderBy(asc(services.order)),
-  ])
-
-  const grouped = categories
-    .map((category) => ({
-      id: category.id,
-      slug: category.slug,
-      name: category.name,
-      description: category.description,
-      services: allServices
-        .filter((s) => s.categoryId === category.id)
-        .map((s) => ({
-          slug: s.slug,
-          name: s.name,
-          description: s.description,
-          image: s.image,
-        })),
-    }))
-    .filter((category) => category.services.length > 0)
-
-  return <ServicesListingClient categories={grouped} />
+  const services = await getPublishedServices()
+  return <><SiteHeader /><main><PrototypeServices liveServices={services} /></main><SiteFooter /></>
 }

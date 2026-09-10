@@ -5,8 +5,21 @@ import { projects, projectActivity } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getOrCreateCurrentUser } from '@/lib/auth/utils'
+import { getCurrentUserWithRole } from '@/lib/auth/server'
+
+const PHASE_LABELS: Record<string, string> = {
+  consultation: 'Briefing & discovery',
+  concept: 'Concept direction',
+  design: 'Design development',
+  visualization: '3D visualization',
+  approval: 'Client approval',
+  procurement: 'Procurement',
+  installation: 'Installation',
+  handover: 'Handover',
+}
 
 function slugify(input: string) {
+
   return input
     .toLowerCase()
     .trim()
@@ -23,6 +36,7 @@ export async function createClientProject(data: {
   designer?: string
   dueDate?: string | null
 }) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to create client projects.' }
   if (!data.title.trim()) return { success: false, error: 'Title is required.' }
   if (!data.userId) return { success: false, error: 'A client must be selected.' }
 
@@ -39,7 +53,7 @@ export async function createClientProject(data: {
         budget: data.budget || null,
         designer: data.designer || null,
         dueDate: data.dueDate ? new Date(data.dueDate) : null,
-        status: 'active',
+        status: 'consultation_scheduled',
         currentPhase: 'consultation',
         progress: 0,
       })
@@ -77,6 +91,7 @@ export async function updateClientProject(
     dueDate: string | null
   }>,
 ) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to update client projects.' }
   try {
     const project = await db.query.projects.findFirst({
       where: and(eq(projects.id, id), eq(projects.projectKind, 'client')),
@@ -97,7 +112,8 @@ export async function updateClientProject(
         actorUserId: admin?.id || null,
         actorType: 'admin',
         action: 'phase_changed',
-        summary: `Project phase moved to ${data.currentPhase.replace('_', ' ')}`,
+                summary: `Project phase moved to ${PHASE_LABELS[data.currentPhase] ?? data.currentPhase.replaceAll('_', ' ')}`,
+
       })
     }
 
@@ -111,6 +127,7 @@ export async function updateClientProject(
 }
 
 export async function deleteClientProject(id: string) {
+  if (!(await getCurrentUserWithRole(['admin'])).authorized) return { success: false, error: 'You are not authorized to delete client projects.' }
   try {
     await db.delete(projects).where(and(eq(projects.id, id), eq(projects.projectKind, 'client')))
     revalidatePath('/admin/client-projects')

@@ -1,127 +1,27 @@
 'use client'
 
+import Link from 'next/link'
+import Image from 'next/image'
+import { useMemo, useState } from 'react'
+import { ArrowRight, ArrowUpRight } from '@/components/ui/luxury-icons'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
-import Image from 'next/image'
-import Link from 'next/link'
-import { useMemo, useState } from 'react'
 
-const DEFAULT_IMAGE =
-  'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg'
-
-type Article = {
-  id: string
-  slug: string
-  title: string
-  excerpt: string | null
-  category: string | null
-  author: string | null
-  date: string
-  readTime: string
-  imageUrl: string | null
-}
+type Article = { id: string; slug: string; title: string; content: string; introduction: string | null; excerpt: string | null; category: string | null; author: string | null; tags: unknown; date: string; readTime: string; imageUrl: string | null; gallery: string[]; rating: string | null; ratingCount: number | null; likes: number | null; views: number | null }
+function imageFor(article: Pick<Article, 'imageUrl' | 'gallery'>, fallback = '/prototype/feature-console.jpg') { return article.imageUrl || article.gallery?.[0] || fallback }
+function formatDate(date: string) { return new Date(date).toLocaleDateString('en-UG', { day: 'numeric', month: 'short', year: 'numeric' }) }
+function tagsFor(article: Article) { return Array.isArray(article.tags) ? article.tags.filter((tag): tag is string => typeof tag === 'string') : [] }
 
 export default function JournalListingClient({ articles = [] }: { articles: Article[] }) {
-  const categories = useMemo(() => {
-    const unique = Array.from(new Set(articles.map((a) => a.category).filter(Boolean))) as string[]
-    return ['All', ...unique]
-  }, [articles])
+  const categories = useMemo(() => ['All', ...Array.from(new Set(articles.map((article) => article.category).filter((category): category is string => Boolean(category))))], [articles])
+  const [activeCategory, setActiveCategory] = useState('All')
+  const [visibleCount, setVisibleCount] = useState(10)
+  const filtered = useMemo(() => activeCategory === 'All' ? articles : articles.filter((article) => article.category === activeCategory), [activeCategory, articles])
+  const visibleArticles = filtered.slice(0, visibleCount)
+  const featured = filtered[0]
 
-  const [selectedCategory, setSelectedCategory] = useState('All')
-
-  const filteredArticles =
-    selectedCategory === 'All' ? articles : articles.filter((a) => a.category === selectedCategory)
-
-  return (
-    <>
-      <SiteHeader />
-      <main className="min-h-screen bg-background">
-        <section className="border-b border-border/20 bg-gradient-to-br from-background via-background to-muted/20 py-24 md:py-32">
-          <div className="mx-auto max-w-5xl px-6 md:px-8 space-y-6">
-            <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground">
-              Journal
-            </h1>
-            <p className="max-w-2xl text-lg text-muted-foreground font-light">
-              Insights, inspiration, and stories from our team of designers and architects
-            </p>
-          </div>
-        </section>
-
-        <section className="border-b border-border/20 py-8">
-          <div className="mx-auto max-w-7xl px-6 md:px-8">
-            <div className="flex flex-wrap gap-3">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2 rounded-full font-light text-sm transition-all ${
-                    selectedCategory === cat
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="py-20 md:py-28">
-          <div className="mx-auto max-w-7xl px-6 md:px-8">
-            <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-3">
-              {filteredArticles.map((article) => (
-                <Link key={article.id} href={`/journal/${article.slug}`} className="group h-full">
-                  <article className="space-y-4 cursor-pointer h-full flex flex-col">
-                    <div className="relative w-full h-64 rounded-lg overflow-hidden group-hover:opacity-80 transition-opacity">
-                      <Image
-                        src={article.imageUrl || DEFAULT_IMAGE}
-                        alt={article.title || 'Article Image'}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="uppercase font-medium text-primary/80 tracking-wider">
-                        {article.category || 'Journal'}
-                      </span>
-                      <span className="text-muted-foreground font-light">
-                        {new Date(article.date).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </span>
-                    </div>
-
-                    <h2 className="font-serif text-2xl font-light text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                      {article.title}
-                    </h2>
-
-                    <p className="text-muted-foreground font-light leading-relaxed flex-grow line-clamp-2">
-                      {article.excerpt}
-                    </p>
-
-                    <div className="flex items-center justify-between text-sm pt-4 border-t border-border/20">
-                      <span className="text-muted-foreground font-light">{article.author}</span>
-                      <span className="text-primary/70 font-light">{article.readTime}</span>
-                    </div>
-                  </article>
-                </Link>
-              ))}
-            </div>
-
-            {filteredArticles.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground font-light">No articles in this category yet</p>
-              </div>
-            )}
-          </div>
-        </section>
-      </main>
-      <SiteFooter />
-    </>
-  )
+  return <><SiteHeader /><main className="bg-canvas text-obsidian"><section className="relative overflow-hidden bg-obsidian text-ivory"><Image src={imageFor(featured || { imageUrl: null, gallery: [] }, '/prototype/hero-natural-light.jpg')} alt="Ideas, insights, and inspiration from The Revamp UG" fill priority className="object-cover opacity-70" /><div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-transparent" /><div className="relative mx-auto flex min-h-[28rem] max-w-[1440px] items-end px-5 pb-10 pt-28 sm:min-h-[34rem] sm:px-8 sm:pb-14 lg:px-12"><div className="max-w-xl"><p className="text-[10px] uppercase tracking-[0.3em] text-ivory/65">The Revamp edit</p><h1 className="mt-5 font-serif text-6xl font-light leading-[0.84] sm:text-8xl">Ideas. Insights.<br />Inspiration.</h1><p className="mt-6 max-w-md text-sm leading-6 text-ivory/75">Stories, perspectives, and ideas for a more considered way of living.</p></div></div></section><nav className="sticky top-0 z-20 border-b border-border bg-canvas/95 backdrop-blur" aria-label="Journal categories"><div className="mx-auto flex max-w-[1440px] gap-6 overflow-x-auto px-5 sm:px-8 lg:px-12">{categories.map((category) => <button type="button" key={category} onClick={() => { setActiveCategory(category); setVisibleCount(10) }} className={`min-h-14 shrink-0 border-b-2 text-[10px] uppercase tracking-[0.14em] transition ${activeCategory === category ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>{category}</button>)}</div></nav>{articles.length === 0 ? <section className="mx-auto max-w-[1440px] px-5 py-24 text-center sm:px-8 lg:px-12"><p className="font-serif text-4xl">The first entries are being prepared.</p><p className="mt-3 text-sm text-muted-foreground">Please check back soon.</p></section> : <section className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 sm:py-16 lg:px-12"><div className="grid gap-8 border-b border-border pb-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">{featured && <Link href={`/journal/${encodeURIComponent(featured.slug)}`} className="group grid gap-5 md:grid-cols-[1.15fr_0.85fr] lg:block"><div className="relative aspect-[4/3] overflow-hidden bg-muted lg:aspect-[16/9]"><Image src={imageFor(featured)} alt={featured.title} fill sizes="(max-width: 1024px) 100vw, 60vw" className="object-cover transition duration-700 group-hover:scale-105" /></div><div className="mt-5"><ArticleMeta article={featured} /><h2 className="mt-3 font-serif text-4xl leading-[0.95] sm:text-5xl">{featured.title}</h2><p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground">{featured.excerpt || featured.introduction || 'A note from the studio.'}</p><span className="mt-5 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]">Read story <ArrowRight className="size-3" /></span></div></Link>}<div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">{visibleArticles.slice(1, 3).map((article) => <ArticleCard key={article.id} article={article} compact />)}</div></div><div className="mt-12 grid gap-x-5 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">{visibleArticles.slice(3).map((article) => <ArticleCard key={article.id} article={article} />)}</div>{visibleCount < filtered.length && <div className="mt-12 text-center"><button type="button" onClick={() => setVisibleCount((count) => count + 9)} className="min-h-11 border border-foreground px-7 text-[10px] uppercase tracking-[0.18em]">Load more articles</button></div>}</section>}<section className="grid bg-obsidian text-ivory sm:grid-cols-2"><div className="flex min-h-64 flex-col justify-center px-5 py-10 sm:px-8 lg:px-12"><p className="text-[10px] uppercase tracking-[0.25em] text-ivory/60">Stay close to the studio</p><h2 className="mt-4 max-w-md font-serif text-4xl leading-none sm:text-5xl">Ideas live better in conversation.</h2><p className="mt-4 max-w-sm text-sm leading-6 text-ivory/65">Join our journal for design insights, new arrivals, and stories from our world.</p></div><div className="relative min-h-64"><Image src="/prototype/process-2.jpg" alt="Material and craftsmanship detail" fill className="object-cover opacity-75" /></div></section></main><SiteFooter /></>
 }
+
+function ArticleMeta({ article }: { article: Article }) { return <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[9px] uppercase tracking-[0.16em] text-muted-foreground"><span>{article.category || 'Journal'}</span>{article.author && <><span>|</span><span>By {article.author}</span></>}<span>|</span><span>{formatDate(article.date)}</span><span>|</span><span>{article.readTime}</span></div> }
+function ArticleCard({ article, compact = false }: { article: Article; compact?: boolean }) { const tags = tagsFor(article); return <Link href={`/journal/${encodeURIComponent(article.slug)}`} className="group"><div className={`relative overflow-hidden bg-muted ${compact ? 'aspect-[4/3]' : 'aspect-[4/3]'}`}><Image src={imageFor(article)} alt={article.title} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover transition duration-700 group-hover:scale-105" /></div><div className="mt-4"><ArticleMeta article={article} /><h2 className={`${compact ? 'text-3xl' : 'text-2xl'} mt-2 font-serif leading-[0.95]`}>{article.title}</h2>{article.excerpt && <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">{article.excerpt}</p>}<div className="mt-4 flex items-center justify-between text-[9px] uppercase tracking-[0.16em] text-muted-foreground"><span>{tags.slice(0, 2).join(' · ')}</span><span>{article.views ? `${article.views.toLocaleString('en-UG')} views` : 'Read story'} <ArrowUpRight className="ml-1 inline size-3" /></span></div></div></Link> }

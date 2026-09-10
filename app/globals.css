@@ -4,17 +4,19 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Fonts are loaded via next/font/google in layout.tsx — no @import url() needed here */
+/* Fonts are loaded via next/font/google in layout.tsx. No @import url() is needed here. */
 
 @theme inline {
   /* Brand palette */
-  --color-gold:            oklch(0.72 0.10 78);   /* #C9A84C – gilded gold */
-  --color-gold-light:      oklch(0.85 0.07 78);   /* soft gold tint */
-  --color-gold-dark:       oklch(0.58 0.12 75);   /* deep gold */
-  --color-obsidian:        oklch(0.10 0 0);        /* #0A0A0A */
-  --color-charcoal:        oklch(0.16 0 0);        /* #1C1C1C */
-  --color-canvas:          oklch(0.96 0.01 80);   /* #F5F0E8 warm ivory */
-  --color-canvas-dark:     oklch(0.90 0.015 75);  /* slightly deeper ivory */
+  --color-gold:            oklch(0.45 0.04 75);
+  --color-gold-light:      oklch(0.68 0.06 78);
+  --color-gold-dark:       oklch(0.45 0.008 70);
+  --color-gilded:          oklch(0.45 0.04 75);
+  --color-obsidian:        oklch(0.196 0.004 60);
+  --color-charcoal:        #1A1A1A;        /* #1C1C1C */
+  --color-canvas:          oklch(0.984 0.003 80);
+  --color-canvas-dark:     #E8E1D6;  /* slightly deeper ivory */
+  --color-ivory:           oklch(0.984 0.003 80);
 
   /* Semantic tokens (light) */
   --color-background:      var(--background);
@@ -66,32 +68,34 @@
   --font-serif: 'Cormorant Garamond', Georgia, serif;
   --font-sans:  'Instrument Sans', system-ui, sans-serif;
 
-  /* Spacing extras */
+  /* Spacing and elevation extras */
   --spacing-section: 7rem;
+  --shadow-editorial: 0 18px 50px -28px oklch(0.10 0 0 / 35%);
+  --shadow-lift: 0 10px 30px -20px oklch(0.10 0 0 / 28%);
 }
 
 /* ─── Light mode ───────────────────────────────────────────────────────── */
 :root {
   color-scheme: light;
-  --background:            oklch(0.96 0.01 80);   /* warm ivory canvas */
-  --foreground:            oklch(0.10 0 0);        /* obsidian */
-  --card:                  oklch(0.99 0.005 80);
-  --card-foreground:       oklch(0.10 0 0);
-  --popover:               oklch(0.99 0.005 80);
-  --popover-foreground:    oklch(0.10 0 0);
-  --primary:               oklch(0.10 0 0);        /* obsidian buttons */
-  --primary-foreground:    oklch(0.96 0.01 80);    /* ivory on obsidian */
-  --secondary:             oklch(0.90 0.015 75);
-  --secondary-foreground:  oklch(0.10 0 0);
-  --muted:                 oklch(0.90 0.015 75);
-  --muted-foreground:      oklch(0.45 0.01 75);
-  --accent:                oklch(0.72 0.10 78);    /* gold as accent */
-  --accent-foreground:     oklch(0.10 0 0);
+  --background:            oklch(0.984 0.003 80);
+  --foreground:            oklch(0.196 0.004 60);
+  --card:                  #FFFFFF;
+  --card-foreground:       #0D0D0D;
+  --popover:               #FFFFFF;
+  --popover-foreground:    #0D0D0D;
+  --primary:               oklch(0.196 0.004 60);
+  --primary-foreground:    oklch(0.984 0.003 80);
+  --secondary:             #E8E1D6;
+  --secondary-foreground:  #0D0D0D;
+  --muted:                 #E8E1D6;
+  --muted-foreground:      oklch(0.45 0.008 70);
+  --accent:                oklch(0.66 0.062 75);
+  --accent-foreground:     #0D0D0D;
   --destructive:           oklch(0.577 0.245 27.325);
-  --border:                oklch(0.83 0.02 75);
-  --input:                 oklch(0.83 0.02 75);
-  --ring:                  oklch(0.72 0.10 78);    /* gold ring */
-  --radius:                0rem;                   /* sharp TanStack-style corners */
+  --border:                oklch(0.196 0.004 60 / 8%);
+  --input:                 #FFFFFF;
+  --ring:                  oklch(0.66 0.062 75);
+  --radius:                0.5rem;              /* restrained editorial corners */
 
   --chart-1: oklch(0.72 0.10 78);
   --chart-2: oklch(0.58 0.12 75);
@@ -111,90 +115,86 @@
 
 /* ─── Dark mode ────────────────────────────────────────────────────────── */
 .dark {
-  color-scheme: dark;
-  --background:            oklch(0.10 0 0);        /* obsidian */
-  --foreground:            oklch(0.96 0.01 80);    /* ivory */
-  --card:                  oklch(0.14 0 0);
-  --card-foreground:       oklch(0.96 0.01 80);
-  --popover:               oklch(0.14 0 0);
-  --popover-foreground:    oklch(0.96 0.01 80);
-  --primary:               oklch(0.96 0.01 80);    /* ivory buttons */
-  --primary-foreground:    oklch(0.10 0 0);
-  --secondary:             oklch(0.18 0 0);
-  --secondary-foreground:  oklch(0.96 0.01 80);
-  --muted:                 oklch(0.18 0 0);
-  --muted-foreground:      oklch(0.60 0.01 75);
-  --accent:                oklch(0.72 0.10 78);    /* gold stays gold */
-  --accent-foreground:     oklch(0.10 0 0);
-  --destructive:           oklch(0.704 0.191 22.216);
-  --border:                oklch(1 0 0 / 10%);
-  --input:                 oklch(1 0 0 / 12%);
-  --ring:                  oklch(0.72 0.10 78);
-
-  --chart-1: oklch(0.72 0.10 78);
-  --chart-2: oklch(0.85 0.07 78);
-  --chart-3: oklch(0.60 0.01 75);
-  --chart-4: oklch(0.40 0 0);
-  --chart-5: oklch(0.22 0 0);
-
-  --sidebar:                  oklch(0.14 0 0);
-  --sidebar-foreground:       oklch(0.96 0.01 80);
-  --sidebar-primary:          oklch(0.72 0.10 78);
-  --sidebar-primary-foreground: oklch(0.10 0 0);
-  --sidebar-accent:           oklch(0.20 0 0);
-  --sidebar-accent-foreground: oklch(0.96 0.01 80);
-  --sidebar-border:           oklch(1 0 0 / 10%);
-  --sidebar-ring:             oklch(0.72 0.10 78);
+  /* The prototype is intentionally light-first. Keep the explicit dark class
+     token-compatible so browser preference/theme residue cannot hide content. */
+  color-scheme: light;
+  --background:            oklch(0.984 0.003 80);
+  --foreground:            oklch(0.196 0.004 60);
+  --card:                  #FFFFFF;
+  --card-foreground:       #0D0D0D;
+  --popover:               #FFFFFF;
+  --popover-foreground:    #0D0D0D;
+  --primary:               oklch(0.196 0.004 60);
+  --primary-foreground:    oklch(0.984 0.003 80);
+  --secondary:             #E8E1D6;
+  --secondary-foreground:  #0D0D0D;
+  --muted:                 #E8E1D6;
+  --muted-foreground:      oklch(0.45 0.008 70);
+  --accent:                oklch(0.66 0.062 75);
+  --accent-foreground:     #0D0D0D;
+  --border:                oklch(0.196 0.004 60 / 8%);
+  --input:                 #FFFFFF;
+  --ring:                 oklch(0.66 0.062 75);
+  --color-canvas:          oklch(0.984 0.003 80);
+  --color-canvas-dark:     #E8E1D6;
+  --color-ivory:           oklch(0.984 0.003 80);
 }
-
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    color-scheme: dark;
-    --background:            oklch(0.10 0 0);
-    --foreground:            oklch(0.96 0.01 80);
-    --card:                  oklch(0.14 0 0);
-    --card-foreground:       oklch(0.96 0.01 80);
-    --popover:               oklch(0.14 0 0);
-    --popover-foreground:    oklch(0.96 0.01 80);
-    --primary:               oklch(0.96 0.01 80);
-    --primary-foreground:    oklch(0.10 0 0);
-    --secondary:             oklch(0.18 0 0);
-    --secondary-foreground:  oklch(0.96 0.01 80);
-    --muted:                 oklch(0.18 0 0);
-    --muted-foreground:      oklch(0.60 0.01 75);
-    --accent:                oklch(0.72 0.10 78);
-    --accent-foreground:     oklch(0.10 0 0);
-    --destructive:           oklch(0.704 0.191 22.216);
-    --border:                oklch(1 0 0 / 10%);
-    --input:                 oklch(1 0 0 / 12%);
-    --ring:                  oklch(0.72 0.10 78);
-    --radius:                0rem;
-    --chart-1: oklch(0.72 0.10 78);
-    --chart-2: oklch(0.85 0.07 78);
-    --chart-3: oklch(0.60 0.01 75);
-    --chart-4: oklch(0.40 0 0);
-    --chart-5: oklch(0.22 0 0);
-    --sidebar:                  oklch(0.14 0 0);
-    --sidebar-foreground:       oklch(0.96 0.01 80);
-    --sidebar-primary:          oklch(0.72 0.10 78);
-    --sidebar-primary-foreground: oklch(0.10 0 0);
-    --sidebar-accent:           oklch(0.20 0 0);
-    --sidebar-accent-foreground: oklch(0.96 0.01 80);
-    --sidebar-border:           oklch(1 0 0 / 10%);
-    --sidebar-ring:             oklch(0.72 0.10 78);
-  }
-}
-
+/* Dark mode is opt-in via the explicit .dark class. Keeping system preference out of the token cascade prevents ivory text on light canvas surfaces. */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    min-width: 320px;
+    max-width: 100%;
+    overflow-x: hidden;
     font-feature-settings: 'kern' 1, 'liga' 1;
+  }
+  main, header, footer, section, article, nav, aside, form {
+    min-width: 0;
+    max-width: 100%;
+  }
+  main > *, section > *, article > *, form > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  h1, h2, h3, h4, p, a, button, label, th, td {
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+  table {
+    max-width: 100%;
+  }
+  [data-scroll-container], .table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+  a,
+  button,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
   }
   h1, h2, h3 {
     font-family: var(--font-serif);
@@ -219,7 +219,7 @@
 
   /* Luxury text gradient */
   .text-gold {
-    color: oklch(0.72 0.10 78);
+    color: oklch(0.45 0.04 75);
   }
   .text-gold-gradient {
     background: linear-gradient(135deg, oklch(0.85 0.07 78), oklch(0.72 0.10 78), oklch(0.58 0.12 75));
@@ -231,6 +231,70 @@
   /* Section spacing */
   .section-pad {
     @apply py-24 md:py-32;
+  }
+
+  .page-gutter {
+    padding-inline: clamp(1.25rem, 3vw, 3rem);
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+
+  .surface-card {
+    @apply rounded-lg border border-border/70 bg-card;
+    box-shadow: var(--shadow-lift);
+  }
+
+  .mobile-scroll-row {
+    scrollbar-width: thin;
+    overscroll-behavior-inline: contain;
+    max-width: 100%;
+  }
+
+  .safe-inline-grid {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  }
+
+  .safe-card {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 380px) {
+    .section-pad {
+      @apply py-16;
+    }
+    .page-gutter {
+      padding-inline: 1rem;
+    }
+    .safe-card {
+      padding-inline: 1rem;
+    }
+  }
+
+  .motion-reveal {
+    animation: revamp-rise-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes revamp-rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(1rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .motion-reveal {
+      animation: none;
+    }
   }
 
   /* Hover underline animation */
@@ -249,5 +313,39 @@
   }
   .hover-line:hover::after {
     width: 100%;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Site-wide editorial heading guardrails */
+@layer base {
+  main h1:not(.hero-heading) {
+    font-size: clamp(2rem, 4.5vw, 4.75rem) !important;
+    line-height: 0.98;
+  }
+
+  main h2 {
+    font-size: clamp(1.75rem, 3.5vw, 3.75rem) !important;
+    line-height: 1;
+  }
+
+  main h3 {
+    font-size: clamp(1.25rem, 2.3vw, 2.25rem) !important;
+    line-height: 1.05;
   }
 }

@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { PortalLayout } from '@/components/portals/portal-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, X, Send, LifeBuoy } from 'lucide-react'
+import { Plus, X, Send, LifeBuoy } from '@/components/ui/luxury-icons'
 import { createTicket, replyToTicketAsClient, getTicketMessages } from '@/lib/actions/tickets'
 
 const clientNavItems = [
@@ -34,6 +35,9 @@ type Ticket = {
   priority: string
   status: string
   createdAt: string
+  requesterType?: 'guest' | 'client' | string
+  guestEmail?: string | null
+  guestName?: string | null
 }
 
 type TicketMessage = {
@@ -44,10 +48,10 @@ type TicketMessage = {
   createdAt: string
 }
 
-export default function TicketsClient({ initialTickets = [] }: { initialTickets: Ticket[] }) {
+export default function TicketsClient({ initialTickets = [], viewerType, loadError = null }: { initialTickets: Ticket[]; viewerType: 'guest' | 'client'; loadError?: string | null }) {
   const [tickets, setTickets] = useState(initialTickets)
   const [showNewForm, setShowNewForm] = useState(false)
-  const [form, setForm] = useState({ subject: '', description: '', category: '', priority: 'normal' })
+  const [form, setForm] = useState({ subject: '', description: '', category: '', priority: 'normal', guestName: '', guestEmail: '' })
   const [isPending, startTransition] = useTransition()
 
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
@@ -69,7 +73,7 @@ export default function TicketsClient({ initialTickets = [] }: { initialTickets:
           { ...res.ticket, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), resolvedAt: null } as Ticket,
           ...prev,
         ])
-        setForm({ subject: '', description: '', category: '', priority: 'normal' })
+        setForm({ subject: '', description: '', category: '', priority: 'normal', guestName: '', guestEmail: '' })
         setShowNewForm(false)
       }
     })
@@ -88,12 +92,16 @@ export default function TicketsClient({ initialTickets = [] }: { initialTickets:
   }
 
   return (
-    <PortalLayout portalName="Client Portal" portalSlug="client" navItems={clientNavItems}>
+    <PortalLayout portalName={viewerType === 'guest' ? 'Guest Support' : 'Client Portal'} portalSlug="client" homeHref={viewerType === 'guest' ? '/' : undefined} navItems={viewerType === 'guest' ? [{ label: 'Home', href: '/' }] : clientNavItems}>
       <div className="mx-auto max-w-3xl px-6 py-10 md:px-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="font-serif text-3xl font-light text-foreground">Support Tickets</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Get help with an order, project, or anything else.</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-serif text-3xl font-light text-foreground">Support Tickets</h1>
+              <span className="rounded-full border border-border/60 px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{viewerType === 'guest' ? 'Guest' : 'Client'}</span>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">{viewerType === 'guest' ? 'Open a request now. It will stay available on this device and move into your account after you sign in.' : 'Get help with an order, project, or anything else.'}</p>
+            {viewerType === 'guest' && <Link href="/sign-in?redirect_url=%2Fclient%2Ftickets" className="mt-3 inline-flex min-h-10 items-center text-xs font-medium uppercase tracking-[0.12em] text-primary underline underline-offset-4">Sign in to save these tickets</Link>}
           </div>
           <Button onClick={() => setShowNewForm(true)} className="rounded-none">
             <Plus className="mr-2 h-4 w-4" />
@@ -111,7 +119,7 @@ export default function TicketsClient({ initialTickets = [] }: { initialTickets:
               <div>
                 <p className="text-sm font-medium text-foreground">{ticket.subject}</p>
                 <p className="text-xs text-muted-foreground">
-                  {ticket.ticketNumber} · {new Date(ticket.createdAt).toLocaleDateString()}
+                  {ticket.ticketNumber} · {new Date(ticket.createdAt).toLocaleDateString()} · {ticket.requesterType === 'guest' ? 'Guest' : 'Client'}
                 </p>
               </div>
               <span className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_COLORS[ticket.status]}`}>
@@ -127,9 +135,17 @@ export default function TicketsClient({ initialTickets = [] }: { initialTickets:
             </div>
           )}
         </div>
-      </div>
+              </div>
 
-      {showNewForm && (
+        {loadError && (
+          <div role="status" className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            <span>{loadError}</span>
+            <button type="button" onClick={() => window.location.reload()} className="min-h-11 shrink-0 font-medium underline underline-offset-4">Retry</button>
+          </div>
+        )}
+
+        {showNewForm && (
+
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-xl">
             <div className="flex items-center justify-between">
@@ -139,6 +155,19 @@ export default function TicketsClient({ initialTickets = [] }: { initialTickets:
               </button>
             </div>
             <div className="mt-4 space-y-3">
+              {viewerType === 'guest' && <>
+                <Input
+                  placeholder="Your name (optional)"
+                  value={form.guestName}
+                  onChange={(e) => setForm((f) => ({ ...f, guestName: e.target.value }))}
+                />
+                <Input
+                  type="email"
+                  placeholder="Your email (optional)"
+                  value={form.guestEmail}
+                  onChange={(e) => setForm((f) => ({ ...f, guestEmail: e.target.value }))}
+                />
+              </>}
               <Input
                 placeholder="Subject"
                 value={form.subject}

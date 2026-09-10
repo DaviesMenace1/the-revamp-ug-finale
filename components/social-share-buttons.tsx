@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Share2, MessageCircle, Mail, Link2, Check } from 'lucide-react';
+import { Share2, MessageCircle, Mail, Link2, Check } from '@/components/ui/luxury-icons';
 
 interface SocialShareButtonsProps {
   url: string;

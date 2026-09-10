@@ -5,17 +5,17 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Edit, Trash2, Search, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, X } from '@/components/ui/luxury-icons'
 import { ImageUpload } from '@/components/admin/image-upload'
 import {
   createServiceCategory,
-  updateServiceCategory,
   deleteServiceCategory,
   createService,
   updateService,
   deleteService,
+  getServiceForAdmin,
 } from '@/lib/actions/services'
-
+import { StructuredListEditor } from '@/components/admin/structured-list-editor'
 type ServiceCategory = {
   id: string
   name: string
@@ -31,9 +31,19 @@ type Service = {
   name: string
   slug: string
   description: string | null
-  longDescription: string | null
+  longDescription?: string | null
+  visionStatement?: string | null
+  whatWeSolve?: string | null
+  approach?: string | null
+  deliverables?: string[] | null
+  relatedServices?: string[] | null
+  relatedProjects?: string[] | null
   image: string | null
-  gallery: string[]
+  gallery?: string[] | null
+  storySections?: unknown[] | null
+  processSteps?: unknown[] | null
+  faqs?: unknown[] | null
+  highlights?: unknown[] | null
   status: string | null
   featured: boolean | null
 }
@@ -43,21 +53,31 @@ const emptyServiceForm = {
   name: '',
   description: '',
   longDescription: '',
+  visionStatement: '',
+  whatWeSolve: '',
+  approach: '',
+  deliverables: [] as string[],
+  relatedServices: [] as string[],
+  relatedProjects: [] as string[],
   image: '',
   gallery: [] as string[],
+  storySections: [] as unknown[], processSteps: [] as unknown[], faqs: [] as unknown[], highlights: [] as unknown[],
 }
 
 export default function ServicesClient({
   initialCategories = [],
   initialServices = [],
+  loadError = null,
 }: {
   initialCategories: ServiceCategory[]
   initialServices: Service[]
+  loadError?: string | null
 }) {
   const [categories, setCategories] = useState(initialCategories)
   const [servicesList, setServicesList] = useState(initialServices)
   const [searchTerm, setSearchTerm] = useState('')
   const [isPending, startTransition] = useTransition()
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '', image: '' })
   const [showCategoryForm, setShowCategoryForm] = useState(false)
@@ -73,25 +93,42 @@ export default function ServicesClient({
   }, [servicesList, searchTerm])
 
   function handleCreateCategory() {
-    if (!categoryForm.name.trim()) return
+    if (!categoryForm.name.trim()) {
+      setActionError('Add a category name before saving.')
+      return
+    }
+    setActionError(null)
     startTransition(async () => {
-      const res = await createServiceCategory(categoryForm)
-      if (res.success && res.category) {
+      try {
+        const res = await createServiceCategory(categoryForm)
+        if (!res.success || !res.category) {
+          setActionError(res.error || 'The service category could not be created.')
+          return
+        }
         setCategories((prev) => [...prev, res.category as ServiceCategory])
         setCategoryForm({ name: '', description: '', image: '' })
         setShowCategoryForm(false)
+      } catch (error) {
+        console.error('Failed to create service category:', error)
+        setActionError('The service category could not be created. Check your connection and try again.')
       }
     })
   }
 
   function handleDeleteCategory(id: string) {
     if (!confirm('Delete this category? Services inside it must be moved or deleted first.')) return
+    setActionError(null)
     startTransition(async () => {
-      const res = await deleteServiceCategory(id)
-      if (res.success) {
-        setCategories((prev) => prev.filter((c) => c.id !== id))
-      } else if (res.error) {
-        alert(res.error)
+      try {
+        const res = await deleteServiceCategory(id)
+        if (res.success) {
+          setCategories((prev) => prev.filter((c) => c.id !== id))
+        } else {
+          setActionError(res.error || 'The service category could not be deleted.')
+        }
+      } catch (error) {
+        console.error('Failed to delete service category:', error)
+        setActionError('The service category could not be deleted. Check your connection and try again.')
       }
     })
   }
@@ -103,52 +140,96 @@ export default function ServicesClient({
   }
 
   function openEditService(service: Service) {
-    setServiceForm({
-      categoryId: service.categoryId,
-      name: service.name,
-      description: service.description ?? '',
-      longDescription: service.longDescription ?? '',
-      image: service.image ?? '',
-      gallery: service.gallery ?? [],
+    startTransition(async () => {
+      const result = await getServiceForAdmin(service.id)
+      if (!result.success || !result.service) {
+        alert(result.error || 'Failed to load the service editor. Refresh the page and try again.')
+        return
+      }
+      const detail = result.service
+      setServiceForm({
+        categoryId: detail.categoryId,
+        name: detail.name,
+        description: detail.description ?? '',
+        longDescription: detail.longDescription ?? '',
+        visionStatement: detail.visionStatement ?? '',
+        whatWeSolve: detail.whatWeSolve ?? '',
+        approach: detail.approach ?? '',
+        deliverables: Array.isArray(detail.deliverables) ? detail.deliverables as string[] : [],
+        relatedServices: Array.isArray(detail.relatedServices) ? detail.relatedServices as string[] : [],
+        relatedProjects: Array.isArray(detail.relatedProjects) ? detail.relatedProjects as string[] : [],
+        image: detail.image ?? '',
+        gallery: Array.isArray(detail.gallery) ? detail.gallery as string[] : [],
+        storySections: Array.isArray(detail.storySections) ? detail.storySections : [],
+        processSteps: Array.isArray(detail.processSteps) ? detail.processSteps : [],
+        faqs: Array.isArray(detail.faqs) ? detail.faqs : [],
+        highlights: Array.isArray(detail.highlights) ? detail.highlights : [],
+      })
+      setEditingServiceId(detail.id)
+      setShowServiceForm(true)
     })
-    setEditingServiceId(service.id)
-    setShowServiceForm(true)
   }
 
   function handleSaveService() {
-    if (!serviceForm.name.trim() || !serviceForm.categoryId) return
+    if (!serviceForm.name.trim()) {
+      setActionError('Add a service name before saving.')
+      return
+    }
+    if (!serviceForm.categoryId) {
+      setActionError('Select a service category before saving.')
+      return
+    }
 
+    setActionError(null)
     startTransition(async () => {
-      if (editingServiceId) {
-        const res = await updateService(editingServiceId, serviceForm)
-        if (res.success) {
+      try {
+        if (editingServiceId) {
+          const res = await updateService(editingServiceId, serviceForm)
+          if (!res.success) {
+            setActionError(res.error || 'The service could not be saved.')
+            return
+          }
           setServicesList((prev) =>
             prev.map((s) => (s.id === editingServiceId ? { ...s, ...serviceForm } : s)),
           )
           setShowServiceForm(false)
-        }
-      } else {
-        const res = await createService(serviceForm)
-        if (res.success && res.service) {
+        } else {
+          const res = await createService(serviceForm)
+          if (!res.success || !res.service) {
+            setActionError(res.error || 'The service could not be created.')
+            return
+          }
           setServicesList((prev) => [...prev, res.service as Service])
           setShowServiceForm(false)
         }
+      } catch (error) {
+        console.error('Failed to save service:', error)
+        setActionError('The service could not be saved. Check your connection and try again.')
       }
     })
   }
 
   function handleDeleteService(id: string) {
     if (!confirm('Delete this service?')) return
+    setActionError(null)
     startTransition(async () => {
-      const res = await deleteService(id)
-      if (res.success) {
-        setServicesList((prev) => prev.filter((s) => s.id !== id))
+      try {
+        const res = await deleteService(id)
+        if (res.success) {
+          setServicesList((prev) => prev.filter((s) => s.id !== id))
+        } else {
+          setActionError(res.error || 'The service could not be deleted.')
+        }
+      } catch (error) {
+        console.error('Failed to delete service:', error)
+        setActionError('The service could not be deleted. Check your connection and try again.')
       }
     })
   }
 
   return (
     <div className="space-y-8 p-8">
+      {loadError && <div role="status" className="flex flex-wrap items-center justify-between gap-4 rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-400/30 dark:bg-amber-950/30 dark:text-amber-100"><span>{loadError}</span><button type="button" onClick={() => window.location.reload()} className="font-medium underline underline-offset-4">Retry</button></div>}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-serif text-4xl font-light text-foreground">Services</h1>
@@ -170,6 +251,8 @@ export default function ServicesClient({
         </div>
       </div>
 
+      {actionError && <div role="alert" className="rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{actionError}</div>}
+
       <div className="relative w-64">
         <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
         <Input
@@ -188,7 +271,7 @@ export default function ServicesClient({
                 <h3 className="font-medium text-foreground">{category.name}</h3>
                 <p className="text-sm text-muted-foreground">{category.description}</p>
               </div>
-              <button onClick={() => handleDeleteCategory(category.id)}>
+              <button type="button" onClick={() => handleDeleteCategory(category.id)}>
                 <Trash2 className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
@@ -206,10 +289,10 @@ export default function ServicesClient({
                       <p className="text-xs text-muted-foreground">{service.description}</p>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => openEditService(service)}>
+                      <button type="button" onClick={() => openEditService(service)}>
                         <Edit className="w-4 h-4 text-muted-foreground" />
                       </button>
-                      <button onClick={() => handleDeleteService(service.id)}>
+                      <button type="button" onClick={() => handleDeleteService(service.id)}>
                         <Trash2 className="w-4 h-4 text-muted-foreground" />
                       </button>
                     </div>
@@ -220,7 +303,7 @@ export default function ServicesClient({
         ))}
 
         {categories.length === 0 && (
-          <p className="text-sm text-muted-foreground">No service categories yet — add one to get started.</p>
+          <p className="text-sm text-muted-foreground">No service categories yet. Add one to get started.</p>
         )}
       </div>
 
@@ -229,7 +312,7 @@ export default function ServicesClient({
           <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-xl">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium text-foreground">New Category</h2>
-              <button onClick={() => setShowCategoryForm(false)}>
+              <button type="button" onClick={() => setShowCategoryForm(false)}>
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
@@ -244,7 +327,7 @@ export default function ServicesClient({
                 value={categoryForm.description}
                 onChange={(e) => setCategoryForm((f) => ({ ...f, description: e.target.value }))}
               />
-              <Button disabled={isPending} onClick={handleCreateCategory} className="rounded-none w-full">
+              <Button type="button" disabled={isPending} onClick={handleCreateCategory} className="rounded-none w-full">
                 Create Category
               </Button>
             </div>
@@ -259,7 +342,7 @@ export default function ServicesClient({
               <h2 className="text-lg font-medium text-foreground">
                 {editingServiceId ? 'Edit Service' : 'New Service'}
               </h2>
-              <button onClick={() => setShowServiceForm(false)}>
+              <button type="button" onClick={() => setShowServiceForm(false)}>
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
@@ -291,6 +374,19 @@ export default function ServicesClient({
                 value={serviceForm.longDescription}
                 onChange={(e) => setServiceForm((f) => ({ ...f, longDescription: e.target.value }))}
               />
+              <div className="grid gap-3 rounded border border-border/60 bg-muted/20 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Editorial template</p>
+                <Textarea placeholder="Vision statement" value={serviceForm.visionStatement} onChange={(e) => setServiceForm((f) => ({ ...f, visionStatement: e.target.value }))} />
+                <Textarea placeholder="What this service solves" value={serviceForm.whatWeSolve} onChange={(e) => setServiceForm((f) => ({ ...f, whatWeSolve: e.target.value }))} />
+                <Textarea placeholder="Our approach" value={serviceForm.approach} onChange={(e) => setServiceForm((f) => ({ ...f, approach: e.target.value }))} />
+                <Textarea placeholder="Deliverables, one per line" value={serviceForm.deliverables.join('\n')} onChange={(e) => setServiceForm((f) => ({ ...f, deliverables: e.target.value.split('\n').map((item) => item.trim()).filter(Boolean) }))} />
+                <Input placeholder="Related service slugs, comma separated" value={serviceForm.relatedServices.join(', ')} onChange={(e) => setServiceForm((f) => ({ ...f, relatedServices: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) }))} />
+                <Input placeholder="Related project slugs, comma separated" value={serviceForm.relatedProjects.join(', ')} onChange={(e) => setServiceForm((f) => ({ ...f, relatedProjects: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) }))} />
+              </div>
+              <StructuredListEditor kind="story" value={serviceForm.storySections} onChange={(storySections) => setServiceForm((f) => ({ ...f, storySections }))} />
+              <StructuredListEditor kind="process" value={serviceForm.processSteps} onChange={(processSteps) => setServiceForm((f) => ({ ...f, processSteps }))} />
+              <StructuredListEditor kind="faq" value={serviceForm.faqs} onChange={(faqs) => setServiceForm((f) => ({ ...f, faqs }))} />
+              <StructuredListEditor kind="highlight" value={serviceForm.highlights} onChange={(highlights) => setServiceForm((f) => ({ ...f, highlights }))} />
               <div>
                 <label className="text-sm font-medium text-foreground">Gallery</label>
                 <div className="mt-2">
@@ -299,11 +395,11 @@ export default function ServicesClient({
                     onChange={(gallery) =>
                       setServiceForm((f) => ({ ...f, gallery, image: f.image || gallery[0] || '' }))
                     }
-                    maxImages={8}
+                    maxImages={40}
                   />
                 </div>
               </div>
-              <Button disabled={isPending} onClick={handleSaveService} className="rounded-none w-full">
+              <Button type="button" disabled={isPending} onClick={handleSaveService} className="rounded-none w-full">
                 {editingServiceId ? 'Save Changes' : 'Create Service'}
               </Button>
             </div>

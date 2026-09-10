@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { CldUploadWidget } from "next-cloudinary"
+import { CldUploadWidget } from '@/components/admin/cloudflare-upload-widget'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -14,7 +14,7 @@ import {
   Send,
   Trash2,
   AlertCircle,
-} from "lucide-react"
+} from '@/components/ui/luxury-icons'
 
 type Product = {
   id: string
@@ -35,8 +35,10 @@ type Product = {
   description?: string | null
   longDescription?: string | null
   editorialHighlight?: string | null
+  tags?: unknown
 
   price?: string | number | null
+  tradeDiscountPercent?: string | number | null
   originalPrice?: string | number | null
   currency?: string | null
 
@@ -92,7 +94,7 @@ type ProductImage = {
 type ProductVariant = {
   id: string
   productId: string
-  type: "COLOR" | "FABRIC" | "MATERIAL" | "SIZE"
+  type: "COLOR" | "FABRIC" | "MATERIAL" | "FINISH" | "SIZE"
   label: string
   value: string
   sku: string | null
@@ -102,6 +104,7 @@ type ProductVariant = {
   colorId: string | null
   fabricId: string | null
   materialId: string | null
+  finishId: string | null
 }
 
 type TaxonomyItem = {
@@ -331,6 +334,7 @@ export default function EditProductPage() {
           ...product,
           status: status ?? product.status,
           price: Number(product.price ?? 0),
+          tradeDiscountPercent: Number(product.tradeDiscountPercent ?? 0),
           originalPrice:
             product.originalPrice === null || product.originalPrice === ""
               ? null
@@ -419,6 +423,7 @@ export default function EditProductPage() {
     colorId: "",
     fabricId: "",
     materialId: "",
+    finishId: "",
     priceDelta: "0",
     quantity: "0",
   })
@@ -532,6 +537,7 @@ export default function EditProductPage() {
           colorId: newVariant.type === "COLOR" ? newVariant.colorId || null : null,
           fabricId: newVariant.type === "FABRIC" ? newVariant.fabricId || null : null,
           materialId: newVariant.type === "MATERIAL" ? newVariant.materialId || null : null,
+          finishId: newVariant.type === "FINISH" ? newVariant.finishId || null : null,
           priceDelta: parseFloat(newVariant.priceDelta) || 0,
           quantity: parseInt(newVariant.quantity, 10) || 0,
         }),
@@ -559,6 +565,7 @@ export default function EditProductPage() {
         colorId: "",
         fabricId: "",
         materialId: "",
+        finishId: "",
         priceDelta: "0",
         quantity: "0",
       })
@@ -753,6 +760,16 @@ export default function EditProductPage() {
                 />
               </Field>
 
+              <Field label="Product Tags">
+                <input
+                  value={typeof product.tags === "string" ? product.tags : Array.isArray(product.tags) ? product.tags.join(", ") : ""}
+                  onChange={(e) => update("tags", e.target.value)}
+                  placeholder="handmade, oak, living room, Ugandan design"
+                  className={inputClass}
+                />
+                <p className="text-xs text-stone-500">Comma-separated terms used for SEO, site search, and product feeds.</p>
+              </Field>
+
               <Field label="Manufacturer">
                 <input
                   value={product.manufacturer ?? ""}
@@ -940,6 +957,19 @@ export default function EditProductPage() {
                   onChange={(e) => update("originalPrice", e.target.value)}
                   className={inputClass}
                 />
+              </Field>
+
+              <Field label="Trade collection discount (%)">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  value={product.tradeDiscountPercent ?? 0}
+                  onChange={(e) => update("tradeDiscountPercent", e.target.value)}
+                  className={inputClass}
+                />
+                <p className="mt-1 text-xs leading-5 text-emerald-800">Shown only to approved Trade members. Public pricing stays unchanged.</p>
               </Field>
 
               <Field label="Currency">
@@ -1173,7 +1203,7 @@ export default function EditProductPage() {
                                 {uploadingImage ? (
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                 ) : (
-                                  "+ Image"
+                                  "+ Swatch image"
                                 )}
                               </button>
                             )}
@@ -1203,6 +1233,7 @@ export default function EditProductPage() {
                       <option value="COLOR">Color</option>
                       <option value="FABRIC">Fabric</option>
                       <option value="MATERIAL">Material</option>
+                      <option value="FINISH">Finish</option>
                       <option value="SIZE">Size</option>
                     </select>
                   </Field>
@@ -1283,6 +1314,25 @@ export default function EditProductPage() {
                         {libraries.materials.map((m) => (
                           <option key={m.id} value={m.id}>
                             {m.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  )}
+
+                  {newVariant.type === "FINISH" && (
+                    <Field label="Linked finish (library)">
+                      <select
+                        value={newVariant.finishId}
+                        onChange={(e) =>
+                          setNewVariant((v) => ({ ...v, finishId: e.target.value }))
+                        }
+                        className={inputClass}
+                      >
+                        <option value="">Custom finish</option>
+                        {libraries.finishes.map((finish) => (
+                          <option key={finish.id} value={finish.id}>
+                            {finish.name}
                           </option>
                         ))}
                       </select>
@@ -1811,7 +1861,7 @@ function DynamicAttributes({
 // import { useEffect, useMemo, useState } from "react"
 // import { useParams, useRouter } from "next/navigation"
 // import Link from "next/link"
-// import { CldUploadWidget } from "next-cloudinary"
+// import { CldUploadWidget } from '@/components/admin/cloudflare-upload-widget'
 // import {
 //   ArrowLeft,
 //   CheckCircle2,
@@ -1822,7 +1872,7 @@ function DynamicAttributes({
 //   Send,
 //   Trash2,
 //   AlertCircle,
-// } from "lucide-react"
+// } from '@/components/ui/luxury-icons'
 
 // type Product = {
 //   id: string

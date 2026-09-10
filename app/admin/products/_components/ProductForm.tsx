@@ -3,14 +3,14 @@
 import React, { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CldUploadWidget } from 'next-cloudinary'
-import { 
-  ArrowLeft, 
-  Save, 
-  Sparkles, 
-  Plus, 
-  Trash2, 
-  CheckCircle2, 
+import { CldUploadWidget } from '@/components/admin/cloudflare-upload-widget'
+import {
+  ArrowLeft,
+  Save,
+  Sparkles,
+  Plus,
+  Trash2,
+  CheckCircle2,
   AlertCircle,
   Package,
   DollarSign,
@@ -20,7 +20,7 @@ import {
   Upload,
   X,
   Image as ImageIcon
-} from 'lucide-react'
+} from '@/components/ui/luxury-icons'
 
 // Cascading Google Taxonomy Categories Data Structure
 const GOOGLE_TAXONOMY_TREE: Record<string, Record<string, string[]>> = {
@@ -135,36 +135,45 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     mpn: initialData?.mpn || '',
     gtin: initialData?.gtin || '',
     brand: initialData?.brand || 'The Revamp UG',
-    department: initialData?.department || '01 — Furniture',
+    department: initialData?.department || '01: Furniture',
     category: initialData?.category || 'Living Room',
     subCategory: initialData?.subCategory || '',
     googleProductCategory: initialData?.googleProductCategory || 'Furniture > Chairs > Armchairs, Recliners & Tilt Chairs',
-    
+
     // Media State
     thumbnailImage: initialPrimaryImage,
        gallery: initialGalleryImages.length > 0 ? initialGalleryImages : [],
-    
+
     price: initialData?.price || '',
+    tradeDiscountPercent: initialData?.tradeDiscountPercent || '0',
     originalPrice: initialData?.originalPrice || '',
     currency: initialData?.currency || 'UGX',
-    
+    weight: initialData?.weight || '',
+    weightUnit: initialData?.weightUnit || 'kg',
+
     condition: initialData?.condition || 'new',
     availability: initialData?.availability || 'in_stock',
+    productType: initialData?.productType || 'standard',
+    customizationEnabled: initialData?.customizationEnabled ?? false,
+    customizationHeading: initialData?.customizationHeading || '',
+    customizationDescription: initialData?.customizationDescription || '',
+    customizationLeadTime: initialData?.customizationLeadTime || '',
+    customizationRequestLabel: initialData?.customizationRequestLabel || 'Request a custom variation',
     inStock: initialData?.inStock ?? true,
     quantity: initialData?.quantity || 0,
     leadTime: initialData?.leadTime || '',
 
     description: initialData?.description || '',
     longDescription: initialData?.longDescription || '',
-    
+
     material: initialData?.material || '',
     materialSwatchUrl: initialData?.materialSwatchUrl || '',
     finish: initialData?.finish || '',
     careInstructions: initialData?.careInstructions || '',
-    whatsIncluded: Array.isArray(initialData?.whatsIncluded) 
-      ? initialData.whatsIncluded.join(', ') 
+    whatsIncluded: Array.isArray(initialData?.whatsIncluded)
+      ? initialData.whatsIncluded.join(', ')
       : (initialData?.whatsIncluded || ''),
-    
+
     seoTitle: initialData?.seoTitle || '',
     seoDescription: initialData?.seoDescription || '',
     featured: initialData?.featured ?? false,
@@ -193,9 +202,11 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     if (formData.name) score += 15
     if (formData.description) score += 15
     if (formData.price) score += 15
-    if (formData.thumbnailImage) score += 20
-    if (formData.sku) score += 15
-    if (formData.googleProductCategory) score += 20
+    if (formData.thumbnailImage) score += 15
+    if (formData.weight && Number(formData.weight) > 0) score += 10
+    if (formData.sku) score += 10
+    if (formData.brand) score += 5
+    if (formData.googleProductCategory) score += 15
     return score
   }
 
@@ -273,9 +284,9 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
       <div className="mx-auto mt-8 max-w-7xl px-6">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          
+
           <div className="space-y-6 lg:col-span-8">
-            
+
             {/* Tab Navigation */}
             <div className="flex flex-wrap border-b border-stone-200 bg-white px-4 pt-2 shadow-sm rounded-t-xl">
               {[
@@ -358,7 +369,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
             {/* TAB 2: MEDIA (CLOUDINARY) */}
             {activeTab === 'media' && (
               <div className="space-y-6 rounded-b-xl border border-t-0 border-stone-200 bg-white p-6 shadow-sm">
-                
+
                 {/* Primary Cover Upload */}
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-2">Primary Cover / Thumbnail Image *</label>
@@ -465,6 +476,53 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     />
                   </div>
                 </div>
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-4">
+                  <label className="block text-xs font-semibold text-emerald-950">Trade collection discount (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={formData.tradeDiscountPercent}
+                    onChange={(e) => setFormData({ ...formData, tradeDiscountPercent: e.target.value })}
+                    className="mt-1.5 w-full rounded-lg border border-emerald-300 bg-white p-2.5 text-sm font-mono"
+                  />
+                  <p className="mt-2 text-xs leading-5 text-emerald-900/75">This discount is visible only to approved trade members in Trade Collections. Public retail pricing remains unchanged.</p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="grid gap-2 text-xs font-semibold text-stone-700">Product type
+                    <select value={formData.productType} onChange={(e) => setFormData({ ...formData, productType: e.target.value })} className="min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-sm font-normal">
+                      <option value="standard">Standard</option><option value="made_to_order">Made to order</option><option value="custom_bespoke">Custom / bespoke</option><option value="sourced_on_request">Sourced on request</option><option value="pre_order">Pre-order</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-2 text-xs font-semibold text-stone-700">Availability
+                    <select value={formData.availability} onChange={(e) => setFormData({ ...formData, availability: e.target.value })} className="min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-sm font-normal">
+                      <option value="in_stock">In stock</option><option value="out_of_stock">Out of stock</option><option value="made_to_order">Made to order</option><option value="pre_order">Pre-order</option><option value="available_on_request">Available on request</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="rounded-xl border border-stone-300 bg-stone-50 p-4 sm:p-5">
+                  <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-stone-800"><input type="checkbox" checked={formData.customizationEnabled} onChange={(e) => setFormData({ ...formData, customizationEnabled: e.target.checked })} className="mt-0.5 size-4 accent-amber-700" /><span>Show customization panel on the product page<span className="mt-1 block text-xs font-normal leading-5 text-stone-500">Made-to-order and bespoke products show this automatically. Enable it for other products that can be tailored.</span></span></label>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <label className="grid gap-2 text-xs font-semibold text-stone-700">Customization heading<input value={formData.customizationHeading} onChange={(e) => setFormData({ ...formData, customizationHeading: e.target.value })} placeholder="Made for your space" className="min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-sm font-normal" /></label>
+                    <label className="grid gap-2 text-xs font-semibold text-stone-700">Lead time wording<input value={formData.customizationLeadTime} onChange={(e) => setFormData({ ...formData, customizationLeadTime: e.target.value })} placeholder="8 to 12 weeks" className="min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-sm font-normal" /></label>
+                  </div>
+                  <label className="mt-4 grid gap-2 text-xs font-semibold text-stone-700">Customization description<textarea rows={3} value={formData.customizationDescription} onChange={(e) => setFormData({ ...formData, customizationDescription: e.target.value })} placeholder="Tell customers what can be tailored and how the studio will confirm the final specification." className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-normal" /></label>
+                  <label className="mt-4 grid gap-2 text-xs font-semibold text-stone-700">Customization action label<input value={formData.customizationRequestLabel} onChange={(e) => setFormData({ ...formData, customizationRequestLabel: e.target.value })} className="min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-sm font-normal" /></label>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700">Shipping weight *</label>
+                    <input type="number" min="0.001" step="0.001" value={formData.weight} onChange={(e) => setFormData({ ...formData, weight: e.target.value })} placeholder="e.g. 12.500" className="mt-1.5 w-full rounded-lg border border-stone-300 p-2.5 text-sm font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700">Weight unit *</label>
+                    <select value={formData.weightUnit} onChange={(e) => setFormData({ ...formData, weightUnit: e.target.value })} className="mt-1.5 w-full rounded-lg border border-stone-300 bg-white p-2.5 text-sm">
+                      <option value="kg">Kilograms (kg)</option><option value="g">Grams (g)</option><option value="lb">Pounds (lb)</option><option value="oz">Ounces (oz)</option>
+                    </select>
+                  </div>
+                </div>
+                <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">Google Merchant readiness: {googleScore}%. A real cover image, valid shipping weight, brand, SKU, category, description, and price are required before API sync.</p>
               </div>
             )}
 
@@ -537,7 +595,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
             {/* TAB 5: VARIANTS & SWATCHES */}
             {activeTab === 'variants' && (
               <div className="space-y-6 rounded-b-xl border border-t-0 border-stone-200 bg-white p-6 shadow-sm">
-                
+
                 {/* COLOR SWATCHES */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -551,7 +609,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     </button>
                   </div>
 
-                  {(Array.isArray(formData.colors) ? formData.colors : []).map((color, idx) => ( 
+                  {(Array.isArray(formData.colors) ? formData.colors : []).map((color, idx) => (
                     <div key={idx} className="mt-3 flex items-center gap-3 rounded-lg border border-stone-200 p-3 bg-stone-50">
                       <input
                         type="text"
@@ -646,7 +704,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                     </button>
                   </div>
 
-                  {(Array.isArray(formData.fabrics) ? formData.fabrics : []).map((fabric, idx) => ( 
+                  {(Array.isArray(formData.fabrics) ? formData.fabrics : []).map((fabric, idx) => (
                     <div key={idx} className="mt-3 flex items-center gap-3 rounded-lg border border-stone-200 p-3 bg-stone-50">
                       <input
                         type="text"
@@ -903,13 +961,13 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 // import { useState, useTransition } from 'react'
 // import { useRouter } from 'next/navigation'
 // import Link from 'next/link'
-// import { 
-//   ArrowLeft, 
-//   Save, 
-//   Sparkles, 
-//   Plus, 
-//   Trash2, 
-//   CheckCircle2, 
+// import {
+//   ArrowLeft,
+//   Save,
+//   Sparkles,
+//   Plus,
+//   Trash2,
+//   CheckCircle2,
 //   AlertCircle,
 //   Package,
 //   DollarSign,
@@ -917,7 +975,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 //   Layers,
 //   Search,
 //   FileText
-// } from 'lucide-react'
+// } from '@/components/ui/luxury-icons'
 
 // interface ProductFormProps {
 //   initialData?: any
@@ -938,15 +996,15 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 //     mpn: initialData?.mpn || '',
 //     gtin: initialData?.gtin || '',
 //     brand: initialData?.brand || 'The Revamp UG',
-//     department: initialData?.department || '01 — Furniture',
+//     department: initialData?.department || '01: Furniture',
 //     category: initialData?.category || 'Living Room',
 //     subCategory: initialData?.subCategory || '',
 //     googleProductCategory: initialData?.googleProductCategory || 'Furniture > Chairs > Armchairs',
-    
+
 //     price: initialData?.price || '',
 //     originalPrice: initialData?.originalPrice || '',
 //     currency: initialData?.currency || 'UGX',
-    
+
 //     condition: initialData?.condition || 'new',
 //     availability: initialData?.availability || 'in_stock',
 //     inStock: initialData?.inStock ?? true,
@@ -955,14 +1013,14 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
 //     description: initialData?.description || '',
 //     longDescription: initialData?.longDescription || '',
-    
+
 //     material: initialData?.material || '',
 //     finish: initialData?.finish || '',
 //     careInstructions: initialData?.careInstructions || '',
 //     whatsIncluded: initialData?.whatsIncluded?.join(', ') || '',
 //     weight: initialData?.weight || '',
 //     weightUnit: initialData?.weightUnit || 'kg',
-    
+
 //     seoTitle: initialData?.seoTitle || '',
 //     seoDescription: initialData?.seoDescription || '',
 //     featured: initialData?.featured ?? false,
@@ -1083,10 +1141,10 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
 //       <div className="mx-auto mt-8 max-w-7xl px-6">
 //         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          
+
 //           {/* Main Form Tabs (8 Columns) */}
 //           <div className="space-y-6 lg:col-span-8">
-            
+
 //             {/* Tab Navigation */}
 //             <div className="flex flex-wrap border-b border-stone-200 bg-white px-4 pt-2 shadow-sm rounded-t-xl">
 //               {[
@@ -1435,7 +1493,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
 //           {/* Sidebar Widgets (4 Columns) */}
 //           <div className="space-y-6 lg:col-span-4">
-            
+
 //             {/* Google Merchant Readiness Scorecard Widget */}
 //             <div className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
 //               <div className="flex items-center justify-between">

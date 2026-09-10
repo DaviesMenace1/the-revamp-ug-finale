@@ -14,32 +14,31 @@ import {
   Mail,
   Phone,
   CreditCard,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Truck,
-} from 'lucide-react'
+} from '@/components/ui/luxury-icons'
 import { updateOrderStatus, deleteOrder } from '@/lib/actions/orders'
+import { formatMoney } from '@/lib/utils'
+import { getOrderItemOptionLines } from '@/lib/orders/order-item-options'
 
 const STATUS_COLORS: Record<string, string> = {
-  completed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  confirmed: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   paid: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   pending: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
   processing: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
   shipped: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
   delivered: 'bg-teal-500/10 text-teal-600 border-teal-500/20',
-  failed: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
   cancelled: 'bg-muted text-muted-foreground border-border',
 }
 
-export default function OrdersClient({ initialOrders = [] }: { initialOrders: any[] }) {
+export default function OrdersClient({ initialOrders = [], loadError = null }: { initialOrders: any[]; loadError?: string | null }) {
   const [ordersList, setOrdersList] = useState(initialOrders)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
+  type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     startTransition(async () => {
       const res = await updateOrderStatus(orderId, newStatus)
       if (res.success) {
@@ -68,8 +67,10 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
   const filteredOrders = ordersList.filter((order) => {
     const matchesSearch =
       order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.shippingAddress?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      order.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customerEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${order.customerFirstName || ''} ${order.customerLastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.deliveryAddress?.name?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter
 
@@ -77,11 +78,13 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
   })
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen space-y-8 bg-muted/30 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+      {loadError && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground"><span>{loadError}</span><button type="button" onClick={() => window.location.reload()} className="font-medium text-primary underline underline-offset-4">Retry</button></div>}
       {/* Top Title Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b">
         <div>
-          <h1 className="font-serif text-3xl font-normal text-foreground">Orders & Fulfillment</h1>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-primary">The Revamp operations · 03</p>
+          <h1 className="mt-3 font-serif text-5xl font-normal leading-none text-foreground">Orders & Fulfillment</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Track customer checkout transactions, payment statuses, and shipping fulfillment
           </p>
@@ -101,7 +104,7 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
-          {['all', 'completed', 'pending', 'processing', 'shipped', 'delivered', 'failed'].map(
+          {['all', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'].map(
             (status) => (
               <button
                 key={status}
@@ -120,7 +123,7 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
       </div>
 
       {/* Orders Table */}
-      <div className="border border-border/40 rounded-none bg-background overflow-x-auto shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-border/70 bg-background shadow-soft">
         <table className="w-full text-left text-sm">
           <thead className="bg-muted/40 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border/30">
             <tr>
@@ -141,7 +144,7 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
               </tr>
             ) : (
               filteredOrders.map((order) => {
-                const address = order.shippingAddress || {}
+                const address = order.deliveryAddress || {}
                 const itemsCount = order.items?.length || 0
 
                 return (
@@ -158,9 +161,9 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
 
                     {/* Customer Info */}
                     <td className="py-3 px-4">
-                      <div className="font-medium text-foreground">{address.name || 'N/A'}</div>
+                      <div className="font-medium text-foreground">{[order.customerFirstName, order.customerLastName].filter(Boolean).join(' ') || address.name || order.customerEmail || 'N/A'}</div>
                       <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                        {order.userEmail}
+                        {order.customerEmail || order.userId}
                       </div>
                     </td>
 
@@ -175,25 +178,24 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
 
                     {/* Total Amount */}
                     <td className="py-3 px-4 font-mono text-sm font-medium">
-                      {order.currency || 'USD'} ${Number(order.totalAmount).toLocaleString()}
+                      {formatMoney(order.total, order.currency || 'UGX')}
                     </td>
 
                     {/* Status Select Badge */}
                     <td className="py-3 px-4">
                       <select
                         value={order.status}
-                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                        onChange={(e) => handleStatusChange(order.id, e.target.value as OrderStatus)}
                         disabled={isPending}
                         className={`text-[11px] font-semibold tracking-wider uppercase px-2 py-1 border rounded-none cursor-pointer focus:outline-none ${
                           STATUS_COLORS[order.status] || STATUS_COLORS.pending
                         }`}
                       >
                         <option value="pending">Pending</option>
-                        <option value="completed">Completed / Paid</option>
+                        <option value="confirmed">Confirmed / Paid</option>
                         <option value="processing">Processing</option>
                         <option value="shipped">Shipped</option>
                         <option value="delivered">Delivered</option>
-                        <option value="failed">Failed</option>
                         <option value="cancelled">Cancelled</option>
                       </select>
                     </td>
@@ -231,11 +233,11 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
 
       {/* Order Details Modal Drawer */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl bg-background border-border p-6 shadow-2xl max-h-[90vh] overflow-y-auto rounded-none relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4 backdrop-blur-sm">
+          <Card className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border-border bg-background p-6 shadow-lift">
             <button
               onClick={() => setSelectedOrder(null)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-3 flex size-11 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <X className="w-5 h-5" />
             </button>
@@ -257,22 +259,23 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
             </div>
 
             <div className="grid md:grid-cols-2 gap-6 mb-6 text-sm">
-              {/* Shipping Address */}
+              {/* Delivery details */}
               <div className="space-y-2 border p-4 bg-muted/10">
                 <h3 className="font-medium text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-primary" /> Shipping Address
+                  <MapPin className="w-4 h-4 text-primary" /> {selectedOrder.deliveryAddress?.deliveryMethod === 'pickup_station' ? 'Pickup Station' : 'Shipping Address'}
                 </h3>
-                <p className="font-semibold">{selectedOrder.shippingAddress?.name}</p>
-                <p className="text-muted-foreground text-xs">{selectedOrder.shippingAddress?.address}</p>
-                <p className="text-muted-foreground text-xs">
-                  {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.country}
-                </p>
-                <p className="text-muted-foreground text-xs flex items-center gap-1 pt-1">
-                  <Phone className="w-3 h-3" /> {selectedOrder.shippingAddress?.phone || 'N/A'}
-                </p>
-                <p className="text-muted-foreground text-xs flex items-center gap-1">
-                  <Mail className="w-3 h-3" /> {selectedOrder.userEmail}
-                </p>
+                {selectedOrder.deliveryAddress?.deliveryMethod === 'pickup_station' && selectedOrder.deliveryAddress?.pickupStation && typeof selectedOrder.deliveryAddress.pickupStation === 'object' ? <>
+                  <p className="font-semibold">{(selectedOrder.deliveryAddress.pickupStation as Record<string, unknown>).name as string || 'Pickup station'}</p>
+                  <p className="text-muted-foreground text-xs">{(selectedOrder.deliveryAddress.pickupStation as Record<string, unknown>).address as string || selectedOrder.deliveryAddress.address}</p>
+                  <p className="text-muted-foreground text-xs">{(selectedOrder.deliveryAddress.pickupStation as Record<string, unknown>).city as string || selectedOrder.deliveryAddress.city}</p>
+                  {(selectedOrder.deliveryAddress.pickupStation as Record<string, unknown>).instructions && <p className="text-primary text-xs">{(selectedOrder.deliveryAddress.pickupStation as Record<string, unknown>).instructions as string}</p>}
+                </> : <>
+                  <p className="font-semibold">{selectedOrder.deliveryAddress?.name}</p>
+                  <p className="text-muted-foreground text-xs">{selectedOrder.deliveryAddress?.address}</p>
+                  <p className="text-muted-foreground text-xs">{selectedOrder.deliveryAddress?.city}, {selectedOrder.deliveryAddress?.country}</p>
+                </>}
+                <p className="text-muted-foreground text-xs flex items-center gap-1 pt-1"><Phone className="w-3 h-3" /> {selectedOrder.deliveryAddress?.phone || 'N/A'}</p>
+                <p className="text-muted-foreground text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {selectedOrder.customerEmail || selectedOrder.userId}</p>
               </div>
 
               {/* Payment Summary */}
@@ -293,7 +296,7 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
                 <div className="flex justify-between text-sm font-medium pt-3 border-t">
                   <span>Total Amount Paid:</span>
                   <span className="font-mono text-primary font-bold">
-                    {selectedOrder.currency} ${Number(selectedOrder.totalAmount).toLocaleString()}
+                    UGX {Number(selectedOrder.total).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -305,27 +308,23 @@ export default function OrdersClient({ initialOrders = [] }: { initialOrders: an
                 <Package className="w-4 h-4 text-primary" /> Ordered Items ({selectedOrder.items?.length || 0})
               </h3>
               <div className="border divide-y">
-                {selectedOrder.items?.map((item: any, idx: number) => (
-                  <div key={idx} className="p-3 flex items-center gap-4 text-sm">
-                    {item.image && (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-12 h-12 object-cover border"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Unit Price: ${Number(item.price).toLocaleString()}
-                      </p>
+                {selectedOrder.items?.map((item: any, idx: number) => {
+                  const optionLines = getOrderItemOptionLines(item)
+                  return (
+                    <div key={idx} className="flex items-start gap-4 p-3 text-sm">
+                      {item.image && <img src={item.image} alt={item.name} className="h-12 w-12 shrink-0 border object-cover" />}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-foreground">{item.name}</p>
+                        {optionLines.length > 0 && <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">{optionLines.map((line) => <p key={line}>{line}</p>)}</div>}
+                        <p className="mt-1 text-xs text-muted-foreground">Unit Price: {formatMoney(item.unitPrice ?? item.price ?? 0, item.currency || selectedOrder.currency || 'UGX')}</p>
+                      </div>
+                      <div className="shrink-0 text-right font-mono">
+                        <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                        <p className="font-semibold">{formatMoney(Number(item.unitPrice ?? item.price ?? 0) * Number(item.quantity || 0), item.currency || selectedOrder.currency || 'UGX')}</p>
+                      </div>
                     </div>
-                    <div className="text-right font-mono">
-                      <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                      <p className="font-semibold">${(item.price * item.quantity).toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 

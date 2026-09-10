@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight } from '@/components/ui/luxury-icons'
 import { cn } from '@/lib/utils'
 
 const testimonials = [
@@ -43,7 +43,7 @@ export function TestimonialsSection() {
           {/* Left: quote */}
           <div>
             <div className="gold-line" />
-            <p className="font-serif text-3xl md:text-4xl font-light text-foreground leading-snug mb-10 italic">
+            <p className="font-serif text-3xl md:text-4xl font-light text-foreground leading-snug mb-10 font-serif">
               &ldquo;{t.quote}&rdquo;
             </p>
             {/* Author */}

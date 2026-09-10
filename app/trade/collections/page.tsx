@@ -3,31 +3,34 @@ import { db } from '@/lib/db/client'
 import { products, tradeMembers } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import TradeCollectionsClient from './trade-collections-client'
+import { resolveProductImageUrls } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
 export default async function TradeCollections() {
   const user = await requirePortalUser(['trade_member', 'admin'], '/trade/collections')
+  const member = await db.query.tradeMembers.findFirst({ where: eq(tradeMembers.userId, user.id) })
+  const approved = user.role === 'admin' || member?.status === 'approved' || member?.status === 'active'
 
-  const [member, allProducts] = await Promise.all([
-    db.query.tradeMembers.findFirst({ where: eq(tradeMembers.userId, user.id) }),
-    db.query.products.findMany({
-      where: eq(products.status, 'published'),
-      orderBy: [desc(products.createdAt)],
-      with: { productImages: true },
-    }),
-  ])
+  if (!approved) {
+    return <TradeCollectionsClient products={[]} memberName={member?.businessName || null} accessState={member?.status === 'pending' ? 'pending' : 'restricted'} />
+  }
 
-  const discountRate = member?.discountRate ? Number(member.discountRate) : 10
+  const allProducts = await db.query.products.findMany({
+    where: eq(products.status, 'published'),
+    orderBy: [desc(products.createdAt)],
+    with: { productImages: true },
+  })
 
-  const formatted = allProducts.map((p) => ({
-    id: p.id,
-    slug: p.slug,
-    name: p.name,
-    price: Number(p.price),
-    currency: p.currency,
-    image: p.productImages?.find((img) => img.isPrimary)?.url || p.productImages?.[0]?.url || null,
+  const formatted = allProducts.map((product) => ({
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    price: Number(product.price),
+    tradeDiscountPercent: Number(product.tradeDiscountPercent || 0),
+    currency: product.currency,
+    image: resolveProductImageUrls(product)[0],
   }))
 
-  return <TradeCollectionsClient products={formatted} discountRate={discountRate} />
+  return <TradeCollectionsClient products={formatted} memberName={member?.businessName || null} accessState="approved" />
 }

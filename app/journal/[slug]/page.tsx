@@ -1,237 +1,49 @@
-import { SiteHeader } from '@/components/site-header'
-import { SiteFooter } from '@/components/site-footer'
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import type { Metadata } from 'next'
-import { SchemaScript } from '@/components/seo/schema-script'
-import { generateArticleSchema } from '@/lib/seo/schema-generator'
+import { desc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { articles } from '@/lib/db/schema'
-import { eq, ne, and, desc } from 'drizzle-orm'
+import { articles, projects, services } from '@/lib/db/schema'
+import { SiteHeader } from '@/components/site-header'
+import { SiteFooter } from '@/components/site-footer'
+import { ArrowLeft, ArrowRight, ArrowUpRight, Eye, Heart, Star } from '@/components/ui/luxury-icons'
+import ArticleShareActions from '@/app/journal/article-share-actions'
 
-export const dynamic = 'force-dynamic'
+async function getArticle(slug: string) { const rows = await db.select().from(articles).where(eq(articles.slug, slug)).limit(1); return rows[0] }
+async function getPublishedArticles() { return db.select().from(articles).where(eq(articles.status, 'published')).orderBy(desc(articles.publishedAt)).limit(100) }
+async function getPublishedProjects() { return db.select().from(projects).where(eq(projects.publishStatus, 'published')).orderBy(desc(projects.createdAt)).limit(100) }
+async function getPublishedServices() { return db.select().from(services).where(eq(services.status, 'published')).orderBy(desc(services.order)).limit(100) }
+function articleDate(value: Date | null) { return new Date(value || new Date()).toLocaleDateString('en-UG', { day: 'numeric', month: 'short', year: 'numeric' }) }
+function readTime(content: string) { return `${Math.max(1, Math.round((content || '').split(/\s+/).filter(Boolean).length / 200))} min read` }
+function imagesFor(article: any) { return [article.featuredImage, ...(Array.isArray(article.gallery) ? article.gallery : [])].filter((value): value is string => typeof value === 'string' && value.trim().length > 0) }
+function valuesFrom(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [] }
+function field(object: Record<string, unknown>, names: string[]) { for (const name of names) { const value = object[name]; if (typeof value === 'string' && value.trim()) return value } return '' }
+function structuredSections(value: unknown) { return Array.isArray(value) ? value : [] }
 
-const DEFAULT_IMAGE =
-  'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg'
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> { const { slug } = await params; const article = await getArticle(slug); return { title: article?.seoTitle || (article ? `${article.title} | The Revamp UG Journal` : 'Journal | The Revamp UG'), description: article?.seoDescription || article?.excerpt || article?.introduction || 'An entry from The Revamp UG Journal.', keywords: [article?.category, ...valuesFrom(article?.tags)].filter((value): value is string => Boolean(value)) } }
 
-interface ArticlePageProps {
-  params: Promise<{ slug: string }>
-}
-
-export async function generateStaticParams() {
-  const published = await db
-    .select({ slug: articles.slug })
-    .from(articles)
-    .where(eq(articles.status, 'published'))
-
-  return published.map((a) => ({ slug: a.slug }))
-}
-
-export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
+export default async function JournalDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const article = await db.query.articles.findFirst({ where: eq(articles.slug, slug) })
+  const article = await getArticle(slug)
+  if (!article || article.status !== 'published') notFound()
 
-  if (!article) {
-    return {
-      title: 'Article Not Found',
-      description: 'This article could not be found',
-    }
-  }
+  const [allArticles, allProjects, allServices] = await Promise.all([getPublishedArticles(), getPublishedProjects(), getPublishedServices()])
+  const relatedArticleIds = valuesFrom(article.relatedArticles)
+  const relatedProjectIds = valuesFrom(article.relatedProjects)
+  const relatedServiceIds = valuesFrom(article.relatedServices)
+  const relatedArticles = allArticles.filter((item) => relatedArticleIds.includes(item.id) || relatedArticleIds.includes(item.slug)).filter((item) => item.id !== article.id).slice(0, 3)
+  const relatedProjects = allProjects.filter((item) => relatedProjectIds.includes(item.id) || relatedProjectIds.includes(item.slug)).slice(0, 3)
+  const relatedServices = allServices.filter((item) => relatedServiceIds.includes(item.id) || relatedServiceIds.includes(item.slug)).slice(0, 3)
+  const media = imagesFor(article)
+  const tags = valuesFrom(article.tags)
+  const sections = structuredSections(article.storySections)
+  const quotes = structuredSections(article.pullQuotes)
+  const wordCount = article.content.split(/\s+/).filter(Boolean).length
+  const displayDate = articleDate(article.publishedAt || article.createdAt)
 
-  const description = (article.content || article.excerpt || '').substring(0, 160)
-
-  return {
-    title: article.title,
-    description,
-    openGraph: {
-      title: article.title,
-      description,
-      type: 'article',
-      publishedTime: (article.publishedAt || article.createdAt).toISOString(),
-      authors: article.author ? [article.author] : [],
-      tags: article.category ? [article.category] : [],
-      images: article.featuredImage ? [{ url: article.featuredImage }] : [],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: article.title,
-      description,
-      images: article.featuredImage ? [article.featuredImage] : [],
-    },
-  }
+  return <><SiteHeader /><main className="bg-canvas text-obsidian"><article><header className="mx-auto max-w-[1440px] px-5 pb-10 pt-16 sm:px-8 sm:pb-14 sm:pt-24 lg:px-12"><div className="flex flex-wrap items-center justify-between gap-5"><Link href="/journal" className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3" /> Back to journal</Link><ArticleShareActions /></div><div className="mx-auto mt-16 max-w-4xl text-center"><p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">{article.category || 'Journal'}</p><h1 className="mt-5 font-serif text-6xl font-light leading-[0.86] sm:text-8xl">{article.title}</h1>{(article.excerpt || article.introduction) && <p className="mx-auto mt-7 max-w-2xl text-lg leading-7 text-muted-foreground">{article.excerpt || article.introduction}</p>}<div className="mt-7 flex flex-wrap justify-center gap-x-3 gap-y-2 text-[10px] uppercase tracking-[0.15em] text-muted-foreground"><span>{article.author ? `By ${article.author}` : 'The Revamp UG'}</span><span>|</span><span>{displayDate}</span><span>|</span><span>{readTime(article.content)}</span></div>{tags.length > 0 && <div className="mt-5 flex flex-wrap justify-center gap-2">{tags.map((tag) => <span key={tag} className="rounded-full border border-border px-3 py-1 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">{tag}</span>)}</div>}</div></header>{media[0] && <div className="relative mx-auto aspect-[16/8] max-w-[1440px] overflow-hidden bg-muted"><Image src={media[0]} alt={article.title} fill priority sizes="100vw" className="object-cover" /></div>}<div className="mx-auto grid max-w-[1200px] gap-12 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:px-12"><aside className="lg:sticky lg:top-28 lg:self-start"><div className="flex flex-wrap gap-5 border-y border-border py-5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground"><span className="inline-flex items-center gap-2"><Eye className="size-3" />{(article.views || 0).toLocaleString('en-UG')}</span><span className="inline-flex items-center gap-2"><Heart className="size-3" />{(article.likes || 0).toLocaleString('en-UG')}</span><span className="inline-flex items-center gap-2"><Star className="size-3" />{article.rating ? `${article.rating} (${article.ratingCount || 0})` : 'Unrated'}</span></div><p className="mt-6 text-xs leading-6 text-muted-foreground">{wordCount.toLocaleString('en-UG')} words · {readTime(article.content)}</p>{media.length > 1 && <div className="mt-8 grid grid-cols-2 gap-2">{media.slice(1, 5).map((image, index) => <div key={`${image}-${index}`} className="relative aspect-square overflow-hidden bg-muted"><Image src={image} alt={`${article.title} detail ${index + 2}`} fill sizes="160px" className="object-cover" /></div>)}</div>}</aside><div className="min-w-0"><div className="mb-10 border-b border-border pb-10"><p className="font-serif text-3xl leading-tight sm:text-4xl">{article.introduction || article.excerpt || 'A considered note from the studio.'}</p></div>{sections.length > 0 && <div className="space-y-12">{sections.map((section, index) => <StorySection key={index} section={section} index={index} />)}</div>}{quotes.length > 0 && <div className="my-14 space-y-6">{quotes.map((quote, index) => <PullQuote key={index} quote={quote} />)}</div>}<div className="whitespace-pre-wrap text-[16px] leading-8 text-foreground">{article.content}</div></div></div></article>{(relatedArticles.length > 0 || relatedProjects.length > 0 || relatedServices.length > 0) && <section className="border-t border-border px-5 py-14 sm:px-8 sm:py-20 lg:px-12"><div className="mx-auto max-w-[1200px]"><p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Continue exploring</p><h2 className="mt-4 font-serif text-5xl leading-none">More from the studio.</h2><div className="mt-10 grid gap-5 md:grid-cols-3">{relatedArticles.map((item) => <Link key={item.id} href={`/journal/${item.slug}`} className="group"><div className="relative aspect-[4/3] overflow-hidden bg-muted">{item.featuredImage && <Image src={item.featuredImage} alt={item.title} fill sizes="33vw" className="object-cover transition duration-500 group-hover:scale-105" />}</div><p className="mt-4 text-[9px] uppercase tracking-[0.16em] text-muted-foreground">{item.category || 'Journal'}</p><h3 className="mt-2 font-serif text-2xl leading-none">{item.title}</h3><span className="mt-4 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]">Read more <ArrowUpRight className="size-3" /></span></Link>)}{relatedProjects.map((item) => <Link key={item.id} href={`/portfolio/${item.slug}`} className="group"><div className="relative aspect-[4/3] overflow-hidden bg-muted">{item.thumbnailImage && <Image src={item.thumbnailImage} alt={item.title} fill sizes="33vw" className="object-cover transition duration-500 group-hover:scale-105" />}</div><p className="mt-4 text-[9px] uppercase tracking-[0.16em] text-muted-foreground">Project story</p><h3 className="mt-2 font-serif text-2xl leading-none">{item.title}</h3><span className="mt-4 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]">View project <ArrowUpRight className="size-3" /></span></Link>)}{relatedServices.map((item) => <Link key={item.id} href="/services" className="group"><div className="relative aspect-[4/3] overflow-hidden bg-muted">{item.image && <Image src={item.image} alt={item.name} fill sizes="33vw" className="object-cover transition duration-500 group-hover:scale-105" />}</div><p className="mt-4 text-[9px] uppercase tracking-[0.16em] text-muted-foreground">Studio service</p><h3 className="mt-2 font-serif text-2xl leading-none">{item.name}</h3><span className="mt-4 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]">Explore service <ArrowUpRight className="size-3" /></span></Link>)}</div></div></section>}<SiteFooter /></main></>
 }
 
-export default async function ArticlePage({ params }: ArticlePageProps) {
-  const { slug } = await params
-
-  const article = await db.query.articles.findFirst({ where: eq(articles.slug, slug) })
-
-  if (!article || article.status !== 'published') {
-    notFound()
-  }
-
-  const sameCategory = article.category
-    ? await db
-        .select()
-        .from(articles)
-        .where(
-          and(
-            eq(articles.status, 'published'),
-            eq(articles.category, article.category),
-            ne(articles.id, article.id),
-          ),
-        )
-        .orderBy(desc(articles.publishedAt))
-        .limit(2)
-    : []
-
-  let relatedArticles = sameCategory
-
-  if (relatedArticles.length < 2) {
-    const fallback = await db
-      .select()
-      .from(articles)
-      .where(and(eq(articles.status, 'published'), ne(articles.id, article.id)))
-      .orderBy(desc(articles.publishedAt))
-      .limit(2 - relatedArticles.length + relatedArticles.length)
-
-    const existingIds = new Set(relatedArticles.map((a) => a.id))
-    const additional = fallback.filter((a) => !existingIds.has(a.id))
-    relatedArticles = [...relatedArticles, ...additional].slice(0, 2)
-  }
-
-  const readTime = (content: string | null) => {
-    const wordCount = (content || '').split(/\s+/).filter(Boolean).length
-    return `${Math.max(1, Math.round(wordCount / 200))} min read`
-  }
-
-  const publishedDate = article.publishedAt || article.createdAt
-
-  const articleSchema = generateArticleSchema({
-    headline: article.title,
-    description: (article.content || article.excerpt || '').substring(0, 160),
-    image:
-      article.featuredImage ||
-      `https://therevampug.com/api/og?title=${encodeURIComponent(article.title)}`,
-    datePublished: publishedDate.toISOString(),
-    author: article.author || 'The Revamp UG',
-    category: article.category || 'Journal',
-  })
-
-  const contentParagraphs = (article.content || '')
-    .split(/\n\s*\n/)
-    .map((block) => block.trim())
-    .filter(Boolean)
-
-  return (
-    <>
-      <SchemaScript schema={articleSchema} />
-      <SiteHeader />
-      <main className="min-h-screen bg-background">
-        <section className="border-b border-border/20 py-16 md:py-20">
-          <div className="mx-auto max-w-3xl px-6 md:px-8 space-y-6">
-            <Link
-              href="/journal"
-              className="inline-flex items-center gap-2 text-sm font-light text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back to Journal
-            </Link>
-
-            <div className="space-y-4">
-              <p className="uppercase text-xs font-medium text-primary/80 tracking-wider">
-                {article.category || 'Journal'}
-              </p>
-              <h1 className="font-serif text-5xl md:text-6xl font-light text-foreground leading-tight">
-                {article.title}
-              </h1>
-            </div>
-
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground font-light border-t border-border/20 pt-6">
-              <span>{article.author}</span>
-              <span>•</span>
-              <span>
-                {publishedDate.toLocaleDateString('en-US', {
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
-              </span>
-              <span>•</span>
-              <span>{readTime(article.content)}</span>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-b border-border/20">
-          <div className="mx-auto max-w-4xl px-6 md:px-8 py-12">
-            <div className="relative w-full h-96 rounded-lg overflow-hidden">
-              <Image
-                src={article.featuredImage || DEFAULT_IMAGE}
-                alt={article.title}
-                fill
-                className="object-cover"
-                priority
-                sizes="(max-width: 1024px) 100vw, 896px"
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="py-16 md:py-24">
-          <div className="mx-auto max-w-3xl px-6 md:px-8">
-            <article className="prose prose-lg max-w-none font-light">
-              <div className="space-y-6 text-muted-foreground">
-                {contentParagraphs.map((paragraph, idx) => (
-                  <p key={idx} className="leading-relaxed text-base">
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            </article>
-          </div>
-        </section>
-
-        {relatedArticles.length > 0 && (
-          <section className="border-t border-border/20 py-20 md:py-24 bg-muted/5">
-            <div className="mx-auto max-w-7xl px-6 md:px-8">
-              <h2 className="font-serif text-4xl font-light text-foreground mb-12">Related Articles</h2>
-              <div className="grid gap-8 md:grid-cols-2">
-                {relatedArticles.map((related) => (
-                  <Link key={related.slug} href={`/journal/${related.slug}`} className="group">
-                    <article className="space-y-4 cursor-pointer">
-                      <div className="relative w-full h-48 rounded-lg overflow-hidden group-hover:opacity-80 transition-opacity">
-                        <Image
-                          src={related.featuredImage || DEFAULT_IMAGE}
-                          alt={related.title}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="uppercase font-medium text-primary/80 tracking-wider">
-                          {related.category || 'Journal'}
-                        </span>
-                        <span className="text-muted-foreground font-light">
-                          {readTime(related.content)}
-                        </span>
-                      </div>
-                      <h3 className="font-serif text-xl font-light text-foreground group-hover:text-primary transition-colors">
-                        {related.title}
-                      </h3>
-                    </article>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-      </main>
-      <SiteFooter />
-    </>
-  )
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+function StorySection({ section, index }: { section: unknown; index: number }) { if (typeof section === 'string') return <section><p className="text-[16px] leading-8">{section}</p></section>; const data = (section && typeof section === 'object' ? section : {}) as Record<string, unknown>; const title = field(data, ['title', 'heading', 'name']) || `Part ${String(index + 1).padStart(2, '0')}`; const body = field(data, ['body', 'text', 'content', 'description']); const image = field(data, ['image', 'imageUrl', 'featuredImage', 'media']); const caption = field(data, ['caption', 'imageCaption']); return <section className="grid gap-6 border-t border-border pt-8 sm:grid-cols-[0.35fr_0.65fr]">{image && <div className="relative aspect-[4/3] overflow-hidden bg-muted sm:col-span-2"><Image src={image} alt={title} fill sizes="(max-width: 640px) 100vw, 800px" className="object-cover" />{caption && <span className="absolute bottom-3 left-3 bg-canvas/90 px-2 py-1 text-[9px] text-foreground">{caption}</span>}</div>}<p className="font-serif text-3xl leading-none">{title}</p><div className="text-sm leading-7 text-muted-foreground">{body || <pre className="whitespace-pre-wrap font-sans text-xs">{JSON.stringify(section, null, 2)}</pre>}</div></section> }
+function PullQuote({ quote }: { quote: unknown }) { const text = typeof quote === 'string' ? quote : field((quote || {}) as Record<string, unknown>, ['quote', 'text', 'content']); const source = typeof quote === 'object' && quote !== null ? field(quote as Record<string, unknown>, ['author', 'source', 'caption']) : ''; return <blockquote className="border-y border-border py-8 text-center"><p className="font-serif text-4xl leading-tight">“{text || 'A considered way of living.'}”</p>{source && <cite className="mt-4 block text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{source}</cite>}</blockquote> }

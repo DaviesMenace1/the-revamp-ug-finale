@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db/client'
 import { products } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
+import { resolveProductImageUrls } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params
+    const { slug } = await params
 
     if (!slug) {
       return NextResponse.json(
@@ -25,7 +26,11 @@ export async function GET(
       with: {
         productVariants: true, // Color swatches & fabric deltas
         productImages: true,   // Full image gallery
-        subCategory: true,     // Parent taxonomy info
+        subCategory: {
+          with: {
+            template: true,
+          },
+        },
         productReviews: true,         // Customer ratings & comments
       },
     })
@@ -37,7 +42,8 @@ export async function GET(
       )
     }
 
-    return NextResponse.json({ success: true, data: product })
+    const images = resolveProductImageUrls(product)
+    return NextResponse.json({ success: true, data: { ...product, images, thumbnailImage: images[0] } })
   } catch (error: any) {
     console.error('Error fetching product details:', error)
     return NextResponse.json(

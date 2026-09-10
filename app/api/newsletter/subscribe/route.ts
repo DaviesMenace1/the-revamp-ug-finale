@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { subscribers } from '@/lib/db/schema';
-import { subscribeToNewsletter } from '@/lib/brevo/sync';
+import { sendNewsletterWelcomeEmail, subscribeToNewsletter } from '@/lib/brevo/sync';
 import { eq } from 'drizzle-orm';
 
 export async function POST(req: NextRequest) {
@@ -15,11 +15,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     // 1. Check if already subscribed in the database
     const existing = await db
       .select()
       .from(subscribers)
-      .where(eq(subscribers.email, email))
+      .where(eq(subscribers.email, normalizedEmail))
       .limit(1);
 
     if (existing.length > 0) {
@@ -31,15 +33,21 @@ export async function POST(req: NextRequest) {
 
     // 2. Sync subscriber with Brevo
     try {
-      await subscribeToNewsletter(email, firstName, lastName);
+      await subscribeToNewsletter(normalizedEmail, firstName, lastName);
     } catch (brevoError) {
       console.warn('[Brevo] Sync failed, proceeding with DB insert:', brevoError);
     }
 
     // 3. Insert record into PostgreSQL subscribers table
     await db.insert(subscribers).values({
-      email,
+      email: normalizedEmail,
     });
+
+    try {
+      await sendNewsletterWelcomeEmail(normalizedEmail, firstName);
+    } catch (welcomeError) {
+      console.warn('[Brevo] Welcome email failed after subscription:', welcomeError);
+    }
 
     return NextResponse.json(
       { message: 'Successfully subscribed to the newsletter!' },

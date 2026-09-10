@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { v2 as cloudinary } from "cloudinary"
+import { requireAdminApi } from "@/lib/auth/api"
 
 cloudinary.config({
   cloud_name:
@@ -13,6 +14,9 @@ cloudinary.config({
 export async function POST(
   request: Request,
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const formData =
       await request.formData()

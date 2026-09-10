@@ -1,19 +1,25 @@
-import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import Script from 'next/script'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ThemeProvider } from '@/lib/theme-provider'
 import { NewsletterPopup } from '@/components/newsletter-popup'
+import { CookieConsentProvider } from '@/components/privacy/cookie-consent-provider'
+import OneSignalBootstrap from '@/components/notifications/onesignal-bootstrap'
+import ConsentGatedAnalytics from '@/components/analytics/consent-gated-analytics'
 import { CartProvider } from '@/lib/context/cart-context'
+import { FloatingUtilities } from '@/components/floating-utilities'
 import { SchemaScript } from '@/components/seo/schema-script'
-import { generateOrganizationSchema, generateLocalBusinessSchema } from '@/lib/seo/schema-generator'
+import { generateOrganizationSchema, generateLocalBusinessSchema, generateWebSiteSchema } from '@/lib/seo/schema-generator'
+import WebMcpBootstrap from '@/components/agent/webmcp-bootstrap'
+import ClerkRuntimeGuard from '@/components/auth/clerk-runtime-guard'
+import GoogleOneTapPrompt from '@/components/auth/google-one-tap-prompt'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
-  style: ['normal', 'italic'],
+  style: ['normal'],
   variable: '--font-serif',
   display: 'swap',
 })
@@ -25,7 +31,10 @@ const instrument = Instrument_Sans({
   display: 'swap',
 })
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: 'The Revamp UG | Luxury Interior Design & Architecture',
     template: '%s | The Revamp UG',
@@ -38,12 +47,12 @@ export const metadata: Metadata = {
     siteName: 'The Revamp UG',
     title: 'The Revamp UG | Luxury Interior Design & Architecture',
     description: 'Bespoke interior design, architecture, global sourcing, and white-glove installation. Transforming spaces into extraordinary living experiences.',
-    url: 'https://therevampug.com',
+    url: SITE_URL,
     images: [
       {
-        url: 'https://therevampug.com/og-image.png',
-        width: 1200,
-        height: 630,
+        url: `${SITE_URL}/brand/revamp-logo.png`,
+        width: 900,
+        height: 600,
         alt: 'The Revamp UG - Luxury Design House',
       },
     ],
@@ -52,11 +61,10 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'The Revamp UG | Luxury Design House',
     description: 'Interior design, architecture, procurement, and custom furniture services.',
-    creator: '@therevampug',
-    images: ['https://therevampug.com/og-image.png'],
+    images: [`${SITE_URL}/brand/revamp-logo.png`],
   },
   alternates: {
-    canonical: 'https://therevampug.com',
+    canonical: SITE_URL,
   },
   robots: {
     index: true,
@@ -69,32 +77,16 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  generator: 'Davis',
+  manifest: '/site.webmanifest',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
+    icon: [{ url: '/icon-light-32x32.png' }, { url: '/favicon.ico', sizes: 'any' }],
     apple: '/apple-icon.png',
   },
 }
 
 export const viewport: Viewport = {
-  colorScheme: 'light dark',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' },
-  ],
+  colorScheme: 'light',
+  themeColor: '#ffffff',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -104,7 +96,8 @@ export const viewport: Viewport = {
 
 // app/layout.tsx
 
-const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim()
+const hasValidClerkPublishableKey = /^pk_(test|live)_[A-Za-z0-9_]+$/.test(publishableKey ?? '')
 
 export default function RootLayout({
   children,
@@ -112,15 +105,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${instrument.variable} bg-background`}>
+  <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${instrument.variable} bg-background`}>
       <head>
         {/* Theme Script */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const theme = localStorage.getItem('revamp-theme-preference') || 
-                  (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                const theme = localStorage.getItem('revamp-theme-preference') || 'light';
                 if (theme === 'dark') {
                   document.documentElement.classList.add('dark');
                 } else {
@@ -134,6 +126,7 @@ export default function RootLayout({
         
         <SchemaScript schema={generateOrganizationSchema()} />
         <SchemaScript schema={generateLocalBusinessSchema()} />
+        <SchemaScript schema={generateWebSiteSchema()} />
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -146,22 +139,24 @@ export default function RootLayout({
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
         >
-          <CartProvider>
-            <head>
-        {/* Load Flutterwave Inline V3 Script */}
-        <Script
-          src="https://checkout.flutterwave.com/v3.js"
-          strategy="lazyOnload"
-        />
-      </head>
-            <ThemeProvider>{children}</ThemeProvider>
-            <NewsletterPopup />
-          </CartProvider>
-          {process.env.NODE_ENV === 'production' && <Analytics />}
+          <ClerkRuntimeGuard configured={hasValidClerkPublishableKey}>
+            <CookieConsentProvider>
+              <CartProvider>
+                <ThemeProvider>
+                  {children}
+                  <FloatingUtilities />
+                </ThemeProvider>
+                <NewsletterPopup />
+                <OneSignalBootstrap />
+                <ConsentGatedAnalytics />
+                <WebMcpBootstrap />
+              </CartProvider>
+            </CookieConsentProvider>
+          </ClerkRuntimeGuard>
+          {hasValidClerkPublishableKey && <GoogleOneTapPrompt />}
         </ClerkProvider>
-
+        <SpeedInsights />
       </body>
     </html>
   )
 }
-

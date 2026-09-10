@@ -1,44 +1,47 @@
-import { SiteHeader } from '@/components/site-header'
-import { SiteFooter } from '@/components/site-footer'
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import type { Metadata } from 'next'
+import { ArrowLeft, ArrowUpRight, MapPin } from '@/components/ui/luxury-icons'
+import { SiteFooter } from '@/components/site-footer'
+import { SiteHeader } from '@/components/site-header'
 import { SchemaScript } from '@/components/seo/schema-script'
-import { generateProjectSchema } from '@/lib/seo/schema-generator'
+import { generateBreadcrumbSchema, generateProjectSchema } from '@/lib/seo/schema-generator'
+import { projectTemplateFromRecord } from '@/lib/content/section-templates'
 import LikeButton from '@/components/like-button'
-import { getProjectBySlug, getProjects } from '@/lib/db/queries'
+import { getProjectBySlug, getPublishedProjects } from '@/lib/db/queries'
+import { resolveProductImageUrls } from '@/lib/utils'
 
 interface ProjectPageProps {
   params: Promise<{ slug: string }>
 }
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://therevampug.com').replace(/\/$/, '')
+
+
 export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
   const { slug } = await params
   const project = await getProjectBySlug(slug)
 
-  if (!project) {
-    return {
-      title: 'Project Not Found',
-      description: 'This project could not be found',
-    }
-  }
+  if (!project) return { title: 'Project Not Found', description: 'This project could not be found' }
 
-  const heroImage = project.images?.[0] || ''
-
+  const heroImage = resolveProductImageUrls(project)[0]
+  const canonical = `${SITE_URL}/portfolio/${encodeURIComponent(slug)}`
   return {
-    title: `${project.name} | The Revamp UG`,
-    description: project.shortDescription || project.description,
+    title: `${project.title} | The Revamp UG`,
+    alternates: { canonical },
+    description: project.shortDescription || project.description || 'A project by The Revamp UG.',
     openGraph: {
-      title: project.name,
-      description: project.shortDescription || project.description,
+      title: project.title,
+      description: project.shortDescription || project.description || undefined,
       type: 'website',
+      url: canonical,
       images: heroImage ? [{ url: heroImage, width: 1200, height: 630 }] : [],
     },
     twitter: {
       card: 'summary_large_image',
-      title: project.name,
-      description: project.shortDescription || project.description,
+      title: project.title,
+      description: project.shortDescription || project.description || undefined,
       images: heroImage ? [heroImage] : [],
     },
   }
@@ -47,631 +50,79 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
 export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   const { slug } = await params
   const project = await getProjectBySlug(slug)
+  if (!project) notFound()
 
-  if (!project) {
-    notFound()
-  }
-
-  const allProjects = await getProjects(4, 0)
-  const relatedProjects = allProjects.filter((item) => item.slug !== slug).slice(0, 2)
-
-  const heroImage = project.images?.[0] || 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200&q=85&auto=format&fit=crop'
-  const galleryImages = project.images || []
-
+  const allProjects = await getPublishedProjects(100, 0)
+  const relatedProjects = allProjects.filter((item) => item.slug !== slug && item.category === project.category).slice(0, 3)
+  const heroImage = resolveProductImageUrls(project)[0]
+  const galleryImages = resolveProductImageUrls(project).slice(1)
+  const description = project.shortDescription || project.description || 'A considered interior by The Revamp studio.'
+  const storyParagraphs = (project.longDescription || '').split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean)
+  const projectTemplate = projectTemplateFromRecord(project as unknown as Record<string, unknown>)
+  const storySections = projectTemplate.sections
+  const projectUrl = `${SITE_URL}/portfolio/${encodeURIComponent(slug)}`
   const projectSchema = generateProjectSchema({
-    name: project.name,
-    description: project.description,
+    name: project.title,
+    description,
     image: heroImage,
     location: project.location,
     startDate: project.createdAt ? new Date(project.createdAt).toISOString() : new Date().toISOString(),
+    url: projectUrl,
   })
 
   return (
     <>
       <SchemaScript schema={projectSchema} />
+      <SchemaScript schema={generateBreadcrumbSchema([
+        { name: 'Home', url: `${SITE_URL}/` },
+        { name: 'Portfolio', url: `${SITE_URL}/portfolio` },
+        { name: project.title, url: projectUrl },
+      ])} />
       <SiteHeader />
       <main className="min-h-screen bg-background">
-        {/* 1. HERO SECTION */}
-        <section className="relative">
-          <div className="relative h-[65vh] md:h-[80vh] w-full overflow-hidden bg-muted">
-            <Image
-              src={heroImage}
-              alt={project.name}
-              fill
-              priority
-              className="object-cover"
-              sizes="100vw"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-          </div>
-
-          <div className="absolute inset-0 flex items-end">
-            <div className="mx-auto w-full max-w-5xl px-6 md:px-8 pb-12 md:pb-16 z-10">
-              <div className="space-y-4">
-                <Link
-                  href="/portfolio"
-                  className="inline-flex items-center gap-2 text-sm font-light text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Back to Portfolio
-                </Link>
-                <h1 className="font-serif text-5xl md:text-6xl font-light text-foreground">{project.name}</h1>
-                <div className="flex flex-wrap gap-6 text-sm text-muted-foreground font-light">
-                  <span>Client: {project.client}</span>
-                  <span>•</span>
-                  <span>{project.location}</span>
-                  <span>•</span>
-                  <span>{project.year}</span>
-                </div>
+        <section className="relative overflow-hidden bg-obsidian text-ivory">
+          <div className="relative aspect-[4/5] min-h-[32rem] w-full sm:aspect-[16/10] lg:aspect-[16/9]">
+            <Image src={heroImage} alt={project.title} fill priority className="object-cover" sizes="100vw" />
+            <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/25 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 px-5 pb-10 sm:px-8 sm:pb-14 lg:px-16 lg:pb-20">
+              <div className="mx-auto max-w-[1440px] motion-reveal">
+                <Link href="/portfolio" className="inline-flex min-h-11 items-center gap-2 text-xs uppercase tracking-[0.18em] text-ivory/70 transition-colors hover:text-gold"><ArrowLeft className="size-4" />Back to selected work</Link>
+                {project.category && <p className="mt-8 text-[10px] uppercase tracking-[0.3em] text-gold">{project.category}</p>}
+                <h1 className="mt-4 max-w-5xl font-serif text-5xl font-light leading-[0.9] sm:text-7xl lg:text-[8.5rem]">{project.title}</h1>
+                {(project.location || project.year || project.client) && <p className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ivory/65">{project.location && <span className="inline-flex items-center gap-1.5"><MapPin className="size-3.5" />{project.location}</span>}{project.year && <span>{project.year}</span>}{project.client && <span>For {project.client}</span>}</p>}
               </div>
             </div>
           </div>
         </section>
 
-        {/* 2. OVERVIEW */}
-        <section className="border-b border-border/20 py-16 md:py-20">
-          <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <div className="grid md:grid-cols-2 gap-12">
-              <div className="space-y-6">
-                <h2 className="font-serif text-3xl font-light text-foreground">Project Overview</h2>
-                <p className="text-lg text-muted-foreground font-light leading-relaxed">{project.description}</p>
-              </div>
-              <div className="space-y-8">
-                <div>
-                  <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-3">Project Status</p>
-                  <p className="text-muted-foreground font-light capitalize">{project.status} ({project.progress}% Complete)</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-3">Target Completion</p>
-                  <p className="text-muted-foreground font-light">{project.dueDate}</p>
-                </div>
-              </div>
-            </div>
+        <section className="border-b border-border/70 px-5 py-14 sm:px-8 md:py-20 lg:px-16">
+          <div className="mx-auto grid max-w-[1440px] gap-12 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="max-w-3xl motion-reveal">{projectTemplate.designPhilosophy && <p className="mb-6 border-l-2 border-gold/50 pl-4 font-serif text-2xl leading-8 text-foreground">{projectTemplate.designPhilosophy}</p>}<p className="text-[10px] uppercase tracking-[0.25em] text-primary">The brief</p><h2 className="mt-4 font-serif text-4xl font-light leading-tight sm:text-5xl">A space shaped around its people.</h2><p className="mt-6 text-base leading-8 text-muted-foreground sm:text-lg">{projectTemplate.clientBrief || description}</p>{projectTemplate.materials.length > 0 && <div className="mt-6 flex flex-wrap gap-2">{projectTemplate.materials.map((material) => <span key={material} className="rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground">{material}</span>)}</div>}</div>
+            <dl className="grid grid-cols-2 gap-x-8 gap-y-8 border-l border-border/70 pl-6 sm:pl-10">
+              {project.location && <div><dt className="text-[10px] uppercase tracking-[0.2em] text-primary">Location</dt><dd className="mt-2 text-sm text-foreground">{project.location}</dd></div>}
+              {project.year && <div><dt className="text-[10px] uppercase tracking-[0.2em] text-primary">Year</dt><dd className="mt-2 text-sm text-foreground">{project.year}</dd></div>}
+              {project.category && <div><dt className="text-[10px] uppercase tracking-[0.2em] text-primary">Category</dt><dd className="mt-2 text-sm text-foreground">{project.category}</dd></div>}
+              {project.subCategory && <div><dt className="text-[10px] uppercase tracking-[0.2em] text-primary">Sub-category</dt><dd className="mt-2 text-sm text-foreground">{project.subCategory}</dd></div>}
+              {(project.clientName || project.client) && <div><dt className="text-[10px] uppercase tracking-[0.2em] text-primary">Client</dt><dd className="mt-2 text-sm text-foreground">{project.clientName || project.client}</dd></div>}
+              {project.designer && <div><dt className="text-[10px] uppercase tracking-[0.2em] text-primary">Lead designer</dt><dd className="mt-2 text-sm text-foreground">{project.designer}</dd></div>}
+              {project.budget != null && <div><dt className="text-[10px] uppercase tracking-[0.2em] text-primary">Estimated budget</dt><dd className="mt-2 text-sm text-foreground">{project.budget}</dd></div>}
+              {project.progress != null && <div><dt className="text-[10px] uppercase tracking-[0.2em] text-primary">Progress</dt><dd className="mt-2 text-sm text-foreground">{project.progress}%</dd></div>}
+              {project.dueDate && <div><dt className="text-[10px] uppercase tracking-[0.2em] text-primary">Due date</dt><dd className="mt-2 text-sm text-foreground">{new Date(project.dueDate).toLocaleDateString('en-UG', { month: 'long', day: 'numeric', year: 'numeric' })}</dd></div>}
+            </dl>
           </div>
         </section>
 
-        {/* 3. VISUAL GALLERY */}
-        {galleryImages.length > 0 && (
-          <section className="border-b border-border/20 py-16 md:py-20">
-            <div className="mx-auto max-w-5xl px-6 md:px-8 space-y-8">
-              <h2 className="font-serif text-3xl font-light text-foreground">Space Gallery</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {galleryImages.map((img, idx) => (
-                  <div key={idx} className="relative h-64 md:h-80 rounded-lg overflow-hidden group">
-                    <Image
-                      src={img}
-                      alt={`${project.name} view ${idx + 1}`}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+        {(storySections.length > 0 || storyParagraphs.length > 0) && <section className="border-b border-border/70 px-5 py-14 sm:px-8 md:py-20 lg:px-16"><div className="mx-auto grid max-w-[1440px] gap-8 lg:grid-cols-[0.65fr_1.35fr]"><div><p className="text-[10px] uppercase tracking-[0.25em] text-primary">The story</p><h2 className="mt-4 font-serif text-4xl font-light leading-tight sm:text-5xl">The thinking behind the room.</h2></div><div className="space-y-10 text-base leading-8 text-muted-foreground sm:text-lg">{storySections.length > 0 ? storySections.map((section, index) => <article key={`${project.id}-story-${index}`} className="grid gap-6 md:grid-cols-2 md:items-center"><div><p className="text-[10px] uppercase tracking-[0.25em] text-primary">{section.eyebrow || "Project note"}</p><h3 className="mt-2 font-serif text-3xl font-light text-foreground">{section.title}</h3>{section.body && <p className="mt-4 whitespace-pre-line">{section.body}</p>}</div>{section.image && <Image src={section.image} alt={section.title || project.title} width={1200} height={900} className="aspect-[4/3] w-full object-cover" />}</article>) : storyParagraphs.map((paragraph, index) => <p key={`${project.id}-story-${index}`}>{paragraph}</p>)}</div></div></section>}
 
-        {/* 4. FEATURES */}
-        {project.features && project.features.length > 0 && (
-          <section className="border-b border-border/20 py-16 md:py-20 bg-muted/5">
-            <div className="mx-auto max-w-5xl px-6 md:px-8">
-              <h2 className="font-serif text-3xl font-light text-foreground mb-12">Project Features</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {project.features.map((feature: string, idx: number) => (
-                  <div key={idx} className="flex items-center gap-3 p-4 border border-border/20 rounded-lg bg-background">
-                    <span className="flex items-center justify-center size-5 rounded-full bg-primary/10 text-xs font-medium text-primary">✓</span>
-                    <span className="font-light text-foreground">{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+        {Array.isArray(project.highlights) && project.highlights.length > 0 && <section className="border-b border-border/70 bg-muted/20 px-5 py-12 sm:px-8 lg:px-16"><div className="mx-auto max-w-[1440px]"><p className="text-[10px] uppercase tracking-[0.25em] text-primary">Project highlights</p><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{(project.highlights as Array<{ label?: string; title?: string; value?: string; description?: string }>).map((highlight, index) => <div key={`${project.id}-highlight-${index}`} className="border-l border-primary/40 pl-4"><p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{highlight.label || highlight.title || `Detail ${index + 1}`}</p>{(highlight.value || highlight.description) && <p className="mt-2 text-sm leading-6 text-foreground">{highlight.value || highlight.description}</p>}</div>)}</div></div></section>}
 
-        {/* 5. RELATED PROJECTS */}
-        {relatedProjects.length > 0 && (
-          <section className="border-b border-border/20 py-16 md:py-20">
-            <div className="mx-auto max-w-5xl px-6 md:px-8">
-              <h2 className="font-serif text-3xl font-light text-foreground mb-12">Related Projects</h2>
-              <div className="grid gap-8 md:grid-cols-2">
-                {relatedProjects.map((rel) => {
-                  const relImg = rel.images?.[0] || 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=800'
-                  return (
-                    <Link key={rel.slug} href={`/portfolio/${rel.slug}`} className="group">
-                      <article className="space-y-4 cursor-pointer">
-                        <div className="relative w-full h-60 rounded-lg overflow-hidden group-hover:opacity-80 transition-opacity bg-muted">
-                          <Image
-                            src={relImg}
-                            alt={rel.name}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 768px) 100vw, 50vw"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-xs font-medium text-primary/80 uppercase tracking-wider">
-                            {rel.status}
-                          </span>
-                          <h3 className="font-serif text-xl font-light text-foreground group-hover:text-primary transition-colors">
-                            {rel.name}
-                          </h3>
-                          <p className="text-sm text-muted-foreground font-light">{rel.location}</p>
-                        </div>
-                      </article>
-                    </Link>
-                  )
-                })}
-              </div>
-            </div>
-          </section>
-        )}
+        {galleryImages.length > 0 && <section className="px-5 py-14 sm:px-8 md:py-20 lg:px-16"><div className="mx-auto max-w-[1440px]"><div className="mb-8 flex items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.25em] text-primary">Inside the project</p><h2 className="mt-3 font-serif text-4xl font-light sm:text-5xl">Material, light, proportion.</h2></div><span className="hidden text-xs uppercase tracking-[0.15em] text-muted-foreground sm:block">{galleryImages.length} views</span></div><div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-12">{galleryImages.map((image, index) => <div key={`${image}-${index}`} className={`motion-reveal relative overflow-hidden bg-muted ${index % 5 === 0 ? 'sm:col-span-2 lg:col-span-7 lg:row-span-2 aspect-[5/4]' : index % 3 === 0 ? 'lg:col-span-5 aspect-[4/5]' : 'lg:col-span-4 aspect-[4/3]'}`} style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}><Image src={image} alt={`${project.title}, view ${index + 1}`} fill className="object-cover transition duration-700 hover:scale-[1.025]" sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 40vw" /></div>)}</div></div></section>}
 
-        {/* ENGAGEMENT */}
-        <section className="py-12 border-b border-border/20">
-          <div className="mx-auto max-w-5xl px-6 md:px-8">
-            <LikeButton initial={147} />
-          </div>
-        </section>
+                {relatedProjects.length > 0 && <section className="px-5 py-14 sm:px-8 md:py-20 lg:px-16"><div className="mx-auto max-w-[1440px]"><p className="text-[10px] uppercase tracking-[0.25em] text-primary">Continue exploring</p><div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{relatedProjects.map((related) => <Link key={related.id} href={`/portfolio/${related.slug}`} className="group"><div className="relative aspect-[4/3] overflow-hidden bg-muted"><Image src={resolveProductImageUrls(related)[0]} alt={related.title} fill className="object-cover transition duration-700 group-hover:scale-[1.04]" sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw" /></div><div className="flex items-center justify-between border-b border-border/70 py-4"><div><p className="text-[10px] uppercase tracking-[0.18em] text-primary">{related.category || 'Project'}</p><h3 className="mt-2 font-serif text-2xl font-light">{related.title}</h3></div><ArrowUpRight className="size-5 text-muted-foreground transition-colors group-hover:text-gold" /></div></Link>)}</div></div></section>}
+
+        <section className="border-t border-border/70 px-5 py-12 sm:px-8 lg:px-16"><div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4"><p className="text-sm text-muted-foreground">Did this project spark an idea?</p><LikeButton initial={project.likes ?? 0} /></div></section>
       </main>
       <SiteFooter />
     </>
   )
 }
-
-
-
-
-// import { SiteHeader } from '@/components/site-header'
-// import { SiteFooter } from '@/components/site-footer'
-// import Image from 'next/image'
-// import Link from 'next/link'
-// import { notFound } from 'next/navigation'
-// import type { Metadata } from 'next'
-// import { SchemaScript } from '@/components/seo/schema-script'
-// import { generateProjectSchema } from '@/lib/seo/schema-generator'
-// import LikeButton from '@/components/like-button'
-
-// interface ProjectPageProps {
-//   params: Promise<{ slug: string }>
-// }
-
-// interface HighlightItem {
-//   title: string
-//   description?: string
-//   imageUrl?: string
-// }
-
-// interface TimelineItem {
-//   phase: string
-//   duration: string
-//   description?: string
-//   mediaUrl?: string
-//   mediaType?: 'image' | 'video'
-// }
-
-// interface ProjectDetail {
-//   slug: string
-//   title: string
-//   category: string
-//   location: string
-//   year: string
-//   heroImage: string
-//   heroVideo?: string
-//   galleryImages: string[]
-//   description: string
-//   challenge: string
-//   solution: string
-//   highlights: HighlightItem[]
-//   timeline: TimelineItem[]
-//   services: string[]
-// }
-
-// const projectDetails: Record<string, ProjectDetail> = {
-//   'nakasero-residence': {
-//     slug: 'nakasero-residence',
-//     title: 'The Nakasero Residence',
-//     category: 'Residential Interior',
-//     location: 'Kampala, Uganda',
-//     year: '2024',
-//     heroImage: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
-//     // Example: add heroVideo if available
-//     // heroVideo: 'https://assets.mixkit.co/videos/preview/mixkit-interior-design-of-a-modern-living-room-41551-large.mp4',
-//     galleryImages: [
-//       'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
-//       'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
-//       'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
-//     ],
-//     description:
-//       'A full interior design of a hillside family residence in Nakasero, balancing warm materiality with contemporary restraint and framing panoramic city views.',
-//     challenge: 'Unifying a large multi-level home into one calm, cohesive design language.',
-//     solution:
-//       'We developed a layered neutral palette, custom joinery, and curated lighting that flows seamlessly across every level of the home.',
-//     highlights: [
-//       {
-//         title: 'Bespoke joinery throughout',
-//         description: 'Custom-milled African hardwood cabinetry tailored to exact structural dimensions.',
-//         imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
-//       },
-//       {
-//         title: 'Curated statement lighting',
-//         description: 'Handcrafted pendant lights strategically anchored in high-ceiling living zones.',
-//         imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
-//       },
-//       {
-//         title: 'Warm, tactile material palette',
-//         description: 'Natural stone, linen drapery, and brushed brass details.',
-//         imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
-//       },
-//       {
-//         title: 'View-framing living spaces',
-//         description: 'Floor-to-ceiling glass paneling framing the hills of Kampala.',
-//         imageUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
-//       },
-//     ],
-//     timeline: [
-//       {
-//         phase: 'Consultation & Concept',
-//         duration: '3 weeks',
-//         description: 'Initial site walkthrough, moodboarding, and material sample selection.',
-//         mediaUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
-//         mediaType: 'image',
-//       },
-//       {
-//         phase: 'Design Development',
-//         duration: '8 weeks',
-//         description: 'Full 3D modeling, spatial rendering, and architectural drawing sign-off.',
-//         mediaUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
-//         mediaType: 'image',
-//       },
-//       {
-//         phase: 'Sourcing & Procurement',
-//         duration: '10 weeks',
-//         description: 'Custom furniture fabrication, textile importing, and stone selection.',
-//         mediaUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
-//         mediaType: 'image',
-//       },
-//       {
-//         phase: 'Installation & Styling',
-//         duration: '3 weeks',
-//         description: 'Final assembly, art placement, site curation, and lighting calibration.',
-//         mediaUrl: 'https://res.cloudinary.com/r8epy5mg/image/upload/v1785487048/IMG_3277_1_llqjlz.jpg',
-//         mediaType: 'image',
-//       },
-//     ],
-//     services: ['Interior Design', 'Furniture Sourcing', 'Installation'],
-//   },
-// }
-
-// export async function generateStaticParams() {
-//   return Object.keys(projectDetails).map((slug) => ({ slug }))
-// }
-
-// export async function generateMetadata({
-//   params,
-// }: ProjectPageProps): Promise<Metadata> {
-//   const { slug } = await params
-//   const project = projectDetails[slug]
-
-//   if (!project) {
-//     return {
-//       title: 'Project Not Found',
-//       description: 'This project could not be found',
-//     }
-//   }
-
-//   return {
-//     title: `${project.title} | The Revamp UG`,
-//     description: project.description,
-//     openGraph: {
-//       title: project.title,
-//       description: project.description,
-//       type: 'website',
-//       images: [
-//         {
-//           url: project.heroImage || `https://therevampug.com/api/og?title=${encodeURIComponent(project.title)}`,
-//           width: 1200,
-//           height: 630,
-//         },
-//       ],
-//     },
-//     twitter: {
-//       card: 'summary_large_image',
-//       title: project.title,
-//       description: project.description,
-//       images: project.heroImage ? [project.heroImage] : [],
-//     },
-//   }
-// }
-
-// export default async function ProjectDetailPage({ params }: ProjectPageProps) {
-//   const { slug } = await params
-//   const project = projectDetails[slug]
-
-//   if (!project) {
-//     notFound()
-//   }
-
-//   // Related Projects
-//   const allProjects = Object.values(projectDetails)
-//   const relatedProjects = allProjects
-//     .filter((item) => item.slug !== slug)
-//     .slice(0, 2)
-
-//   const parsedYear = parseInt(project.year, 10)
-//   const validStartDate = !isNaN(parsedYear)
-//     ? new Date(parsedYear, 0, 1).toISOString()
-//     : new Date().toISOString()
-
-//   const projectSchema = generateProjectSchema({
-//     name: project.title,
-//     description: project.description,
-//     image: project.heroImage || `https://therevampug.com/api/og?title=${encodeURIComponent(project.title)}`,
-//     location: project.location,
-//     startDate: validStartDate,
-//   })
-
-//   return (
-//     <>
-//       <SchemaScript schema={projectSchema} />
-//       <SiteHeader />
-//       <main className="min-h-screen bg-background">
-//         {/* 1. HERO SECTION (Supports Background Video or Hero Image) */}
-//         <section className="relative">
-//           <div className="relative h-[65vh] md:h-[80vh] w-full overflow-hidden bg-muted">
-//             {project.heroVideo ? (
-//               <video
-//                 src={project.heroVideo}
-//                 autoPlay
-//                 loop
-//                 muted
-//                 playsInline
-//                 className="w-full h-full object-cover"
-//               />
-//             ) : (
-//               project.heroImage && (
-//                 <Image
-//                   src={project.heroImage}
-//                   alt={project.title}
-//                   fill
-//                   priority
-//                   className="object-cover"
-//                   sizes="100vw"
-//                 />
-//               )
-//             )}
-//             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-//           </div>
-
-//           <div className="absolute inset-0 flex items-end">
-//             <div className="mx-auto w-full max-w-5xl px-6 md:px-8 pb-12 md:pb-16 z-10">
-//               <div className="space-y-4">
-//                 <Link
-//                   href="/portfolio"
-//                   className="inline-flex items-center gap-2 text-sm font-light text-muted-foreground hover:text-foreground transition-colors"
-//                 >
-//                   <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
-//                   </svg>
-//                   Back to Portfolio
-//                 </Link>
-//                 <h1 className="font-serif text-5xl md:text-6xl font-light text-foreground">{project.title}</h1>
-//                 <div className="flex flex-wrap gap-6 text-sm text-muted-foreground font-light">
-//                   <span>{project.category}</span>
-//                   <span>•</span>
-//                   <span>{project.location}</span>
-//                   <span>•</span>
-//                   <span>{project.year}</span>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         </section>
-
-//         {/* 2. OVERVIEW */}
-//         <section className="border-b border-border/20 py-16 md:py-20">
-//           <div className="mx-auto max-w-5xl px-6 md:px-8">
-//             <div className="grid md:grid-cols-2 gap-12">
-//               <div className="space-y-6">
-//                 <h2 className="font-serif text-3xl font-light text-foreground">Project Overview</h2>
-//                 <p className="text-lg text-muted-foreground font-light leading-relaxed">{project.description}</p>
-//               </div>
-//               <div className="space-y-8">
-//                 <div>
-//                   <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-3">Challenge</p>
-//                   <p className="text-muted-foreground font-light">{project.challenge}</p>
-//                 </div>
-//                 <div>
-//                   <p className="text-sm font-medium text-primary/80 uppercase tracking-wider mb-3">Solution</p>
-//                   <p className="text-muted-foreground font-light">{project.solution}</p>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         </section>
-
-//         {/* 3. VISUAL GALLERY (Showcases key spaces) */}
-//         {project.galleryImages && project.galleryImages.length > 0 && (
-//           <section className="border-b border-border/20 py-16 md:py-20">
-//             <div className="mx-auto max-w-5xl px-6 md:px-8 space-y-8">
-//               <h2 className="font-serif text-3xl font-light text-foreground">Space Gallery</h2>
-//               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-//                 {project.galleryImages.map((img, idx) => (
-//                   <div key={idx} className="relative h-64 md:h-80 rounded-lg overflow-hidden group">
-//                     <Image
-//                       src={img}
-//                       alt={`${project.title} view ${idx + 1}`}
-//                       fill
-//                       className="object-cover group-hover:scale-105 transition-transform duration-500"
-//                       sizes="(max-width: 768px) 100vw, 33vw"
-//                     />
-//                   </div>
-//                 ))}
-//               </div>
-//             </div>
-//           </section>
-//         )}
-
-//         {/* 4. HIGHLIGHTS (Visual Cards) */}
-//         <section className="border-b border-border/20 py-16 md:py-20 bg-muted/5">
-//           <div className="mx-auto max-w-5xl px-6 md:px-8">
-//             <h2 className="font-serif text-3xl font-light text-foreground mb-12">Project Highlights</h2>
-//             <div className="grid md:grid-cols-2 gap-8">
-//               {project.highlights.map((highlight, idx) => (
-//                 <div key={idx} className="border border-border/20 rounded-xl overflow-hidden bg-background/50 flex flex-col">
-//                   {highlight.imageUrl && (
-//                     <div className="relative h-48 w-full">
-//                       <Image
-//                         src={highlight.imageUrl}
-//                         alt={highlight.title}
-//                         fill
-//                         className="object-cover"
-//                         sizes="(max-width: 768px) 100vw, 50vw"
-//                       />
-//                     </div>
-//                   )}
-//                   <div className="p-6 space-y-2 flex-1">
-//                     <div className="flex items-center gap-3">
-//                       <span className="flex items-center justify-center size-5 rounded-full bg-primary/10 text-xs font-medium text-primary">✓</span>
-//                       <h3 className="font-medium text-foreground">{highlight.title}</h3>
-//                     </div>
-//                     {highlight.description && (
-//                       <p className="text-sm text-muted-foreground font-light pl-8">{highlight.description}</p>
-//                     )}
-//                   </div>
-//                 </div>
-//               ))}
-//             </div>
-//           </div>
-//         </section>
-
-//         {/* 5. PHASES & TIMELINE (With Stage Media) */}
-//         <section className="border-b border-border/20 py-16 md:py-20">
-//           <div className="mx-auto max-w-5xl px-6 md:px-8">
-//             <h2 className="font-serif text-3xl font-light text-foreground mb-12">Project Timeline & Phases</h2>
-//             <div className="space-y-12">
-//               {project.timeline.map((item, idx) => (
-//                 <div key={idx} className="grid md:grid-cols-3 gap-6 items-center pb-8 border-b border-border/20 last:border-0">
-//                   <div className="space-y-1">
-//                     <p className="text-xs font-medium uppercase tracking-wider text-primary">{item.duration}</p>
-//                     <h3 className="font-serif text-xl text-foreground font-light">{item.phase}</h3>
-//                   </div>
-//                   <div className="md:col-span-1">
-//                     <p className="text-sm text-muted-foreground font-light leading-relaxed">{item.description}</p>
-//                   </div>
-//                   {item.mediaUrl && (
-//                     <div className="relative h-40 w-full rounded-lg overflow-hidden bg-muted">
-//                       {item.mediaType === 'video' ? (
-//                         <video
-//                           src={item.mediaUrl}
-//                           autoPlay
-//                           loop
-//                           muted
-//                           playsInline
-//                           className="w-full h-full object-cover"
-//                         />
-//                       ) : (
-//                         <Image
-//                           src={item.mediaUrl}
-//                           alt={item.phase}
-//                           fill
-//                           className="object-cover"
-//                           sizes="(max-width: 768px) 100vw, 33vw"
-//                         />
-//                       )}
-//                     </div>
-//                   )}
-//                 </div>
-//               ))}
-//             </div>
-//           </div>
-//         </section>
-
-//         {/* 6. SERVICES */}
-//         <section className="border-b border-border/20 py-16 md:py-20 bg-muted/5">
-//           <div className="mx-auto max-w-5xl px-6 md:px-8">
-//             <h2 className="font-serif text-3xl font-light text-foreground mb-8">Services Provided</h2>
-//             <div className="flex flex-wrap gap-3">
-//               {project.services.map((service: string) => (
-//                 <span
-//                   key={service}
-//                   className="px-4 py-2 rounded-full bg-primary/10 text-primary font-light text-sm"
-//                 >
-//                   {service}
-//                 </span>
-//               ))}
-//             </div>
-//           </div>
-//         </section>
-
-//         {/* 7. RELATED PROJECTS */}
-//         {relatedProjects.length > 0 && (
-//           <section className="border-b border-border/20 py-16 md:py-20">
-//             <div className="mx-auto max-w-5xl px-6 md:px-8">
-//               <h2 className="font-serif text-3xl font-light text-foreground mb-12">Related Projects</h2>
-//               <div className="grid gap-8 md:grid-cols-2">
-//                 {relatedProjects.map((rel) => (
-//                   <Link key={rel.slug} href={`/portfolio/${rel.slug}`} className="group">
-//                     <article className="space-y-4 cursor-pointer">
-//                       <div className="relative w-full h-60 rounded-lg overflow-hidden group-hover:opacity-80 transition-opacity">
-//                         <Image
-//                           src={rel.heroImage}
-//                           alt={rel.title}
-//                           fill
-//                           className="object-cover"
-//                           sizes="(max-width: 768px) 100vw, 50vw"
-//                         />
-//                       </div>
-//                       <div className="space-y-1">
-//                         <span className="text-xs font-medium text-primary/80 uppercase tracking-wider">
-//                           {rel.category}
-//                         </span>
-//                         <h3 className="font-serif text-xl font-light text-foreground group-hover:text-primary transition-colors">
-//                           {rel.title}
-//                         </h3>
-//                         <p className="text-sm text-muted-foreground font-light">{rel.location}</p>
-//                       </div>
-//                     </article>
-//                   </Link>
-//                 ))}
-//               </div>
-//             </div>
-//           </section>
-//         )}
-
-//         {/* ENGAGEMENT */}
-//         <section className="py-12 border-b border-border/20">
-//           <div className="mx-auto max-w-5xl px-6 md:px-8">
-//             <div className="flex items-center gap-8">
-//               <LikeButton initial={147} />
-//             </div>
-//           </div>
-//         </section>
-
-//         {/* CTA */}
-//         <section className="py-20 md:py-24">
-//           <div className="mx-auto max-w-3xl px-6 md:px-8 text-center space-y-8">
-//             <div className="space-y-4">
-//               <h2 className="font-serif text-4xl font-light text-foreground">
-//                 Ready to transform your space?
-//               </h2>
-//               <p className="text-lg text-muted-foreground font-light">
-//                 Let's discuss how we can bring your vision to life
-//               </p>
-//             </div>
-//             <Link
-//               href="/book-consultation"
-//               className="inline-block px-8 py-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-none font-light transition-colors"
-//             >
-//               Book a Consultation
-//             </Link>
-//           </div>
-//         </section>
-//       </main>
-//       <SiteFooter />
-//     </>
-//   )
-//           }
-

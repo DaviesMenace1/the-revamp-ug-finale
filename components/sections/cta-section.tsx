@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { ArrowRight, Phone } from 'lucide-react'
+import { ArrowRight, Phone } from '@/components/ui/luxury-icons'
 import { Button } from '@/components/ui/button'
+import { siteContact } from '@/lib/site-config'
 
 export function CtaSection() {
   return (
@@ -33,7 +34,7 @@ export function CtaSection() {
           {/* Headline */}
           <h2 className="font-serif text-5xl md:text-6xl lg:text-7xl font-light text-background leading-[1.05] mb-6">
             Your Dream Space<br />
-            <span className="italic text-gold">Awaits</span>
+            <span className="font-serif text-gold">Awaits</span>
           </h2>
 
           {/* Sub-copy */}
@@ -43,7 +44,7 @@ export function CtaSection() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/contact">
+            <Link href={siteContact.bookingPath}>
               <Button
                 size="lg"
                 className="rounded-none bg-gold text-obsidian hover:bg-gold-light font-sans text-xs tracking-widest uppercase px-10 py-6 group min-w-[220px]"
@@ -52,7 +53,7 @@ export function CtaSection() {
                 <ArrowRight size={14} className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <a href="tel:+256703861668">
+            <a href={siteContact.phoneHref}>
               <Button
                 variant="ghost"
                 size="lg"
@@ -69,8 +70,8 @@ export function CtaSection() {
             {[
               'Bespoke Design',
               'Global Sourcing',
-              'White-Glove Installation',
-              'Guaranteed Satisfaction',
+              'Thoughtful Sourcing',
+              'Considered Delivery',
             ].map((item) => (
               <div key={item} className="flex items-center gap-2">
                 <div className="w-1 h-1 rounded-full bg-gold" />

@@ -1,149 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db/client'
-import { orders } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { sendOrderReceiptEmail } from '@/lib/email/send-receipt'
+import { settleConsultationPayment } from '@/lib/consultation-payments'
+import { isValidFlutterwaveWebhookSignature, retrieveFlutterwaveCharge } from '@/lib/flutterwave-config'
+import { applyRefundProviderState } from '@/lib/refund-processing'
+import { settleOrderPayment } from '@/lib/order-payments'
+import { settleSubscriptionPayment } from '@/lib/subscription-payments'
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // 1. Verify Secret Hash from Flutterwave headers
-    const signature = req.headers.get('verif-hash')
-    const secretHash = process.env.FLUTTERWAVE_SECRET_HASH
+    const rawBody = await request.text()
+    const v4Signature = request.headers.get('flutterwave-signature')
+    const legacySignature = request.headers.get('verif-hash')
+    const legacyHash = process.env.FLUTTERWAVE_SECRET_HASH?.trim()
+    const signatureValid = v4Signature
+      ? isValidFlutterwaveWebhookSignature(rawBody, v4Signature, legacyHash)
+      : Boolean(legacySignature && legacyHash && legacySignature === legacyHash)
+    if (!signatureValid) return NextResponse.json({ error: 'Unauthorized webhook request' }, { status: 401 })
 
-    if (!signature || signature !== secretHash) {
-      return NextResponse.json({ error: 'Unauthorized webhook request' }, { status: 401 })
-    }
-
-    const payload = await req.json()
-    const { event, data } = payload
-
-    // 2. Handle successful charge events
-    if (event === 'charge.completed' && data.status === 'successful') {
-      const txRef = data.tx_ref
-
-      // Fetch order from DB
-      const existingOrder = await db.query.orders.findFirst({
-        where: eq(orders.orderNumber, txRef),
+    const payload = JSON.parse(rawBody) as { type?: string; event?: string; data?: Record<string, unknown> }
+    const data = payload.data || {}
+    const eventType = String(payload.type || payload.event || '').toLowerCase()
+    if (eventType === 'refund.completed') {
+      const refundId = String(data.id || data.refund_id || '').trim()
+      if (!refundId) return NextResponse.json({ status: 'acknowledged', reason: 'missing_refund_id' })
+      const providerStatus = String(data.status || 'completed').toLowerCase()
+      const refundResult = await applyRefundProviderState({
+        providerRefundId: refundId,
+        providerStatus,
+        providerRequestOk: true,
+        providerRecord: { id: refundId, charge_id: typeof data.charge_id === 'string' ? data.charge_id : null, status: providerStatus },
+        notifyCustomer: true,
       })
-
-      // Skip if order missing or already completed
-      if (!existingOrder || existingOrder.status === 'completed') {
-        return NextResponse.json({ message: 'Order already processed or not found' })
-      }
-
-      // Verify payment amount matches database
-      if (Number(data.amount) >= Number(existingOrder.totalAmount)) {
-        // Mark as completed
-        await db
-          .update(orders)
-          .set({ status: 'completed', updatedAt: new Date() })
-          .where(eq(orders.orderNumber, txRef))
-
-        // Send Email Receipt
-        const shipping = typeof existingOrder.shippingAddress === 'string'
-          ? JSON.parse(existingOrder.shippingAddress)
-          : existingOrder.shippingAddress
-
-        await sendOrderReceiptEmail({
-          toEmail: existingOrder.userEmail,
-          orderNumber: existingOrder.orderNumber,
-          amount: String(existingOrder.totalAmount),
-          currency: existingOrder.currency,
-          customerName: shipping?.name || 'Valued Customer',
-        })
-      }
+      return NextResponse.json({ status: refundResult.found ? refundResult.status : 'acknowledged', scope: 'refund', reason: refundResult.found ? undefined : 'refund_not_found' })
     }
 
-    return NextResponse.json({ status: 'success' })
-  } catch (error: any) {
-    console.error('Flutterwave webhook error:', error)
+    const paymentStatus = String(data.status || '').toLowerCase()
+    const chargeId = String(data.id || '').trim()
+    let orderRef = String(data.reference || data.tx_ref || '').trim()
+
+    if (eventType !== 'charge.completed' || !['succeeded', 'successful'].includes(paymentStatus) || !chargeId) {
+      return NextResponse.json({ status: 'ignored' })
+    }
+
+    if (!orderRef) {
+      try {
+        const chargeResult = await retrieveFlutterwaveCharge(chargeId)
+        const charge = chargeResult.payload?.data
+        orderRef = String(charge?.reference || charge?.tx_ref || '').trim()
+      } catch (error) {
+        console.error('[flutterwave-webhook] charge lookup for missing reference failed:', error)
+      }
+    }
+    if (!orderRef) return NextResponse.json({ status: 'acknowledged', reason: 'missing_reference' })
+
+    if (orderRef.startsWith('REV-CONS-')) {
+      const consultationResult = await settleConsultationPayment({ txRef: orderRef, transactionId: chargeId })
+      if (consultationResult.success) return NextResponse.json({ status: 'success', scope: 'consultation' })
+      return NextResponse.json({ status: consultationResult.status, error: consultationResult.error })
+    }
+
+    if (orderRef.startsWith('REV-SUB-')) {
+      const subscriptionResult = await settleSubscriptionPayment({ transactionReference: orderRef, chargeId })
+      if (subscriptionResult.success) return NextResponse.json({ status: 'success', scope: 'subscription' })
+      return NextResponse.json({ status: subscriptionResult.status, error: subscriptionResult.error })
+    }
+
+    const orderResult = await settleOrderPayment({ orderRef, chargeId })
+    if (orderResult.success) return NextResponse.json({ status: 'success', scope: 'order' })
+    if (orderResult.status === 'not_found') return NextResponse.json({ status: 'acknowledged', message: 'Order not found' })
+    return NextResponse.json({ status: orderResult.status, error: orderResult.error })
+  } catch (error) {
+    console.error('Flutterwave v4 webhook error:', error)
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
   }
 }
-
-
-
-// import { NextResponse } from 'next/server'
-// import { db } from '@/lib/db/client'
-// import { orders } from '@/lib/db/schema'
-// import { eq } from 'drizzle-orm'
-
-// export async function POST(req: Request) {
-//   try {
-//     // 1. Verify Secret Hash Header
-//     const signature = req.headers.get('verif-hash')
-//     const secretHash = process.env.FLUTTERWAVE_SECRET_HASH
-
-//     if (!signature || signature !== secretHash) {
-//       return NextResponse.json(
-//         { error: 'Unauthorized: Invalid signature' },
-//         { status: 401 }
-//       )
-//     }
-
-//     const payload = await req.json()
-//     const { event, data } = payload
-
-//     // 2. Handle successful charge event
-//     if (event === 'charge.completed' && data.status === 'successful') {
-//       const txRef = data.tx_ref
-//       const transactionId = data.id
-//       const amountPaid = data.amount
-//       const currency = data.currency
-
-//       // Optional double-verification check directly against Flutterwave API
-//       const verifyRes = await fetch(
-//         `https://api.flutterwave.com/v3/transactions/${transactionId}/verify`,
-//         {
-//           headers: {
-//             Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
-//             'Content-Type': 'application/json',
-//           },
-//         }
-//       )
-//       const verifyData = await verifyRes.json()
-
-//       if (
-//         verifyData.status !== 'success' ||
-//         verifyData.data.status !== 'successful'
-//       ) {
-//         return NextResponse.json({ message: 'Transaction verification failed' }, { status: 400 })
-//       }
-
-//       // 3. Find order in DB
-//       const existingOrder = await db.query.orders.findFirst({
-//         where: eq(orders.orderNumber, txRef),
-//       })
-
-//       if (!existingOrder) {
-//         console.warn(`Webhook received for non-existent order: ${txRef}`)
-//         return NextResponse.json({ message: 'Order not found' }, { status: 404 })
-//       }
-
-//       // Idempotency: Avoid processing already completed orders twice
-//       if (existingOrder.status === 'completed') {
-//         return NextResponse.json({ message: 'Order already processed' }, { status: 200 })
-//       }
-
-//       // 4. Update order status to completed
-//       await db
-//         .update(orders)
-//         .set({
-//           status: 'completed',
-//           updatedAt: new Date(),
-//         })
-//         .where(eq(orders.orderNumber, txRef))
-
-//       // Trigger post-payment actions here (e.g., send receipt email, update inventory)
-//     }
-
-//     // Always respond with 200 OK to acknowledge receipt of the event
-//     return NextResponse.json({ status: 'success' }, { status: 200 })
-//   } catch (error) {
-//     console.error('Webhook error:', error)
-//     return NextResponse.json(
-//       { error: 'Internal Server Error' },
-//       { status: 500 }
-//     )
-//   }
-// }

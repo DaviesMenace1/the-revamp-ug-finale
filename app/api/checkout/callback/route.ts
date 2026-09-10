@@ -1,119 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { and, eq, ne } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { orders } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { sendOrderReceiptEmail } from '@/lib/email/send-receipt'
+import { orders, paymentRecords } from '@/lib/db/schema'
+import { safelyReleasePointsForOrder } from '@/lib/loyalty/service'
+import { settleOrderPayment } from '@/lib/order-payments'
+import { retrieveFlutterwaveCharge } from '@/lib/flutterwave-config'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-
-  // Parameters sent by Flutterwave upon redirect
-  const status = searchParams.get('status')
-  const txRef = searchParams.get('tx_ref')
-  const transactionId = searchParams.get('transaction_id')
-
+  const orderRef = searchParams.get('reference') || searchParams.get('tx_ref') || ''
+  const chargeId = searchParams.get('id') || searchParams.get('charge_id') || searchParams.get('transaction_id') || ''
+  const status = (searchParams.get('status') || '').toLowerCase()
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin
-
-  // 1. Missing transaction parameter check
-  if (!txRef) {
-    return NextResponse.redirect(`${baseUrl}/checkout/failed?error=missing_ref`)
+  let resolvedOrderRef = orderRef
+  if (!resolvedOrderRef && chargeId) {
+    try {
+      const chargeResult = await retrieveFlutterwaveCharge(chargeId)
+      const charge = chargeResult.payload?.data
+      resolvedOrderRef = String(charge?.reference || charge?.tx_ref || '').trim()
+    } catch (error) {
+      console.error('Error retrieving Flutterwave charge for checkout callback:', error)
+      return NextResponse.redirect(`${baseUrl}/checkout/failed?error=payment_match_failed`)
+    }
   }
 
-  // 2. Handle immediate user cancellation
-  if (status === 'cancelled') {
-    await db
-      .update(orders)
-      .set({ status: 'cancelled', updatedAt: new Date() })
-      .where(eq(orders.orderNumber, txRef))
-
-    return NextResponse.redirect(`${baseUrl}/checkout/failed?orderRef=${txRef}&reason=cancelled`)
+  if (!resolvedOrderRef) return NextResponse.redirect(`${baseUrl}/checkout/failed?error=missing_ref`)
+  if (status === 'cancelled' || status === 'failed') {
+    const [order] = await db.select({ id: orders.id }).from(orders).where(and(eq(orders.orderNumber, resolvedOrderRef), ne(orders.paymentStatus, 'completed'))).limit(1)
+    if (order) {
+      await db.update(orders).set({ status: 'cancelled', paymentStatus: 'failed', updatedAt: new Date() }).where(and(eq(orders.id, order.id), ne(orders.paymentStatus, 'completed')))
+      await safelyReleasePointsForOrder(order.id)
+    }
+    return NextResponse.redirect(`${baseUrl}/checkout/failed?orderRef=${encodeURIComponent(resolvedOrderRef)}&reason=cancelled`)
   }
-
-  // If no transaction_id was returned by Flutterwave
-  if (!transactionId) {
-    return NextResponse.redirect(`${baseUrl}/checkout/failed?orderRef=${txRef}&error=no_transaction_id`)
+  let effectiveChargeId = chargeId
+  if (!effectiveChargeId) {
+    const pendingOrder = await db.query.orders.findFirst({ where: eq(orders.orderNumber, resolvedOrderRef), columns: { id: true } })
+    if (pendingOrder) {
+      const pendingPayment = await db.query.paymentRecords.findFirst({ where: and(eq(paymentRecords.orderId, pendingOrder.id), eq(paymentRecords.status, 'pending')), columns: { transactionReference: true } })
+      effectiveChargeId = pendingPayment?.transactionReference || ''
+    }
   }
+  if (!effectiveChargeId) return NextResponse.redirect(`${baseUrl}/checkout/pending?orderRef=${encodeURIComponent(resolvedOrderRef)}&message=The%20payment%20is%20still%20being%20authorized.`)
 
   try {
-    // 3. Server-to-Server Verification with Flutterwave API
-    const verifyResponse = await fetch(
-      `https://api.flutterwave.com/v3/transactions/${transactionId}/verify`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        cache: 'no-store',
-      }
-    )
-
-    const verifyData = await verifyResponse.json()
-
-    // 4. Look up existing order in Postgres Database
-    const existingOrder = await db.query.orders.findFirst({
-      where: eq(orders.orderNumber, txRef),
-    })
-
-    if (!existingOrder) {
-      return NextResponse.redirect(`${baseUrl}/checkout/failed?error=order_not_found`)
-    }
-
-    // 5. Check transaction legitimacy (status, paid amount, currency match)
-    const isSuccessful =
-      verifyData.status === 'success' &&
-      verifyData.data?.status === 'successful' &&
-      Number(verifyData.data?.amount) >= Number(existingOrder.totalAmount) &&
-      verifyData.data?.currency === existingOrder.currency
-
-    if (isSuccessful) {
-      // Mark order as completed in database
-      await db
-        .update(orders)
-        .set({
-          status: 'completed',
-          updatedAt: new Date(),
-        })
-        .where(eq(orders.orderNumber, txRef))
-
-      // Trigger Email Confirmation Receipt (Non-blocking)
-      const customerAddress =
-        typeof existingOrder.shippingAddress === 'string'
-          ? JSON.parse(existingOrder.shippingAddress)
-          : existingOrder.shippingAddress
-
-      sendOrderReceiptEmail({
-        toEmail: existingOrder.userEmail,
-        orderNumber: existingOrder.orderNumber,
-        amount: String(existingOrder.totalAmount),
-        currency: existingOrder.currency,
-        customerName: customerAddress?.name || 'Valued Customer',
-      }).catch((emailErr) => {
-        console.error('Failed to send order email receipt:', emailErr)
-      })
-
-      // Redirect user to the Order Success Page
-      return NextResponse.redirect(
-        `${baseUrl}/checkout/success?orderRef=${txRef}&flw_id=${transactionId}`
-      )
-    } else {
-      // Payment failed or amount mismatch
-      await db
-        .update(orders)
-        .set({
-          status: 'failed',
-          updatedAt: new Date(),
-        })
-        .where(eq(orders.orderNumber, txRef))
-
-      return NextResponse.redirect(
-        `${baseUrl}/checkout/failed?orderRef=${txRef}&error=payment_unverified`
-      )
-    }
-  } catch (error: any) {
-    console.error('Error verifying Flutterwave callback:', error)
-    return NextResponse.redirect(
-      `${baseUrl}/checkout/failed?orderRef=${txRef}&error=server_error`
-    )
+    const result = await settleOrderPayment({ orderRef: resolvedOrderRef, chargeId: effectiveChargeId })
+    if (result.success) return NextResponse.redirect(`${baseUrl}/checkout/success?orderRef=${encodeURIComponent(resolvedOrderRef)}&charge_id=${encodeURIComponent(effectiveChargeId)}`)
+    if (result.status === 'pending') return NextResponse.redirect(`${baseUrl}/checkout/pending?orderRef=${encodeURIComponent(resolvedOrderRef)}`)
+    return NextResponse.redirect(`${baseUrl}/checkout/failed?orderRef=${encodeURIComponent(resolvedOrderRef)}&error=payment_unverified`)
+  } catch (error) {
+    console.error('Error verifying Flutterwave v4 checkout callback:', error)
+    return NextResponse.redirect(`${baseUrl}/checkout/failed?orderRef=${encodeURIComponent(resolvedOrderRef)}&error=server_error`)
   }
 }

@@ -1,136 +1,33 @@
 'use client'
 
 import { PortalLayout } from '@/components/portals/portal-layout'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Download } from 'lucide-react'
-
-const priceStructure = [
-  {
-    id: 1,
-    title: 'Entry-Level Trade',
-    minOrder: '5,000 UGX',
-    discount: '10% off retail',
-    benefits: ['Access to trade pricing', 'Quarterly price updates', 'Standard shipping rates'],
-  },
-  {
-    id: 2,
-    title: 'Professional Trade',
-    minOrder: '50,000 UGX',
-    discount: '15% off retail',
-    benefits: [
-      'All Entry-Level benefits',
-      'Priority customer support',
-      'Dedicated account manager',
-      'Exclusive new releases',
-    ],
-  },
-  {
-    id: 3,
-    title: 'Strategic Partner',
-    minOrder: '200,000 UGX',
-    discount: '20% off retail',
-    benefits: [
-      'All Professional Trade benefits',
-      'Custom net-30 payment terms',
-      'Quarterly business reviews',
-      'Co-marketing opportunities',
-    ],
-  },
-]
+import { ArrowRight, Check, FileText, MessageCircle } from '@/components/ui/luxury-icons'
+import BrowserNotificationPrompt from '@/components/notifications/browser-notification-prompt'
+import Link from 'next/link'
+import { tradeNavItems } from '@/components/portals/portal-navigation'
 
 const faqs = [
-  { q: 'Are there volume discounts?', a: 'Yes, orders over 100,000 UGX qualify for additional 5% discount.' },
-  {
-    q: 'What payment terms do you offer?',
-    a: 'Net-15 for Professional Trade, Net-30 for Strategic Partners. Bank transfer and credit terms available.',
-  },
-  { q: 'Do prices include shipping?', a: 'No, shipping calculated separately based on location and order size.' },
+  { q: 'Who can apply?', a: 'Interior designers, architects, real estate developers, hospitality teams, property professionals, and related practices can request trade access.' },
+  { q: 'How are prices set?', a: 'The studio sets the discount on each eligible product. Your Trade Collections view shows the approved price before you place an order.' },
+  { q: 'Is there a membership fee?', a: 'No. Trade access is application-based and there is no recurring subscription payment.' },
+  { q: 'Can product discounts change?', a: 'Yes. The studio may update product-specific trade pricing as collections and project terms change.' },
 ]
 
-export default function TradePricingClient({
-  currentTierTitle,
-  discountRate,
-}: {
-  currentTierTitle: string | null
-  discountRate: number | null
-}) {
+type Member = { businessName: string; tier: string; status: string } | null
+
+export default function TradePricingClient({ member }: { member: Member }) {
+  const approved = member?.status === 'approved' || member?.status === 'active'
+
   return (
-    <PortalLayout
-      portalName="Wholesale Partner"
-      portalSlug="trade"
-      navItems={[
-        { label: 'Dashboard', href: '/trade' },
-        { label: 'Collections', href: '/trade/collections' },
-        { label: 'Orders', href: '/trade/orders' },
-        { label: 'Pricing', href: '/trade/pricing' },
-        { label: 'Resources', href: '/trade/resources' },
-      ]}
-    >
+    <PortalLayout portalName="Trade Portal" portalSlug="trade" navItems={[...tradeNavItems]}>
       <div className="space-y-12">
-        <div>
-          <h1 className="font-serif text-4xl font-light text-foreground mb-2">Trade Pricing</h1>
-          <p className="text-lg text-muted-foreground">
-            {currentTierTitle
-              ? `You're currently on the ${currentTierTitle} tier${discountRate ? ` (${discountRate}% off retail)` : ''}.`
-              : 'View volume-based pricing and special wholesale rates.'}
-          </p>
-        </div>
+        <BrowserNotificationPrompt context="trade" />
+        <header className="max-w-3xl space-y-4"><p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-primary">Trade pricing / {member?.businessName || 'Application'}</p><h1 className="font-serif text-4xl font-light leading-[1.04] text-foreground md:text-6xl">Specify with confidence.</h1><p className="text-base leading-7 text-muted-foreground">Trade pricing is set product by product, so the price you see reflects the piece, the collection, and the studio terms available to your practice.</p></header>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {priceStructure.map((tier) => {
-            const isCurrent = tier.title === currentTierTitle
+        {!approved ? <section className="rounded-xl border border-amber-300/70 bg-amber-50 p-6 sm:p-8"><p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-amber-800">Access pending</p><h2 className="mt-2 font-serif text-3xl font-light text-foreground">Trade pricing opens after approval.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">We review each practice before showing member prices. You can review your application or speak with the studio about your eligibility.</p><div className="mt-5 flex flex-wrap gap-4"><Link href="/trade-program#apply" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground underline underline-offset-4">Review application <ArrowRight className="size-4" /></Link><Link href="/contact" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground underline underline-offset-4">Contact the studio</Link></div></section> : <section className="rounded-xl border border-primary/20 bg-primary/5 p-6 sm:p-8"><div className="flex items-start gap-4"><Check className="mt-1 size-6 shrink-0 text-primary" /><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Approved trade account</p><h2 className="mt-2 font-serif text-3xl font-light text-foreground">{member?.tier || 'Trade access'}</h2><p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">Open Trade Collections to see the studio price configured for each product. Retail prices remain unchanged in the public collection.</p><Link href="/trade/collections" className="mt-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">Open Trade Collections <ArrowRight className="size-4" /></Link></div></div></section>}
 
-            return (
-              <div
-                key={tier.id}
-                className={`p-6 rounded-lg border transition-all ${
-                  isCurrent ? 'border-primary bg-primary/5' : 'border-border/20 hover:border-primary/20'
-                }`}
-              >
-                {isCurrent && <Badge className="mb-4 bg-primary text-white">Your Current Tier</Badge>}
-
-                <h3 className="font-serif text-xl font-light text-foreground mb-3">{tier.title}</h3>
-
-                <div className="space-y-2 mb-6">
-                  <p className="text-sm text-muted-foreground">Minimum Order</p>
-                  <p className="text-2xl font-light text-primary">{tier.minOrder}</p>
-                  <p className="text-sm font-medium text-gold">{tier.discount}</p>
-                </div>
-
-                <div className="space-y-3 mb-6">
-                  {tier.benefits.map((benefit, idx) => (
-                    <div key={idx} className="flex gap-3 text-sm text-muted-foreground font-light">
-                      <span className="text-primary">✓</span>
-                      <span>{benefit}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {!isCurrent && (
-                  <Button
-                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-none"
-                    disabled={tier.title === 'Strategic Partner'}
-                  >
-                    {tier.title === 'Strategic Partner' ? 'Contact Sales' : 'Contact Us to Upgrade'}
-                  </Button>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="font-serif text-2xl font-light text-foreground">Pricing FAQs</h3>
-          <div className="space-y-3">
-            {faqs.map((faq, idx) => (
-              <div key={idx} className="border-b border-border/20 pb-3">
-                <p className="font-medium text-foreground mb-2">{faq.q}</p>
-                <p className="text-sm text-muted-foreground font-light">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <section className="grid gap-4 md:grid-cols-3"><article className="rounded-xl border border-border/70 bg-card p-6"><FileText className="size-6 text-primary" /><h2 className="mt-5 font-serif text-2xl font-light">Product-specific pricing</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Every eligible piece can carry its own trade discount. Your protected collection shows the approved amount clearly.</p></article><article className="rounded-xl border border-border/70 bg-card p-6"><Check className="size-6 text-primary" /><h2 className="mt-5 font-serif text-2xl font-light">No recurring fee</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Access is reviewed for qualifying practices without a monthly or annual programme fee.</p></article><article className="rounded-xl border border-border/70 bg-card p-6"><MessageCircle className="size-6 text-primary" /><h2 className="mt-5 font-serif text-2xl font-light">Studio support</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Bring a brief to the studio for sourcing, specification, and project support.</p></article></section>
+        <section className="space-y-4"><h2 className="font-serif text-3xl font-light text-foreground">Trade access questions</h2>{faqs.map((faq) => <details key={faq.q} className="group border-b border-border/60 py-4"><summary className="cursor-pointer list-none font-medium text-foreground marker:hidden">{faq.q}<span className="float-right text-primary transition group-open:rotate-45">+</span></summary><p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{faq.a}</p></details>)}</section>
       </div>
     </PortalLayout>
   )

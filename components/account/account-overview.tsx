@@ -1,243 +1,94 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowUpRight, CalendarDays, Heart, ShoppingBag } from 'lucide-react'
+import { ArrowRight, CalendarDays, Heart, MapPin, Package, Settings, ShieldCheck, ShoppingCart, UserRound, BriefcaseBusiness } from '@/components/ui/luxury-icons'
 import { useEffect, useState } from 'react'
-import { useCart } from '@/lib/context/cart-context' // 👈 Import useCart
+import { useCart } from '@/lib/context/cart-context'
 
 type AccountData = Awaited<ReturnType<typeof import('@/lib/account/queries').getAccountOverview>>
 
-// Live Client-Side Cart Count Component
-function CartCount({ fallbackCount }: { fallbackCount: number }) {
-  const { cartCount } = useCart()
-  const [isMounted, setIsMounted] = useState(false)
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  // Show live client cartCount once mounted in browser, fallback to server count during SSR
-  const displayCount = isMounted ? cartCount : fallbackCount
-
-  return <>{`${displayCount} ${displayCount === 1 ? 'item' : 'items'}`}</>
-}
-
-function WishlistCount() {
-  const [count, setCount] = useState<number | null>(null)
-
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem('wishlist')
-      const parsed = saved ? JSON.parse(saved) : []
-      setCount(Array.isArray(parsed) ? parsed.length : 0)
-    } catch {
-      setCount(null)
-    }
-  }, [])
-
-  return <>{count === null ? 'Saved pieces' : `${count} ${count === 1 ? 'piece' : 'pieces'} saved`}</>
-}
+const heroImage = '/prototype/hero-natural-light.jpg'
 
 export function AccountOverview({ data }: { data: NonNullable<AccountData> }) {
-  const { user, cartCount: serverCartCount, orders, nextConsultation, membership } = data
-  const firstName = user.firstName || ''
-  const greeting = firstName ? `Welcome back, ${firstName}` : 'Welcome back'
+  const { user, cartCount: serverCartCount, orders, nextConsultation, membership, loadError } = data
+  const { cartCount } = useCart()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  const firstName = user.firstName || user.email.split('@')[0] || 'Member'
+  const displayCartCount = mounted ? cartCount : serverCartCount
+  const recentOrder = orders[0]
+  const orderStatus = recentOrder?.status ? String(recentOrder.status).replaceAll('_', ' ') : 'No orders yet'
+  const formatDate = (value: unknown) => value instanceof Date ? value.toLocaleDateString('en-UG', { month: 'short', day: 'numeric', year: 'numeric' }) : ''
+  const recentOrderImage = (() => {
+    if (!recentOrder || !Array.isArray(recentOrder.items)) return ''
+    const item = recentOrder.items.find((entry) => typeof entry === 'object' && entry !== null && typeof (entry as { image?: unknown }).image === 'string') as { image?: string } | undefined
+    return item?.image || ''
+  })()
 
   return (
-    <div className="flex flex-col gap-14">
-      <header className="flex flex-col gap-5 border-b border-border/70 pb-10 md:flex-row md:items-end md:justify-between">
-        <div className="flex items-center gap-5">
-          {user.avatar ? (
-            <img src={user.avatar} alt="" className="size-16 rounded-full object-cover" />
-          ) : (
-            <div className="flex size-16 items-center justify-center rounded-full border border-border font-serif text-2xl text-primary">
-              {(firstName || user.email).charAt(0).toUpperCase()}
-            </div>
-          )}
-          <div className="flex flex-col gap-1">
-            <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-              Your Revamp account
-            </p>
-            <h1 className="font-serif text-4xl tracking-tight text-balance md:text-5xl">
-              {greeting}
-            </h1>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
-          </div>
-        </div>
-        <Link
-          href="/user-profile"
-          className="text-sm text-primary underline-offset-4 hover:underline"
-        >
-          Manage account <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
-        </Link>
-      </header>
+    <div className="bg-background">
+      {loadError && <div role="status" className="border-b border-amber-400/30 bg-amber-50 px-5 py-3 text-sm text-amber-950 sm:px-8 lg:px-12">Some account details are temporarily unavailable. You can retry the page.</div>}
 
-      <section className="flex flex-col gap-5" aria-labelledby="shopping-heading">
-        <SectionHeading
-          id="shopping-heading"
-          eyebrow="Shopping"
-          title="Everything you love, in one place."
-        />
-        <div className="grid gap-px overflow-hidden border border-border bg-border md:grid-cols-3">
-          {/* 👈 Pass live CartCount component here */}
-          <AccountCard
-            href="/cart"
-            icon={<ShoppingBag aria-hidden="true" />}
-            title="Your Cart"
-            detail={<CartCount fallbackCount={serverCartCount} />}
-          />
-          <AccountCard
-            href="/wishlist"
-            icon={<Heart aria-hidden="true" />}
-            title="Saved Pieces"
-            detail={<WishlistCount />}
-          />
-          <AccountCard
-            href="/orders"
-            icon={<ShoppingBag aria-hidden="true" />}
-            title="Order History"
-            detail={orders.length ? `${orders.length} recent orders` : 'No orders yet'}
-          />
+      <section className="relative overflow-hidden bg-obsidian text-ivory">
+        <div className="absolute inset-0 bg-black/35" aria-hidden="true" />
+        <img src={heroImage} alt="A considered Revamp interior" className="absolute inset-0 h-full w-full object-cover opacity-75" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-black/10" aria-hidden="true" />
+        <div className="relative mx-auto flex min-h-[22rem] max-w-[1440px] items-end px-5 pb-10 pt-24 sm:min-h-[26rem] sm:px-8 sm:pb-14 lg:px-12">
+          <div className="max-w-2xl"><p className="text-[10px] uppercase tracking-[0.3em] text-ivory/65">My account</p><h1 className="mt-5 max-w-xl font-serif text-6xl font-light leading-[0.86] sm:text-8xl">Your space,<br />your story.</h1><p className="mt-6 max-w-md text-sm leading-6 text-ivory/75">Manage your orders, details, preferences, and the pieces that shape your life.</p></div>
         </div>
       </section>
 
-      <section className="flex flex-col gap-5" aria-labelledby="design-heading">
-        <SectionHeading
-          id="design-heading"
-          eyebrow="Your design journey"
-          title="A more considered way forward."
-        />
-        <div className="border border-border p-6 md:p-8">
-          <div className="flex flex-col gap-4">
-            <p className="max-w-lg font-serif text-2xl leading-tight">
-              Your design journey starts here.
-            </p>
-            <p className="max-w-xl text-sm leading-6 text-muted-foreground">
-              Considering transforming a space? Our design team is here to help you make the next decision with confidence.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link
-                href="/services"
-                className="text-sm text-primary underline-offset-4 hover:underline"
-              >
-                Explore design services <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
-              </Link>
-              <Link
-                href="/consultation"
-                className="text-sm text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
-              >
-                Book a consultation
-              </Link>
-            </div>
-          </div>
+      <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 sm:py-12 lg:px-12">
+        <div className="grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-14">
+          <aside className="lg:sticky lg:top-28 lg:self-start">
+            <div className="flex items-center gap-3 border-b border-border pb-6"><div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-muted font-serif text-2xl text-foreground">{firstName.charAt(0).toUpperCase()}</div><div className="min-w-0"><p className="font-serif text-lg leading-tight">Welcome back,<br />{firstName}</p><Link href="/user-profile" className="mt-2 inline-block text-[10px] uppercase tracking-[0.15em] text-muted-foreground underline underline-offset-4">Edit profile</Link></div></div>
+            <nav className="mt-5 grid gap-1" aria-label="Account sections"><AccountNav href="/account" icon={UserRound} label="Overview" active /><AccountNav href="/client/orders" icon={Package} label="Orders" /><AccountNav href="/user-profile#addresses" icon={MapPin} label="Addresses" /><AccountNav href="/wishlist" icon={Heart} label="Saved items" /><AccountNav href="/user-profile#settings" icon={Settings} label="Preferences" /><AccountNav href="/user-profile" icon={ShieldCheck} label="Account details" /></nav>
+            <div className="mt-6 border-t border-border pt-5"><Link href="/trade-program" className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-foreground/80 transition hover:text-primary"><BriefcaseBusiness className="size-4" />Trade programme</Link></div>
+          </aside>
+
+          <main className="min-w-0">
+            <section className="grid gap-3 border-b border-border pb-8 sm:grid-cols-2 xl:grid-cols-4" aria-label="Account overview">
+              <Metric label="Cart items" value={displayCartCount} href="/cart" icon={ShoppingCart} />
+              <Metric label="Orders" value={orders.length} href="/client/orders" icon={Package} />
+              <Metric label="Membership" value={membership?.status === 'active' ? 'Active' : 'Signature'} href="/membership" icon={Heart} />
+              <Metric label="Consultations" value={nextConsultation ? '1' : '0'} href="/client/consultations" icon={CalendarDays} />
+            </section>
+
+            <section className="mt-8 border-b border-border pb-10" aria-labelledby="account-spaces-title">
+              <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.24em] text-primary">Your spaces</p><h2 id="account-spaces-title" className="mt-2 font-serif text-3xl sm:text-4xl">Continue where you belong.</h2></div><p className="max-w-sm text-sm leading-6 text-muted-foreground">Keep your project conversations close or explore privileges created for design professionals.</p></div>
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <Link href="/client" className="group flex min-h-40 flex-col justify-between border border-border bg-muted/20 p-5 transition hover:border-primary hover:bg-muted/40 sm:p-6"><BriefcaseBusiness className="size-6 text-foreground" /><span><span className="block font-serif text-2xl">Client portal</span><span className="mt-1 block text-sm leading-6 text-muted-foreground">Review projects, documents, appointments, and messages.</span><span className="mt-4 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]">Open portal <ArrowRight className="size-3 transition-transform group-hover:translate-x-1" /></span></span></Link>
+                <Link href="/trade-program" className="group flex min-h-40 flex-col justify-between border border-border bg-muted/20 p-5 transition hover:border-primary hover:bg-muted/40 sm:p-6"><ShieldCheck className="size-6 text-foreground" /><span><span className="block font-serif text-2xl">Trade programme</span><span className="mt-1 block text-sm leading-6 text-muted-foreground">Apply for professional access and product-specific privileges.</span><span className="mt-4 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em]">Explore access <ArrowRight className="size-3 transition-transform group-hover:translate-x-1" /></span></span></Link>
+              </div>
+            </section>
+
+            <section className="mt-10 grid gap-5 border-b border-border pb-10 md:grid-cols-[1fr_0.82fr]">
+              <div className="border border-border bg-muted/25 p-6 sm:p-8"><p className="text-[10px] uppercase tracking-[0.24em] text-primary">Curated living, closer to you.</p><h2 className="mt-4 max-w-sm font-serif text-4xl leading-[0.95] sm:text-5xl">Pieces that bring your vision to life.</h2><Link href="/collections" className="mt-8 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-foreground underline underline-offset-4">Shop the collection <ArrowRight className="size-3" /></Link></div>
+              <div className="relative min-h-60 overflow-hidden bg-muted"><img src="/prototype/feature-console.jpg" alt="Curated interior detail" className="absolute inset-0 h-full w-full object-cover" /></div>
+            </section>
+
+            <AccountSectionTitle title="Recent orders" href="/client/orders" />
+            <section className="divide-y divide-border border-b border-border">{recentOrder ? <Link href="/client/orders" className="flex items-center gap-4 py-4 transition hover:bg-muted/30 sm:gap-5"><div className="size-16 shrink-0 overflow-hidden bg-muted">{recentOrderImage ? <img src={recentOrderImage} alt="" className="h-full w-full object-cover" /> : <ShoppingCart className="m-5 size-6 text-muted-foreground" />}</div><div className="min-w-0 flex-1"><p className="font-serif text-xl">Order #{recentOrder.orderNumber}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(recentOrder.createdAt)}</p><span className="mt-2 inline-flex text-xs capitalize text-foreground/65">●&nbsp; {orderStatus}</span></div><ArrowRight className="size-4 shrink-0 text-muted-foreground" /></Link> : <p className="py-8 text-sm text-muted-foreground">Your orders will appear here after your first purchase.</p>}</section>
+
+            <div className="mt-10 grid gap-8 md:grid-cols-2"><section><AccountSectionTitle title="Saved items" href="/wishlist" /><Link href="/wishlist" className="flex min-h-28 items-center justify-center border border-dashed border-border text-sm text-muted-foreground transition hover:border-primary hover:text-primary"><Heart className="mr-2 size-4" />View your saved pieces</Link></section><section><AccountSectionTitle title="Addresses" href="/user-profile#addresses" /><Link href="/user-profile#addresses" className="flex min-h-28 items-center gap-3 border border-border p-5 text-sm text-muted-foreground transition hover:border-primary hover:text-primary"><MapPin className="size-5" /><span>Manage your delivery addresses</span><ArrowRight className="ml-auto size-4" /></Link></section></div>
+
+            {nextConsultation && <section className="mt-10 border border-border bg-muted/25 p-5 sm:p-6"><p className="text-[10px] uppercase tracking-[0.2em] text-primary">Upcoming appointment</p><h2 className="mt-3 font-serif text-2xl">{nextConsultation.title}</h2><p className="mt-2 text-sm text-muted-foreground">{formatDate(nextConsultation.preferredDate)} · {nextConsultation.status}</p><Link href="/client/consultations" className="mt-5 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] underline underline-offset-4">View appointments <ArrowRight className="size-3" /></Link></section>}
+          </main>
         </div>
-      </section>
-
-      <div className="grid gap-14 md:grid-cols-2">
-        <section className="flex flex-col gap-5" aria-labelledby="consultation-heading">
-          <SectionHeading
-            id="consultation-heading"
-            eyebrow="Upcoming consultation"
-            title="Make space for the conversation."
-          />
-          <div className="border border-border p-6">
-            {nextConsultation ? (
-              <div className="flex flex-col gap-3">
-                <CalendarDays className="size-5 text-primary" aria-hidden="true" />
-                <p className="font-serif text-2xl">{nextConsultation.title}</p>
-                <p className="text-sm text-muted-foreground">
-                  {nextConsultation.preferredDate?.toLocaleDateString()} · {nextConsultation.status}
-                </p>
-                <Link href="/client/consultations" className="mt-2 text-sm text-primary hover:underline">
-                  View consultation <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
-                </Link>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <p className="font-serif text-2xl">Speak with our design team.</p>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Start with a considered conversation about your space and your ambitions.
-                </p>
-                <Link href="/consultation" className="text-sm text-primary hover:underline">
-                  Book a consultation <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
-                </Link>
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-5" aria-labelledby="membership-heading">
-          <SectionHeading
-            id="membership-heading"
-            eyebrow="Membership"
-            title="A closer relationship with Revamp."
-          />
-          <div className="border border-border p-6">
-            {membership && membership.status === 'active' ? (
-              <div className="flex flex-col gap-3">
-                <p className="font-serif text-2xl capitalize">
-                  {membership.membershipType} membership
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Active since {membership.startDate.toLocaleDateString()}
-                </p>
-                <Link href="/membership" className="text-sm text-primary hover:underline">
-                  View membership <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
-                </Link>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <p className="font-serif text-2xl">Discover The Revamp Membership</p>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Explore a more personal way to access our world of design, objects and experiences.
-                </p>
-                <Link href="/membership" className="text-sm text-primary hover:underline">
-                  Explore benefits <ArrowUpRight className="ml-1 inline size-4" aria-hidden="true" />
-                </Link>
-              </div>
-            )}
-          </div>
-        </section>
       </div>
-
-      <section className="flex flex-col gap-5" aria-labelledby="activity-heading">
-        <SectionHeading
-          id="activity-heading"
-          eyebrow="Recent activity"
-          title="Your latest moments with Revamp."
-        />
-        <div className="border border-border p-6">
-          <p className="text-sm text-muted-foreground">
-            {orders.length || nextConsultation
-              ? 'Your account activity will appear here as your journey continues.'
-              : 'No recent activity yet. Your orders, consultations and design milestones will appear here.'}
-          </p>
-        </div>
-      </section>
     </div>
   )
 }
 
-function SectionHeading({ id, eyebrow, title }: { id: string; eyebrow: string; title: string }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-primary">{eyebrow}</p>
-      <h2 id={id} className="font-serif text-3xl tracking-tight">{title}</h2>
-    </div>
-  )
+function AccountNav({ href, icon: Icon, label, active = false }: { href: string; icon: typeof UserRound; label: string; active?: boolean }) {
+  return <Link href={href} className={`flex min-h-11 items-center gap-3 px-3 text-sm transition ${active ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'}`}><Icon className="size-4" />{label}</Link>
 }
 
-function AccountCard({ href, icon, title, detail }: { href: string; icon: React.ReactNode; title: string; detail: React.ReactNode }) {
-  return (
-    <Link href={href} className="group flex min-h-36 flex-col justify-between bg-background p-6 transition-colors hover:bg-muted/40">
-      <span className="text-primary">{icon}</span>
-      <span className="flex flex-col gap-1">
-        <span className="font-serif text-2xl">{title}</span>
-        <span className="text-sm text-muted-foreground">{detail}</span>
-        <span className="mt-2 text-xs text-primary opacity-0 transition-opacity group-hover:opacity-100">
-          View <ArrowUpRight className="ml-1 inline size-3" aria-hidden="true" />
-        </span>
-      </span>
-    </Link>
-  )
+function Metric({ label, value, href, icon: Icon }: { label: string; value: string | number; href: string; icon: typeof Package }) {
+  return <Link href={href} className="border border-border bg-muted/20 p-5 transition hover:border-primary"><Icon className="size-5 text-foreground" /><p className="mt-6 font-serif text-4xl">{value}</p><p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p><span className="mt-4 block text-[10px] uppercase tracking-[0.14em] text-foreground/70">View <ArrowRight className="ml-1 inline size-3" /></span></Link>
+}
+
+function AccountSectionTitle({ title, href }: { title: string; href: string }) {
+  return <div className="mb-4 mt-10 flex items-center justify-between"><h2 className="font-serif text-3xl">{title}</h2><Link href={href} className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground">View all <ArrowRight className="ml-1 inline size-3" /></Link></div>
 }

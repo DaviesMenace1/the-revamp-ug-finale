@@ -29,6 +29,27 @@
       "when": 1786525579569,
       "tag": "0003_flawless_spitfire",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787574300000,
+      "tag": "0004_billing_documents_notifications_3d",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787574400000,
+      "tag": "0005_enable_rls_new_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787574500000,
+      "tag": "0006_visualization_metadata",
+      "breakpoints": true
     }
   ]
 }

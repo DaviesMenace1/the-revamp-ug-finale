@@ -1,10 +1,12 @@
+import { revalidatePath } from "next/cache"
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { db, products, productVariants } from "@/lib/db"
 import { eq, asc } from "drizzle-orm"
+import { requireAdminApi } from "@/lib/auth/api"
 
 const variantSchema = z.object({
-  type: z.enum(["COLOR", "FABRIC", "MATERIAL", "SIZE"]),
+  type: z.enum(["COLOR", "FABRIC", "MATERIAL", "FINISH", "SIZE"]),
   label: z.string().min(1),
   value: z.string().min(1),
   sku: z.string().optional().nullable(),
@@ -18,6 +20,7 @@ const variantSchema = z.object({
   colorId: z.string().optional().nullable(),
   fabricId: z.string().optional().nullable(),
   materialId: z.string().optional().nullable(),
+  finishId: z.string().optional().nullable(),
   attributes: z.record(z.string(), z.unknown()).default({}),
 })
 
@@ -25,6 +28,9 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ productId: string }> },
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId } = await context.params
 
@@ -54,6 +60,9 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ productId: string }> },
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId } = await context.params
 
@@ -107,12 +116,14 @@ export async function POST(
         colorId: data.colorId || null,
         fabricId: data.fabricId || null,
         materialId: data.materialId || null,
+        finishId: data.finishId || null,
         attributes: data.attributes,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
       .returning()
 
+    revalidatePath('/')
     return NextResponse.json({ success: true, variant }, { status: 201 })
   } catch (error) {
     console.error("Variant creation error:", error)
@@ -124,6 +135,9 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ productId: string }> },
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId } = await context.params
     const body = await request.json()
@@ -167,12 +181,14 @@ export async function PATCH(
         ...(data.colorId !== undefined && { colorId: data.colorId || null }),
         ...(data.fabricId !== undefined && { fabricId: data.fabricId || null }),
         ...(data.materialId !== undefined && { materialId: data.materialId || null }),
+        ...(data.finishId !== undefined && { finishId: data.finishId || null }),
         ...(data.attributes !== undefined && { attributes: data.attributes }),
         updatedAt: new Date(),
       })
       .where(eq(productVariants.id, variantId))
       .returning()
 
+    revalidatePath('/')
     return NextResponse.json({ success: true, variant: updated })
   } catch (error) {
     console.error("Variant update error:", error)
@@ -184,6 +200,9 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ productId: string }> },
 ) {
+  const authorizationError = await requireAdminApi()
+  if (authorizationError) return authorizationError
+
   try {
     const { productId } = await context.params
     const { searchParams } = new URL(request.url)
@@ -203,6 +222,7 @@ export async function DELETE(
 
     await db.delete(productVariants).where(eq(productVariants.id, variantId))
 
+    revalidatePath('/')
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Variant deletion error:", error)
